@@ -1,0 +1,52 @@
+Mantap, Robi 🙌 ini jelas struktur lo masih **vanilla HTML + JS modular**, jadi step buat *nyeplokin* ke **Vue SPA** gini:
+
+---
+
+### 🔑 Cara mindahin ke Vue
+
+1. **App.vue jadi wrapper utama**
+  Semua markup `<body>` lo yang sekarang → dipindahin ke `App.vue`.
+
+   ✔ * `#message` → jadi komponen `MessageToast.vue` (biar reusable). @done (9/13/2025, 1:49:40 PM)
+   ✔ * bagian filter, upload, tab → bisa jadi komponen terpisah (`FilterBar.vue`, `UploadForm.vue`, `Tabs.vue`). @done (9/13/2025, 1:49:51 PM)
+   ☐ * `<summaryTab>` & `<detailTab>` → bisa jadi 2 komponen halaman (`SummaryView.vue`, `DetailView.vue`) yang di-*mount* pakai router.
+
+2. **Router**
+  `vue-router` akan handle tab-panel gitu. Jadi bukan lagi pakai `data-target` + class `hidden`, tapi route kayak:
+
+   ☐ * `/summary`
+   ☐ * `/detail`
+
+  Di `Home.vue` lo bisa taro `<router-view />`.
+
+3. **Logic (JS modules)**
+
+   ☐ * `app.js → showMessage` → masuk ke `MessageToast.vue` pake reactive state.
+   ☐ * `period.js` → ganti `document.getElementById` → jadi `ref`/`v-model`.
+   ☐ * `summary.js` → bisa lo keep almost same, tapi function `calculateSummaryForUser` dipanggil di `setup()`.
+   ☐ * `table.js` → ga perlu generate innerHTML manual, cukup looping pakai `v-for`.
+
+4. **SPA Mounting**
+  `main.js`:
+
+    ☐ ```js
+    import { createApp } from 'vue'
+    import App from './App.vue'
+    import router from './router'
+      createApp(App).use(router).mount('#app')
+    ```
+
+    Lalu di `index.html` lo tinggal punya:
+
+    ```html
+    <body>
+      <div id="app"></div>
+    </body>
+    ```
+
+---
+
+### 🚀 Next Step
+
+Biar ga kebanyakan sekaligus, menurut gua kita mulai dengan **mindahin bagian `message` + filter bar** dulu jadi komponen Vue.
+Mau gua draft-in langsung `MessageToast.vue` + `FilterBar.vue` buat lo?
