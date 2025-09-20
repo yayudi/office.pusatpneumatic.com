@@ -1,4 +1,4 @@
-<!-- src/views/Absensi.vue -->
+<!-- views/Absensi.vue -->
 <template>
   <div class="p-6 space-y-6">
     <!-- Header -->
@@ -12,6 +12,16 @@
       :filters="filters"
       v-model="filterValues"
       @change="applyFilter"
+      @clear="clearFilters"
+    />
+
+    <Multiselect
+      v-model="filterValues.name"
+      :options="users.map(u => ({ label: u.nama, value: u.id }))"
+      :multiple="true"
+      label="label"
+      track-by="value"
+      placeholder="Pilih nama..."
     />
 
     <!-- Tabs -->
@@ -25,17 +35,28 @@
 
     <!-- Content -->
     <div v-if="activeTab === 'summary'">
-      <SummaryView v-if="summary" :summary="summary" />
+      <SummaryView v-if="logs.length"
+        :users="users"
+        :year="parseInt(filterValues.year)"
+        :month="parseInt(filterValues.month)"
+        :global-info="summary"
+      />
       <p v-else class="text-gray-500">Belum ada data.</p>
     </div>
 
     <div v-else>
       <DetailView
         v-if="logs.length"
-        :user="{ n: filterValues.name || 'Semua', d: logs }"
+        :user="filterValues.name.length === 1
+                ? users.find(u => u.id === filterValues.name[0].value)
+                : null"
+        :users="filterValues.name.length > 1
+                ? filteredUsers
+                : (filterValues.name.length === 0 ? users : null)"
         :year="parseInt(filterValues.year)"
         :month="parseInt(filterValues.month)"
       />
+
       <p v-else class="text-gray-500">
         Belum ada log detail. (logs length: {{ logs.length }})
       </p>
@@ -44,69 +65,143 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue"
+import { ref, watch, onMounted } from "vue"
 import FilterBar from "@/components/FilterBar.vue"
+import { getAbsensiData } from "@/api/helpers/attendance.js"
 import UploadForm from "@/components/UploadForm.vue"
 import Tabs from "@/components/Tabs.vue"
 import SummaryView from "@/components/SummaryView.vue"
 import DetailView from "@/components/DetailView.vue"
+import Multiselect from "vue-multiselect"
+import { API_URL } from "@/api/config.js"
+import "vue-multiselect/dist/vue-multiselect.css"
 
-// State
 const activeTab = ref("summary")
 const summary = ref(null)
+const users = ref([])
 const logs = ref([])
+const selectedUserIndex = ref(-1)
+const filteredUsers = ref([])
+
+// data index tahun/bulan dari server
+const availableIndexes = ref({})
+const filters = ref([])
 
 const filterValues = ref({
-  year: "2025",
-  month: "09", // default September
-  name: ""
+  year: '',
+  month: '',
+  name: []
 })
 
-const filters = ref([
-  { type: "text", key: "name", label: "Nama", placeholder: "Cari nama..." },
-  {
-    type: "select",
-    key: "year",
-    label: "Tahun",
-    options: [
-      { label: "2025", value: "2025" },
-      { label: "2024", value: "2024" }
-    ]
-  },
-  { type: "select", key: "month", label: "Bulan", options: [] }
-])
+onMounted(async () => {
+  try {
+    const res = await fetch(API_URL+"json/list_index.json")
+    availableIndexes.value = await res.json()
 
-// 🚀 Mock data pas mounted
-onMounted(() => {
-  summary.value = {
-    workHours: 160,
-    lemburHours: 12,
-    uangLembur: 240000,
-    telatHours: 5,
-    earlyOutHours: 3,
-    absenceDays: 1,
-    breakHours: 10,
-    dendaPerHari: [
-      { tanggal: 3, telat: 45, denda: 20000 },
-      { tanggal: 10, telat: 30, denda: 15000 }
+    // ambil tahun terbaru
+    const years = Object.keys(availableIndexes.value).sort((a, b) => b - a)
+    const latestYear = years[0]
+    const months = availableIndexes.value[latestYear].sort()
+    const latestMonth = months[months.length - 1]
+
+    // set default filter
+    filterValues.value = {
+      year: latestYear,
+      month: latestMonth,
+      name: []
+    }
+
+    // generate filter config
+    filters.value = [
+      { type: "text", key: "name", label: "Nama", placeholder: "Cari nama..." },
+      {
+        type: "select",
+        key: "year",
+        label: "Tahun",
+        multiple: false,
+        options: years.map(y => ({ label: y, value: y }))
+      },
+      {
+        type: "select",
+        key: "month",
+        label: "Bulan",
+        multiple: false,
+        options: months.map(m => ({
+          label: new Date(2000, parseInt(m) - 1).toLocaleString("id-ID", { month: "long" }),
+          value: m
+        }))
+      }
     ]
+  } catch (err) {
+    console.error("Gagal fetch list_index.json:", err)
+  }
+})
+
+function clearFilters() {
+  const years = Object.keys(availableIndexes.value).sort((a, b) => b - a)
+  const latestYear = years[0]
+  const months = availableIndexes.value[latestYear].sort()
+  const latestMonth = months[months.length - 1]
+
+  filterValues.value = { year: [latestYear], month: [latestMonth], name: [] }
+  selectedUserIndex.value = -1
+  logs.value = users.value.flatMap(u => u.logs || [])
+}
+
+watch(
+  () => ({ year: filterValues.value.year, month: filterValues.value.month }),
+  async ({ year, month }) => {
+    if (!year || !month) return
+    try {
+      const data = await getAbsensiData(year, month)
+
+      // console.log("📥 raw server data:", data)   // ✅ cek raw
+      // console.log("📥 normalized users:", data.users)  // ✅ cek hasil normalize
+
+      summary.value = data.summary || null
+      users.value = data.users || []
+
+      if (users.value.length > 0) {
+        selectedUserIndex.value = -1
+        logs.value = users.value.flatMap(u => u.logs || [])
+      } else {
+        logs.value = []
+      }
+    } catch (err) {
+      console.error("Fetch absensi error:", err)
+      users.value = []
+      logs.value = []
+      summary.value = null
+    }
+  },
+  { immediate: true }
+)
+
+function applyFilter(values) {
+  let filtered = users.value
+
+  if (Array.isArray(values.name) && values.name.length) {
+    const selectedIds = values.name.map(n => n.value)
+    filtered = filtered.filter(u => selectedIds.includes(u.id))
   }
 
-  logs.value = [
-    { tanggal: 1, jamMasuk: 480, jamKeluar: 1020, breaks: [], status: 0 },
-    { tanggal: 2, jamMasuk: 500, jamKeluar: 1080, breaks: [720, 780], status: 0 },
-    { tanggal: 3, status: 1 }
-  ]
+  filteredUsers.value = filtered
+  logs.value = filtered.flatMap(u => u.logs || [])
 
-  console.log("🔥 Mock logs injected:", logs.value)
-})
-
-// Event handlers
-function applyFilter(values) {
-  console.log("Filter berubah:", values)
+  // console.log("applyFilter → values:", values)
+  // console.log("applyFilter → filtered:", filtered)
 }
+
 
 function handleUpload(formData) {
   console.log("Upload formData:", formData)
 }
+
+// watch(users, (val) => {
+//   console.log("DEBUG users:", val)
+// })
+// watch(() => filterValues.value.name, (val) => {
+//   console.log("DEBUG nama terpilih:", val)
+//   applyFilter(filterValues.value)
+// })
 </script>

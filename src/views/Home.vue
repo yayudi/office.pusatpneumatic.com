@@ -75,14 +75,6 @@ export default {
       error: ""
     };
   },
-  async mounted() {
-    try {
-      const res = await api.get("/products");
-      this.products = res.data.data;
-    } catch (err) {
-      this.error = "Gagal ambil produk";
-    }
-  },
   methods: {
     async handleLogout() {
       const success = await logout();

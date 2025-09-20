@@ -36,8 +36,8 @@
 <script setup>
 import { ref } from "vue"
 import { useRouter } from "vue-router"
-import api from "../api/axios.js"
-import { useToast } from "../composables/UseToast.js"
+import api from "@/api/axios.js"
+import { useToast } from "@/composables/UseToast.js"
 
 const username = ref("")
 const password = ref("")

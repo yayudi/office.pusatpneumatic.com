@@ -1,16 +1,20 @@
 <!-- FilterBar.vue -->
 <template>
   <div class="flex flex-wrap gap-4 items-center bg-white p-3 rounded-lg shadow border">
+    <!-- Loop filter -->
     <template v-for="(filter, index) in filters" :key="index">
-      <!-- Text Input -->
-      <div v-if="filter.type === 'text'" class="flex items-center gap-2">
-        <label v-if="filter.label" :for="filter.key" class="text-sm font-medium text-gray-600 whitespace-nowrap">
+      <!-- Date -->
+      <div v-if="filter.type === 'date'" class="flex items-center gap-2">
+        <label
+          v-if="filter.label"
+          :for="filter.key"
+          class="text-sm font-medium text-gray-600 whitespace-nowrap"
+        >
           {{ filter.label }}:
         </label>
         <input
           :id="filter.key"
-          type="text"
-          :placeholder="filter.placeholder || ''"
+          type="date"
           class="px-3 py-2 border rounded-lg text-sm shadow-sm focus:ring-2 focus:ring-blue-400"
           v-model="localValues[filter.key]"
           @input="emitChange"
@@ -24,6 +28,7 @@
         </label>
         <select
           :id="filter.key"
+          :multiple="filter.multiple || false"
           class="px-3 py-2 border rounded-lg text-sm shadow-sm focus:ring-2 focus:ring-blue-400"
           v-model="localValues[filter.key]"
           @change="emitChange"
@@ -34,20 +39,16 @@
         </select>
       </div>
 
-      <!-- Date -->
-      <div v-else-if="filter.type === 'date'" class="flex items-center gap-2">
-        <label v-if="filter.label" :for="filter.key" class="text-sm font-medium text-gray-600 whitespace-nowrap">
-          {{ filter.label }}:
-        </label>
-        <input
-          :id="filter.key"
-          type="date"
-          class="px-3 py-2 border rounded-lg text-sm shadow-sm focus:ring-2 focus:ring-blue-400"
-          v-model="localValues[filter.key]"
-          @input="emitChange"
-        />
-      </div>
     </template>
+
+    <!-- Tombol Clear -->
+    <button
+      type="button"
+      class="ml-auto px-3 py-2 bg-gray-200 hover:bg-gray-300 text-sm rounded-lg shadow-sm"
+      @click="emitClear"
+    >
+      Reset Filter
+    </button>
   </div>
 </template>
 
@@ -57,8 +58,7 @@ import { reactive, watch } from "vue"
 const props = defineProps({
   filters: {
     type: Array,
-    required: true,
-    // contoh: [{ type:"text", key:"name", label:"Nama", placeholder:"Cari nama..." }]
+    required: true
   },
   modelValue: {
     type: Object,
@@ -66,18 +66,26 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(["update:modelValue", "change"])
+const emit = defineEmits(["update:modelValue", "change", "clear"])
 
-// bikin local copy supaya reactive
+// local copy supaya reactive
 const localValues = reactive({ ...props.modelValue })
 
-// kalau parent update modelValue, sync ke local
-watch(() => props.modelValue, (val) => {
-  Object.assign(localValues, val)
-}, { deep: true })
+// sync dengan parent
+watch(
+  () => props.modelValue,
+  (val) => {
+    Object.assign(localValues, val)
+  },
+  { deep: true }
+)
 
 function emitChange() {
   emit("update:modelValue", { ...localValues })
   emit("change", { ...localValues })
+}
+
+function emitClear() {
+  emit("clear")
 }
 </script>

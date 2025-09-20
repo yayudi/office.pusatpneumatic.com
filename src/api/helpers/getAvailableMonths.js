@@ -1,7 +1,7 @@
-// src/api/helpers/getAvailableMonths.js
+// api/helpers/getAvailableMonths.js
 import api from "../axios"
 
-export async function getAvailableMonths(year) {
+export default async function getAvailableMonths(year) {
   try {
     const { data } = await api.get("/json/list_index.json")
     const months = data[year] || []

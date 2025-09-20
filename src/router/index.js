@@ -20,22 +20,16 @@ const router = createRouter({
 });
 
 // ✅ Navigation Guard (full mock)
-router.beforeEach(async (to) => {
-  try {
-    const res = await api.get("/auth/session");
-    const loggedIn = res.data.loggedIn;
+router.beforeEach((to) => {
+  const loggedIn = !!localStorage.getItem("token");
 
-    if (to.meta.requiresAuth && !loggedIn) {
-      return "/login";
-    }
-    if (to.path === "/login" && loggedIn) {
-      return "/home";
-    }
-    return true;
-  } catch (err) {
-    console.error("[beforeEach] Session check failed:", err);
-    return "/login";
+  if (to.meta.requiresAuth && !loggedIn) {
+    return { path: "/login" };
   }
+  if (to.path === "/login" && loggedIn) {
+    return { path: "/home" };
+  }
+  return true;
 });
 
 export default router;

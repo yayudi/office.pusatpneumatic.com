@@ -1,4 +1,4 @@
-// src/composables/useToast.js
+// UseToast
 import { ref } from "vue"
 
 const toastRef = ref(null)

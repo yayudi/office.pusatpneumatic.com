@@ -1,52 +1,33 @@
-Mantap, Robi 🙌 ini jelas struktur lo masih **vanilla HTML + JS modular**, jadi step buat *nyeplokin* ke **Vue SPA** gini:
+Tambahin lebih banyak detail per-hari
 
----
+Sekarang cuma dendaPerHari. Lo bisa extend pake data lain dari summary yang udah ada (lemburPerHari, earlyOut, missingDays dsb).
 
-### 🔑 Cara mindahin ke Vue
+Misalnya bikin section baru:
 
-1. **App.vue jadi wrapper utama**
-  Semua markup `<body>` lo yang sekarang → dipindahin ke `App.vue`.
+📌 Lembur per Hari → tampilkan tanggal + jam lembur.
 
-   ✔ * `#message` → jadi komponen `MessageToast.vue` (biar reusable). @done (9/13/2025, 1:49:40 PM)
-   ✔ * bagian filter, upload, tab → bisa jadi komponen terpisah (`FilterBar.vue`, `UploadForm.vue`, `Tabs.vue`). @done (9/13/2025, 1:49:51 PM)
-   ☐ * `<summaryTab>` & `<detailTab>` → bisa jadi 2 komponen halaman (`SummaryView.vue`, `DetailView.vue`) yang di-*mount* pakai router.
+📌 Early Out per Hari → kapan pulang cepet.
 
-2. **Router**
-  `vue-router` akan handle tab-panel gitu. Jadi bukan lagi pakai `data-target` + class `hidden`, tapi route kayak:
+Highlight angka penting
 
-   ☐ * `/summary`
-   ☐ * `/detail`
+absenceDays > 0 → kasih warna merah.
 
-  Di `Home.vue` lo bisa taro `<router-view />`.
+uangLembur → kasih warna hijau biar keliatan "positif".
 
-3. **Logic (JS modules)**
+Chart opsional (buat lebih visual)
 
-   ☐ * `app.js → showMessage` → masuk ke `MessageToast.vue` pake reactive state.
-   ☐ * `period.js` → ganti `document.getElementById` → jadi `ref`/`v-model`.
-   ☐ * `summary.js` → bisa lo keep almost same, tapi function `calculateSummaryForUser` dipanggil di `setup()`.
-   ☐ * `table.js` → ga perlu generate innerHTML manual, cukup looping pakai `v-for`.
+Bisa pake vue-chartjs / apexcharts → bar chart lembur per hari, line chart telat per hari.
 
-4. **SPA Mounting**
-  `main.js`:
+Gampang dibaca buat atasan.
 
-    ☐ ```js
-    import { createApp } from 'vue'
-    import App from './App.vue'
-    import router from './router'
-      createApp(App).use(router).mount('#app')
-    ```
+Interaktif filter (opsi)
 
-    Lalu di `index.html` lo tinggal punya:
+Misalnya filter di summary: pilih range tanggal (minggu 1, minggu 2, dsb) tanpa ngaruhin tab detail.
 
-    ```html
-    <body>
-      <div id="app"></div>
-    </body>
-    ```
+Atau filter toggle "tampilkan hari libur" → useful kalau data panjang.
 
----
+UX kecil tapi impact gede
 
-### 🚀 Next Step
+Sticky header di tabel ringkasan (biar kalau datanya panjang gak ilang).
 
-Biar ga kebanyakan sekaligus, menurut gua kita mulai dengan **mindahin bagian `message` + filter bar** dulu jadi komponen Vue.
-Mau gua draft-in langsung `MessageToast.vue` + `FilterBar.vue` buat lo?
+Tambahin emoji di labelMap biar lebih friendly (contoh: "💼 Jam Kerja", "⏰ Telat").

@@ -1,3 +1,4 @@
+<!-- components\DetailView.vue -->
 <template>
   <div class="overflow-x-auto max-h-[80vh] border rounded-lg shadow border-gray-300">
     <table class="min-w-full bg-white text-sm text-gray-700 border-collapse">
@@ -35,29 +36,43 @@
 import { computed } from "vue"
 import { formatJamMenit } from "@/api/helpers/time.js"
 
-// Props dari Absensi.vue
 const props = defineProps({
-  user: { type: Object, required: true },   // { n: nama, d: logs }
+  user: { type: Object, default: null },   // { id, nama, logs[] }
+  users: { type: Array, default: null },   // array of { id, nama, logs[] }
   year: { type: Number, required: true },
   month: { type: Number, required: true }
 })
 
 const formattedRows = computed(() => {
-  return (props.user.d || []).map(log => {
-    let ket = ""
-    if (log.status === 1) ket = "Tidak hadir"
-    else if (log.status === 2) ket = "Libur"
-    else ket = ""
-
-    return {
-      nama: props.user.n,
-      tanggal: log.tanggal,
-      jamMasuk: formatJamMenit(log.jamMasuk),
-      breakOut: log.breaks?.[0] ? formatJamMenit(log.breaks[0]) : "-",
-      breakIn: log.breaks?.[1] ? formatJamMenit(log.breaks.at(-1)) : "-",
-      jamKeluar: formatJamMenit(log.jamKeluar),
-      ket
-    }
-  })
+  if (props.user) {
+    // mode 1 user
+    return (props.user.logs || []).map(log => formatRow(log, props.user.nama))
+  } else if (props.users) {
+    // multi-user mode
+    return props.users.flatMap(u =>
+      (u.logs || []).map(log => formatRow(log, u.nama))
+    )
+  }
+  return []
 })
+
+function formatRow(log, nama) {
+  let ket = ""
+  if (log.status === 1) ket = "Tidak hadir"
+  else if (log.status === 2) ket = "Libur"
+
+  if (log.breaks && log.breaks.length > 0) {
+    console.log(`Log tanggal ${log.tanggal} untuk ${nama}, data breaks:`, log.breaks);
+  }
+
+  return {
+    nama,
+    tanggal: log.tanggal,
+    jamMasuk: formatJamMenit(log.jamMasuk),
+    breakOut: log.breaks?.[0] ? formatJamMenit(log.breaks[0].start) : "-",
+    breakIn: log.breaks?.[0] ? formatJamMenit(log.breaks.at(-1).end) : "-",
+    jamKeluar: formatJamMenit(log.jamKeluar),
+    ket
+  }
+}
 </script>
