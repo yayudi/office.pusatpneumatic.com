@@ -10,7 +10,7 @@ export const getProductsWithFilters = async (connection, filters) => {
     search,
     searchBy,
     location,
-    minusStockOnly,
+    stockStatus,
     packageOnly,
     is_package,
     status,
@@ -90,43 +90,45 @@ export const getProductsWithFilters = async (connection, filters) => {
     }
   }
 
-  // Filter Minus Stock (Logic Subquery Kompleks)
-  if (minusStockOnly) {
+  // Filter Stock Status (All / Minus / Positive)
+  if (stockStatus !== "all") {
     // Note: Logic minus stock direplikasi sesuai versi asli
-    const minusStockConditions = [];
+    const statusConditions = [];
     if (location !== "all") {
-      minusStockConditions.push("l.purpose = ?");
+      statusConditions.push("l.purpose = ?");
       // Parameter purpose sudah ada di queryParams jika location != all,
-      // tapi query minus stock butuh parameter terpisah karena ada di subquery select.
-      // Untuk simplifikasi repository pattern ini, kita masukkan params lagi.
       queryParams.push(purpose);
     }
 
     // Jika ada filter lokasi gudang detail
     if (location === "gudang") {
       if (building !== "all") {
-        minusStockConditions.push("l.building = ?");
+        statusConditions.push("l.building = ?");
         queryParams.push(building);
       }
       if (floor !== "all") {
-        minusStockConditions.push("l.floor = ?");
+        statusConditions.push("l.floor = ?");
         queryParams.push(floor);
       }
     }
 
-    const minusWhere =
-      minusStockConditions.length > 0 ? `AND ${minusStockConditions.join(" AND ")}` : "";
+    const statusWhere =
+      statusConditions.length > 0 ? `AND ${statusConditions.join(" AND ")}` : "";
 
-    // Subquery untuk cek total stok < 0
-    const minusStockSql = `(
+    // Subquery untuk cek total stok
+    // operator logic: minus (< 0), positive (>= 0)
+    const operator = stockStatus === "minus" ? "<" : ">=";
+
+    // Fix: Menggunakan SUM stok
+    const statusStockSql = `(
         COALESCE((
           SELECT SUM(sl.quantity)
           FROM stock_locations sl
           JOIN locations l ON sl.location_id = l.id
-          WHERE sl.product_id = p.id ${minusWhere}
-        ), 0) < 0
+          WHERE sl.product_id = p.id ${statusWhere}
+        ), 0) ${operator} 0
       )`;
-    whereClauses.push(minusStockSql);
+    whereClauses.push(statusStockSql);
   }
 
   const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
@@ -138,7 +140,8 @@ export const getProductsWithFilters = async (connection, filters) => {
 
   // --- 3. Ambil Data Produk (Main Select) ---
   const productsQuery = `
-      SELECT p.id, p.sku, p.name, p.category, p.price, p.weight, p.is_package, p.is_active, p.deleted_at
+      SELECT p.id, p.sku, p.name, p.category, p.price, p.weight, p.is_package, p.is_active, p.deleted_at,
+      (SELECT image_path FROM product_images WHERE product_id = p.id AND is_primary = 1 LIMIT 1) as image_path
       FROM products p
       ${whereSql}
       GROUP BY p.id
@@ -198,7 +201,8 @@ export const getProductsWithFilters = async (connection, filters) => {
         pc.component_product_id as id,
         pc.quantity_per_package as quantity,
         p.name,
-        p.sku
+        p.sku,
+        p.weight
       FROM package_components pc
       JOIN products p ON pc.component_product_id = p.id
       WHERE pc.package_product_id IN (?)
@@ -206,6 +210,46 @@ export const getProductsWithFilters = async (connection, filters) => {
 
     // Gunakan try-catch atau pastikan packageIds valid (sudah dicek length > 0)
     const [componentRows] = await connection.query(componentsQuery, [packageIds]);
+
+    // [NEW] Get Component Stock (Respecting Location Filter if Possible)
+    // Jika location filter aktif, kita harus ambil stok komponen di lokasi tersebut saja
+    // Agar perhitungan "paket yang bisa dibuat" akurat sesuai filter gudang/pajangan
+    const componentIds = [...new Set(componentRows.map((c) => c.id))];
+    let componentStockMap = {}; // Map<ComponentID, TotalStock>
+
+    if (componentIds.length > 0) {
+      let stockQuery = `
+          SELECT sl.product_id, SUM(sl.quantity) as total_stock
+          FROM stock_locations sl
+          JOIN locations l ON sl.location_id = l.id
+          WHERE sl.product_id IN (?)
+      `;
+      let stockParams = [componentIds];
+
+      // Re-apply Location Filter Logic for Components
+      if (location !== "all") {
+        stockQuery += " AND l.purpose = ?";
+        stockParams.push(purpose);
+
+        if (location === "gudang") {
+          if (building !== "all") {
+            stockQuery += " AND l.building = ?";
+            stockParams.push(building);
+          }
+          if (floor !== "all") {
+            stockQuery += " AND l.floor = ?";
+            stockParams.push(floor);
+          }
+        }
+      }
+
+      stockQuery += " GROUP BY sl.product_id";
+
+      const [stockRows] = await connection.query(stockQuery, stockParams);
+      stockRows.forEach((row) => {
+        componentStockMap[row.product_id] = row.total_stock;
+      });
+    }
 
     // Grouping components by package_product_id
     const componentsMap = {};
@@ -218,6 +262,8 @@ export const getProductsWithFilters = async (connection, filters) => {
         name: row.name,
         sku: row.sku,
         quantity: row.quantity,
+        weight: row.weight, // [NEW] calc total weight frontend
+        stock_available: componentStockMap[row.id] || 0, // [NEW] calc virtual stock frontend
       });
     });
 
@@ -237,6 +283,15 @@ export const getProductDetailWithStock = async (connection, id) => {
   const [rows] = await connection.query("SELECT * FROM products WHERE id = ?", [id]);
   if (rows.length === 0) return null;
   const product = rows[0];
+
+  // [NEW] Get Images
+  const [images] = await connection.query(
+    "SELECT id, image_path, is_primary FROM product_images WHERE product_id = ? ORDER BY is_primary DESC, sort_order ASC",
+    [id]
+  );
+  product.images = images;
+  // Fallback for UI if needed (though UI should check images array)
+  product.image_path = images.length > 0 ? images[0].image_path : null;
 
   product.components = [];
   product.stock_locations = [];
@@ -405,7 +460,7 @@ export const getProductHistory = async (connection, productId) => {
       pal.id,
       pal.action,
       pal.field,
-      pal.old_value,system_audit_logs
+      pal.old_value,
       pal.new_value,
       pal.created_at,
       u.username as user_name,
@@ -442,19 +497,27 @@ export const getAllPackagesWithComponents = async (connection) => {
 // WRITE OPERATIONS (ATOMIC SQL ONLY)
 // ============================================================================
 
-export const createProduct = async (connection, { sku, name, category, price, weight, is_package }) => {
+export const createProduct = async (connection, { sku, name, category, price, weight, is_package, image_path }) => {
   const [result] = await connection.query(
-    "INSERT INTO products (sku, name, category, price, weight, is_package, is_active) VALUES (?, ?, ?, ?, ?, ?, 1)",
-    [sku, name, category, parseFloat(price || 0), parseFloat(weight || 0), is_package ? 1 : 0]
+    "INSERT INTO products (sku, name, category, price, weight, is_package, is_active, image_path) VALUES (?, ?, ?, ?, ?, ?, 1, ?)",
+    [sku, name, category, parseFloat(price || 0), parseFloat(weight || 0), is_package ? 1 : 0, image_path || null]
   );
   return result.insertId;
 };
 
-export const updateProduct = async (connection, id, { name, category, price, weight, is_package }) => {
-  await connection.query(
-    "UPDATE products SET name = ?, category = ?, price = ?, weight = ?, is_package = ? WHERE id = ?",
-    [name, category, parseFloat(price || 0), parseFloat(weight || 0), is_package ? 1 : 0, id]
-  );
+export const updateProduct = async (connection, id, { name, category, price, weight, is_package, image_path }) => {
+  let sql = "UPDATE products SET name = ?, category = ?, price = ?, weight = ?, is_package = ?";
+  const params = [name, category, parseFloat(price || 0), parseFloat(weight || 0), is_package ? 1 : 0];
+
+  if (image_path !== undefined) {
+    sql += ", image_path = ?";
+    params.push(image_path);
+  }
+
+  sql += " WHERE id = ?";
+  params.push(id);
+
+  await connection.query(sql, params);
 };
 
 // Menangani Soft Delete & Restore
@@ -565,7 +628,10 @@ export const updateProductTransaction = async (
   if (updates.category !== undefined) processField("category", updates.category, "string");
   if (updates.price !== undefined) processField("price", updates.price, "number");
   if (updates.weight !== undefined) processField("weight", updates.weight, "number");
+  if (updates.price !== undefined) processField("price", updates.price, "number");
+  if (updates.weight !== undefined) processField("weight", updates.weight, "number");
   if (updates.is_package !== undefined) processField("is_package", updates.is_package, "boolean");
+  if (updates.image_path !== undefined) processField("image_path", updates.image_path, "string");
 
   // Jika ada perubahan, jalankan UPDATE
   if (fields.length > 0) {
@@ -577,4 +643,36 @@ export const updateProductTransaction = async (
   if (auditPromises.length > 0) {
     await Promise.all(auditPromises);
   }
+};
+
+// ============================================================================
+// IMAGE MANAGEMENT
+// ============================================================================
+
+export const insertImages = async (connection, productId, images) => {
+  if (!images || images.length === 0) return;
+  const values = images.map((img) => [productId, img.filename, img.is_primary ? 1 : 0]);
+  await connection.query(
+    "INSERT INTO product_images (product_id, image_path, is_primary) VALUES ?",
+    [values]
+  );
+};
+
+export const deleteImage = async (connection, imageId) => {
+  await connection.query("DELETE FROM product_images WHERE id = ?", [imageId]);
+};
+
+export const resetPrimaryImage = async (connection, productId) => {
+  await connection.query("UPDATE product_images SET is_primary = 0 WHERE product_id = ?", [
+    productId,
+  ]);
+};
+
+export const setPrimaryImage = async (connection, imageId) => {
+  await connection.query("UPDATE product_images SET is_primary = 1 WHERE id = ?", [imageId]);
+};
+
+export const getImageById = async (connection, imageId) => {
+  const [rows] = await connection.query("SELECT * FROM product_images WHERE id = ?", [imageId]);
+  return rows[0];
 };

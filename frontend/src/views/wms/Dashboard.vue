@@ -12,6 +12,7 @@ import WmsTransferModal from '@/components/wms/transfer/TransferModal.vue'
 import WmsHistoryModal from '@/components/wms/shared/HistoryModal.vue'
 import WmsProductFormModal from '@/components/wms/shared/ProductFormModal.vue'
 import SalesSimulationModal from '@/components/wms/shared/SalesSimulationModal.vue'
+import ProductImageModal from '@/components/products/ProductImageModal.vue'
 import { useAuthStore } from '@/stores/auth.js'
 
 const {
@@ -23,8 +24,8 @@ const {
   error,
   loader,
   searchBy,
-  showMinusStockOnly,
-  showPackageOnly,
+  stockStatusFilter,
+  productTypeFilter,
   hasMoreData,
   searchPlaceholder,
   handleSearchInput,
@@ -36,6 +37,9 @@ const {
   allLocations,
   isAutoRefetching,
   toggleAutoRefetch,
+  visibleColumns,
+  availableColumns,
+  toggleColumn,
   resetAndRefetch,
   fetchProducts,
 } = useWms()
@@ -54,6 +58,11 @@ const searchTerm = ref('')
 const isProductFormOpen = ref(false)
 const productFormMode = ref('edit') // Default to edit since create is removed from here
 const isSimulationModalOpen = ref(false)
+const mobileLayoutMode = ref('card')
+
+// Image Modal State
+const isImageModalOpen = ref(false)
+const selectedImageProduct = ref(null)
 
 
 const warehouseViews = [
@@ -69,7 +78,7 @@ const searchTabs = [
 ]
 
 const buildingFilterOptions = [
-  { label: 'Semua Gedung', value: 'all' },
+  { label: '- Gedung -', value: 'all' },
   { label: 'A19', value: 'A19' },
   { label: 'A20', value: 'A20' },
   { label: 'B16', value: 'B16' },
@@ -77,11 +86,11 @@ const buildingFilterOptions = [
 ]
 
 const floorFilterOptions = [
-  { label: 'Semua Lantai', value: 'all' },
-  { label: 'Lantai 1', value: '1' },
-  { label: 'Lantai 2', value: '2' },
-  { label: 'Lantai 3', value: '3' },
-  { label: 'Lantai 4', value: '4' },
+  { label: '- Lantai -', value: 'all' },
+  { label: '1', value: '1' },
+  { label: '2', value: '2' },
+  { label: '3', value: '3' },
+  { label: '4', value: '4' },
 ]
 
 function copyToClipboard({ text, fieldName }) {
@@ -141,6 +150,11 @@ async function handleDeleteProduct(product) {
   }
 }
 
+function openImageModal(product) {
+  selectedImageProduct.value = product
+  isImageModalOpen.value = true
+}
+
 function handleProductSaved() {
   resetAndRefetch() // Refresh list after create/edit
 }
@@ -151,7 +165,9 @@ function closeModal() {
   isUploadModalOpen.value = false
   isAdjustModalOpen.value = false
   isProductFormOpen.value = false
+  isProductFormOpen.value = false
   isSimulationModalOpen.value = false
+  isImageModalOpen.value = false
   selectedProduct.value = null
 }
 
@@ -237,16 +253,16 @@ async function handleAdjustConfirm(payload) {
     </div>
 
     <!-- Panel Kontrol Utama -->
-    <div class="bg-secondary/35 rounded-xl shadow-lg border border-secondary/20 p-6 pt-0 space-y-6">
-      <div
-        class="sticky top-14 z-10 bg-secondary/15 rounded-t-xl backdrop-blur-md -mx-6 px-6 pt-4 border-b border-secondary/20 shadow-sm">
+    <div class="bg-secondary/35 rounded-xl shadow-lg border border-secondary/20 p-6 pt-0 space-y-2">
+      <div class="sticky top-14 z-20 rounded-t-xl -mx-6 px-6 pt-4">
         <WmsControlPanel :search-placeholder="searchPlaceholder" :search-tabs="searchTabs"
           :warehouse-views="warehouseViews" :building-filter-options="buildingFilterOptions"
           :floor-filter-options="floorFilterOptions" :is-auto-refetching="isAutoRefetching" @search="handleSearchInput"
           @toggle-refetch="toggleAutoRefetch" v-model:search-by="searchBy" v-model:searchValue="searchTerm"
-          v-model:active-view="activeView" v-model:show-minus-stock-only="showMinusStockOnly"
-          v-model:show-package-only="showPackageOnly" v-model:selected-building="selectedBuilding"
-          v-model:selected-floor="selectedFloor" />
+          v-model:active-view="activeView" v-model:stock-status-filter="stockStatusFilter"
+          v-model:product-type-filter="productTypeFilter" v-model:selected-building="selectedBuilding"
+          v-model:selected-floor="selectedFloor" v-model:mobileLayout="mobileLayoutMode"
+          :available-columns="availableColumns" :visible-columns="visibleColumns" @toggle-column="toggleColumn" />
       </div>
 
       <div v-if="loading" class="text-center py-16">
@@ -262,9 +278,10 @@ async function handleAdjustConfirm(payload) {
 
       <div v-else class="overflow-x-auto">
         <WmsProductTable :products="displayedProducts" :active-view="activeView" :sort-by="sortBy"
-          :sort-order="sortOrder" :loading="loading" @copy="copyToClipboard" @openTransfer="openTransferModal"
-          @openAdjust="openAdjustModal" @openHistory="openHistoryModal" @openEdit="openEditProductModal"
-          @delete="handleDeleteProduct" @sort="handleSort">
+          :sort-order="sortOrder" :loading="loading" :mobile-layout="mobileLayoutMode" @copy="copyToClipboard"
+          @openTransfer="openTransferModal" @openAdjust="openAdjustModal" @openHistory="openHistoryModal"
+          @openEdit="openEditProductModal" @delete="handleDeleteProduct" @sort="handleSort"
+          :visible-columns="visibleColumns" @view-image="openImageModal">
           <template #footer>
             <div ref="loader" class="text-center pt-6 pb-2">
               <span v-if="displayedProducts.length === 0 && !loading" class="text-text/50 text-sm">
@@ -301,6 +318,10 @@ async function handleAdjustConfirm(payload) {
     @close="closeModal" @refresh="handleProductSaved" />
 
   <SalesSimulationModal :show="isSimulationModalOpen" @close="isSimulationModalOpen = false" />
+
+  <!-- Image Modal -->
+  <ProductImageModal :show="isImageModalOpen" :product-data="selectedImageProduct" @close="isImageModalOpen = false"
+    @refresh="resetAndRefetch" />
 </template>
 
 <style scoped>

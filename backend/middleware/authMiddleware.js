@@ -24,7 +24,7 @@ function authenticateToken(req, res, next) {
           ? "Sesi Anda telah berakhir. Silakan login kembali."
           : "Token tidak valid.";
 
-      return res.status(403).json({ success: false, message: message, code: "TOKEN_EXPIRED" });
+      return res.status(401).json({ success: false, message: message, code: "TOKEN_EXPIRED" });
     }
 
     req.user = user;

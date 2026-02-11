@@ -1,9 +1,11 @@
 <!-- frontend\src\views\hr\AttendanceView.vue -->
 <script setup>
 import { ref, watch, onMounted, computed } from 'vue'
+import { startOfMonth, endOfMonth, format } from 'date-fns'
 import { useAuthStore } from '@/stores/auth'
 import Tabs from '@/components/ui/Tabs.vue'
 import FilterBar from '@/components/ui/FilterBar.vue'
+import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
 import SummaryView from '@/components/hr/SummaryView.vue'
 import DetailView from '@/components/hr/DetailView.vue'
 import AttendanceStats from '@/components/stats/AttendanceStats.vue'
@@ -11,7 +13,7 @@ import Modal from '@/components/ui/Modal.vue'
 import UploadForm from '@/components/ui/UploadForm.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import { useToast } from '@/composables/useToast.js'
-import { getAbsensiData, getAvailableIndexes, uploadAbsensiFile } from '@/api/helpers/attendance.js'
+import { getAbsensiRange, uploadAbsensiFile } from '@/api/helpers/attendance.js'
 import { fetchAllUsers } from '@/api/helpers/admin.js'
 
 // --- STATE ---
@@ -23,18 +25,19 @@ const isHeaderExpanded = ref(true)
 const activeTab = ref('statistik')
 const summary = ref(null)
 const users = ref([])
-const availableIndexes = ref({})
+// const availableIndexes = ref({}) // Deprecated
 const filters = ref([])
 const filterValues = ref({
-  year: '',
-  month: '',
+  startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+  endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
   name: [],
 })
 const allUsersForFilter = ref([])
 const dataNotFoundForCurrentUser = ref(false)
-const isLoadingIndexes = ref(true)
+// const isLoadingIndexes = ref(true) // Deprecated
 const isLoadingUsers = ref(false)
 const isDataLoading = ref(false)
+const mobileLayout = ref('card') // 'card' | 'compact'
 const canViewAll = computed(() => authStore.user?.permissions?.includes('view-other-attendance'))
 
 const displayedUsers = computed(() => {
@@ -45,82 +48,66 @@ const displayedUsers = computed(() => {
   return users.value
 })
 
+const currentYear = computed(() => new Date(filterValues.value.startDate).getFullYear())
+const currentMonth = computed(() => new Date(filterValues.value.startDate).getMonth() + 1)
+
+// --- FETCH DATA ---
+async function fetchAttendanceData() {
+  const startDate = filterValues.value.startDate
+  const endDate = filterValues.value.endDate
+  const user = authStore.user
+
+  if (!startDate || !endDate || !user) return
+
+  dataNotFoundForCurrentUser.value = false
+  isDataLoading.value = true
+
+  try {
+    // Use new Range API
+    const data = await getAbsensiRange(startDate, endDate)
+    summary.value = data.summary || null
+    let fetchedUsers = data.users || []
+
+    // Logika RBAC (Role Based Access Control)
+    if (!canViewAll.value) {
+      const currentUserData = fetchedUsers.find(
+        (u) => u.nama.toLowerCase() === authStore.user.username.toLowerCase(),
+      )
+      users.value = currentUserData ? [currentUserData] : []
+      dataNotFoundForCurrentUser.value = !currentUserData
+    } else {
+      users.value = fetchedUsers
+    }
+  } catch (err) {
+    show('Gagal memuat data absensi.', 'error')
+    console.error('Fetch absensi error:', err)
+    users.value = []
+    summary.value = null
+  } finally {
+    isDataLoading.value = false
+  }
+}
+
 // --- WATCHERS & LIFECYCLE ---
 watch(
-  [() => filterValues.value.year, () => filterValues.value.month, () => authStore.user],
-  async ([year, month, user]) => {
-    if (!year || !month || !user) return
-
-    dataNotFoundForCurrentUser.value = false
-
-    dataNotFoundForCurrentUser.value = false
-    isDataLoading.value = true
-
-    try {
-      const data = await getAbsensiData(year, month)
-      summary.value = data.summary || null
-      let fetchedUsers = data.users || []
-
-      // Logika RBAC (Role Based Access Control)
-      if (!canViewAll.value) {
-        const currentUserData = fetchedUsers.find(
-          (u) => u.nama.toLowerCase() === authStore.user.username.toLowerCase(),
-        )
-        users.value = currentUserData ? [currentUserData] : []
-        dataNotFoundForCurrentUser.value = !currentUserData
-      } else {
-        users.value = fetchedUsers
-      }
-    } catch (err) {
-      show('Gagal memuat data absensi.', 'error')
-      console.error('Fetch absensi error:', err)
-      users.value = []
-      summary.value = null
-    } finally {
-      isDataLoading.value = false
-    }
-  },
+  [() => filterValues.value.startDate, () => filterValues.value.endDate, () => authStore.user],
+  (newVals, oldVals) => {
+    // Basic debounce or check if valid
+    fetchAttendanceData()
+  }
 )
 
-// 2. Watcher Khusus Tahun: Update Opsi Bulan saat Tahun Berubah (FIX BUG STUCK)
-watch(
-  () => filterValues.value.year,
-  (newYear) => {
-    if (!newYear || !availableIndexes.value[newYear]) return
-
-    // Ambil daftar bulan yang tersedia untuk tahun baru
-    const availableMonths = [...availableIndexes.value[newYear]].sort((a, b) => a - b)
-    const availableYears = Object.keys(availableIndexes.value).sort((a, b) => b - a)
-
-    // Update struktur filter (dropdown) agar opsi bulan sesuai tahun
-    updateFilterOptions(availableYears, availableMonths)
-
-    // Validasi: Apakah bulan yang sedang dipilih ada di tahun baru?
-    const currentMonth = parseInt(filterValues.value.month)
-    if (!availableMonths.includes(currentMonth)) {
-      // Jika tidak ada, pilih bulan terakhir yang tersedia di tahun tersebut
-      // (Misal pindah dari Des 2025 ke 2026 yang baru ada data Jan)
-      filterValues.value.month = availableMonths[availableMonths.length - 1]
-    }
-  },
-)
+function handleRefresh() {
+  fetchAttendanceData()
+  show('Data berhasil diperbarui', 'success')
+}
 
 // 3. Watcher User Login: Init Data Awal
 watch(
   () => authStore.user,
   async (user) => {
     if (user) {
-      isLoadingIndexes.value = true
-      try {
-        const indexes = await getAvailableIndexes()
-        availableIndexes.value = indexes
-        initializeFilters(indexes)
-      } catch (err) {
-        show('Gagal memuat filter data.', 'error')
-        console.error('Gagal mengambil indeks absensi:', err)
-      } finally {
-        isLoadingIndexes.value = false
-      }
+      fetchAttendanceData() // Fetch initial
 
       if (canViewAll.value) {
         isLoadingUsers.value = true
@@ -142,47 +129,11 @@ watch(
   { immediate: true },
 )
 
-// --- METHODS ---
-function initializeFilters(indexes) {
-  const years = Object.keys(indexes).sort((a, b) => b - a)
-  if (years.length === 0) return
-
-  const latestYear = years[0]
-  const months = [...indexes[latestYear]].sort((a, b) => a - b)
-  if (months.length === 0) return
-  const latestMonth = months[months.length - 1]
-
-  filterValues.value = {
-    year: latestYear,
-    month: latestMonth,
-    name: [],
-  }
-  updateFilterOptions(years, months)
-}
-
-function updateFilterOptions(years, months) {
-  filters.value = [
-    {
-      type: 'select',
-      key: 'year',
-      label: 'Tahun',
-      options: years.map((y) => ({ label: y, value: y })),
-    },
-    {
-      type: 'select',
-      key: 'month',
-      label: 'Bulan',
-      options: months.map((m) => ({
-        label: new Date(2000, parseInt(m) - 1).toLocaleString('id-ID', { month: 'long' }),
-        value: m,
-      })),
-    },
-  ]
-}
-
 function clearFilters() {
-  initializeFilters(availableIndexes.value)
   filterValues.value.name = []
+  // Reset date to current month
+  filterValues.value.startDate = format(startOfMonth(new Date()), 'yyyy-MM-dd')
+  filterValues.value.endDate = format(endOfMonth(new Date()), 'yyyy-MM-dd')
 }
 
 // --- UPLOAD ---
@@ -198,39 +149,17 @@ async function handleUpload(formData) {
       // CASE 1: Job Queue (Async)
       if (response.jobId) {
         show(response.message || 'File masuk antrian background.', 'success')
-        // Refresh index best effort
-        try {
-          const newIndexes = await getAvailableIndexes()
-          availableIndexes.value = newIndexes
-          // Jangan force update filterValues karena kita tidak tahu target tahun/bulan
-        } catch (e) {
-          console.warn('Gagal refresh index background', e)
-        }
       }
       // CASE 2: Direct Processing (Sync - Legacy Support)
       else if (response.processed) {
         show('Upload berhasil! Menampilkan data terbaru.', 'success')
-        try {
-          const newIndexes = await getAvailableIndexes()
-          availableIndexes.value = newIndexes
-          const years = Object.keys(newIndexes).sort((a, b) => b - a)
-          // Safe check
-          const targetYear = response.processed?.year
-          const months = targetYear ? newIndexes[targetYear] || [] : []
-
-          updateFilterOptions(
-            years,
-            months.sort((a, b) => a - b),
-          )
-        } catch (indexError) {
-          console.error('Gagal memperbarui index setelah upload:', indexError)
-          show('Data berhasil diupload, tetapi gagal memperbarui filter.', 'warning')
-        }
 
         const { year, month } = response.processed || {}
         if (year && month) {
-          filterValues.value.year = year.toString()
-          filterValues.value.month = String(month).padStart(2, '0')
+          // Set range to that month
+          const d = new Date(year, month - 1, 1)
+          filterValues.value.startDate = format(startOfMonth(d), 'yyyy-MM-dd')
+          filterValues.value.endDate = format(endOfMonth(d), 'yyyy-MM-dd')
         }
       }
     } else {
@@ -246,7 +175,7 @@ async function handleUpload(formData) {
 }
 </script>
 <template>
-  <div class="bg-secondary/20 min-h-screen">
+  <div class="min-h-screen">
     <header
       class="bg-background/80 backdrop-blur-sm sticky top-[65px] z-30 border-b border-secondary/20 transition-all duration-300">
       <transition enter-active-class="transition-all duration-300 ease-out"
@@ -264,7 +193,28 @@ async function handleUpload(formData) {
             ]" v-model="activeTab" class="w-full md:w-auto overflow-x-auto" />
 
             <div class="flex flex-col md:flex-row gap-4 flex-1 items-stretch md:items-center">
-              <FilterBar :filters="filters" v-model="filterValues" @clear="clearFilters" class="w-full md:w-auto" />
+              <FilterBar :filters="[]" v-model="filterValues" @clear="clearFilters" class="w-full md:w-auto">
+                <template #prepend>
+                  <DateRangeFilter v-model:startDate="filterValues.startDate" v-model:endDate="filterValues.endDate"
+                    align="left" />
+                </template>
+                <template #actions>
+                  <div class="flex items-center bg-secondary/20 rounded-lg p-1 border border-secondary/20 lg:hidden">
+                    <button @click="mobileLayout = 'card'"
+                      class="p-2 rounded-md transition-all duration-200 flex items-center justify-center w-8 h-8"
+                      :class="mobileLayout === 'card' ? 'bg-primary text-secondary shadow-sm' : 'text-text/60 hover:text-primary'"
+                      title="Tampilan Card">
+                      <font-awesome-icon icon="fa-solid fa-grip" />
+                    </button>
+                    <button @click="mobileLayout = 'compact'"
+                      class="p-2 rounded-md transition-all duration-200 flex items-center justify-center w-8 h-8"
+                      :class="mobileLayout === 'compact' ? 'bg-primary text-secondary shadow-sm' : 'text-text/60 hover:text-primary'"
+                      title="Tampilan Compact">
+                      <font-awesome-icon icon="fa-solid fa-list" />
+                    </button>
+                  </div>
+                </template>
+              </FilterBar>
 
               <div v-if="canViewAll" class="w-full md:flex-1 min-w-[200px]">
                 <BaseSelect v-model="filterValues.name" :options="allUsersForFilter" :multiple="true"
@@ -290,29 +240,30 @@ async function handleUpload(formData) {
       </div>
     </header>
 
-    <main class="p-6">
-      <div class="bg-background rounded-xl shadow-md border border-secondary/20 p-6 space-y-6">
+    <main class="mt-6">
+      <div class="bg-secondary/20 rounded-xl shadow-md border border-secondary/20 p-6 space-y-6">
         <div v-if="activeTab === 'summary'">
           <p v-if="dataNotFoundForCurrentUser" class="text-center text-text/60 py-10">
-            Data absensi Anda untuk bulan ini tidak ditemukan.
+            Data absensi Anda untuk periode ini tidak ditemukan.
           </p>
           <SummaryView v-else-if="displayedUsers.length > 0 || isDataLoading" :users="displayedUsers"
-            :year="parseInt(filterValues.year)" :month="parseInt(filterValues.month)" :global-info="summary"
-            :loading="isDataLoading" />
+            :start-date="filterValues.startDate" :end-date="filterValues.endDate" :year="currentYear"
+            :month="currentMonth" :global-info="summary" :loading="isDataLoading" :mobile-layout="mobileLayout" />
           <p v-else class="text-center text-text/60 py-10">
-            Pilih tahun dan bulan untuk menampilkan data, atau tidak ada data yang cocok dengan
+            Pilih tanggal untuk menampilkan data, atau tidak ada data yang cocok dengan
             filter.
           </p>
         </div>
 
         <div v-else-if="activeTab === 'statistik'">
-          <AttendanceStats :users="displayedUsers" :summary-info="summary || {}" :year="filterValues.year"
-            :month="filterValues.month" :loading="isDataLoading" />
+          <AttendanceStats :users="displayedUsers" :summary-info="summary || {}" :start-date="filterValues.startDate"
+            :end-date="filterValues.endDate" :year="currentYear" :month="currentMonth" :loading="isDataLoading"
+            :mobile-layout="mobileLayout" />
         </div>
 
         <div v-else>
           <p v-if="dataNotFoundForCurrentUser" class="text-center text-text/60 py-10">
-            Data absensi Anda untuk bulan ini tidak ditemukan.
+            Data absensi Anda untuk periode ini tidak ditemukan.
           </p>
           <DetailView v-else-if="displayedUsers.length > 0" :user="filterValues.name.length === 1
             ? displayedUsers[0]
@@ -326,7 +277,8 @@ async function handleUpload(formData) {
                 : !canViewAll
                   ? displayedUsers
                   : null
-              " :year="parseInt(filterValues.year)" :month="parseInt(filterValues.month)" :loading="isDataLoading" />
+              " :start-date="filterValues.startDate" :end-date="filterValues.endDate" :year="currentYear"
+            :month="currentMonth" :loading="isDataLoading" @refresh="handleRefresh" :mobile-layout="mobileLayout" />
           <p v-else class="text-center text-text/60 py-10">Belum ada log detail.</p>
         </div>
       </div>

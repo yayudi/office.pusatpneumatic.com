@@ -2,10 +2,10 @@
 import db from "../config/db.js";
 import { parseCsvToUserData, extractDateFromCsv } from "./parsers/attendanceParser.js";
 import {
-  JAM_KERJA_MULAI,
-  JAM_KERJA_SELESAI,
-  JAM_KERJA_SELESAI_SABTU,
-  TOLERANSI_MENIT,
+  // Constants now deprecated for Calculation, but PARSER_CONSTANTS might still be used if parser needs them
+  // Checking usage...
+  // Parser constants are in parser file or config?
+  // WMS Constants used here were JAM_KERJA* which are now dynamic.
 } from "../config/wmsConstants.js";
 
 const logTypeMap = { in: "in", out: "out", "break-in": "break-in", "break-out": "break-out" };
@@ -119,6 +119,89 @@ export async function processAttendanceImport(
       };
     }
 
+    // 2.5 Prepare User Shifts Cache (Bulk Fetch)
+    // To avoid N+1 queries, fetch shifts for all users involved or just fetch all users with shifts.
+    // Since we have `connection` (transaction), let's use it.
+
+    // We need map: Username -> { start, end, tolerance, work_days }
+    const userShiftMap = {};
+    const defaultShiftResult = await connection.query("SELECT * FROM shifts WHERE is_default = 1 LIMIT 1");
+    let defaultShift = defaultShiftResult[0][0];
+
+    // Fallback hardcoded if DB is empty (safety)
+    if (!defaultShift) {
+      defaultShift = { start_time: '08:00:00', end_time: '16:00:00', flexible_minutes: 0, work_days: '1,2,3,4,5' };
+    }
+
+    // Fetch all users shifts
+    // Note: We only care about users in the CSV, but fetching all active users is usually cheap enough.
+    // Or we filter by usernames in parsedData.
+    const userNamesInFile = Object.values(parsedData).map(u => u.nama || `User-${u.id}`);
+
+    if (userNamesInFile.length > 0) {
+      // Use IN clause safely
+      const placeholders = userNamesInFile.map(() => '?').join(',');
+      const shiftQuery = `
+            SELECT u.username, s.*
+            FROM users u
+            JOIN shifts s ON u.shift_id = s.id
+            WHERE u.username IN (${placeholders})
+        `;
+      const [userShifts] = await connection.query(shiftQuery, userNamesInFile);
+
+      userShifts.forEach(row => {
+        userShiftMap[row.username] = row;
+      });
+    }
+
+    // 2.6 Prepare Schedules Cache (Bulk Fetch)
+    const userScheduleMap = {}; // username -> dateStr -> shift
+
+    // Calculate Date Range for Schedule Fetch
+    const allExampleDates = [];
+    Object.values(parsedData).forEach(u => {
+      Object.keys(u.days).forEach(d => {
+        // Construct roughly date
+        const dayVal = parseInt(d);
+        allExampleDates.push(`${year}-${String(month).padStart(2, '0')}-${String(dayVal).padStart(2, '0')}`);
+      });
+    });
+
+    if (allExampleDates.length > 0 && userNamesInFile.length > 0) {
+      // Find min/max date
+      allExampleDates.sort();
+      const minDate = allExampleDates[0];
+      const maxDate = allExampleDates[allExampleDates.length - 1];
+
+      // Fetch schedules
+      const placeholders = userNamesInFile.map(() => '?').join(',');
+      const scheduleQuery = `
+            SELECT u.username, us.date, s.*
+            FROM user_schedules us
+            JOIN users u ON us.user_id = u.id
+            JOIN shifts s ON us.shift_id = s.id
+            WHERE u.username IN (${placeholders})
+            AND us.date BETWEEN ? AND ?
+        `;
+      // Flatten params
+      const params = [...userNamesInFile, minDate, maxDate];
+      const [schedules] = await connection.query(scheduleQuery, params);
+
+      schedules.forEach(row => {
+        if (!userScheduleMap[row.username]) userScheduleMap[row.username] = {};
+        // Date comes as object from mysql2 usually, transform to YYYY-MM-DD
+        const d = new Date(row.date);
+        const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        userScheduleMap[row.username][dStr] = row;
+      });
+    }
+
+    const timeToMinutes = (timeStr) => {
+      if (!timeStr) return 0;
+      const [h, m] = timeStr.split(':').map(Number);
+      return h * 60 + m;
+    };
+
     // 3. Proses Database (Transactional)
     await connection.beginTransaction();
     let totalProcessedDays = 0;
@@ -127,6 +210,8 @@ export async function processAttendanceImport(
     for (const idKey in parsedData) {
       const user = parsedData[idKey];
       const username = user.nama || `User-${user.id}`;
+
+      const defaultUserShift = userShiftMap[username] || defaultShift;
 
       // Update progress bar
       if (typeof updateProgress === "function") {
@@ -142,6 +227,16 @@ export async function processAttendanceImport(
           2,
           "0"
         )}`;
+
+        // Determine Specific Shift (Schedule > Default)
+        let shift = defaultUserShift;
+        if (userScheduleMap[username] && userScheduleMap[username][dateStr]) {
+          shift = userScheduleMap[username][dateStr];
+        }
+
+        const shiftStartMin = timeToMinutes(shift.start_time);
+        const shiftEndMin = timeToMinutes(shift.end_time);
+        const tolerance = shift.flexible_minutes || 0;
         const dateObj = new Date(dateStr);
         const dayOfWeek = dateObj.getDay();
 
@@ -155,18 +250,18 @@ export async function processAttendanceImport(
         // Hitung Keterlambatan
         let lateness = 0;
         if (earliestCheckIn) {
-          const lateThreshold = JAM_KERJA_MULAI + TOLERANSI_MENIT;
-          if (earliestCheckIn > lateThreshold) {
-            lateness = earliestCheckIn - JAM_KERJA_MULAI;
+          if (earliestCheckIn > (shiftStartMin + tolerance)) {
+            lateness = earliestCheckIn - shiftStartMin;
           }
         }
 
         // Hitung Lembur
         let overtime = 0;
         if (latestCheckOut) {
-          const workEndTime = dayOfWeek === 6 ? JAM_KERJA_SELESAI_SABTU : JAM_KERJA_SELESAI;
-          if (latestCheckOut > workEndTime) {
-            overtime = latestCheckOut - workEndTime;
+          // Basic logic: Overtime if CheckOut > Shift End
+          // Ignore Saturday special rule for now unless Shift Table supports it
+          if (latestCheckOut > shiftEndMin) {
+            overtime = latestCheckOut - shiftEndMin;
           }
         }
 
@@ -182,13 +277,14 @@ export async function processAttendanceImport(
         // INSERT DB (Hanya jika BUKAN Dry Run)
         if (isDryRun === false) {
           const summarySql = `
-            INSERT INTO attendance_logs (username, date, check_in, check_out, lateness_minutes, overtime_minutes)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO attendance_logs (username, date, check_in, check_out, lateness_minutes, overtime_minutes, status)
+            VALUES (?, ?, ?, ?, ?, ?, 'HADIR')
             ON DUPLICATE KEY UPDATE
               check_in=VALUES(check_in),
               check_out=VALUES(check_out),
               lateness_minutes=VALUES(lateness_minutes),
-              overtime_minutes=VALUES(overtime_minutes)
+              overtime_minutes=VALUES(overtime_minutes),
+              status='HADIR'
           `;
 
           const [summaryResult] = await connection.query(summarySql, [

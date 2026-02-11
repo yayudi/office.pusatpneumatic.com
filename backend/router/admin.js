@@ -10,11 +10,12 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     const query = `
-      SELECT u.id, u.username, u.nickname, u.role_id, r.name AS role_name
+      SELECT u.id, u.username, u.nickname, u.role_id, r.name AS role_name, u.shift_id, s.name AS shift_name
       FROM users u
       LEFT JOIN roles r ON u.role_id = r.id
+      LEFT JOIN shifts s ON u.shift_id = s.id
       ORDER BY u.username ASC
-    `; // FIX: Menggunakan LEFT JOIN agar lebih defensif terhadap data role yang tidak sinkron
+    `; // FIX: Menggunakan LEFT JOIN agar lebih defensif terhadap data role/shift yang tidak sinkron
     const [users] = await db.query(query);
     res.json({ success: true, users });
   } catch (err) {
@@ -25,7 +26,7 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   console.log("[ADMIN ROUTER] Menerima request POST untuk membuat pengguna baru...");
-  const { username, password, role_id, nickname } = req.body;
+  const { username, password, role_id, nickname, shift_id } = req.body;
 
   // Validasi input
   if (!username || !password || !role_id) {
@@ -40,8 +41,8 @@ router.post("/", async (req, res) => {
 
     // Simpan ke database
     const [result] = await db.query(
-      "INSERT INTO users (username, password_hash, role_id, nickname) VALUES (?, ?, ?, ?)",
-      [username, hashedPassword, role_id, nickname || null]
+      "INSERT INTO users (username, password_hash, role_id, nickname, shift_id) VALUES (?, ?, ?, ?, ?)",
+      [username, hashedPassword, role_id, nickname || null, shift_id || null]
     );
 
     const newUser = {
@@ -49,6 +50,7 @@ router.post("/", async (req, res) => {
       username,
       nickname,
       role_id,
+      shift_id
     };
 
     // LOGGING
@@ -58,7 +60,7 @@ router.post("/", async (req, res) => {
       action: "CREATE",
       targetType: "USER",
       targetId: String(result.insertId),
-      changes: { username, role_id, nickname },
+      changes: { username, role_id, nickname, shift_id },
       ip: req.ip,
       userAgent: req.headers["user-agent"],
     });
@@ -86,7 +88,7 @@ router.get("/roles", async (req, res) => {
 // PUT /api/admin/users/:id - Mengupdate role user
 router.put("/:id", async (req, res) => {
   const { id } = req.params;
-  const { username, nickname, newPassword, role_id } = req.body;
+  const { username, nickname, newPassword, role_id, shift_id } = req.body;
 
   // Validasi dasar
   if (!username || !role_id) {
@@ -106,6 +108,9 @@ router.put("/:id", async (req, res) => {
 
     updateFields.push("role_id = ?");
     updateValues.push(role_id);
+
+    updateFields.push("shift_id = ?");
+    updateValues.push(shift_id || null);
 
     // Hanya update password jika diisi
     if (newPassword) {
@@ -128,7 +133,7 @@ router.put("/:id", async (req, res) => {
       targetId: String(id),
       changes: {
         note: "Updated User Profile",
-        updates: { username, nickname, role_id, passwordChanged: !!newPassword }
+        updates: { username, nickname, role_id, shift_id, passwordChanged: !!newPassword }
       },
       ip: req.ip,
       userAgent: req.headers["user-agent"],

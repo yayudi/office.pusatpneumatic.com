@@ -1,6 +1,7 @@
 // frontend\src\api\axios.js
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
 
 // Buat instance axios
 const instance = axios.create({
@@ -46,7 +47,9 @@ instance.interceptors.response.use(
       // -> HANYA Logout jika statusnya 401
       if (status === 401) {
         authStore.logout()
-        // Opsional: Redirect ke login page
+        // Tampilkan Toast "Sesi expired"
+        useToast().show('Sesi telah berakhir, silakan login kembali.', 'error')
+        // Redirect ke login page
         window.location.href = '/login'
       }
 
@@ -54,8 +57,7 @@ instance.interceptors.response.use(
       // -> JANGAN Logout, tapi beri tahu user
       else if (status === 403) {
         const serverMessage = error.response.data?.message || 'Akses ditolak.'
-
-        alert(`Gagal: ${serverMessage}`)
+        useToast().show(`Gagal: ${serverMessage}`, 'error')
       }
     }
 

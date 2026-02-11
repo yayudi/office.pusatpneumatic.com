@@ -45,6 +45,7 @@ function emitClear() {
 <template>
   <FilterContainer :title="title || 'Filter Data'">
     <div class="flex flex-wrap gap-4 items-center">
+      <slot name="prepend"></slot>
       <!-- Loop through filters -->
       <template v-for="(filter, index) in filters" :key="index">
         <!-- Date Range Filter -->
@@ -81,6 +82,8 @@ function emitClear() {
         <font-awesome-icon icon="fa-solid fa-rotate-left" />
         <span>Reset Filter</span>
       </button>
+
+      <slot name="actions"></slot>
     </div>
   </FilterContainer>
 </template>

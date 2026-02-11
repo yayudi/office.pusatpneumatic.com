@@ -16,6 +16,9 @@ const props = defineProps({
     default: () => new Set(),
   },
   loading: { type: Boolean, default: false },
+  loading: { type: Boolean, default: false },
+  mobileLayout: { type: String, default: 'card' },
+  visibleColumns: { type: Object, required: true },
 })
 
 const emit = defineEmits([
@@ -26,6 +29,7 @@ const emit = defineEmits([
   'openHistory',
   'openEdit',
   'delete',
+  'view-image',
 ])
 
 const auth = useAuthStore()
@@ -48,13 +52,21 @@ function sortIcon(column) {
 <template>
   <div
     class="bg-background rounded-xl shadow-md border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[65vh] table-container">
-    <table class="min-w-[1000px] w-full bg-background text-sm text-text border-collapse">
+    <table class="min-w-full md:min-w-[1000px] w-full bg-background text-sm text-text border-collapse">
       <!-- STATIC HEADER -->
-      <thead class="sticky top-0 z-30 bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5">
+      <thead
+        class="hidden md:table-header-group sticky top-0 z-30 bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5">
         <tr>
           <!-- Name Column (Sticky) -->
+          <!-- Image Column (Sticky Left) -->
           <th
-            class="px-6 py-3 border-b border-secondary/10 sticky left-0 z-30 bg-background/95 backdrop-blur-md shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] text-left uppercase text-xs font-bold text-text/60 cursor-pointer hover:text-primary transition-colors w-[350px]"
+            class="px-4 py-3 w-16 text-center border-b border-secondary/10 md:sticky md:left-0 z-30 bg-background/95 backdrop-blur-md md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] uppercase text-xs font-bold text-text/60">
+            Foto
+          </th>
+
+          <!-- Name Column (Sticky on Desktop only) -->
+          <th
+            class="px-6 py-3 border-b border-secondary/10 md:sticky md:left-16 z-30 bg-background/95 backdrop-blur-md md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] text-left uppercase text-xs font-bold text-text/60 cursor-pointer hover:text-primary transition-colors min-w-[250px] md:w-[350px]"
             @click="handleSort('name')">
             <div class="flex items-center gap-2">
               Produk <font-awesome-icon :icon="sortIcon('name')" />
@@ -62,7 +74,7 @@ function sortIcon(column) {
           </th>
 
           <!-- SKU -->
-          <th
+          <th v-if="visibleColumns.has('sku')"
             class="px-6 py-3 border-b border-secondary/10 text-left uppercase text-xs font-bold text-text/60 cursor-pointer hover:text-primary transition-colors"
             @click="handleSort('sku')">
             <div class="flex items-center gap-2">
@@ -71,7 +83,7 @@ function sortIcon(column) {
           </th>
 
           <!-- WEIGHT -->
-          <th
+          <th v-if="visibleColumns.has('weight')"
             class="px-6 py-3 border-b border-secondary/10 text-right uppercase text-xs font-bold text-text/60 cursor-pointer hover:text-primary transition-colors"
             @click="handleSort('weight')">
             <div class="flex items-center justify-end gap-2">
@@ -80,7 +92,7 @@ function sortIcon(column) {
           </th>
 
           <!-- PRICE (Conditional) -->
-          <th v-if="auth.canViewPrices"
+          <th v-if="auth.canViewPrices && visibleColumns.has('price')"
             class="px-6 py-3 border-b border-secondary/10 text-right uppercase text-xs font-bold text-text/60 cursor-pointer hover:text-primary transition-colors"
             @click="handleSort('price')">
             <div class="flex items-center justify-end gap-2">
@@ -89,18 +101,21 @@ function sortIcon(column) {
           </th>
 
           <!-- LOCATION -->
-          <th class="px-6 py-3 border-b border-secondary/10 text-center uppercase text-xs font-bold text-text/60">
+          <th v-if="visibleColumns.has('location')"
+            class="px-6 py-3 border-b border-secondary/10 text-center uppercase text-xs font-bold text-text/60">
             Lokasi
           </th>
 
           <!-- STOCK -->
-          <th class="px-6 py-3 border-b border-secondary/10 text-center uppercase text-xs font-bold text-text/60">
+          <th v-if="visibleColumns.has('stock')"
+            class="px-6 py-3 border-b border-secondary/10 text-center uppercase text-xs font-bold text-text/60">
             Stok
           </th>
 
           <!-- ACTIONS (Sticky Right) -->
+          <!-- ACTIONS (Sticky Right) -->
           <th
-            class="px-6 py-3 border-b border-secondary/10 sticky right-0 z-30 bg-background/95 backdrop-blur-md shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)] text-center uppercase text-xs font-bold text-text/60 w-[80px]">
+            class="px-6 py-3 border-b border-secondary/10 md:sticky md:right-0 z-30 bg-background/95 backdrop-blur-md md:shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)] text-center uppercase text-xs font-bold text-text/60 min-w-[80px]">
             Aksi
           </th>
         </tr>
@@ -120,11 +135,12 @@ function sortIcon(column) {
 
         <!-- ROW COMPONENT (Now must be TR) -->
         <WmsProductRow v-else v-for="product in products" :key="product.id" :product="product" :active-view="activeView"
-          :is-updated="recentlyUpdatedProducts.has(product.id)" @copy="(payload) => emit('copy', payload)"
+          :is-updated="recentlyUpdatedProducts.has(product.id)" :mobile-layout="mobileLayout"
+          :visible-columns="visibleColumns" @copy="(payload) => emit('copy', payload)"
           @openAdjust="(product) => emit('openAdjust', product)"
           @openTransfer="(product) => emit('openTransfer', product)"
           @openHistory="(product) => emit('openHistory', product)" @openEdit="(product) => emit('openEdit', product)"
-          @delete="(product) => emit('delete', product)" />
+          @delete="(product) => emit('delete', product)" @view-image="(product) => emit('view-image', product)" />
       </TransitionGroup>
     </table>
     <slot name="footer" />

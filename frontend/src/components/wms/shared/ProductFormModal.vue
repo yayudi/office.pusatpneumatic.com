@@ -5,6 +5,7 @@ import axios from '@/api/axios.js'
 import { useToast } from '@/composables/useToast.js'
 import { formatCurrency } from '@/utils/formatters.js'
 import ProductHistoryList from '@/components/products/ProductHistoryList.vue'
+import imageCompression from 'browser-image-compression'
 
 const props = defineProps({
   show: Boolean,
@@ -31,6 +32,57 @@ const isSearching = ref(false)
 const loading = ref(false)
 const fetchLoading = ref(false)
 
+// Duplicate Check State
+const duplicateStatus = ref({
+  sku: { checking: false, exists: false },
+  name: { checking: false, exists: false },
+})
+let checkTimeout = { sku: null, name: null }
+
+function checkDuplicate(field, value) {
+  clearTimeout(checkTimeout[field])
+
+  // SKU di mode edit disabled, jadi tidak perlu cek
+  if (field === 'sku' && props.mode === 'edit') return
+  if (!value) {
+    duplicateStatus.value[field] = { checking: false, exists: false }
+    return
+  }
+
+  // Set checking state
+  duplicateStatus.value[field].checking = true
+  duplicateStatus.value[field].exists = false // Reset dulu
+
+  checkTimeout[field] = setTimeout(async () => {
+    try {
+      const { data } = await axios.get('/products', {
+        params: { search: value, searchBy: field, limit: 20 }
+      })
+
+      // Strict Check (Backend pakai LIKE)
+      const isDuplicate = data.data.some(p => {
+        // Exclude current product if edit mode
+        if (props.mode === 'edit' && p.id === props.productData.id) return false
+        return p[field].toString().toLowerCase() === value.toString().toLowerCase()
+      })
+
+      duplicateStatus.value[field] = { checking: false, exists: isDuplicate }
+    } catch (error) {
+      console.error(error)
+      duplicateStatus.value[field].checking = false
+    }
+  }, 500)
+}
+
+// Watchers untuk auto-check
+watch(() => form.value.sku, (val) => checkDuplicate('sku', val))
+watch(() => form.value.name, (val) => checkDuplicate('name', val))
+
+// Image State
+const selectedImage = ref(null)
+const imagePreview = ref(null)
+const isCompressing = ref(false)
+
 // Reset/Populate Form saat modal dibuka
 watch(
   () => props.show,
@@ -56,6 +108,11 @@ watch(
             }
             // Mapping komponen jika ada
             components.value = data.data.components || []
+            // Set existing image if any (backend should return full URL or path)
+            if (data.data.image_path) {
+              imagePreview.value = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/uploads/products/${data.data.image_path}`
+              // Or just /uploads/products/ if served relatively
+            }
           }
         } catch (err) {
           console.error(err)
@@ -68,6 +125,32 @@ watch(
         // MODE CREATE: Kosongkan form
         form.value = { sku: '', name: '', category: '', price: 0, weight: 0, is_package: false }
         components.value = []
+        selectedImage.value = null
+        imagePreview.value = null
+
+        // Auto-Generate Next SKU
+        fetchLoading.value = true
+        try {
+          const { data } = await axios.get('/products', {
+            params: { sortBy: 'sku', sortOrder: 'desc', limit: 1 }
+          })
+
+          if (data.data && data.data.length > 0) {
+            const lastSku = data.data[0].sku || ''
+            // Regex match: Prefix (Letters) + Suffix (Numbers)
+            const match = lastSku.match(/^([A-Za-z]+)(\d+)$/)
+            if (match) {
+              const prefix = match[1]
+              const number = match[2]
+              const nextNumber = (parseInt(number) + 1).toString().padStart(number.length, '0')
+              form.value.sku = `${prefix}${nextNumber}`
+            }
+          }
+        } catch (error) {
+          console.error('Failed to auto-generate SKU', error)
+        } finally {
+          fetchLoading.value = false
+        }
       }
     }
   },
@@ -117,10 +200,42 @@ function removeComponent(index) {
   components.value.splice(index, 1)
 }
 
+async function handleImageUpload(event) {
+  const file = event.target.files[0]
+  if (!file) return
+
+  // Validasi tipe file
+  if (!file.type.match('image.*')) {
+    return toast('Mohon upload file gambar valid (JPG/PNG).', 'error')
+  }
+
+  try {
+    isCompressing.value = true
+    const options = {
+      maxSizeMB: 0.5, // Max 500KB
+      maxWidthOrHeight: 1024,
+      useWebWorker: true,
+    }
+
+    const compressedFile = await imageCompression(file, options)
+    selectedImage.value = compressedFile
+    imagePreview.value = URL.createObjectURL(compressedFile)
+  } catch (error) {
+    console.error('Compression Error:', error)
+    toast('Gagal memproses gambar.', 'error')
+  } finally {
+    isCompressing.value = false
+  }
+}
+
 async function handleSubmit() {
   // Validasi Dasar
   if (!form.value.name) return toast('Nama produk wajib diisi.', 'error')
   if (props.mode === 'create' && !form.value.sku) return toast('SKU wajib diisi.', 'error')
+
+  // Validasi Duplikasi
+  if (duplicateStatus.value.sku.exists) return toast('SKU sudah digunakan produk lain.', 'error')
+  if (duplicateStatus.value.name.exists) return toast('Nama produk sudah digunakan.', 'error')
 
   // Validasi Paket
   if (form.value.is_package && components.value.length === 0) {
@@ -136,11 +251,36 @@ async function handleSubmit() {
       components: form.value.is_package ? components.value : [],
     }
 
+    // Switch ke FormData jika ada gambar
     let response
-    if (props.mode === 'create') {
-      response = await axios.post('/products', payload)
+    if (selectedImage.value) {
+      const formData = new FormData()
+      // Append semua field dasar
+      Object.keys(payload).forEach((key) => {
+        if (key === 'components') {
+          formData.append(key, JSON.stringify(payload[key]))
+        } else {
+          formData.append(key, payload[key])
+        }
+      })
+      formData.append('images', selectedImage.value)
+
+      if (props.mode === 'create') {
+        response = await axios.post('/products', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+      } else {
+        response = await axios.put(`/products/${props.productData.id}`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+      }
     } else {
-      response = await axios.put(`/products/${props.productData.id}`, payload)
+      // JSON Biasa
+      if (props.mode === 'create') {
+        response = await axios.post('/products', payload)
+      } else {
+        response = await axios.put(`/products/${props.productData.id}`, payload)
+      }
     }
 
     if (response.data.success) {
@@ -195,6 +335,17 @@ async function handleSubmit() {
                 <p v-if="mode === 'edit'" class="text-[10px] text-text/40 mt-1 italic">
                   SKU tidak dapat diubah.
                 </p>
+                <!-- Feedback Check SKU -->
+                <div v-if="duplicateStatus.sku.checking" class="text-xs text-primary mt-1 animate-pulse">
+                  <font-awesome-icon icon="fa-solid fa-circle-notch" class="animate-spin mr-1" /> Mengecek
+                  ketersediaan...
+                </div>
+                <div v-else-if="duplicateStatus.sku.exists" class="text-xs text-danger mt-1 font-bold">
+                  <font-awesome-icon icon="fa-solid fa-exclamation-circle" class="mr-1" /> SKU sudah digunakan!
+                </div>
+                <!-- <div v-else-if="form.sku && !duplicateStatus.sku.exists && mode === 'create'" class="text-xs text-success mt-1">
+                   SKU Tersedia
+                </div> -->
               </div>
 
               <!-- Harga Input -->
@@ -213,7 +364,42 @@ async function handleSubmit() {
               <label class="block text-xs font-bold text-text/60 mb-1">Nama Produk</label>
               <input v-model="form.name" type="text"
                 class="w-full px-3 py-2 bg-secondary/10 border border-secondary/30 rounded-lg focus:outline-none focus:border-primary text-text transition-all"
+                :class="{ 'border-danger focus:border-danger': duplicateStatus.name.exists }"
                 placeholder="Contoh: Paket Bundling Hemat A" />
+
+              <!-- Feedback Check Name -->
+              <div v-if="duplicateStatus.name.checking" class="text-xs text-primary mt-1 animate-pulse">
+                <font-awesome-icon icon="fa-solid fa-circle-notch" class="animate-spin mr-1" /> Mengecek nama...
+              </div>
+              <div v-else-if="duplicateStatus.name.exists" class="text-xs text-danger mt-1 font-bold">
+                <font-awesome-icon icon="fa-solid fa-exclamation-circle" class="mr-1" /> Nama produk ini sudah ada!
+              </div>
+            </div>
+
+            <!-- Image Upload -->
+            <div>
+              <label class="block text-xs font-bold text-text/60 mb-1">Foto Produk</label>
+              <div class="flex items-start gap-4">
+                <!-- Preview Box -->
+                <div
+                  class="shrink-0 w-20 h-20 bg-secondary/10 rounded-lg border border-secondary/20 overflow-hidden flex items-center justify-center relative group">
+                  <img v-if="imagePreview" :src="imagePreview" class="w-full h-full object-cover" />
+                  <font-awesome-icon v-else icon="fa-solid fa-image" class="text-2xl text-text/20" />
+
+                  <!-- Overlay Loading Compression -->
+                  <div v-if="isCompressing" class="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <font-awesome-icon icon="fa-solid fa-spinner" class="animate-spin text-secondary" />
+                  </div>
+                </div>
+
+                <div class="flex-1">
+                  <input type="file" @change="handleImageUpload" accept="image/*"
+                    class="block w-full text-sm text-text/60 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all cursor-pointer" />
+                  <p class="text-[10px] text-text/40 mt-1">
+                    Format: JPG, PNG. Otomatis dikompresi (Max 500KB).
+                  </p>
+                </div>
+              </div>
             </div>
 
             <!-- Kategori Produk (STATISTIK ONLY) -->
@@ -344,7 +530,8 @@ async function handleSubmit() {
             class="px-5 py-2.5 rounded-lg text-text/60 font-bold hover:bg-secondary/10 transition-colors text-sm">
             Batal
           </button>
-          <button @click="handleSubmit" :disabled="loading || fetchLoading"
+          <button @click="handleSubmit"
+            :disabled="loading || fetchLoading || duplicateStatus.sku.exists || duplicateStatus.name.exists"
             class="px-5 py-2.5 rounded-lg bg-primary text-text font-bold hover:bg-primary-dark shadow-lg shadow-primary/30 flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95">
             <font-awesome-icon v-if="loading" icon="fa-solid fa-circle-notch" class="animate-spin" />
             <span v-else><font-awesome-icon icon="fa-solid fa-save" /></span>

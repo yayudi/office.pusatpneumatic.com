@@ -121,11 +121,13 @@ async function submitBatch() {
   <div class="p-6">
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-2xl font-bold text-text">Stock Movement (Transfer / Inbound)</h2>
-      <button v-if="activeTab === 'INBOUND'" @click="isBatchInboundModalOpen = true"
-        class="bg-green-50 text-green-600 border border-green-200 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-green-100 flex items-center gap-2 transition-all">
-        <font-awesome-icon icon="fa-solid fa-file-import" />
-        <span>Import Massal</span>
-      </button>
+      <div class="flex gap-2">
+        <button v-if="activeTab === 'INBOUND'" @click="isBatchInboundModalOpen = true"
+          class="bg-green-50 text-green-600 border border-green-200 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-green-100 flex items-center gap-2 transition-all">
+          <font-awesome-icon icon="fa-solid fa-file-import" />
+          <span>Import Massal</span>
+        </button>
+      </div>
     </div>
 
     <div class="bg-background rounded-xl shadow-md border border-secondary/20 p-6 space-y-6">

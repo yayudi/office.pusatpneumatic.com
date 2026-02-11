@@ -62,6 +62,89 @@ export const getIndexes = async (req, res) => {
 };
 
 /**
+ * Get attendance data by Date Range.
+ * Fetches holidays, users, logs, and raw logs for efficient frontend processing.
+ */
+export const getRangeData = async (req, res) => {
+  const { startDate, endDate } = req.query;
+
+  if (!startDate || !endDate) {
+    return res.status(400).json({ success: false, message: "Start Date and End Date are required." });
+  }
+
+  try {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    // 1. Ambil data libur (Load holidays for both years if range spans years)
+    const startYear = start.getFullYear();
+    const endYear = end.getFullYear();
+    let holidayMap = await loadHolidays(startYear);
+
+    if (endYear !== startYear) {
+      const endHolidayMap = await loadHolidays(endYear);
+      holidayMap = { ...holidayMap, ...endHolidayMap };
+    }
+
+    // 2. Ambil semua user aktif (untuk normalisasi data frontend jika log kosong)
+    const [allUsers] = await db.query("SELECT id, username FROM users WHERE is_active = TRUE");
+
+    // 3. Ambil log absensi + raw logs (JOIN)
+    const logQuery = `
+      SELECT
+        al.id, al.username, u.id as user_id, al.date, al.check_in, al.check_out,
+        al.lateness_minutes, al.overtime_minutes, al.notes, al.status,
+        arl.log_time, arl.log_type
+      FROM attendance_logs al
+      JOIN users u ON al.username = u.username
+      LEFT JOIN attendance_raw_logs arl ON al.id = arl.attendance_log_id
+      WHERE al.date BETWEEN ? AND ?
+      ORDER BY al.username, al.date, arl.log_time;
+    `;
+    const [logRows] = await db.query(logQuery, [startDate, endDate]);
+
+    // 4. Hitung Info Global (Total Hari Kerja Ideal)
+    let totalIdealWorkMinutes = 0,
+      hariKerja = 0,
+      hariLibur = 0;
+
+    // Iterate daries start date to end date
+    const current = new Date(start);
+    while (current <= end) {
+      const ymd = current.toISOString().split('T')[0];
+      const dayOfWeek = current.getDay();
+
+      if (dayOfWeek === 0 || holidayMap[ymd]) {
+        hariLibur++;
+        // Skip increment work minutes
+      } else {
+        hariKerja++;
+        if (dayOfWeek === 6) totalIdealWorkMinutes += JAM_KERJA_SELESAI_SABTU - JAM_KERJA_MULAI;
+        else totalIdealWorkMinutes += JAM_KERJA_SELESAI - JAM_KERJA_MULAI;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+
+    // 5. Kirim Response
+    const responseJson = {
+      allUsers: allUsers,
+      logRows: logRows,
+      globalInfo: {
+        idealMinutes: totalIdealWorkMinutes,
+        workDays: hariKerja,
+        holidayDays: hariLibur,
+        holidayMap: holidayMap,
+      },
+    };
+
+    res.json(responseJson);
+  } catch (error) {
+    console.error(`Error fetching attendance data for range ${startDate} to ${endDate}:`, error);
+    res.status(500).json({ success: false, message: "Gagal mengambil data absensi range." });
+  }
+};
+
+/**
  * Get monthly attendance data (Summary & Detail).
  * Fetches holidays, users, logs, and raw logs for efficient frontend processing.
  */
@@ -86,7 +169,7 @@ export const getMonthlyData = async (req, res) => {
     const logQuery = `
       SELECT
         al.id, al.username, u.id as user_id, al.date, al.check_in, al.check_out,
-        al.lateness_minutes, al.overtime_minutes,
+        al.lateness_minutes, al.overtime_minutes, al.notes, al.status,
         arl.log_time, arl.log_type
       FROM attendance_logs al
       JOIN users u ON al.username = u.username
@@ -175,6 +258,31 @@ export const uploadAttendanceLogs = async (req, res) => {
     });
   } catch (error) {
     console.error("[Attendance] Upload Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Update attendance log manually.
+ */
+export const updateLog = async (req, res) => {
+  try {
+    const { username, date, timeIn, timeOut, status, notes } = req.body;
+
+    if (!username || !date) {
+      return res.status(400).json({ success: false, message: "Username and Date are required." });
+    }
+
+    const result = await attendanceService.updateAttendance(username, date, {
+      timeIn,
+      timeOut,
+      status,
+      notes
+    });
+
+    res.json({ success: true, message: "Data updated successfully", data: result });
+  } catch (error) {
+    console.error("Error updating log:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

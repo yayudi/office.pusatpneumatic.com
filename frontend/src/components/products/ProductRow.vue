@@ -9,6 +9,13 @@ const props = defineProps({
 
 const emit = defineEmits(['toggle-selection', 'edit', 'restore', 'delete'])
 
+// Helper Image URL
+const imageUrl = computed(() => {
+  if (!props.product.image_path) return null
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+  return `${baseUrl}/uploads/products/${props.product.image_path}`
+})
+
 // Helper Format Mata Uang
 const formattedPrice = computed(() => {
   return new Intl.NumberFormat('id-ID', {
@@ -41,13 +48,28 @@ const isArchived = computed(() => {
     <!-- NAMA PRODUK (Sticky Left) -->
     <td
       class="px-4 py-4 sticky left-12 z-20 bg-background group-hover:bg-secondary/5 transition-colors border-b border-secondary/5 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-      <div class="flex flex-col">
-        <div class="font-bold text-text text-sm flex items-center gap-2">
-          {{ product.name }}
-          <span v-if="product.is_package"
-            class="text-[10px] bg-accent/10 text-accent px-1.5 py-0.5 rounded border border-accent/20 font-bold uppercase tracking-wider">
-            Paket
-          </span>
+      <div class="flex items-center gap-3">
+        <!-- Thumbnail -->
+        <div @click.stop="$emit('view-image', product)"
+          class="w-10 h-10 rounded-lg bg-secondary/10 border border-secondary/20 overflow-hidden shrink-0 flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all relative group/img">
+          <img v-if="imageUrl" :src="imageUrl" class="w-full h-full object-cover" loading="lazy" />
+          <font-awesome-icon v-else icon="fa-solid fa-image" class="text-text/20 text-sm" />
+
+          <!-- Hover Overlay Icon -->
+          <div
+            class="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity">
+            <font-awesome-icon icon="fa-solid fa-expand" class="text-secondary text-xs drop-shadow-md" />
+          </div>
+        </div>
+
+        <div class="flex flex-col">
+          <div class="font-bold text-text text-sm flex items-center gap-2">
+            {{ product.name }}
+            <span v-if="product.is_package"
+              class="text-[10px] bg-accent/10 text-accent px-1.5 py-0.5 rounded border border-accent/20 font-bold uppercase tracking-wider">
+              Paket
+            </span>
+          </div>
         </div>
       </div>
     </td>

@@ -50,6 +50,12 @@ router.post(
 );
 
 /**
+ * GET /range
+ * Mengambil data absensi berdasarkan rentang tanggal (Summary & Detail Log).
+ */
+router.get("/range", attendanceController.getRangeData);
+
+/**
  * GET /:year/:month
  * Mengambil data absensi bulanan (Summary & Detail Log).
  */
@@ -59,6 +65,9 @@ router.get("/:year/:month", attendanceController.getMonthlyData);
  * GET /history
  * Mengambil data history absensi realtime berdasarkan range tanggal.
  */
+// Route baru untuk manual update (Upsert)
+router.post('/update', attendanceController.updateLog);
+
 router.get("/history", attendanceController.getHistory);
 
 export default router;

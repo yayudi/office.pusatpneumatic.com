@@ -26,17 +26,23 @@ export default defineConfig({
         // Logika pemisahan file vendor (library) dari kode aplikasi
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            // Pisahkan Core Vue & State Management agar browser bisa cache permanen
+            // 1. Framework Core (Vue, Pinia, Router)
             if (id.includes('vue') || id.includes('pinia') || id.includes('vue-router')) {
               return 'vue-vendor'
             }
 
-            // Pisahkan Library UI berat (seperti FontAwesome atau Chart.js)
+            // 2. Heavy Libs - Split individually
+            if (id.includes('xlsx')) return 'xlsx'
+            if (id.includes('pdfjs-dist')) return 'pdf-vendor'
+            if (id.includes('apexcharts') || id.includes('vue3-apexcharts')) return 'charts'
+            if (id.includes('lodash')) return 'lodash'
+
+            // 3. UI Libs
             if (id.includes('@fortawesome') || id.includes('fontawesome')) {
               return 'ui-vendor'
             }
 
-            // Sisanya masuk ke file vendor umum
+            // 4. Fallback for others (axios, dayjs, etc.)
             return 'vendor'
           }
         },

@@ -61,3 +61,53 @@ export const getStatsByDateRange = async (startDate, endDate) => {
   const [rows] = await db.query(query, [startDate, endDate]);
   return rows[0];
 };
+
+/**
+ * Upsert attendance log.
+ * @param {string} username
+ * @param {string} date - YYYY-MM-DD
+ * @param {Object} data - { check_in, check_out, notes, lateness_minutes, overtime_minutes }
+ */
+export const upsertLog = async (username, date, data) => {
+  // Check if exists
+  const [existing] = await db.query(
+    'SELECT id FROM attendance_logs WHERE username = ? AND date = ?',
+    [username, date]
+  );
+
+  if (existing.length > 0) {
+    // Update
+    const query = `
+      UPDATE attendance_logs
+      SET check_in = ?, check_out = ?, notes = ?, lateness_minutes = ?, overtime_minutes = ?, status = ?
+      WHERE id = ?
+    `;
+    await db.query(query, [
+      data.check_in,
+      data.check_out,
+      data.notes,
+      data.lateness_minutes,
+      data.overtime_minutes,
+      data.status, // New column
+      existing[0].id
+    ]);
+    return { id: existing[0].id, action: 'UPDATE' };
+  } else {
+    // Insert
+    const query = `
+      INSERT INTO attendance_logs (username, date, check_in, check_out, notes, lateness_minutes, overtime_minutes, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    const [result] = await db.query(query, [
+      username,
+      date,
+      data.check_in,
+      data.check_out,
+      data.notes,
+      data.lateness_minutes,
+      data.overtime_minutes,
+      data.status // New column
+    ]);
+    return { id: result.insertId, action: 'INSERT' };
+  }
+};

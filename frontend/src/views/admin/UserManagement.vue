@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useToast } from '@/composables/useToast.js'
-import { fetchAllUsers, fetchRoles, createUser, deleteUser } from '@/api/helpers/admin.js'
+import { fetchAllUsers, fetchRoles, fetchShifts, createUser, deleteUser } from '@/api/helpers/admin.js'
 import UserLocationModal from '@/components/users/locationModal.vue'
 import UserEditModal from '@/components/users/EditModal.vue'
 import Modal from '@/components/ui/Modal.vue'
@@ -9,6 +9,7 @@ import TableSkeleton from '@/components/ui/TableSkeleton.vue'
 
 const users = ref([])
 const allRoles = ref([])
+const allShifts = ref([])
 const loading = ref(true)
 const selectedUser = ref(null)
 
@@ -17,16 +18,17 @@ const isCreateModalOpen = ref(false)
 const isLocationModalOpen = ref(false)
 const isEditModalOpen = ref(false)
 
-const newUser = ref({ username: '', password: '', role_id: null, nickname: '' })
+const newUser = ref({ username: '', password: '', role_id: null, shift_id: null, nickname: '' })
 const { show } = useToast()
 
 async function fetchData() {
   loading.value = true
   try {
     // Gunakan helper API untuk mengambil data
-    const [usersData, rolesData] = await Promise.all([fetchAllUsers(), fetchRoles()])
+    const [usersData, rolesData, shiftsData] = await Promise.all([fetchAllUsers(), fetchRoles(), fetchShifts()])
     users.value = usersData
     allRoles.value = rolesData
+    allShifts.value = shiftsData
   } catch (error) {
     show('Gagal memuat data pengguna.', 'error')
   } finally {
@@ -43,7 +45,7 @@ async function handleCreateUser() {
     const response = await createUser(newUser.value)
     show(response.message || 'Pengguna berhasil dibuat.', 'success')
     isCreateModalOpen.value = false
-    newUser.value = { username: '', password: '', role_id: null, nickname: '' } // Reset form
+    newUser.value = { username: '', password: '', role_id: null, shift_id: null, nickname: '' } // Reset form
     fetchData() // Muat ulang data
   } catch (error) {
     show(error.response?.data?.message || 'Gagal membuat pengguna.', 'error')
@@ -100,6 +102,7 @@ onMounted(fetchData)
               Username</th>
             <th class="px-6 py-3 border-b border-secondary/10">Nickname</th>
             <th class="px-6 py-3 border-b border-secondary/10">Role</th>
+            <th class="px-6 py-3 border-b border-secondary/10">Shift</th>
             <th
               class="px-6 py-3 text-center sticky right-0 z-30 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]">
               Aksi</th>
@@ -112,7 +115,7 @@ onMounted(fetchData)
           </template>
 
           <tr v-else-if="users.length === 0" key="empty">
-            <td colspan="4" class="py-12 text-center text-text/50 italic">
+            <td colspan="5" class="py-12 text-center text-text/50 italic">
               Tidak ada data pengguna.
             </td>
           </tr>
@@ -127,6 +130,13 @@ onMounted(fetchData)
               <span class="px-2 py-1 rounded text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
                 {{ user.role_name }}
               </span>
+            </td>
+            <td class="px-6 py-4 text-text/80 text-sm">
+              <span v-if="user.shift_name" class="flex items-center gap-1.5">
+                <font-awesome-icon icon="fa-solid fa-clock" class="text-text/40 text-xs" />
+                {{ user.shift_name }}
+              </span>
+              <span v-else class="text-text/40 italic">Default</span>
             </td>
             <td
               class="px-6 py-4 text-center space-x-2 sticky right-0 z-20 bg-background group-hover:bg-secondary/5 transition-colors shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]">
@@ -154,8 +164,8 @@ onMounted(fetchData)
     <!-- Semua Modal yang Digunakan di Halaman Ini -->
     <UserLocationModal :show="isLocationModalOpen" :user="selectedUser" @close="isLocationModalOpen = false"
       @updated="fetchData" />
-    <UserEditModal :show="isEditModalOpen" :user="selectedUser" :roles="allRoles" @close="isEditModalOpen = false"
-      @updated="fetchData" />
+    <UserEditModal :show="isEditModalOpen" :user="selectedUser" :roles="allRoles" :shifts="allShifts"
+      @close="isEditModalOpen = false" @updated="fetchData" />
 
     <!-- Modal untuk Tambah Pengguna -->
     <Modal :show="isCreateModalOpen" @close="isCreateModalOpen = false" title="Tambah Pengguna Baru">
@@ -182,6 +192,16 @@ onMounted(fetchData)
             <option :value="null" disabled>Pilih sebuah peran</option>
             <option v-for="role in allRoles" :key="role.id" :value="role.id">
               {{ role.name }}
+            </option>
+          </select>
+        </div>
+        <div>
+          <label for="shift" class="block text-sm font-medium text-text/80 mb-1">Shift (Opsional)</label>
+          <select v-model="newUser.shift_id" id="shift"
+            class="w-full px-3 py-2 bg-background border border-secondary/50 rounded-lg">
+            <option :value="null">Default (Regular Office)</option>
+            <option v-for="shift in allShifts" :key="shift.id" :value="shift.id">
+              {{ shift.name }} ({{ shift.start_time.slice(0, 5) }} - {{ shift.end_time.slice(0, 5) }})
             </option>
           </select>
         </div>

@@ -162,3 +162,17 @@ export async function updateRolePermissions(roleId, permissionIds) {
     throw error.response?.data || error
   }
 }
+
+/**
+ * Mengambil daftar semua shift dari server.
+ * @returns {Promise<Array>}
+ */
+export async function fetchShifts() {
+  try {
+    const response = await axios.get('/shifts')
+    return response.data.data || []
+  } catch (error) {
+    console.error('Error fetching shifts:', error.response?.data || error.message)
+    throw error.response?.data || error
+  }
+}

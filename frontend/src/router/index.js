@@ -141,6 +141,18 @@ const routes = [
         component: () => import('../views/admin/LogsView.vue'),
         meta: { requiresPermission: 'view-system-logs' },
       },
+      {
+        path: 'shifts',
+        name: 'ShiftManagement',
+        component: () => import('../views/admin/ShiftManagement.vue'),
+        meta: { requiresPermission: 'manage-users' },
+      },
+      {
+        path: 'schedules',
+        name: 'ShiftSchedule',
+        component: () => import('../views/admin/ShiftSchedule.vue'),
+        meta: { requiresPermission: 'manage-users' },
+      },
     ],
   },
 

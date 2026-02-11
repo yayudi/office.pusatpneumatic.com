@@ -273,12 +273,19 @@ export const batchTransfer = async (req, res) => {
 
 export const getBatchLogs = async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, productName, movementType, locationId, userId } = req.query;
     if (!startDate || !endDate) {
       return res.status(400).json({ success: false, message: "Tanggal wajib diisi." });
     }
 
-    const logs = await stockService.getBatchLogsService(startDate, endDate);
+    const logs = await stockService.getBatchLogsService({
+      startDate,
+      endDate,
+      productName,
+      movementType,
+      locationId,
+      userId
+    });
     res.json({ success: true, data: logs });
   } catch (error) {
     console.error("[StockController] Batch Log Error:", error);

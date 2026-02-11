@@ -30,7 +30,12 @@ export async function loadHolidays(tahun) {
 
     for (const row of rows) {
       // Ubah objek Tanggal SQL menjadi string YYYY-MM-DD
-      const dateString = row.date.toISOString().split("T")[0];
+      let dateString;
+      if (typeof row.date === 'string') {
+        dateString = row.date; // Sudah string "YYYY-MM-DD" karena dateStrings di db.js
+      } else {
+        dateString = row.date.toISOString().split("T")[0];
+      }
 
       // Terapkan logika yang sama (abaikan cuti bersama)
       if (dateString && !row.name?.toLowerCase().includes("cuti bersama")) {

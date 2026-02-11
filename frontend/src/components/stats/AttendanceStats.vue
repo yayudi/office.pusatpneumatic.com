@@ -17,15 +17,27 @@ const props = defineProps({
   },
   year: {
     type: [Number, String],
-    default: new Date().getFullYear()
+    default: null
   },
   month: {
     type: [Number, String],
-    default: new Date().getMonth() + 1
+    default: null
+  },
+  startDate: {
+    type: String,
+    default: null
+  },
+  endDate: {
+    type: String,
+    default: null
   },
   loading: {
     type: Boolean,
     default: false
+  },
+  mobileLayout: {
+    type: String,
+    default: 'card'
   }
 })
 
@@ -38,6 +50,7 @@ const userSummaries = computed(() => {
   if (!props.users.length) return []
   return props.users.map(u => {
     // Add logic to re-calculate per user based on existing helper
+    // Note: year/month passed might be null in Range Mode, but summary helper now handles fullDate
     const summary = calculateSummaryForUser(u, parseInt(props.year), parseInt(props.month), props.summaryInfo, authStore)
     return {
       ...u,
@@ -51,7 +64,8 @@ const kpiStats = computed(() => {
   if (!props.users.length) return []
 
   const totalUsers = props.users.length
-  const totalWorkDays = props.summaryInfo.workDays || 20 // fallback
+  // Support Range Workdays from globalInfo if available
+  const totalWorkDays = props.summaryInfo.workDays || 20
   const maxManDays = totalUsers * totalWorkDays
 
   // A. Kehadiran
@@ -62,6 +76,9 @@ const kpiStats = computed(() => {
   const totalTelatUsers = userSummaries.value.filter(u => u.stats.telatHours !== '0j 0m').length
 
   const totalTelatMinutes = userSummaries.value.reduce((sum, u) => {
+    // Check if dendaPerHari is robust? Better use aggregated 'lateness' from logs?
+    // Using pre-calculated 'telatHours' (string) -> minute conversion is risky if helper changed.
+    // Use helper sum:
     const userTelat = u.stats.dendaPerHari.reduce((dSum, d) => dSum + d.telat, 0)
     return sum + userTelat
   }, 0)
@@ -74,26 +91,6 @@ const kpiStats = computed(() => {
 
   // D. Early Out (Pulang Cepat)
   const totalEarlyMinutes = userSummaries.value.reduce((sum, u) => {
-    // earlyOutPerHari usually contains raw timestamp/minutes?
-    // Let's check summary.js: `earlyOutPerHari.push({ tanggal, jamKeluar })`
-    // Wait, summary.js calculates `totalEarly` (minutes).
-    // And `summary` object has `earlyOutHours`.
-    // Does it export `earlyOutPerHari` with MINUTES?
-    // Looking at summary.js:
-    // `const early = jamKerjaEnd - jamKeluar` -> `totalEarly += early`.
-    // So `totalEarly` is SUM of minutes.
-    // It is not passed as a raw number in the summary object, only `earlyOutHours` (string).
-    // BUT, we can re-sum from `earlyOutPerHari` OR just trust `totalEarly` if we modify summary.js?
-    // Actually, `summary.js` DOES NOT return `totalEarly` raw in the return object.
-    // However, it returns `earlyOutPerHari`. Let's check content: `{ tanggal, jamKeluar }`.
-    // It DOES NOT store the 'early' minutes difference in the array object.
-    // CRITICAL FIX: We need to calculate it again or infer it.
-    // Or... we rely on `parseJamMenit` wrapper?
-    // Let's stick to Parsing the formatted string 'Xj Ym' if needed, OR calculate roughly.
-    // Better way: Re-calculate strictly from logs? No, that's heavy.
-    // Let's modify `summary.js` logic in mind? No, we shouldn't touch shared algo if not needed.
-    // Wait, the summary object has `earlyOutHours`.
-    // Let's parse 'Xj Ym' back to minutes.
     const parts = u.stats.earlyOutHours.split(' ')
     let mins = 0
     parts.forEach(p => {
@@ -141,70 +138,106 @@ const kpiStats = computed(() => {
 
 
 // 3. Charts Data
-const chartSeries = computed(() => {
-  if (!props.users.length || !props.year || !props.month) return []
+const chartDataPoints = computed(() => {
+  if (!props.users.length) return { length: 0, hadir: [], telat: [] }
 
-  const daysInMonth = new Date(props.year, props.month, 0).getDate()
-  const dataHadir = new Array(daysInMonth).fill(0)
-  const dataTelat = new Array(daysInMonth).fill(0)
+  // Use the length of logs from the first user (normalized logs should be same length for all)
+  const sampleLogs = props.users[0].logs || []
+  const validLength = sampleLogs.length
 
-  // Loop all users -> all logs
+  const dataHadir = new Array(validLength).fill(0)
+  const dataTelat = new Array(validLength).fill(0)
+
   userSummaries.value.forEach(u => {
     if (Array.isArray(u.logs)) {
       u.logs.forEach((log, index) => {
-        if (!log || index >= daysInMonth) return
+        if (!log || index >= validLength) return
+
+        // Count Present
         if (log.jamMasuk && log.jamKeluar) {
           dataHadir[index]++
         }
-      })
-      u.stats.dendaPerHari.forEach(d => {
-        if (d.tanggal <= daysInMonth) dataTelat[d.tanggal - 1]++
+
+        // Count Late (Using direct log property is safer than dendaPerHari index for Range)
+        if (log.lateness > 0) {
+          dataTelat[index]++
+        }
       })
     }
   })
 
+  return { length: validLength, hadir: dataHadir, telat: dataTelat }
+})
+
+const chartSeries = computed(() => {
+  const { hadir, telat } = chartDataPoints.value
   return [
-    { name: 'Hadir', data: dataHadir },
-    { name: 'Terlambat', data: dataTelat }
+    { name: 'Hadir', data: hadir },
+    { name: 'Terlambat', data: telat }
   ]
 })
 
-const chartOptions = computed(() => ({
-  chart: {
-    type: 'area',
-    toolbar: { show: false },
-    fontFamily: 'inherit',
-    background: 'transparent'
-  },
-  colors: ['#22c55e', '#f59e0b'],
-  stroke: { curve: 'smooth', width: 2 },
-  xaxis: {
-    categories: Array.from({ length: new Date(props.year || 2025, props.month || 1, 0).getDate() }, (_, i) => i + 1),
-    tooltip: { enabled: false },
-    labels: {
-      show: true,
-      style: { colors: '#6b7280', fontSize: '11px', fontFamily: 'inherit' }
-    },
-    axisBorder: { show: false },
-    axisTicks: { show: false }
-  },
-  yaxis: {
-    show: true,
-    labels: {
-      show: true,
-      style: { colors: '#6b7280', fontSize: '11px', fontFamily: 'inherit' },
-      formatter: (value) => Math.floor(value)
+const chartOptions = computed(() => {
+  // Generate categories (Labels)
+  let categories = []
+  if (props.startDate && props.endDate) {
+    // Generate dates between start and end
+    const s = new Date(props.startDate)
+    const e = new Date(props.endDate)
+    const days = []
+    for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+      days.push(new Date(d))
     }
-  },
-  theme: { mode: 'dark' },
-  grid: {
-    show: true,
-    borderColor: 'rgba(var(--color-secondary), 0.1)',
-    strokeDashArray: 4,
-    xaxis: { lines: { show: false } }
-  },
-  dataLabels: { enabled: false }
-}))
+    categories = days.map(d => d.getDate().toString()) // Show Day only? Or D MMM?
+    // Let's show "D MMM" if > 31 days or spanning months, else just "D"
+    // To match legacy (just numbers), let's try to be smart.
+    // If same month range: numbers. If cross month: D MMM.
+    // For simplicity, let's use numbers if length <= 31.
+    if (days.length <= 31) categories = days.map(d => d.getDate())
+    else categories = days.map(d => `${d.getDate()} ${d.toLocaleString('id-ID', { month: 'short' })}`)
+
+  } else if (props.year && props.month) {
+    const daysInMonth = new Date(props.year, props.month, 0).getDate()
+    categories = Array.from({ length: daysInMonth }, (_, i) => i + 1)
+  }
+
+  return {
+    chart: {
+      type: 'area',
+      toolbar: { show: false },
+      fontFamily: 'inherit',
+      background: 'transparent'
+    },
+    colors: ['#22c55e', '#f59e0b'],
+    stroke: { curve: 'smooth', width: 2 },
+    xaxis: {
+      categories: categories,
+      tooltip: { enabled: false },
+      labels: {
+        show: true,
+        style: { colors: '#6b7280', fontSize: '11px', fontFamily: 'inherit' }
+      },
+      axisBorder: { show: false },
+      axisTicks: { show: false }
+    },
+    yaxis: {
+      show: true,
+      labels: {
+        show: true,
+        style: { colors: '#6b7280', fontSize: '11px', fontFamily: 'inherit' },
+        formatter: (value) => Math.floor(value)
+      }
+    },
+    theme: { mode: 'dark' },
+    grid: {
+      show: true,
+      borderColor: 'rgba(var(--color-secondary), 0.1)',
+      strokeDashArray: 4,
+      xaxis: { lines: { show: false } }
+    },
+    dataLabels: { enabled: false }
+  }
+})
 
 // 4. Tables (Top Lists)
 const topLateUsers = computed(() => {
@@ -381,7 +414,7 @@ const userOvertimeChartOptions = computed(() => ({
       <!-- Header Actions -->
       <div class="flex justify-end">
         <button @click="handleExportExcel"
-          class="flex items-center gap-2 px-4 py-2 bg-success/10 text-success hover:bg-success hover:text-white rounded-lg text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-success/20">
+          class="flex items-center gap-2 px-4 py-2 bg-success/10 text-success hover:bg-success hover:text-background rounded-lg text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-success/20">
           <font-awesome-icon icon="fa-solid fa-file-excel" />
           <span>Export Excel</span>
         </button>
@@ -485,8 +518,8 @@ const userOvertimeChartOptions = computed(() => ({
             class="bg-secondary/10 border border-secondary/20 rounded-lg px-3 py-1 text-sm text-text focus:outline-none focus:ring-1 focus:ring-primary" />
         </div>
         <div class="overflow-x-auto custom-scrollbar">
-          <table class="w-full text-left text-sm">
-            <thead>
+          <table class="w-full text-left text-sm border-collapse block md:table">
+            <thead class="hidden md:table-header-group">
               <tr class="text-text/50 uppercase text-xs border-b border-secondary/20">
                 <th class="px-6 py-3">Nama</th>
                 <th class="px-6 py-3 text-center">Hadir</th>
@@ -497,42 +530,75 @@ const userOvertimeChartOptions = computed(() => ({
                 <th class="px-6 py-3 text-right">Denda</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody class="block md:table-row-group">
               <tr v-for="u in filteredUserSummaries" :key="u.id"
-                class="hover:bg-secondary/5 transition-colors cursor-pointer group" @click="openDetail(u)">
-                <td class="px-6 py-4 font-bold text-text group-hover:text-primary transition-colors">{{ u.nama }}</td>
-                <td class="px-6 py-4 text-center">
+                class="block md:table-row hover:bg-secondary/5 transition-colors cursor-pointer group mb-4 md:mb-0 bg-background/50 md:bg-transparent rounded-xl md:rounded-none shadow-sm md:shadow-none p-4 md:p-0 border border-secondary/20 md:border-none md:border-b md:border-secondary/20"
+                :class="{ 'mx-0': mobileLayout === 'card' }" @click="openDetail(u)">
+
+                <td
+                  class="flex justify-between items-center md:table-cell px-2 md:px-6 py-2 md:py-4 font-bold text-text group-hover:text-primary transition-colors border-b border-secondary/10 md:border-none mb-2 md:mb-0">
+                  <span class="text-base md:text-sm">{{ u.nama }}</span>
+                  <span class="md:hidden text-xs font-normal text-text/60 bg-secondary/10 px-2 py-1 rounded">Detail
+                    ></span>
+                </td>
+
+                <td class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center">
+                  <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Hadir</span>
                   <span class="inline-block px-2 py-0.5 rounded-md bg-success/10 text-success font-bold text-xs">
                     {{ u.stats.hadirDays }} Hari
                   </span>
                 </td>
-                <td class="px-6 py-4 text-center">
+
+                <td class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center">
+                  <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Telat</span>
                   <div v-if="u.stats.telatHours !== '0j 0m'" class="text-warning font-bold">{{ u.stats.telatHours }}
                   </div>
-                  <div v-else class="text-text/30">-</div>
-                </td>
-                <td class="px-6 py-4 text-center">
-                  <div v-if="u.stats.earlyOutHours !== '0j 0m'" class="text-danger font-bold">{{ u.stats.earlyOutHours
-                  }}
+                  <div v-else class="text-text/30">
+                    <span class="md:block hidden">-</span>
+                    <span class="md:hidden">0j 0m</span>
                   </div>
-                  <div v-else class="text-text/30">-</div>
                 </td>
-                <td class="px-6 py-4 text-center">
+
+                <td v-if="mobileLayout !== 'compact'"
+                  class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center">
+                  <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Cepat</span>
+                  <div v-if="u.stats.earlyOutHours !== '0j 0m'" class="text-danger font-bold">{{ u.stats.earlyOutHours
+                    }}
+                  </div>
+                  <div v-else class="text-text/30">
+                    <span class="md:block hidden">-</span>
+                    <span class="md:hidden">0j 0m</span>
+                  </div>
+                </td>
+
+                <td class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center">
+                  <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Lembur</span>
                   <div v-if="u.stats.lemburHours !== '0j 0m'" class="text-primary font-bold">{{ u.stats.lemburHours }}
                   </div>
-                  <div v-else class="text-text/30">-</div>
+                  <div v-else class="text-text/30">
+                    <span class="md:block hidden">-</span>
+                    <span class="md:hidden">0j 0m</span>
+                  </div>
                 </td>
-                <td class="px-6 py-4 text-center">
+
+                <td class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center">
+                  <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Absen</span>
                   <span v-if="u.stats.absenceDays > 0" class="text-danger font-bold">{{ u.stats.absenceDays }}
                     Hari</span>
-                  <span v-else class="text-text/30">-</span>
+                  <span v-else class="text-text/30">
+                    <span class="md:block hidden">-</span>
+                    <span class="md:hidden">0 Hari</span>
+                  </span>
                 </td>
-                <td class="px-6 py-4 text-right font-mono text-text/70">
-                  Rp {{ u.stats.dendaTelat.toLocaleString('id-ID') }}
+
+                <td v-if="mobileLayout !== 'compact'"
+                  class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-right font-mono text-text/70 border-t border-secondary/10 md:border-none mt-2 md:mt-0 pt-2 md:pt-4">
+                  <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Denda</span>
+                  <span>Rp {{ u.stats.dendaTelat.toLocaleString('id-ID') }}</span>
                 </td>
               </tr>
-              <tr v-if="!filteredUserSummaries.length">
-                <td colspan="7" class="px-6 py-8 text-center text-text/40 italic">
+              <tr v-if="!filteredUserSummaries.length" class="block md:table-row">
+                <td colspan="7" class="px-6 py-8 text-center text-text/40 italic block md:table-cell">
                   Tidak ada data karyawan yang cocok.
                 </td>
               </tr>

@@ -36,6 +36,27 @@ export async function getAbsensiData(year, month) {
   }
 }
 
+/**
+ * Mengambil data absensi berdasarkan Start Date & End Date.
+ */
+export async function getAbsensiRange(startDate, endDate) {
+  try {
+    const url = `/attendance/range`
+    const { data: raw } = await axios.get(url, { params: { startDate, endDate } })
+
+    // Normalize logic perlu handle range
+    // Kita pass startDate dan endDate ke normalizeLogs (overloading)
+    // Asumsi normalizeLogs diupdate untuk terima (users, rows, holidays, start, end)
+    return {
+      summary: raw.globalInfo,
+      users: normalizeLogs(raw.allUsers, raw.logRows, raw.globalInfo.holidayMap, startDate, endDate),
+    }
+  } catch (error) {
+    console.error('Gagal mengambil data absensi range dari API:', error)
+    throw error
+  }
+}
+
 // --- FUNGSI-FUNGSI LAIN (TIDAK BERUBAH) ---
 export async function uploadAbsensiFile(formData) {
   try {

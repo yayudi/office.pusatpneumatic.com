@@ -42,7 +42,8 @@ export function calculateSummaryForUser(user, year, month, globalInfo, auth) {
       return
     }
 
-    const tanggal = idx + 1
+    const tanggal = day.tanggal // 1..31
+    const fullDateStr = day.fullDate // YYYY-MM-DD (From normalizeLogs refactor)
 
     if (day.status === 2) {
       return
@@ -52,13 +53,23 @@ export function calculateSummaryForUser(user, year, month, globalInfo, auth) {
     }
 
     if (!jamMasuk || !jamKeluar) {
-      console.log('--- 🔴 GAGAL: jamMasuk/jamKeluar tidak ditemukan. Keluar dari iterasi. --- \n')
+      // console.log('--- 🔴 GAGAL: jamMasuk/jamKeluar tidak ditemukan. ---')
       return
     }
 
-    const jamKerjaEnd = isWeekend(year, month, tanggal)
-      ? JAM_KERJA_SELESAI_SABTU
-      : JAM_KERJA_SELESAI
+    // Determine Weekend (Saturday/Sunday)
+    let isSat = false
+
+    if (fullDateStr) {
+      const d = new Date(fullDateStr)
+      isSat = d.getDay() === 6
+    } else {
+      // Legacy Fallback
+      const d = new Date(year, month - 1, tanggal)
+      isSat = d.getDay() === 6
+    }
+
+    const jamKerjaEnd = isSat ? JAM_KERJA_SELESAI_SABTU : JAM_KERJA_SELESAI
 
     const totalBreaks = day.breaks.reduce((total, currentBreak) => total + currentBreak.duration, 0)
     const durasi = jamKeluar - jamMasuk

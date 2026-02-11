@@ -82,15 +82,22 @@ export async function fetchStockHistory(productId, page = 1) {
 }
 
 /**
- * Mengambil semua log pergerakan stok dalam rentang tanggal tertentu.
- * @param {string} startDate - Tanggal mulai (YYYY-MM-DD).
- * @param {string} endDate - Tanggal selesai (YYYY-MM-DD).
+ * Mengambil semua log pergerakan stok dengan filter.
+ * @param {object} params - { startDate, endDate, productName, movementType, locationId, user }
  * @returns {Promise<Array>} - Array berisi objek log pergerakan.
  */
-export async function fetchBatchLogs(startDate, endDate) {
+export async function fetchBatchLogs(startDate, endDate, filters = {}) {
   try {
+    const { productName, movementType, locationId, user: userId } = filters;
     const response = await axios.get('/stock/batch-log', {
-      params: { startDate, endDate },
+      params: {
+        startDate,
+        endDate,
+        productName,
+        movementType,
+        locationId,
+        userId // This acts as username search text
+      },
     })
     return response.data.data || []
   } catch (error) {

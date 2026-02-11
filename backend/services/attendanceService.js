@@ -1,61 +1,77 @@
-import * as attendanceRepository from '../repositories/attendanceRepository.js';
+import * as shiftRepository from '../repositories/shiftRepository.js';
+import * as scheduleRepository from '../repositories/scheduleRepository.js';
+import * as attendanceRepository from '../repositories/attendanceRepository.js'; // Ensure this is imported if used (e.g. at step 3)
 
-/**
- * Service for Attendance Logic.
- * Orchestrates data fetching and formatting.
- */
+// Helper to convert "HH:mm:ss" or "HH:mm" to minutes
+const timeToMinutes = (timeStr) => {
+  if (!timeStr) return 0;
+  const [h, m] = timeStr.split(':').map(Number);
+  return h * 60 + m;
+};
 
-/**
- * Get attendance history with formatted response.
- * @param {string} startDate
- * @param {string} endDate
- * @param {string} filter - Optional search filter
- * @returns {Promise<Object>} Formatted logs and stats
- */
-export const getHistory = async (startDate, endDate, filter = null) => {
-  // 1. Fetch Logs
-  const rawLogs = await attendanceRepository.findLogsByDateRange(startDate, endDate, filter);
+// ... existing code ...
 
-  // 2. Format Logs
-  const formattedLogs = rawLogs.map(log => {
-    let status = 'Hadir';
-    if (log.lateness_minutes > 0) status = 'Terlambat';
-    // Note: 'Sakit', 'Alpha' logic depends on how they are stored.
-    // For now, if no check_in/check_out but log exists, it might be leave/absent.
-    // Assuming database structure stores these states or we infer them.
-    // If check_in is null but date exists in logs, it might be a holiday or leave entry if we had that data.
-    // For this iteration, we keep it simple based on available columns.
+export const updateAttendance = async (username, date, payload) => {
+  // 1. Prepare Data
+  const { timeIn, timeOut, status, notes } = payload;
 
-    let duration = '-';
-    if (log.check_in && log.check_out) {
-      const start = new Date(`1970-01-01T${log.check_in}Z`);
-      const end = new Date(`1970-01-01T${log.check_out}Z`);
-      const diffMs = end - start;
-      const diffHrs = Math.floor(diffMs / 3600000);
-      const diffMins = Math.floor((diffMs % 3600000) / 60000);
-      duration = `${diffHrs}h ${diffMins}m`;
+  let check_in = timeIn || null;
+  let check_out = timeOut || null;
+  let finalNotes = notes || null;
+
+  // 2. Determine Effective Shift
+  let shift;
+  const userId = await shiftRepository.getUserIdByUsername(username);
+
+  // Check for Schedule Override
+  if (userId) {
+    const schedule = await scheduleRepository.getScheduleByDate(userId, date);
+    if (schedule) {
+      shift = schedule; // The schedule object already contains joined shift details (start_time, end_time, flexible_minutes)
     }
+  }
 
-    return {
-      id: log.id,
-      user: log.nickname || log.username,
-      date: log.date, // already valid date string or object
-      timeIn: log.check_in ? log.check_in.slice(0, 5) : '-',
-      timeOut: log.check_out ? log.check_out.slice(0, 5) : '-',
-      status: status,
-      duration: duration
-    };
+  // Fallback to Default User Shift if no schedule
+  if (!shift) {
+    shift = await shiftRepository.getUserShift(username);
+  }
+
+  // Default values
+  const shiftStartMin = timeToMinutes(shift.start_time); // e.g. 08:00 = 480
+  const shiftEndMin = timeToMinutes(shift.end_time);     // e.g. 16:00 = 960
+  const tolerance = shift.flexible_minutes || 0;
+
+  // 3. Recalculate Logic
+  let lateness_minutes = 0;
+  let overtime_minutes = 0;
+
+  if (check_in) {
+    const inMinutes = timeToMinutes(check_in);
+
+    // Dynamic Lateness
+    // Late if CheckIn > Shift Start + Tolerance
+    if (inMinutes > (shiftStartMin + tolerance)) {
+      lateness_minutes = inMinutes - shiftStartMin; // Calculate from Start Time (not incl tolerance)
+    }
+  }
+
+  if (check_out) {
+    const outMinutes = timeToMinutes(check_out);
+
+    // Dynamic Overtime
+    // Overtime if CheckOut > Shift End
+    if (outMinutes > shiftEndMin) {
+      overtime_minutes = outMinutes - shiftEndMin;
+    }
+  }
+
+  // 3. Call Repo
+  return await attendanceRepository.upsertLog(username, date, {
+    check_in,
+    check_out,
+    notes: finalNotes,
+    lateness_minutes,
+    overtime_minutes,
+    status // Pass status explicitly
   });
-
-  // 3. Fetch Stats (Optional, could be calculated from logs but efficient to ask DB)
-  // For now, let's calculate simplistic stats from the fetched logs to reduce DB calls if dataset is small
-  // or use the repository method if we want full aggregates.
-
-  // Using repository for aggregated stats is cleaner for big data
-  // const stats = await attendanceRepository.getStatsByDateRange(startDate, endDate);
-
-  return {
-    logs: formattedLogs,
-    // stats: stats
-  };
 };

@@ -474,10 +474,10 @@ export const getStockHistoryService = async (productId, page = 1, limit = 15) =>
   }
 };
 
-export const getBatchLogsService = async (startDate, endDate) => {
+export const getBatchLogsService = async ({ startDate, endDate, productName, movementType, locationId, userId }) => {
   const connection = await db.getConnection();
   try {
-    const query = `
+    let query = `
     SELECT sm.id,
       p.sku,
       p.name as product_name,
@@ -493,10 +493,35 @@ export const getBatchLogsService = async (startDate, endDate) => {
     JOIN users u ON sm.user_id = u.id
     LEFT JOIN locations from_loc ON sm.from_location_id = from_loc.id
     LEFT JOIN locations to_loc ON sm.to_location_id = to_loc.id
-    WHERE sm.created_at BETWEEN ? AND ?
-    ORDER BY sm.created_at DESC`;
+    WHERE sm.created_at BETWEEN ? AND ?`;
 
-    const [logs] = await connection.query(query, [startDate, `${endDate} 23:59:59`]);
+    const params = [startDate, `${endDate} 23:59:59`];
+
+    if (productName) {
+      query += ` AND p.name LIKE ?`;
+      params.push(`%${productName}%`);
+    }
+
+    if (movementType) {
+      query += ` AND sm.movement_type = ?`;
+      params.push(movementType);
+    }
+
+    if (locationId) {
+      query += ` AND (sm.from_location_id = ? OR sm.to_location_id = ?)`;
+      params.push(locationId, locationId);
+    }
+
+    if (userId) {
+      // Find user ID by partial name match first (or join filter)
+      // Since we join 'users u', we can filter by u.username
+      query += ` AND u.username LIKE ?`;
+      params.push(`%${userId}%`); // Using 'userId' param as search text for username based on frontend plan
+    }
+
+    query += ` ORDER BY sm.created_at DESC`;
+
+    const [logs] = await connection.query(query, params);
     return logs;
   } finally {
     connection.release();

@@ -113,7 +113,7 @@ const formatStatus = (status) => {
 const getStatusClass = (status) => {
   const map = {
     'PENDING': 'bg-warning/10 text-warning',
-    'PROCESSING': 'bg-info/10 text-info animate-pulse',
+    'PROCESSING': 'bg-accent/10 text-accent animate-pulse',
     'COMPLETED': 'bg-success/10 text-success',
     'COMPLETED_WITH_ERRORS': 'bg-warning/10 text-warning',
     'FAILED': 'bg-danger/10 text-danger'

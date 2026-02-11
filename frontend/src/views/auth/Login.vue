@@ -93,24 +93,5 @@ async function runTest() {
 
       <p v-if="error" class="text-accent mt-4 text-center text-sm">{{ error }}</p>
     </div>
-
-    <div class="w-full max-w-sm bg-background p-6 rounded-xl shadow-lg border border-secondary/20 mt-8">
-      <h3 class="text-lg font-semibold text-text mb-4 text-center">Uji Koneksi Backend</h3>
-      <p class="text-text/80 mb-4 text-center text-sm">
-        Klik tombol ini untuk memastikan frontend bisa berkomunikasi dengan backend.
-      </p>
-
-      <button @click="runTest" :disabled="isTestLoading"
-        class="w-full bg-secondary text-secondary py-2 px-4 rounded-lg hover:bg-secondary/90 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
-        {{ isTestLoading ? 'Mengetes...' : 'Jalankan Tes Koneksi' }}
-      </button>
-
-      <div v-if="testResult" class="mt-4">
-        <h4 class="font-semibold text-text mb-2">Hasil:</h4>
-        <pre class="bg-secondary/20 p-4 rounded-lg text-sm text-text whitespace-pre-wrap">{{
-          testResult
-        }}</pre>
-      </div>
-    </div>
   </div>
 </template>

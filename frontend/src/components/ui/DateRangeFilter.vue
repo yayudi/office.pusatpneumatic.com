@@ -157,7 +157,7 @@ onUnmounted(() => {
         <div
           class="bg-secondary/5 border-b md:border-b-0 md:border-r border-secondary/20 p-2 flex flex-row md:flex-col gap-1 w-full md:w-[140px] overflow-x-auto md:overflow-visible">
           <button v-for="(preset, idx) in presets" :key="idx" @click="selectPreset(preset)"
-            class="px-3 py-2 text-left text-xs font-medium rounded hover:bg-primary/10 hover:text-primary transition-colors whitespace-nowrap">
+            class="px-3 py-2 text-left text-primary text-xs font-medium rounded hover:bg-primary/10 hover:text-primary transition-colors whitespace-nowrap">
             {{ preset.label }}
           </button>
         </div>
@@ -194,7 +194,7 @@ onUnmounted(() => {
                 Batal
               </button>
               <button @click="applyFilter"
-                class="px-3 py-1.5 text-xs font-bold text-white bg-primary hover:bg-primary-dark rounded-lg shadow-sm shadow-primary/30 transition-all hover:scale-[1.02]">
+                class="px-3 py-1.5 text-xs font-bold text-background bg-primary hover:bg-primary-dark rounded-lg shadow-sm shadow-primary/30 transition-all hover:scale-[1.02]">
                 Terapkan
               </button>
             </div>

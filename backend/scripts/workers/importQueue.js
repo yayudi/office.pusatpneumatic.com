@@ -13,8 +13,9 @@ import { ParserEngine } from "../../services/parsers/ParserEngine.js";
 import { syncOrdersToDB } from "../../services/pickingImportService.js";
 import { processAttendanceImport } from "../../services/attendanceImportService.js";
 import * as productImportService from "../../services/productImportService.js";
-import * as packageImportService from "../../services/packageImportService.js";
+import { processPackageImport } from "../../services/packageImportService.js";
 import * as stockImportService from "../../services/stockImportService.js";
+import * as scheduleImportService from "../../services/scheduleImportService.js";
 
 // REPOSITORIES
 import * as jobRepo from "../../repositories/jobRepository.js";
@@ -284,7 +285,6 @@ export const importQueue = async () => {
       errors = (result.errors || []).map((e) => ({ row: e.row, message: e.message }));
       processStats = result.stats || {};
     } else if (realJobType === "IMPORT_ATTENDANCE") {
-      // ✅ Attendance Import: Langsung pass file mentah & metadata via options
       const result = await processAttendanceImport(
         connection,
         absoluteFilePath,
@@ -345,6 +345,21 @@ export const importQueue = async () => {
         errors = [];
       } else {
         logSummary = "Gagal memproses Inbound Massal.";
+        processStats = { success: 0 };
+        errors = result.errors || [];
+      }
+    } else if (realJobType === "IMPORT_SCHEDULES") {
+      const result = await scheduleImportService.processScheduleImport(
+        jobId,
+        absoluteFilePath,
+        job.user_id
+      );
+      if (result.success) {
+        logSummary = `Selesai Import Jadwal. Berhasil: ${result.count} data.`;
+        processStats = { success: result.count };
+        errors = [];
+      } else {
+        logSummary = "Gagal memproses Import Jadwal.";
         processStats = { success: 0 };
         errors = result.errors || [];
       }

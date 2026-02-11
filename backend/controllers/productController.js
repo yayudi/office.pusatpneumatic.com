@@ -60,7 +60,8 @@ export const getProducts = async (req, res) => {
 
       // Backward compatibility untuk WMS Dashboard lama
       packageOnly: req.query.packageOnly === "true",
-      minusStockOnly: req.query.minusOnly === "true",
+      // Filter Status Stok (All / Minus / Positive)
+      stockStatus: req.query.minusOnly === "true" ? "minus" : (req.query.stockStatus || "all"),
 
       building: req.query.building || "all",
       floor: req.query.floor || "all",
@@ -132,22 +133,36 @@ export const getProductHistory = async (req, res) => {
 // POST /
 // Membuat produk baru
 export const createProduct = async (req, res) => {
-  const { sku, name, category, price, weight, is_package, components } = req.body;
-  const userId = req.user.id; // ✅ Ambil ID User untuk Audit Log
+  const { sku, name, category, price, weight, is_package } = req.body;
+  let components = req.body.components;
+
+  // Handle Components JSON parsing from FormData
+  if (typeof components === "string") {
+    try {
+      components = JSON.parse(components);
+    } catch (e) {
+      components = [];
+    }
+  }
+
+  const userId = req.user.id;
+  const images = req.files || []; // Array of files
 
   // Validasi Input
   if (!sku || !name) {
     return res.status(400).json({ success: false, message: "SKU & Nama wajib diisi." });
   }
-  if (is_package && (!components || components.length === 0)) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Produk paket wajib memiliki komponen." });
+  if (is_package === "true" || is_package === true) {
+    if (!components || components.length === 0) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Produk paket wajib memiliki komponen." });
+    }
   }
 
   try {
     const productId = await productService.createProductService(
-      { sku, name, category, price, weight, is_package, components },
+      { sku, name, category, price, weight, is_package, components, images },
       userId
     );
 
@@ -166,9 +181,19 @@ export const createProduct = async (req, res) => {
 // Memperbarui produk
 export const updateProduct = async (req, res) => {
   const { id } = req.params;
-  // ✅ Ambil 'weight' dari body
-  const { name, category, price, weight, is_package, components, is_active } = req.body;
-  const userId = req.user.id; // ✅ Ambil ID User untuk Audit Log
+  const { name, category, price, weight, is_package, is_active } = req.body;
+
+  let components = req.body.components;
+  if (typeof components === "string") {
+    try {
+      components = JSON.parse(components);
+    } catch (e) {
+      components = [];
+    }
+  }
+
+  const userId = req.user.id;
+  const images = req.files || [];
 
   // Handle Restore Action (Specific Case)
   if (is_active === true && !name) {
@@ -188,7 +213,7 @@ export const updateProduct = async (req, res) => {
   try {
     await productService.updateProductService(
       id,
-      { name, category, price, weight, is_package, components },
+      { name, category, price, weight, is_package, components, images },
       userId
     );
 
@@ -214,6 +239,60 @@ export const deleteProduct = async (req, res) => {
     res.json({ success: true, message: "Produk berhasil diarsipkan." });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// POST /:id/images
+export const uploadMoreImages = async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+  const images = req.files;
+  console.log("DEBUG UPLOAD:", req.files); // Log file structure
+
+  if (!images || images.length === 0) {
+    return res.status(400).json({ success: false, message: "Tidak ada gambar yang diunggah." });
+  }
+
+  try {
+    await productService.uploadProductImagesService(id, images, userId);
+    cache.flushAll(); // Reset cache
+    res.json({
+      success: true,
+      message: `${images.length} gambar berhasil ditambahkan.`,
+    });
+  } catch (error) {
+    console.error("Upload Images Error:", error);
+    res.status(500).json({ success: false, message: "Gagal mengunggah gambar." });
+  }
+};
+
+// DELETE /:id/images/:imageId
+export const deleteProductImage = async (req, res) => {
+  const { imageId } = req.params; // Get imageId from URL
+  const userId = req.user.id;
+
+  try {
+    await productService.deleteProductImageService(imageId, userId);
+    cache.flushAll();
+    res.json({ success: true, message: "Gambar berhasil dihapus." });
+  } catch (error) {
+    console.error("Delete Image Error:", error);
+    res.status(500).json({ success: false, message: "Gagal menghapus gambar." });
+  }
+};
+
+// PUT /:id/images/:imageId/primary
+export const setPrimaryImage = async (req, res) => {
+  const { id, imageId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    await productService.setPrimaryImageService(id, imageId, userId);
+    cache.flushAll();
+    res.json({ success: true, message: "Gambar utama berhasil diatur." });
+  } catch (error) {
+    console.error("Set Primary Image Error:", error);
+    res.status(500).json({ success: false, message: "Gagal mengatur gambar utama." });
   }
 };
 

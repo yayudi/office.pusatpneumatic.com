@@ -41,8 +41,21 @@ const totalWeightDisplay = computed(() => {
   return totalWeightRaw.value / unit.divisor
 })
 
+const calculateSubtotal = (item) => {
+  const base = item.price * item.quantity
+  let discountAmount = 0
+
+  if (item.discount.type === 'percent') {
+    discountAmount = base * (item.discount.value / 100)
+  } else {
+    discountAmount = item.discount.value
+  }
+
+  return Math.max(0, base - discountAmount)
+}
+
 const totalPrice = computed(() => {
-  const baseTotal = items.value.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+  const baseTotal = items.value.reduce((sum, item) => sum + calculateSubtotal(item), 0)
   return includePpn.value ? baseTotal * (1 + PPN_RATE) : baseTotal
 })
 
@@ -76,7 +89,8 @@ const addItem = (product) => {
       product: product,
       quantity: 1,
       price: product.price || 0,
-      weight: product.weight || 0
+      weight: product.weight || 0,
+      discount: { type: 'percent', value: 0 }
     })
   }
   searchQuery.value = ''
@@ -158,7 +172,7 @@ const close = () => {
             <div class="relative">
               <input type="checkbox" v-model="includePpn" class="peer sr-only" />
               <div
-                class="w-11 h-6 bg-secondary/30 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary">
+                class="w-11 h-6 bg-background ring-2 ring-primary peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-background after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-primary after:border-primary after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary peer-checked:border-primary peer-checked:after:bg-background">
               </div>
             </div>
             <span class="text-sm font-bold text-text/80 group-hover:text-primary transition-colors">
@@ -173,30 +187,51 @@ const close = () => {
         <table class="w-full text-sm text-left">
           <thead class="bg-secondary/5 text-text/70 uppercase text-xs font-bold">
             <tr>
-              <th class="px-4 py-3">Produk</th>
-              <th class="px-4 py-3 text-center w-24">Qty</th>
-              <th class="px-4 py-3 text-right">Berat</th>
-              <th class="px-4 py-3 text-right">Harga</th>
-              <th class="px-4 py-3 w-10"></th>
+              <th class="px-2 py-3 text-left">Produk</th>
+              <th class="px-1 py-3 text-center w-20">Qty</th>
+              <th class="px-1 py-3 text-center w-40">Diskon</th>
+              <th class="px-1 py-3 text-right w-28">Berat</th>
+              <th class="px-1 py-3 text-right w-32">Total</th>
+              <th class="px-1 py-3 text-center w-10"></th>
             </tr>
           </thead>
           <tbody class="divide-y divide-secondary/10">
             <tr v-for="(item, index) in items" :key="index" class="hover:bg-secondary/5">
-              <td class="px-4 py-3">
+              <td class="px-2 py-3">
                 <div class="font-medium">{{ item.product.name }}</div>
                 <div class="text-xs text-text/50">{{ item.product.sku }}</div>
               </td>
-              <td class="px-4 py-3">
+              <td class="px-1 py-3">
                 <input v-model.number="item.quantity" type="number" min="1"
                   class="w-full text-center bg-background border border-secondary/30 rounded px-1 py-1 focus:ring-primary focus:border-primary" />
               </td>
-              <td class="px-4 py-3 text-right text-text/70">
+              <td class="px-1 py-3">
+                <div class="flex items-center gap-1 justify-center">
+                  <select v-model="item.discount.type"
+                    class="bg-background border border-secondary/30 rounded px-1 py-1 text-xs focus:ring-primary focus:border-primary cursor-pointer w-[50px]">
+                    <option value="percent">%</option>
+                    <option value="nominal">Rp</option>
+                  </select>
+                  <input v-model.number="item.discount.value" type="number" min="0"
+                    class="w-full text-right bg-background border border-secondary/30 rounded px-1 py-1 text-xs focus:ring-primary focus:border-primary"
+                    placeholder="0" />
+                </div>
+              </td>
+              <td class="px-1 py-3 text-right text-text/70">
                 {{ formatWeight(item.weight * item.quantity) }} {{ weightUnit }}
               </td>
-              <td class="px-4 py-3 text-right font-medium">
-                {{ formatCurrency(item.price * item.quantity) }}
+              <td class="px-1 py-3 text-right font-medium">
+                <div v-if="item.discount.value > 0" class="flex flex-col items-end">
+                  <span class="text-[10px] text-text/40 line-through decoration-danger">
+                    {{ formatCurrency(item.price * item.quantity) }}
+                  </span>
+                  <span class="text-primary">{{ formatCurrency(calculateSubtotal(item)) }}</span>
+                </div>
+                <div v-else>
+                  {{ formatCurrency(item.price * item.quantity) }}
+                </div>
               </td>
-              <td class="px-4 py-3 text-center">
+              <td class="px-1 py-3 text-center">
                 <button @click="removeItem(index)" class="text-danger hover:text-danger-dark transition-colors">
                   <font-awesome-icon icon="fa-solid fa-times" />
                 </button>
@@ -205,7 +240,7 @@ const close = () => {
           </tbody>
           <tfoot class="bg-secondary/10 font-bold border-t border-secondary/20">
             <tr>
-              <td colspan="2" class="px-4 py-3 text-right text-text/70">Total:</td>
+              <td colspan="4" class="px-4 py-3 text-right text-text/70">Total:</td>
               <td class="px-4 py-3 text-right text-primary">
                 {{ totalWeightDisplay.toLocaleString('id-ID', { maximumFractionDigits: 2 }) }} {{ weightUnit }}
               </td>

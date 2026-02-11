@@ -15,7 +15,7 @@ const runWorker = async () => {
 
   try {
     isWorking = true;
-    console.log(`[DevWorker] [${new Date().toISOString()}] Start processQueue...`);
+    console.log(`[DevWorker] [${new Date().toISOString()}] Start processQueue`);
     await processQueue();
     console.log(`[DevWorker] [${new Date().toISOString()}] End processQueue`);
   } catch (err) {

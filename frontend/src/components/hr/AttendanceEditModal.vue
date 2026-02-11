@@ -1,0 +1,191 @@
+<script setup>
+import { ref, watch, computed } from 'vue'
+import { format } from 'date-fns'
+import { id } from 'date-fns/locale'
+import axios from '@/api/axios'
+
+const props = defineProps({
+  isOpen: Boolean,
+  logData: Object // { tanggal, jamMasuk, jamKeluar, status, notes, user, dateVal, etc }
+})
+
+const emit = defineEmits(['close', 'update'])
+
+const form = ref({
+  status: 'HADIR',
+  timeIn: '',
+  timeOut: '',
+  notes: ''
+})
+
+const isLoading = ref(false)
+const errorMsg = ref('')
+
+// Initialize form when logData changes
+watch(() => props.logData, (newVal) => {
+  if (newVal) {
+    // Determine status from existing data
+    let currentStatus = 'HADIR'
+
+    if (newVal.dbStatus) {
+      currentStatus = newVal.dbStatus
+    } else {
+      // Fallback logic
+      if (newVal.status === 4) currentStatus = 'SAKIT'
+      else if (newVal.status === 5) currentStatus = 'IZIN'
+      else if (newVal.status === 1 || newVal.status === 2) currentStatus = 'ALPHA'
+      else if (newVal.status === 0 || newVal.status === 3) currentStatus = 'HADIR'
+    }
+
+    form.value = {
+      status: currentStatus,
+      timeIn: newVal.jamMasuk ? minutesToTimeStr(newVal.jamMasuk) : '',
+      timeOut: newVal.jamKeluar ? minutesToTimeStr(newVal.jamKeluar) : '',
+      notes: newVal.notes || '' // No need to replace regex anymore
+    }
+  }
+}, { immediate: true })
+
+function minutesToTimeStr(minutes) {
+  if (minutes === null || minutes === undefined) return ''
+  const h = Math.floor(minutes / 60).toString().padStart(2, '0')
+  const m = (minutes % 60).toString().padStart(2, '0')
+  return `${h}:${m}`
+}
+
+const statusOptions = [
+  { value: 'HADIR', label: 'Hadir' },
+  { value: 'SAKIT', label: 'Sakit' },
+  { value: 'IZIN', label: 'Izin' },
+  { value: 'ALPHA', label: 'Alpha / Tanpa Ket' },
+]
+
+const canSave = computed(() => {
+  if (form.value.status === 'HADIR') {
+    // If Hadir, preferably should have times, but maybe allow partial?
+    return true
+  }
+  return true
+})
+
+async function handleSave() {
+  if (!props.logData) return
+
+  isLoading.value = true
+  errorMsg.value = ''
+
+  try {
+    // Prepare payload
+    // We need username and full date YYYY-MM-DD
+    // user object from props.logData might be just string name?
+    // Wait, normalize.js returns `nama: user.username`.
+    // But we need the real `username` (which is the ID for `users` table usually? No, `username` column).
+    // In `normalize.js`: `nama: user.username`. So `props.logData.nama` is the username.
+    // Date: `logData.tanggal` is day number (1-31).
+    // We need Year and Month. They are NOT in logData row directly.
+    // Parent must pass them or we inject them into logData before passing.
+
+    // Check DetailView logic. `formattedRows` creates objects.
+    // It doesn't include year/month.
+    // We update DetailView to pass full date or Year/Month prop to Modal.
+    // Let's assume `logData` will be enriched by parent before passing.
+
+    const payload = {
+      username: props.logData.username,
+      date: props.logData.fullDate, // Expecting YYYY-MM-DD
+      status: form.value.status,
+      timeIn: form.value.timeIn,
+      timeOut: form.value.timeOut,
+      notes: form.value.notes
+    }
+
+    const { data } = await axios.post('/attendance/update', payload)
+
+    if (data.success) {
+      emit('update')
+      emit('close')
+    }
+  } catch (err) {
+    console.error(err)
+    errorMsg.value = err.response?.data?.message || 'Gagal menyimpan data.'
+  } finally {
+    isLoading.value = false
+  }
+}
+</script>
+
+<template>
+  <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div
+      class="bg-background border border-secondary/20 rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in">
+      <div class="bg-secondary/5 px-6 py-4 border-b border-secondary/10 flex justify-between items-center">
+        <h3 class="font-bold text-lg text-text">Edit Absensi</h3>
+        <button @click="$emit('close')" class="text-text/50 hover:text-danger transition-colors">
+          <font-awesome-icon icon="fa-solid fa-times" />
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <div v-if="logData"
+          class="flex items-center justify-between text-sm bg-primary/5 p-3 rounded-lg border border-primary/10">
+          <div>
+            <span class="block text-xs uppercase font-bold text-primary/70">Karyawan</span>
+            <span class="font-medium text-text">{{ logData.nama }}</span>
+          </div>
+          <div class="text-right">
+            <span class="block text-xs uppercase font-bold text-primary/70">Tanggal</span>
+            <span class="font-medium text-text">{{ logData.displayDate }}</span>
+          </div>
+        </div>
+
+        <!-- Status -->
+        <div>
+          <label class="block text-xs font-bold uppercase text-text/50 mb-1">Status Kehadiran</label>
+          <select v-model="form.status"
+            class="w-full bg-background border border-secondary/20 rounded-lg px-3 py-2 text-text focus:outline-none focus:border-primary">
+            <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
+
+        <!-- Times (Only if Hadir or maybe Partial) -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase text-text/50 mb-1">Jam Masuk</label>
+            <input type="time" v-model="form.timeIn"
+              class="w-full bg-background border border-secondary/20 rounded-lg px-3 py-2 text-text focus:outline-none focus:border-primary" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-text/50 mb-1">Jam Keluar</label>
+            <input type="time" v-model="form.timeOut"
+              class="w-full bg-background border border-secondary/20 rounded-lg px-3 py-2 text-text focus:outline-none focus:border-primary" />
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div>
+          <label class="block text-xs font-bold uppercase text-text/50 mb-1">Catatan / Keterangan</label>
+          <textarea v-model="form.notes" rows="3" placeholder="Contoh: Sakit tipes, Izin urus SIM..."
+            class="w-full bg-background border border-secondary/20 rounded-lg px-3 py-2 text-text focus:outline-none focus:border-primary"></textarea>
+        </div>
+
+        <div v-if="errorMsg" class="text-xs text-danger font-bold bg-danger/10 p-2 rounded">
+          {{ errorMsg }}
+        </div>
+      </div>
+
+      <div class="bg-secondary/5 px-6 py-4 border-t border-secondary/10 flex justify-end gap-3">
+        <button @click="$emit('close')"
+          class="px-4 py-2 text-sm font-bold text-text/60 hover:text-text hover:bg-secondary/10 rounded-lg transition-colors">
+          Batal
+        </button>
+        <button @click="handleSave" :disabled="isLoading || !canSave"
+          class="px-4 py-2 text-sm font-bold text-background bg-primary hover:bg-primary/90 rounded-lg shadow-lg shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+          <span v-if="isLoading" class="animate-spin text-background">
+            <font-awesome-icon icon="fa-solid fa-spinner" />
+          </span>
+          <span>Simpan Perubahan</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>

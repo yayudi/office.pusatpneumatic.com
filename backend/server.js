@@ -73,20 +73,21 @@ app.use("/uploads", (req, res, next) => {
 });
 
 // ==================================================================
-// [PRIORITY FIX] Static File Serving
+// Static File Serving
 // ==================================================================
-// Melayani file statis dari folder 'uploads'.
-// Ditaruh SEBELUM router lain untuk menghindari 404 palsu.
 // Melayani file statis dari folder 'uploads'.
 // Ditaruh SEBELUM router lain untuk menghindari 404 palsu.
 app.use("/uploads", express.static(path.join(__dirname, "uploads"), {
   setHeaders: (res, filePath) => {
-    // 1. Logging saat file benar-benar dikirim native oleh Express
-    console.log(`[STATIC SERVE] Sending: ${path.basename(filePath)}`);
+    const ext = path.extname(filePath).toLowerCase();
+    const inlineExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
 
-    // 2. Force Download dengan nama file yang benar
-    // Ini memperbaiki masalah nama file UUID/Blob di browser
-    res.setHeader("Content-Disposition", `attachment; filename="${path.basename(filePath)}"`);
+    if (inlineExtensions.includes(ext)) {
+      res.setHeader("Content-Disposition", "inline");
+    } else {
+      res.setHeader("Content-Disposition", `attachment; filename="${path.basename(filePath)}"`);
+    }
+
     res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
   }
 }));

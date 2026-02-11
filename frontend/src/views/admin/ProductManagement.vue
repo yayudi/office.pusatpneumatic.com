@@ -11,6 +11,7 @@ import ProductFormModal from '@/components/wms/shared/ProductFormModal.vue'
 import ConnectionStatus from '@/components/wms/shared/ConnectionStatus.vue'
 import ProductFilterBar from '@/components/products/ProductFilterBar.vue'
 import ProductTable from '@/components/products/ProductTable.vue'
+import ProductImageModal from '@/components/products/ProductImageModal.vue'
 
 const { show } = useToast()
 
@@ -29,6 +30,10 @@ const showBatchEditModal = ref(false)
 const showProductForm = ref(false)
 const productFormMode = ref('create')
 const selectedProduct = ref({})
+
+// Image Modal State
+const showImageModal = ref(false)
+const selectedImageProduct = ref({})
 
 // Bulk Action State
 const selectedIds = ref(new Set())
@@ -166,6 +171,11 @@ const openEditModal = (p) => {
   showProductForm.value = true
 }
 
+const openImageModal = (p) => {
+  selectedImageProduct.value = p
+  showImageModal.value = true
+}
+
 // Bulk Actions
 const performBulkAction = async (actionType) => {
   if (!selectedIds.value.size) return
@@ -243,6 +253,10 @@ const handleProductSaved = () => {
   fetchProducts()
 }
 
+const handleImageSaved = () => {
+  fetchProducts()
+}
+
 // Init
 onMounted(() => {
   fetchProducts()
@@ -290,7 +304,8 @@ onMounted(() => {
       <ProductTable :products="products" :loading="loading" :pagination="pagination" :selectedIds="selectedIds"
         :sortBy="sortBy" :sortOrder="sortOrder" @sort="handleSort" @changePage="handleChangePage"
         @update:limit="handleUpdateLimit" @toggleSelection="toggleSelection" @toggleSelectAll="toggleSelectAll"
-        @edit="openEditModal" @restore="handleRestore" @delete="handleDelete" />
+        @edit="openEditModal" @restore="handleRestore" @delete="handleDelete"
+        @view-image="openImageModal" />
 
       <!-- FLOATING ACTION BAR -->
       <Transition name="slide-up">
@@ -329,6 +344,9 @@ onMounted(() => {
       <!-- MODALS -->
       <ProductFormModal :show="showProductForm" :mode="productFormMode" :product-data="selectedProduct"
         @close="showProductForm = false" @refresh="handleProductSaved" />
+
+      <ProductImageModal :show="showImageModal" :product-data="selectedImageProduct"
+        @close="showImageModal = false" @refresh="handleImageSaved" />
 
       <!-- Batch Edit Modal -->
       <BatchEditModal :is-open="showBatchEditModal" :is-exporting="isExporting" :is-importing="false"

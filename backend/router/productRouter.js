@@ -37,6 +37,39 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+// ✅ CONFIG: Multer untuk Product Images
+const productUploadDir = "uploads/products/";
+if (!fs.existsSync(productUploadDir)) {
+  try {
+    fs.mkdirSync(productUploadDir, { recursive: true });
+    console.log(`[System] Folder created: ${productUploadDir}`);
+  } catch (err) {
+    console.error(`[System] Failed to create folder ${productUploadDir}:`, err);
+  }
+}
+
+const productStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, productUploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, "prod-" + uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+const productUpload = multer({
+  storage: productStorage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // Limit 2MB (Backend protection)
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Hanya file gambar yang diperbolehkan!"), false);
+    }
+  },
+});
+
 // ============================================================================
 // ✅ SPECIFIC ROUTES (MUST BE DEFINED FIRST)
 // ============================================================================
@@ -141,18 +174,71 @@ router.get("/:id/history", canAccess("view-prices"), productController.getProduc
  * POST /api/products
  * Membuat produk baru (Mendukung Paket & Berat).
  */
-router.post("/", canAccess("manage-products"), productController.createProduct);
+/**
+ * POST /api/products
+ * Membuat produk baru (Mendukung Paket, Berat & Foto).
+ */
+router.post(
+  "/",
+  canAccess("manage-products"),
+  productUpload.array("images", 5),
+  productController.createProduct
+);
 
 /**
  * PUT /api/products/:id
  * Mengupdate produk (Mendukung Paket, Berat, & Restore).
  */
-router.put("/:id", canAccess("manage-products"), productController.updateProduct);
+/**
+ * PUT /api/products/:id
+ * Mengupdate produk (Mendukung Paket, Berat, Foto & Restore).
+ */
+router.put(
+  "/:id",
+  canAccess("manage-products"),
+  productUpload.array("images", 5),
+  productController.updateProduct
+);
 
 /**
  * DELETE /api/products/:id
  * Soft delete produk (set is_active = 0, deleted_at = NOW).
  */
 router.delete("/:id", canAccess("manage-products"), productController.deleteProduct);
+
+// ============================================================================
+// ✅ IMAGE SPECIFIC ROUTES (GRANULAR PERMISSIONS)
+// ============================================================================
+
+/**
+ * PUT /api/products/:id/image
+ * Upload/Ganti gambar produk. Permission: 'product.image.upload'
+ */
+router.post(
+  "/:id/images",
+  canAccess("product.image.upload"),
+  productUpload.any(), // DEBUG: Allow any field to inspect what is being sent
+  productController.uploadMoreImages
+);
+
+/**
+ * PUT /api/products/:id/images/:imageId/primary
+ * Set gambar sebagai cover utama. Permission: 'product.image.upload'
+ */
+router.put(
+  "/:id/images/:imageId/primary",
+  canAccess("product.image.upload"),
+  productController.setPrimaryImage
+);
+
+/**
+ * DELETE /api/products/:id/images/:imageId
+ * Hapus gambar spesifik. Permission: 'product.image.delete'
+ */
+router.delete(
+  "/:id/images/:imageId",
+  canAccess("product.image.delete"),
+  productController.deleteProductImage
+);
 
 export default router;

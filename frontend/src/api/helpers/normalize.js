@@ -22,69 +22,115 @@ function timeToMinutes(timeStr) {
  * @param {number} month - Bulan yang sedang dilihat (1-12)
  * @returns {Array} - Array pengguna dengan data log yang sudah dinormalisasi.
  */
-export function normalizeLogs(allUsers, logRows, holidayMap, year, month) {
+/**
+ * ✅ REFACTOR BESAR:
+ * Memproses data mentah dari API SQL (bukan JSON padat) menjadi format
+ * yang siap digunakan oleh komponen Vue.
+ *
+ * Support: (year, month) OR (startDate, endDate)
+ *
+ * @param {Array} allUsers
+ * @param {Array} logRows
+ * @param {object} holidayMap
+ * @param {number|string} arg4 - Year OR StartDate (YYYY-MM-DD)
+ * @param {number|string} arg5 - Month OR EndDate (YYYY-MM-DD)
+ * @returns {Array}
+ */
+export function normalizeLogs(allUsers, logRows, holidayMap, arg4, arg5) {
   // Verifikasi input yang diterima dari attendance.js
   if (!allUsers || !Array.isArray(allUsers)) {
     console.warn("normalizeLogs: data 'allUsers' tidak lengkap atau bukan array.", allUsers)
     return []
-  }
-  if (!logRows || !Array.isArray(logRows)) {
-    console.warn("normalizeLogs: data 'logRows' tidak lengkap atau bukan array.", logRows)
-    // Ini BUKAN error, bisa jadi bulan itu kosong. Lanjut saja.
   }
   if (!holidayMap || typeof holidayMap !== 'object') {
     console.warn("normalizeLogs: data 'holidayMap' tidak lengkap atau bukan objek.", holidayMap)
     return []
   }
 
-  const daysInMonth = new Date(year, month, 0).getDate()
+  // DETEKSI MODE: Range (String) atau Month (Number)
+  const isRangeMode = typeof arg4 === 'string' && arg4.includes('-')
+  let dateList = []
+  let startDateObj, endDateObj
 
-  // Proses data mentah SQL (logRows) ke dalam struktur Map untuk pencarian cepat
-  //    Struktur: Map<user_id, Map<day_of_month, { ...data_log... }>>
-  const userLogMap = new Map()
-  for (const row of logRows) {
-    if (!userLogMap.has(row.user_id)) {
-      userLogMap.set(row.user_id, new Map())
+  if (isRangeMode) {
+    // Mode Range: Generate list of YYYY-MM-DD strings
+    startDateObj = new Date(arg4)
+    endDateObj = new Date(arg5)
+
+    const current = new Date(startDateObj)
+    while (current <= endDateObj) {
+      dateList.push(current.toISOString().split('T')[0])
+      current.setDate(current.getDate() + 1)
     }
-    const dayMap = userLogMap.get(row.user_id)
-    const dayOfMonth = new Date(row.date).getDate() // Ambil tanggal dari data SQL
+  } else {
+    // Mode Month: Generate 1..DaysInMonth
+    const year = parseInt(arg4)
+    const month = parseInt(arg5)
+    const daysInMonth = new Date(year, month, 0).getDate()
 
-    if (!dayMap.has(dayOfMonth)) {
-      // Buat objek hari berdasarkan data SQL
-      dayMap.set(dayOfMonth, {
-        jamMasuk: timeToMinutes(row.check_in),
-        jamKeluar: timeToMinutes(row.check_out),
-        breaks: [], // Akan diisi di loop 'raw'
-        status: 0, // Default 0 (Hadir)
-        holiday: false, // Akan dicek nanti
-        isEmpty: false, // Jelas tidak kosong
-        lateness: row.lateness_minutes || 0,
-        overtime: row.overtime_minutes || 0,
-        rawLogs: [], // Untuk menyimpan log mentah (break, dll)
-      })
-    }
-
-    // Tambahkan log mentah (break-in/out) jika ada
-    if (row.log_time) {
-      dayMap.get(dayOfMonth).rawLogs.push({
-        time: row.log_time,
-        type: row.log_type,
-      })
+    for (let day = 1; day <= daysInMonth; day++) {
+      const d = new Date(year, month - 1, day)
+      // Adjust timezone offset (simple heuristic for local YYYY-MM-DD construction)
+      const ymd = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+      dateList.push(ymd)
     }
   }
 
-  // Loop melalui 'allUsers' (dari tabel users) untuk membangun hasil akhir
-  return allUsers.map((user) => {
-    const userDays = userLogMap.get(user.id) // Ambil data log yang sudah di-grup
-    const logs = [] // Ini akan menjadi array 'logs' (dulu 'user.d')
+  // Proses data mentah SQL (logRows) ke dalam struktur Map untuk pencarian cepat
+  // Structure: Map<user_id, Map<YYYY-MM-DD, { ...data_log... }>>
+  const userLogMap = new Map()
 
-    for (let day = 1; day <= daysInMonth; day++) {
-      const logData = userDays ? userDays.get(day) : undefined
+  if (logRows && Array.isArray(logRows)) {
+    for (const row of logRows) {
+      if (!userLogMap.has(row.user_id)) {
+        userLogMap.set(row.user_id, new Map())
+      }
+      const dayMap = userLogMap.get(row.user_id)
+
+      // Ambil date string YYYY-MM-DD dari row.date SQL (biasanya ISO string or Date object)
+      const dateKey = new Date(row.date).toISOString().split('T')[0]
+
+      if (!dayMap.has(dateKey)) {
+        dayMap.set(dateKey, {
+          jamMasuk: timeToMinutes(row.check_in),
+          jamKeluar: timeToMinutes(row.check_out),
+          breaks: [],
+          status: row.status,
+          holiday: false,
+          isEmpty: false,
+          lateness: row.lateness_minutes || 0,
+          overtime: row.overtime_minutes || 0,
+          notes: row.notes,
+          rawLogs: [],
+        })
+      }
+
+      if (row.log_time) {
+        dayMap.get(dateKey).rawLogs.push({
+          time: row.log_time,
+          type: row.log_type,
+        })
+      }
+    }
+  }
+
+  // Loop melalui 'allUsers' untuk membangun hasil akhir
+  return allUsers.map((user) => {
+    const userDays = userLogMap.get(user.id)
+    const logs = []
+
+    dateList.forEach((ymd) => {
+      const logData = userDays ? userDays.get(ymd) : undefined
+      const currentDateObj = new Date(ymd)
+      const dateNum = currentDateObj.getDate() // 1..31
+
+      // Determine isHoliday
+      // holidayMap keys should be YYYY-MM-DD
+      const dayOfWeek = currentDateObj.getDay()
+      const isHoliday = dayOfWeek === 0 || !!holidayMap[ymd]
 
       if (logData) {
-        // KASUS 1: ADA LOG (User masuk di hari ini)
-
-        // Proses 'breaks' dari 'rawLogs'
+        // KASUS 1: ADA LOG
         const breaks = []
         for (let i = 0; i < logData.rawLogs.length - 1; i++) {
           const currentLog = logData.rawLogs[i]
@@ -98,36 +144,45 @@ export function normalizeLogs(allUsers, logRows, holidayMap, year, month) {
                 end: endTime,
                 duration: endTime - startTime,
               })
-              i++ // Lewati log berikutnya
+              i++
             }
           }
         }
 
-        // Tentukan status akhir
-        let status = 1 // 1 (Absen)
-        if (logData.jamMasuk && logData.jamKeluar)
-          status = 0 // 0 (Hadir)
-        else if (logData.jamMasuk || logData.jamKeluar) status = 3 // 3 (Tidak Lengkap)
+        let status = 1
+        const dbStatus = logData.status ? logData.status.toUpperCase() : null;
+
+        if (dbStatus === 'HADIR') status = 0
+        else if (dbStatus === 'SAKIT') status = 4
+        else if (dbStatus === 'IZIN') status = 5
+        else if (dbStatus === 'LIBUR') status = 2
+        else if (dbStatus === 'ALPHA') status = 1
+        else {
+          if (logData.notes && logData.notes.includes('SAKIT')) status = 4
+          else if (logData.notes && logData.notes.includes('IZIN')) status = 5
+          else if (logData.jamMasuk && logData.jamKeluar) status = 0
+          else if (logData.jamMasuk || logData.jamKeluar) status = 3
+        }
 
         logs.push({
-          tanggal: day,
+          tanggal: dateNum, // Keep for legacy compatibility
+          fullDate: ymd, // NEW: Full Date String
           jamMasuk: logData.jamMasuk,
           jamKeluar: logData.jamKeluar,
           breaks: breaks,
           status: status,
-          holiday: false, // Jika ada log, kita asumsikan BUKAN hari libur (meski dia lembur)
+          holiday: isHoliday, // Override DB holiday check with Master Shift logic later? For now use Map.
           isEmpty: false,
           lateness: logData.lateness,
           overtime: logData.overtime,
+          notes: logData.notes || '',
+          dbStatus: dbStatus
         })
       } else {
-        // KASUS 2: TIDAK ADA LOG (User tidak masuk)
-        const ymd = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-        const dayOfWeek = new Date(year, month - 1, day).getDay()
-        const isHoliday = dayOfWeek === 0 || holidayMap[ymd]
-
+        // KASUS 2: TIDAK ADA LOG
         logs.push({
-          tanggal: day,
+          tanggal: dateNum,
+          fullDate: ymd,
           jamMasuk: null,
           jamKeluar: null,
           breaks: [],
@@ -138,18 +193,14 @@ export function normalizeLogs(allUsers, logRows, holidayMap, year, month) {
           overtime: 0,
         })
       }
-    }
+    })
 
-    // Kembalikan format yang diharapkan oleh 'summary.js'
     return {
       id: user.id,
       nama: user.username,
-      logs: logs, // Array harian yang sudah lengkap
-
-      // Properti dummy (jika masih dibutuhkan oleh bagian lain)
-      year: null,
-      month: null,
-      raw: { summary: [] },
+      logs: logs,
+      year: isRangeMode ? null : arg4,
+      month: isRangeMode ? null : arg5,
     }
   })
 }

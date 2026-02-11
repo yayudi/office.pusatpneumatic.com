@@ -9,6 +9,7 @@ const props = defineProps({
   show: Boolean,
   user: Object,
   roles: Array,
+  shifts: Array,
 })
 
 const emit = defineEmits(['close', 'updated'])
@@ -26,6 +27,7 @@ watch(
         username: newUser.username,
         nickname: newUser.nickname || '',
         role_id: newUser.role_id,
+        shift_id: newUser.shift_id,
         newPassword: '', // Selalu kosongkan field password
       }
     }
@@ -68,6 +70,15 @@ async function handleSave() {
         <label class="block text-sm font-medium text-text/80 mb-1">Role</label>
         <select v-model="editableUser.role_id" required class="w-full input-field">
           <option v-for="role in roles" :key="role.id" :value="role.id">{{ role.name }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-text/80 mb-1">Shift</label>
+        <select v-model="editableUser.shift_id" class="w-full input-field">
+          <option :value="null">Default (Regular Office)</option>
+          <option v-for="shift in shifts" :key="shift.id" :value="shift.id">
+            {{ shift.name }} ({{ shift.start_time.slice(0, 5) }} - {{ shift.end_time.slice(0, 5) }})
+          </option>
         </select>
       </div>
     </div>

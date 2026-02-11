@@ -4,6 +4,14 @@ import { useAuthStore } from '@/stores/auth'
 import { fetchProducts as fetchProductsFromApi } from '@/api/helpers/wms.js'
 import { fetchAllLocations } from '@/api/helpers/stock.js'
 
+const AVAILABLE_COLUMNS = [
+  { id: 'sku', label: 'SKU' },
+  { id: 'weight', label: 'Berat' },
+  { id: 'price', label: 'Harga' }, // Conditional perms check in UI
+  { id: 'location', label: 'Lokasi' },
+  { id: 'stock', label: 'Stok' },
+]
+
 export function useWms() {
   const auth = useAuthStore()
   const allLocations = ref([])
@@ -19,8 +27,8 @@ export function useWms() {
   const loader = ref(null)
   const searchTerm = ref('')
   const searchBy = ref('name')
-  const showMinusStockOnly = ref(false)
-  const showPackageOnly = ref(false)
+  const stockStatusFilter = ref('all') // 'all', 'minus', 'positive'
+  const productTypeFilter = ref('all') // 'all', 'unit', 'package'
   const selectedBuilding = ref('all')
   const selectedFloor = ref('all')
   const sortBy = ref('name')
@@ -30,6 +38,31 @@ export function useWms() {
   const endDate = ref('')
 
   let refetchIntervalId = null
+
+  // Column Visibility State
+  const visibleColumns = ref(new Set(['sku', 'weight', 'price', 'location', 'stock']))
+
+  // Initialize from LocalStorage
+  const savedColumns = localStorage.getItem('wms-visible-columns')
+  if (savedColumns) {
+    try {
+      visibleColumns.value = new Set(JSON.parse(savedColumns))
+    } catch (e) {
+      console.error('Error parsing saved columns', e)
+    }
+  }
+
+  watch(visibleColumns, (newVal) => {
+    localStorage.setItem('wms-visible-columns', JSON.stringify([...newVal]))
+  }, { deep: true })
+
+  function toggleColumn(columnId) {
+    if (visibleColumns.value.has(columnId)) {
+      visibleColumns.value.delete(columnId)
+    } else {
+      visibleColumns.value.add(columnId)
+    }
+  }
   let observer = null
   let debounceTimer = null
 
@@ -84,6 +117,7 @@ export function useWms() {
       price: apiProduct.price,
       weight: apiProduct.weight,
       is_package: Boolean(apiProduct.is_package),
+      image_path: apiProduct.image_path,
 
       stockPajangan,
       lokasiPajangan,
@@ -96,6 +130,7 @@ export function useWms() {
       totalStock: filteredTotalStock,
       allLocationsCode: filteredAllLocationsCode,
       stock_locations: filteredLocations,
+      components: apiProduct.components || [], // [FIX] Pass components for virtual stock calc
     }
   }
 
@@ -128,8 +163,13 @@ export function useWms() {
         search: searchTerm.value,
         searchBy: searchBy.value,
         location: activeView.value,
-        minusOnly: showMinusStockOnly.value,
-        packageOnly: showPackageOnly.value,
+        stockStatus: stockStatusFilter.value,
+        // Mapping productTypeFilter to API params
+        // 'all' -> undefined (filtered out by backend default logic if not provided? No, backend checks is_package !== undefined)
+        // Adjusting logic:
+        // 'unit' -> is_package: false
+        // 'package' -> is_package: true
+        is_package: productTypeFilter.value === 'all' ? undefined : productTypeFilter.value === 'package',
         building: selectedBuilding.value,
         floor: selectedFloor.value,
         sortBy: sortBy.value,
@@ -363,8 +403,8 @@ export function useWms() {
       searchTerm,
       searchBy,
       activeView,
-      showMinusStockOnly,
-      showPackageOnly,
+      stockStatusFilter,
+      productTypeFilter,
       selectedBuilding,
       selectedFloor,
       sortBy,
@@ -389,8 +429,8 @@ export function useWms() {
     error,
     loader,
     searchBy,
-    showMinusStockOnly,
-    showPackageOnly,
+    stockStatusFilter,
+    productTypeFilter,
     searchTerm,
     currentPage,
     totalProducts,
@@ -409,6 +449,9 @@ export function useWms() {
     handleSearchInput,
     handleSort,
     toggleAutoRefetch,
+    visibleColumns,
+    availableColumns: AVAILABLE_COLUMNS,
+    toggleColumn,
     resetAndRefetch,
     fetchProducts,
   }

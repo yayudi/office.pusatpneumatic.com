@@ -21,6 +21,7 @@ const emit = defineEmits([
   'edit',
   'restore',
   'delete',
+  'view-image',
 ])
 
 const limitOptions = [10, 20, 50, 100]
@@ -175,7 +176,8 @@ function getSortIcon(field) {
             <ProductRow v-for="product in products" :key="product.id" :product="product"
               :is-selected="selectedIds && selectedIds.has(product.id)"
               @toggle-selection="(id) => emit('toggleSelection', id)" @edit="(p) => emit('edit', p)"
-              @restore="(p) => emit('restore', p)" @delete="(p) => emit('delete', p)" />
+              @restore="(p) => emit('restore', p)" @delete="(p) => emit('delete', p)"
+              @view-image="(p) => emit('view-image', p)" />
           </template>
         </TransitionGroup>
       </table>
