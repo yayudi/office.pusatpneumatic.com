@@ -89,16 +89,8 @@ const kpiStats = computed(() => {
     return sum + userLembur
   }, 0)
 
-  // D. Early Out (Pulang Cepat)
-  const totalEarlyMinutes = userSummaries.value.reduce((sum, u) => {
-    const parts = u.stats.earlyOutHours.split(' ')
-    let mins = 0
-    parts.forEach(p => {
-      if (p.includes('j')) mins += parseInt(p) * 60
-      if (p.includes('m')) mins += parseInt(p)
-    })
-    return sum + mins
-  }, 0)
+  // D. Absen
+  const totalAbsenceDays = userSummaries.value.reduce((sum, u) => sum + u.stats.absenceDays, 0)
 
   return [
     {
@@ -118,12 +110,12 @@ const kpiStats = computed(() => {
       icon: 'fa-solid fa-user-clock'
     },
     {
-      label: 'Pulang Cepat',
-      value: formatJamMenit(totalEarlyMinutes),
+      label: 'Total Absen',
+      value: `${totalAbsenceDays} Hari`,
       sub: 'Akumulasi Bulan Ini',
       color: 'text-danger',
       bg: 'bg-danger/10',
-      icon: 'fa-solid fa-person-walking-arrow-right'
+      icon: 'fa-solid fa-user-xmark'
     },
     {
       label: 'Total Lembur',
@@ -263,23 +255,14 @@ const topOvertimeUsers = computed(() => {
     .slice(0, 5)
 })
 
-const topEarlyOutUsers = computed(() => {
+const topAbsentUsers = computed(() => {
   return [...userSummaries.value]
-    .map(u => {
-      // Parse 'Xj Ym' for early minutes
-      const parts = u.stats.earlyOutHours.split(' ')
-      let mins = 0
-      parts.forEach(p => {
-        if (p.includes('j')) mins += parseInt(p) * 60
-        if (p.includes('m')) mins += parseInt(p)
-      })
-      return {
-        name: u.nama,
-        minutes: mins
-      }
-    })
-    .filter(u => u.minutes > 0)
-    .sort((a, b) => b.minutes - a.minutes)
+    .map(u => ({
+      name: u.nama,
+      days: u.stats.absenceDays
+    }))
+    .filter(u => u.days > 0)
+    .sort((a, b) => b.days - a.days)
     .slice(0, 5)
 })
 
@@ -470,23 +453,23 @@ const userOvertimeChartOptions = computed(() => ({
             </div>
           </div>
 
-          <!-- Top Early Out [NEW] -->
+          <!-- Top Absen [NEW] -->
           <div class="bg-background border border-secondary/20 rounded-xl p-6 shadow-sm">
             <h4 class="text-sm font-bold text-text/70 uppercase mb-4 flex items-center gap-2">
-              <font-awesome-icon icon="fa-solid fa-person-walking-arrow-right" class="text-danger" />
-              Top Pulang Cepat
+              <font-awesome-icon icon="fa-solid fa-user-xmark" class="text-danger" />
+              Top Absen
             </h4>
             <div class="space-y-3">
-              <div v-for="(u, idx) in topEarlyOutUsers" :key="idx" class="flex justify-between items-center text-sm">
+              <div v-for="(u, idx) in topAbsentUsers" :key="idx" class="flex justify-between items-center text-sm">
                 <div class="flex items-center gap-3">
                   <span class="text-text/40 font-mono text-xs w-4">#{{ idx + 1 }}</span>
                   <span class="font-medium text-text">{{ u.name }}</span>
                 </div>
                 <div class="text-right">
-                  <div class="font-bold text-danger">{{ formatJamMenit(u.minutes) }}</div>
+                  <div class="font-bold text-danger">{{ u.days }} Hari</div>
                 </div>
               </div>
-              <div v-if="!topEarlyOutUsers.length" class="text-center text-text/40 text-xs py-4">Nihil</div>
+              <div v-if="!topAbsentUsers.length" class="text-center text-text/40 text-xs py-4">Nihil</div>
             </div>
           </div>
 
@@ -563,7 +546,7 @@ const userOvertimeChartOptions = computed(() => ({
                   class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center">
                   <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Cepat</span>
                   <div v-if="u.stats.earlyOutHours !== '0j 0m'" class="text-danger font-bold">{{ u.stats.earlyOutHours
-                    }}
+                  }}
                   </div>
                   <div v-else class="text-text/30">
                     <span class="md:block hidden">-</span>

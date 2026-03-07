@@ -10,7 +10,7 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     const query = `
-      SELECT u.id, u.username, u.nickname, u.role_id, r.name AS role_name, u.shift_id, s.name AS shift_name
+      SELECT u.id, u.username, u.nickname, u.role_id, r.name AS role_name, u.shift_id, s.name AS shift_name, u.exclude_from_attendance
       FROM users u
       LEFT JOIN roles r ON u.role_id = r.id
       LEFT JOIN shifts s ON u.shift_id = s.id
@@ -88,7 +88,7 @@ router.get("/roles", async (req, res) => {
 // PUT /api/admin/users/:id - Mengupdate role user
 router.put("/:id", async (req, res) => {
   const { id } = req.params;
-  const { username, nickname, newPassword, role_id, shift_id } = req.body;
+  const { username, nickname, newPassword, role_id, shift_id, exclude_from_attendance } = req.body;
 
   // Validasi dasar
   if (!username || !role_id) {
@@ -112,6 +112,11 @@ router.put("/:id", async (req, res) => {
     updateFields.push("shift_id = ?");
     updateValues.push(shift_id || null);
 
+    if (exclude_from_attendance !== undefined) {
+      updateFields.push("exclude_from_attendance = ?");
+      updateValues.push(exclude_from_attendance ? 1 : 0);
+    }
+
     // Hanya update password jika diisi
     if (newPassword) {
       const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -133,7 +138,7 @@ router.put("/:id", async (req, res) => {
       targetId: String(id),
       changes: {
         note: "Updated User Profile",
-        updates: { username, nickname, role_id, shift_id, passwordChanged: !!newPassword }
+        updates: { username, nickname, role_id, shift_id, exclude_from_attendance, passwordChanged: !!newPassword }
       },
       ip: req.ip,
       userAgent: req.headers["user-agent"],

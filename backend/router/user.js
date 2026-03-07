@@ -118,7 +118,7 @@ router.get("/my-locations", async (req, res) => {
         FROM locations l
         JOIN user_locations ul ON l.id = ul.location_id
         WHERE ul.user_id = ?
-        ORDER BY l.code
+        ORDER BY l.id ASC
     `;
     const [locations] = await db.query(query, [userId]);
     res.json({ success: true, data: locations });

@@ -212,16 +212,16 @@ async function submitBatch() {
       <div class="flex justify-center p-1 bg-secondary/10 rounded-lg max-w-md mx-auto">
         <button @click="inputMode = 'manual'"
           class="flex-1 py-2 px-4 rounded-md text-sm font-bold transition-all duration-200" :class="inputMode === 'manual'
-              ? 'bg-primary text-secondary shadow-md'
-              : 'text-text/60 hover:bg-secondary/20 hover:text-text'
+            ? 'bg-primary text-secondary shadow-md'
+            : 'text-text/60 hover:bg-secondary/20 hover:text-text'
             ">
           <font-awesome-icon icon="fa-solid fa-pencil" class="mr-2" />
           Input Manual
         </button>
         <button @click="inputMode = 'upload'"
           class="flex-1 py-2 px-4 rounded-md text-sm font-bold transition-all duration-200" :class="inputMode === 'upload'
-              ? 'bg-primary text-secondary shadow-md'
-              : 'text-text/60 hover:bg-secondary/20 hover:text-text'
+            ? 'bg-primary text-secondary shadow-md'
+            : 'text-text/60 hover:bg-secondary/20 hover:text-text'
             ">
           <font-awesome-icon icon="fa-solid fa-file-excel" class="mr-2" />
           Upload Excel

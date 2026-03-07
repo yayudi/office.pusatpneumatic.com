@@ -30,44 +30,24 @@ const tabs = [
 
     <!-- Header Kontekstual Berdasarkan Tab -->
     <!-- Wrapped in FilterContainer for mobile collapsibility -->
-    <FilterContainer
-      v-if="activeTab !== 'DETAILED_TRANSFER'"
-      title="Form Perpindahan"
-      class="mt-4"
-    >
-      <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+    <FilterContainer v-if="activeTab !== 'DETAILED_TRANSFER'" title="Form Perpindahan" class="mt-4">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-6 w-full">
         <!-- TRANSFER (BATCH) -->
         <template v-if="activeTab === 'TRANSFER'">
-          <div class="md:col-span-4">
+          <div class="md:col-span-3">
             <label class="block text-sm font-medium text-text/90 mb-2">Pindahkan Dari</label>
-            <BaseSelect
-              v-model="fromLocation"
-              :options="myLocations"
-              placeholder="Pilih lokasi asal"
-              label="code"
-              track-by="id"
-              :disabled="isLoading"
-            />
+            <BaseSelect v-model="fromLocation" :options="myLocations" placeholder="Pilih lokasi asal" label="code"
+              track-by="id" :disabled="isLoading" />
           </div>
-          <div class="md:col-span-4">
+          <div class="md:col-span-3">
             <label class="block text-sm font-medium text-text/90 mb-2">Ke Lokasi</label>
-            <BaseSelect
-              v-model="toLocation"
-              :options="allLocations"
-              placeholder="Pilih lokasi tujuan"
-              label="code"
-              track-by="id"
-              :disabled="isLoading"
-            />
+            <BaseSelect v-model="toLocation" :options="allLocations" placeholder="Pilih lokasi tujuan" label="code"
+              track-by="id" :disabled="isLoading" />
           </div>
-          <div class="md:col-span-4">
+          <div class="md:col-span-6">
             <label class="block text-sm font-medium text-text/90 mb-2">Catatan / Alasan</label>
-            <input
-              v-model="notes"
-              type="text"
-              placeholder="e.g., Pindah stok antar gudang"
-              class="w-full h-[42px] px-3 py-2 border border-secondary/50 rounded-lg bg-background focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all shadow-sm text-sm"
-            />
+            <input v-model="notes" type="text" placeholder="e.g., Pindah stok antar gudang"
+              class="w-full h-[42px] px-3 py-2 border border-secondary/50 rounded-lg bg-background focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all shadow-sm text-sm" />
           </div>
         </template>
 
@@ -75,23 +55,13 @@ const tabs = [
         <template v-if="activeTab === 'INBOUND'">
           <div class="md:col-span-6">
             <label class="block text-sm font-medium text-text/90 mb-2">Masukkan Ke Lokasi</label>
-            <BaseSelect
-              v-model="toLocation"
-              :options="allLocations"
-              placeholder="Pilih lokasi tujuan"
-              label="code"
-              track-by="id"
-              :disabled="isLoading"
-            />
+            <BaseSelect v-model="toLocation" :options="allLocations" placeholder="Pilih lokasi tujuan" label="code"
+              track-by="id" :disabled="isLoading" />
           </div>
           <div class="md:col-span-6">
             <label class="block text-sm font-medium text-text/90 mb-2">Catatan / Alasan</label>
-            <input
-              v-model="notes"
-              type="text"
-              placeholder="e.g., Stok opname, Barang rusak, PO-123"
-              class="w-full h-[42px] px-3 py-2 border border-secondary/50 rounded-lg bg-background focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all shadow-sm text-sm"
-            />
+            <input v-model="notes" type="text" placeholder="e.g., Stok opname, Barang rusak, PO-123"
+              class="w-full h-[42px] px-3 py-2 border border-secondary/50 rounded-lg bg-background focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all shadow-sm text-sm" />
           </div>
         </template>
       </div>

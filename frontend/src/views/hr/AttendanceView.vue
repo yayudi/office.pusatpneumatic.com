@@ -12,6 +12,7 @@ import AttendanceStats from '@/components/stats/AttendanceStats.vue'
 import Modal from '@/components/ui/Modal.vue'
 import UploadForm from '@/components/ui/UploadForm.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import AttendanceExclusionsModal from '@/components/hr/AttendanceExclusionsModal.vue'
 import { useToast } from '@/composables/useToast.js'
 import { getAbsensiRange, uploadAbsensiFile } from '@/api/helpers/attendance.js'
 import { fetchAllUsers } from '@/api/helpers/admin.js'
@@ -20,6 +21,7 @@ import { fetchAllUsers } from '@/api/helpers/admin.js'
 const authStore = useAuthStore()
 const { show } = useToast()
 const isUploadModalOpen = ref(false)
+const isExclusionsModalOpen = ref(false)
 const isUploading = ref(false)
 const isHeaderExpanded = ref(true)
 const activeTab = ref('statistik')
@@ -222,8 +224,14 @@ async function handleUpload(formData) {
                   placeholder="Pilih satu atau beberapa nama..." class="w-full" />
               </div>
 
+              <button v-if="canViewAll" @click="isExclusionsModalOpen = true"
+                class="bg-accent/10 border border-accent/30 text-accent hover:bg-accent/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap w-full md:w-auto">
+                <font-awesome-icon icon="fa-solid fa-user-shield" />
+                <span>Pengecualian Absen</span>
+              </button>
+
               <button v-if="canViewAll" @click="isUploadModalOpen = true"
-                class="bg-primary/20 border border-primary/30 text-primary hover:bg-primary/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap w-full md:w-auto">
+                class="bg-primary/10 border border-primary/30 text-primary hover:bg-primary/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap w-full md:w-auto">
                 <font-awesome-icon icon="fa-solid fa-file-import" />
                 <span>Import Data</span>
               </button>
@@ -297,5 +305,9 @@ async function handleUpload(formData) {
         </button>
       </template>
     </Modal>
+
+    <!-- MODAL PENGECUALIAN ABSEN -->
+    <AttendanceExclusionsModal :is-open="isExclusionsModalOpen" @close="isExclusionsModalOpen = false"
+      @updated="handleRefresh" />
   </div>
 </template>

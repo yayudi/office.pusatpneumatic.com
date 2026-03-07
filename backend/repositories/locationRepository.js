@@ -42,13 +42,11 @@ export const getLocationsByProductIds = async (connection, productIds, purpose =
       JOIN locations l ON sl.location_id = l.id
       WHERE sl.product_id IN (?) AND l.purpose = ?
       ORDER BY
-      -- Custom Priority: 2 & 3 Paling Atas, lalu 4 & 5
       CASE
         WHEN sl.location_id IN (2, 3) THEN 1
         WHEN sl.location_id IN (4, 5) THEN 2
         ELSE 3
       END ASC,
-      -- Secondary: Jika prioritas sama, ambil stok terbanyak (DESC) agar picking lebih aman
       sl.quantity DESC`,
     [productIds, purpose]
   );
@@ -83,15 +81,12 @@ export const findBestStock = async (connection, productId, qtyNeeded) => {
         AND sl.quantity > 0
         AND l.purpose = 'DISPLAY'
       ORDER BY
-        -- Custom Priority Level
         CASE
           WHEN sl.location_id IN (2, 3) THEN 1
           WHEN sl.location_id IN (4, 5) THEN 2
           ELSE 3
         END ASC,
-        -- Prioritaskan stok yang CUKUP dulu dalam level prioritas yang sama
         CASE WHEN sl.quantity >= ? THEN 1 ELSE 2 END ASC,
-        -- Terakhir ambil stok terbanyak
         sl.quantity DESC
       LIMIT 1`,
     [productId, qtyNeeded, qtyNeeded]
@@ -143,7 +138,7 @@ export const incrementStock = async (connection, productId, locationId, quantity
 export const createLocation = async (connection, { code, building, floor, name, purpose }) => {
   const [result] = await connection.query(
     `INSERT INTO locations (code, building, floor, name, purpose)
-     VALUES (?, ?, ?, ?, ?)`,
+      VALUES (?, ?, ?, ?, ?)`,
     [code, building, floor || null, name || null, purpose]
   );
   return result.insertId;

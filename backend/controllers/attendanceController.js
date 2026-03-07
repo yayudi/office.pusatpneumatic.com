@@ -87,7 +87,7 @@ export const getRangeData = async (req, res) => {
     }
 
     // 2. Ambil semua user aktif (untuk normalisasi data frontend jika log kosong)
-    const [allUsers] = await db.query("SELECT id, username FROM users WHERE is_active = TRUE");
+    const [allUsers] = await db.query("SELECT id, username FROM users WHERE is_active = TRUE AND exclude_from_attendance = FALSE ORDER BY username ASC");
 
     // 3. Ambil log absensi + raw logs (JOIN)
     const logQuery = `
@@ -99,6 +99,7 @@ export const getRangeData = async (req, res) => {
       JOIN users u ON al.username = u.username
       LEFT JOIN attendance_raw_logs arl ON al.id = arl.attendance_log_id
       WHERE al.date BETWEEN ? AND ?
+        AND u.exclude_from_attendance = FALSE
       ORDER BY al.username, al.date, arl.log_time;
     `;
     const [logRows] = await db.query(logQuery, [startDate, endDate]);
@@ -163,7 +164,7 @@ export const getMonthlyData = async (req, res) => {
     const holidayMap = await loadHolidays(year);
 
     // 2. Ambil semua user aktif (untuk normalisasi data frontend jika log kosong)
-    const [allUsers] = await db.query("SELECT id, username FROM users WHERE is_active = TRUE");
+    const [allUsers] = await db.query("SELECT id, username FROM users WHERE is_active = TRUE AND exclude_from_attendance = FALSE ORDER BY username ASC");
 
     // 3. Ambil log absensi + raw logs (JOIN)
     const logQuery = `
@@ -175,6 +176,7 @@ export const getMonthlyData = async (req, res) => {
       JOIN users u ON al.username = u.username
       LEFT JOIN attendance_raw_logs arl ON al.id = arl.attendance_log_id
       WHERE YEAR(al.date) = ? AND MONTH(al.date) = ?
+        AND u.exclude_from_attendance = FALSE
       ORDER BY al.username, al.date, arl.log_time;
     `;
     const [logRows] = await db.query(logQuery, [year, month]);

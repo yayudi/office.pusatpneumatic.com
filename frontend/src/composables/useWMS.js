@@ -164,11 +164,6 @@ export function useWms() {
         searchBy: searchBy.value,
         location: activeView.value,
         stockStatus: stockStatusFilter.value,
-        // Mapping productTypeFilter to API params
-        // 'all' -> undefined (filtered out by backend default logic if not provided? No, backend checks is_package !== undefined)
-        // Adjusting logic:
-        // 'unit' -> is_package: false
-        // 'package' -> is_package: true
         is_package: productTypeFilter.value === 'all' ? undefined : productTypeFilter.value === 'package',
         building: selectedBuilding.value,
         floor: selectedFloor.value,
@@ -183,7 +178,6 @@ export function useWms() {
         delete params.endDate
       }
 
-      // [UPDATE] Anti-Cache Mechanism: Tambahkan timestamp unik ke request silent
       if (mode === 'silent') {
         params._t = Date.now()
       }
@@ -220,8 +214,7 @@ export function useWms() {
       } else if (mode === 'loadMore') {
         displayedProducts.value.push(...transformed)
       } else if (mode === 'silent') {
-        // [DEBUG-TRACE] Logika Audit Perubahan Data
-        console.groupCollapsed(`[WMS] Silent Update Check @ ${new Date().toLocaleTimeString()}`)
+        console.groupCollapsed(`Silent @ ${new Date().toLocaleTimeString()}`)
         console.log(`Incoming Items: ${transformed.length}`)
 
         const incomingMap = new Map(transformed.map((p) => [p.id, p]))
@@ -231,12 +224,10 @@ export function useWms() {
         displayedProducts.value.forEach((existingProduct) => {
           const updatedData = incomingMap.get(existingProduct.id)
           if (updatedData) {
-            // [FIXED LOGIC] Cek perubahan secara mendalam (Breakdown per lokasi)
             const isTotalChanged = existingProduct.totalStock !== updatedData.totalStock
             const isGudangChanged = existingProduct.stockGudang !== updatedData.stockGudang
             const isPajanganChanged = existingProduct.stockPajangan !== updatedData.stockPajangan
             const isLTCChanged = existingProduct.stockLTC !== updatedData.stockLTC
-            // Cek lokasi juga agar jika lokasi berpindah tapi jumlah sama tetap terdeteksi
             const isLocationCodeChanged =
               existingProduct.allLocationsCode !== updatedData.allLocationsCode
 
@@ -271,10 +262,8 @@ export function useWms() {
               realChangesCount++
             }
 
-            // Patching Data (Selalu update agar reaktif terhadap perubahan kecil sekalipun)
             existingProduct.stock_locations = updatedData.stock_locations
             existingProduct.totalStock = updatedData.totalStock
-
             existingProduct.stockGudang = updatedData.stockGudang
             existingProduct.stockPajangan = updatedData.stockPajangan
             existingProduct.stockLTC = updatedData.stockLTC
@@ -413,7 +402,6 @@ export function useWms() {
       endDate,
     ],
     () => {
-      // Trigger full reset on filter change
       resetAndRefetch()
     },
   )

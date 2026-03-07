@@ -162,7 +162,7 @@ function handleReset() {
           <!-- Actions -->
           <div class="flex gap-2">
             <button @click="handleReset"
-              class="h-[42px] px-4 bg-secondary/10 text-text/70 hover:text-text hover:bg-secondary/20 rounded-lg text-sm font-bold transition-all flex-1 xl:flex-none">
+              class="h-[42px] px-4 bg-secondary/10 text-text/70 ring-1 ring-danger/20 hover:text-danger hover:bg-danger/10 rounded-lg text-sm font-bold transition-all flex-1 xl:flex-none">
               Reset
             </button>
             <button @click="handleSearch" :disabled="loading"
@@ -225,9 +225,9 @@ function handleReset() {
               </td>
               <td class="p-3 align-top">
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider" :class="{
-                  'bg-blue-100 text-blue-700': log.movement_type === 'TRANSFER',
-                  'bg-green-100 text-green-700': log.movement_type === 'INBOUND' || log.movement_type === 'RETURN',
-                  'bg-orange-100 text-orange-700': log.movement_type === 'ADJUSTMENT'
+                  'bg-primary/10 text-primary': log.movement_type === 'TRANSFER',
+                  'bg-success/10 text-success': log.movement_type === 'INBOUND' || log.movement_type === 'RETURN',
+                  'bg-warning/10 text-warning': log.movement_type === 'ADJUSTMENT'
                 }">
                   {{ log.movement_type }}
                 </span>

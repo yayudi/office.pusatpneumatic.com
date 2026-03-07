@@ -49,6 +49,11 @@ function onSearchInput(e) {
 
 emit('search', '')
 
+function clearSearch() {
+  emit('update:searchValue', '')
+  emit('search', '')
+}
+
 // Column Menu State
 const isColumnMenuOpen = ref(false)
 
