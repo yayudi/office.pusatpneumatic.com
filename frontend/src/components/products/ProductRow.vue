@@ -12,7 +12,8 @@ const emit = defineEmits(['toggle-selection', 'edit', 'restore', 'delete'])
 // Helper Image URL
 const imageUrl = computed(() => {
   if (!props.product.image_path) return null
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
+  const baseUrl = apiBaseUrl.replace(/\/api\/?$/, '')
   return `${baseUrl}/uploads/products/${props.product.image_path}`
 })
 

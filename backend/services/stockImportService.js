@@ -3,6 +3,7 @@ import ExcelJS from "exceljs";
 import fs from "fs";
 import * as stockService from "./stockService.js";
 import * as locationRepo from "../repositories/locationRepository.js";
+import * as productRepo from "../repositories/productRepository.js";
 
 export const processStockInboundImport = async (jobId, filePath, userId) => {
   let connection;
@@ -89,3 +90,165 @@ export const processStockInboundImport = async (jobId, filePath, userId) => {
     }
   }
 };
+
+/**
+ * Proses Bulk Import Stock Adjustment (Stock Opname)
+ * Digunakan oleh importQueue.js -> jobType: ADJUST_STOCK
+ * 
+ * @param {object} connection - DB Connection dari Worker
+ * @param {string} filePath - Absolute path ke file Excel
+ * @param {number} userId - ID User yang menjalankan job
+ * @param {string} originalFilename - Nama file asli
+ * @param {function} updateProgress - Callback untuk update progress worker
+ * @param {boolean} isDryRun - Jika true, hanya simulasi
+ * @returns {Promise<object>} - { stats, errors, logSummary }
+ */
+export const processStockImport = async (
+  connection,
+  filePath,
+  userId,
+  originalFilename,
+  updateProgress,
+  isDryRun
+) => {
+  const errors = [];
+  const movements = [];
+  let stats = { success: 0, failed: 0 };
+  let logSummary = "";
+
+  try {
+    // 1. Load Data dasar (Location Map)
+    const locationMap = await locationRepo.getLocationMap(connection);
+
+    // 2. Baca file Excel
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(filePath);
+    const sheet = workbook.getWorksheet(1);
+
+    if (!sheet) {
+      throw new Error("File Excel tidak valid atau kosong.");
+    }
+
+    // Ekstrak baris (mulai dari baris 2 karena baris 1 adalah header)
+    // Excel columns expected: A=SKU, B=LT (Lokasi), C=ACTUAL, D=NOTES
+    const rowData = [];
+    const skuSet = new Set();
+
+    sheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip Header
+
+      const sku = row.getCell(1).text?.trim();
+      const locCode = row.getCell(2).text?.trim();
+      const actualStr = row.getCell(3).text?.trim() || row.getCell(3).value?.toString();
+      const notes = row.getCell(4).text?.trim();
+
+      if (!sku && !locCode && !actualStr) return; // Skip baris kosong
+
+      skuSet.add(sku);
+      rowData.push({
+        rowNumber,
+        sku,
+        locCode,
+        actualStr,
+        notes,
+      });
+    });
+
+    if (rowData.length === 0) {
+      logSummary = "Selesai. Tidak ada baris data untuk diproses.";
+      return { stats, errors, logSummary };
+    }
+
+    // 3. Ambil Product Map untuk validasi SKU massal
+    const productMap = await productRepo.getProductMapWithComponents(connection, Array.from(skuSet));
+
+    // 4. Proses perhitungan selisih stok (Difference)
+    for (let i = 0; i < rowData.length; i++) {
+      const data = rowData[i];
+      const { rowNumber, sku, locCode, actualStr, notes } = data;
+
+      try {
+        // Validasi Lokasi
+        const locationId = locationMap.get(locCode);
+        if (!locationId) {
+          throw new Error(`Lokasi '${locCode}' tidak valid atau tidak ditemukan.`);
+        }
+
+        // Validasi Produk
+        const product = productMap.get(sku);
+        if (!product) {
+          throw new Error(`SKU '${sku}' tidak ditemukan di database.`);
+        }
+
+        // Validasi Aktual (Harus Angka)
+        const actual = parseInt(actualStr, 10);
+        if (isNaN(actual) || actual < 0) {
+          throw new Error(`Stok aktual ('${actualStr}') tidak valid. Harus angka bulat >= 0.`);
+        }
+
+        // Dapatkan stok saat ini (system qty)
+        const currentStock = await locationRepo.getStockAtLocation(
+          connection,
+          product.id,
+          locationId,
+          false // Tidak butuh lock saat ini karena batch adjustment akan buat connection baru (atau mengunci ulang)
+        );
+
+        // Hitung selisih
+        const difference = actual - currentStock;
+
+        if (difference !== 0) {
+          movements.push({
+            sku,
+            quantity: difference,
+            toLocationId: locationId,
+            notes: notes || "Batch Adjustment (Excel)",
+          });
+        }
+
+        stats.success++;
+      } catch (err) {
+        // Tangkap error per baris tanpa menghentikan proses
+        errors.push({ row: rowNumber, message: err.message });
+        stats.failed++;
+      }
+
+      // Update progress tiap 50 baris
+      if (i % 50 === 0 && typeof updateProgress === "function") {
+        await updateProgress(i + 1, rowData.length);
+      }
+    }
+
+    // 5. Eksekusi Batch
+    let processedMovements = 0;
+    if (movements.length > 0 && !isDryRun) {
+      // NOTE: processBatchMovementsService akan membuat koneksi transaksi sendiri.
+      const result = await stockService.processBatchMovementsService({
+        type: "ADJUSTMENT",
+        fromLocationId: null,
+        toLocationId: null, // Pergerakan sudah mendefinisikan toLocationId di setiap item
+        notes: "Batch Adjustment (Excel)",
+        movements,
+        userId, // Diambil dari args worker
+        userRoleId: 1, // Superadmin assumption for worker imports
+      });
+      processedMovements = result.count || movements.length;
+    }
+
+    // 6. Siapkan Laporan Balasan
+    logSummary = `Selesai Import Penyesuaian Stok. Berhasil validasi: ${stats.success} baris. Gagal: ${stats.failed} baris. ${movements.length} item diproses (${processedMovements} movement DB).`;
+    if (isDryRun) {
+      logSummary = `[SIMULASI] ${logSummary}`;
+    }
+
+    return { stats, errors, logSummary };
+  } catch (err) {
+    // Tangkap error global
+    return {
+      stats,
+      errors: [{ row: 0, message: err.message }],
+      logSummary: `Gagal total memproses Import Stok: ${err.message}`,
+    };
+  }
+};
+

@@ -28,7 +28,8 @@ const canUpload = computed(() => authStore.hasPermission('product.image.upload')
 const canDelete = computed(() => authStore.hasPermission('product.image.delete'))
 
 // Base URL for Images
-const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
+const baseUrl = apiBaseUrl.replace(/\/api\/?$/, '')
 
 // Fetch Latest Images
 async function fetchImages() {
