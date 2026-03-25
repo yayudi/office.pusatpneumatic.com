@@ -88,6 +88,10 @@ build/
 
 # Specific generated JSON
 /backend/public/json/
+/backend/uploads/stock_import/
+/backend/uploads/stock_export/
+/backend/uploads/stock_opname/
+/backend/seed/
 
 # Docker
 /backend/Dockerfile

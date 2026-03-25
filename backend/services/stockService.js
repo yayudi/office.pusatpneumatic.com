@@ -341,6 +341,87 @@ export const processBatchMovementsService = async ({
 };
 
 /**
+ * Service: Process Batch Stock Opname (Pure Override)
+ * Bypass component breakdown. Fails if package SKU included.
+ */
+export const processBatchOpnameService = async ({ movements, userId, userRoleId }) => {
+  const connection = await db.getConnection();
+  await connection.beginTransaction();
+
+  try {
+    // 1. Resolve Items using getProductMap (to check if product exists and if it's package)
+    const skuSet = new Set(movements.map((m) => m.sku));
+    const productMap = await productRepo.getProductMapWithComponents(connection, Array.from(skuSet));
+
+    let processedCount = 0;
+
+    for (const mov of movements) {
+      const product = productMap.get(mov.sku);
+      if (!product) {
+        throw new Error(`SKU '${mov.sku}' tidak ditemukan di database.`);
+      }
+
+      // Block packages
+      if (product.is_package) {
+        throw new Error(`SKU Paket '${mov.sku}' tidak dapat di-opname secara langsung. Opname hanya berlaku untuk barang fisik (komponen).`);
+      }
+
+      if (!mov.toLocationId) {
+        throw new Error(`Lokasi tujuan wajib diisi untuk opname SKU '${mov.sku}'.`);
+      }
+
+      // Ensure user has location permission if not superadmin
+      if (userRoleId !== 1) {
+        const [perm] = await connection.query(
+          "SELECT 1 FROM user_locations WHERE user_id = ? AND location_id = ?",
+          [userId, mov.toLocationId]
+        );
+        if (perm.length === 0) {
+          throw new Error(`Akses ditolak untuk mencatat stok pada lokasi SKU '${mov.sku}'.`);
+        }
+      }
+
+      const actualQty = mov.quantity; // Quantity passed is ACTUAL stock counted
+      
+      const currentStock = await locationRepo.getStockAtLocation(
+        connection, 
+        product.id, 
+        mov.toLocationId, 
+        true // lock for update
+      );
+
+      const difference = actualQty - currentStock;
+
+      if (difference !== 0) {
+        // Override directly
+        await locationRepo.upsertStock(connection, product.id, mov.toLocationId, actualQty);
+
+        // Log absolute difference in ledger
+        await stockRepo.createLog(connection, {
+          productId: product.id,
+          quantity: Math.abs(difference),
+          toLocationId: mov.toLocationId,
+          type: "OPNAME",
+          userId,
+          notes: mov.notes || "Stock Opname Override"
+        });
+        
+        processedCount++;
+      }
+    }
+
+    await connection.commit();
+    // Return processedCount (how many actual updates happened)
+    return { success: true, count: processedCount };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+};
+
+/**
  * Service: Batch Stock Transfer
  */
 export const batchTransferService = async ({

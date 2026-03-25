@@ -186,25 +186,13 @@ export const processStockImport = async (
           throw new Error(`Stok aktual ('${actualStr}') tidak valid. Harus angka bulat >= 0.`);
         }
 
-        // Dapatkan stok saat ini (system qty)
-        const currentStock = await locationRepo.getStockAtLocation(
-          connection,
-          product.id,
-          locationId,
-          false // Tidak butuh lock saat ini karena batch adjustment akan buat connection baru (atau mengunci ulang)
-        );
-
-        // Hitung selisih
-        const difference = actual - currentStock;
-
-        if (difference !== 0) {
-          movements.push({
-            sku,
-            quantity: difference,
-            toLocationId: locationId,
-            notes: notes || "Batch Adjustment (Excel)",
-          });
-        }
+        // Tambahkan ke daftar movement (dengan quantity absolut aktual)
+        movements.push({
+          sku,
+          quantity: actual,
+          toLocationId: locationId,
+          notes: notes || "Stock Opname (Excel)",
+        });
 
         stats.success++;
       } catch (err) {
@@ -222,17 +210,13 @@ export const processStockImport = async (
     // 5. Eksekusi Batch
     let processedMovements = 0;
     if (movements.length > 0 && !isDryRun) {
-      // NOTE: processBatchMovementsService akan membuat koneksi transaksi sendiri.
-      const result = await stockService.processBatchMovementsService({
-        type: "ADJUSTMENT",
-        fromLocationId: null,
-        toLocationId: null, // Pergerakan sudah mendefinisikan toLocationId di setiap item
-        notes: "Batch Adjustment (Excel)",
+      // Panggil Service Khusus Opname (Pure Override)
+      const result = await stockService.processBatchOpnameService({
         movements,
         userId, // Diambil dari args worker
         userRoleId: 1, // Superadmin assumption for worker imports
       });
-      processedMovements = result.count || movements.length;
+      processedMovements = result.count || 0;
     }
 
     // 6. Siapkan Laporan Balasan
