@@ -11,9 +11,15 @@ const emit = defineEmits(['toggle-selection', 'edit', 'restore', 'delete'])
 
 // Helper Image URL
 const imageUrl = computed(() => {
-  if (!props.product.image_path) return null
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
-  return `${baseUrl}/uploads/products/${props.product.image_path}`
+  const targetPath = props.product.thumbnail_path
+
+  if (!targetPath) return null
+  const apiBaseUrl = instance.defaults.baseURL || ''
+  const baseUrl = apiBaseUrl.replace(/\/api\/?$/, '')
+
+  const cleanPath = targetPath.replace(/^\/+/, '')
+  const uploadPrefix = cleanPath.startsWith('uploads/') ? '' : 'uploads/'
+  return `${baseUrl}/${uploadPrefix}${cleanPath}`
 })
 
 // Helper Format Mata Uang
