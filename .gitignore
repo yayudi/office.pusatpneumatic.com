@@ -34,6 +34,7 @@ coverage/
 .nyc_output/
 build/
 .cache/
+/frontend/bundle-stats.html
 
 # ===================================================================
 # IDE & EDITORS
@@ -106,11 +107,9 @@ docker-compose.*.yml
 # ===================================================================
 # TEMP & JUNK FILES
 # ===================================================================
-temp.js
+temp.*
 temp2.js
-temp.vue
 TODO.js
-stats.html
 *.tmp
 *.bak
 *.bk

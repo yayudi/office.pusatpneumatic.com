@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import axios from '@/api/axios.js'
+import { formatCurrency } from '@/utils/formatters.js'
 
 const props = defineProps({
   productId: { type: Number, required: true },
@@ -27,13 +28,7 @@ watch(() => props.productId, fetchHistory, { immediate: true })
 
 // Helper format nilai
 function formatValue(field, val) {
-  if (field === 'price')
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(val)
+  if (field === 'price') return formatCurrency(val)
   if (field === 'weight') return `${val} gr`
   if (field === 'is_package') return val == 1 ? 'Paket' : 'Satuan'
   if (field === 'status') return val // Active / Archived

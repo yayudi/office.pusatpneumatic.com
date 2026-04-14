@@ -141,7 +141,8 @@ export const getProductsWithFilters = async (connection, filters) => {
   // --- 3. Ambil Data Produk (Main Select) ---
   const productsQuery = `
       SELECT p.id, p.sku, p.name, p.category, p.price, p.weight, p.is_package, p.is_active, p.deleted_at,
-      (SELECT ma.main_path FROM product_images pi JOIN media_assets ma ON pi.media_id = ma.id WHERE pi.product_id = p.id AND pi.is_primary = 1 LIMIT 1) as image_path
+      (SELECT ma.main_path FROM product_images pi JOIN media_assets ma ON pi.media_id = ma.id WHERE pi.product_id = p.id AND pi.is_primary = 1 LIMIT 1) as image_path,
+      (SELECT ma.thumbnail_path FROM product_images pi JOIN media_assets ma ON pi.media_id = ma.id WHERE pi.product_id = p.id AND pi.is_primary = 1 LIMIT 1) as thumbnail_path
       FROM products p
       ${whereSql}
       GROUP BY p.id
@@ -286,7 +287,7 @@ export const getProductDetailWithStock = async (connection, id) => {
 
   // [NEW] Get Images
   const [images] = await connection.query(
-    "SELECT pi.id, ma.main_path as image_path, pi.is_primary FROM product_images pi JOIN media_assets ma ON pi.media_id = ma.id WHERE pi.product_id = ? ORDER BY pi.is_primary DESC, pi.sort_order ASC",
+    "SELECT pi.id, ma.main_path as image_path, ma.thumbnail_path, pi.is_primary FROM product_images pi JOIN media_assets ma ON pi.media_id = ma.id WHERE pi.product_id = ? ORDER BY pi.is_primary DESC, pi.sort_order ASC",
     [id]
   );
   product.images = images;

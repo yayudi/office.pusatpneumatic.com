@@ -15,7 +15,7 @@ import PickingListCardCompact from '@/components/picking/PickingListCardCompact.
 import PickingListRow from '@/components/picking/PickingListRow.vue'
 import MasonryWall from '@yeger/vue-masonry-wall'
 
-const { show } = useToast()
+const { toast } = useToast()
 
 // --- STATE ---
 const isLoadingPicking = ref(false)
@@ -112,7 +112,7 @@ async function fetchPendingItems() {
     pendingItems.value = data
     selectedItems.value = new Set() // ✅ Reset dengan Set baru
   } catch (error) {
-    show(error.message || 'Gagal memuat data picking.', 'error')
+    toast(error.message || 'Gagal memuat data picking.', 'error')
   } finally {
     isLoadingPicking.value = false
   }
@@ -142,17 +142,17 @@ async function handleCompleteSelectedItems() {
     const res = await completePickingItems({ items: payloadItems })
 
     if (res.success) {
-      show(res.message, 'success')
+      toast(res.message, 'success')
       // Optimistic Update: Hapus item yang selesai dari list lokal agar UI responsif
       pendingItems.value = pendingItems.value.filter((item) => !selectedItems.value.has(item.id))
       selectedItems.value = new Set() // ✅ Reset dengan Set baru
     } else {
-      show(res.message || 'Gagal memproses sebagian item.', 'warning')
+      toast(res.message || 'Gagal memproses sebagian item.', 'warning')
     }
     // Refresh data untuk konsistensi penuh
     await fetchPendingItems()
   } catch (error) {
-    show(error.message || 'Gagal menyelesaikan item.', 'error')
+    toast(error.message || 'Gagal menyelesaikan item.', 'error')
   } finally {
     isLoadingPicking.value = false
   }
@@ -162,10 +162,10 @@ async function handleCancelInvoice(pickingListId) {
   if (!confirm('Batalkan seluruh pesanan ini? Stok akan dikembalikan.')) return
   try {
     await cancelPickingList(pickingListId)
-    show('Picking list dibatalkan.', 'success')
+    toast('Picking list dibatalkan.', 'success')
     pendingItems.value = pendingItems.value.filter((item) => item.picking_list_id !== pickingListId)
   } catch (error) {
-    show(error.message || 'Gagal membatalkan.', 'error')
+    toast(error.message || 'Gagal membatalkan.', 'error')
     await fetchPendingItems()
   }
 }

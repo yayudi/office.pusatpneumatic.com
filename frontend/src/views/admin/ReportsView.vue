@@ -6,7 +6,7 @@ import { useToast } from '@/composables/useToast.js'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
 import dayjs from 'dayjs'
 
-const { show } = useToast()
+const { toast } = useToast()
 
 const jobs = ref([])
 const loading = ref(false)
@@ -25,7 +25,7 @@ const fetchJobs = async () => {
 
 const handleDownload = async (url, fileName) => {
   try {
-    show('Memulai unduhan...', 'info')
+    toast('Memulai unduhan...', 'info')
     console.log(`[Frontend] Downloading from: ${url}`);
     console.log(`[Frontend] Desired Filename: ${fileName}`);
 
@@ -38,7 +38,7 @@ const handleDownload = async (url, fileName) => {
     const blobUrl = window.URL.createObjectURL(new Blob([response.data]))
     console.log(`[Frontend] Blob URL created: ${blobUrl}`);
 
-    show('Unduhan berhasil.', 'success')
+    toast('Unduhan berhasil.', 'success')
     const link = document.createElement('a')
     link.href = blobUrl
     link.setAttribute('download', fileName || 'download.xlsx')
@@ -49,10 +49,10 @@ const handleDownload = async (url, fileName) => {
     document.body.removeChild(link)
     window.URL.revokeObjectURL(blobUrl)
 
-    show('Unduhan berhasil.', 'success')
+    toast('Unduhan berhasil.', 'success')
   } catch (err) {
     console.error('Download error:', err)
-    show('Gagal mengunduh file.', 'error')
+    toast('Gagal mengunduh file.', 'error')
   }
 }
 

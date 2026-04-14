@@ -1,6 +1,7 @@
 <!-- frontend/src/components/products/ProductRow.vue -->
 <script setup>
 import { computed } from 'vue'
+import { formatCurrency } from '@/utils/formatters.js'
 
 const props = defineProps({
   product: { type: Object, required: true },
@@ -22,14 +23,8 @@ const imageUrl = computed(() => {
   return `${baseUrl}/${uploadPrefix}${cleanPath}`
 })
 
-// Helper Format Mata Uang
 const formattedPrice = computed(() => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(props.product.price)
+  return formatCurrency(props.product.price)
 })
 
 // Helper Status

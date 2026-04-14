@@ -4,7 +4,7 @@ import api from '@/api/axios'
 import { useToast } from '@/composables/useToast'
 
 export function useReturnManager() {
-  const { show } = useToast()
+  const { toast } = useToast()
 
   const activeTab = ref('pending')
   const items = ref([])
@@ -51,7 +51,7 @@ export function useReturnManager() {
         await fetchLocations()
       }
     } catch (error) {
-      show('Gagal memuat data retur', 'error')
+      toast('Gagal memuat data retur', 'error')
     } finally {
       isLoading.value = false
     }
@@ -88,21 +88,21 @@ export function useReturnManager() {
 
     // Validasi Total
     if (totalQtyInput === 0) {
-      show('Mohon isi jumlah barang yang diterima (Bagus atau Rusak)', 'warning')
+      toast('Mohon isi jumlah barang yang diterima (Bagus atau Rusak)', 'warning')
       return
     }
     if (totalQtyInput > itemData.quantity) {
-      show(`Total jumlah (${totalQtyInput}) melebihi sisa retur (${itemData.quantity})`, 'error')
+      toast(`Total jumlah (${totalQtyInput}) melebihi sisa retur (${itemData.quantity})`, 'error')
       return
     }
 
     // Validasi Lokasi
     if (good.qty > 0 && !good.locationId) {
-      show('Pilih lokasi rak untuk barang kondisi Bagus', 'warning')
+      toast('Pilih lokasi rak untuk barang kondisi Bagus', 'warning')
       return
     }
     if (bad.qty > 0 && !bad.locationId) {
-      show('Pilih lokasi rak untuk barang kondisi Rusak', 'warning')
+      toast('Pilih lokasi rak untuk barang kondisi Rusak', 'warning')
       return
     }
 
@@ -132,12 +132,12 @@ export function useReturnManager() {
         })
       }
 
-      show('Retur berhasil divalidasi', 'success')
+      toast('Retur berhasil divalidasi', 'success')
       showProcessModal.value = false
       fetchData() // Refresh list
     } catch (error) {
       console.error(error)
-      show(error.response?.data?.message || 'Gagal memproses retur', 'error')
+      toast(error.response?.data?.message || 'Gagal memproses retur', 'error')
     } finally {
       isLoading.value = false
     }

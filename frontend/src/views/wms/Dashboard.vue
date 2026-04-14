@@ -45,7 +45,7 @@ const {
 } = useWms()
 
 const auth = useAuthStore()
-const { show } = useToast()
+const { toast } = useToast()
 const isHistoryModalOpen = ref(false)
 const isTransferModalOpen = ref(false)
 const isUploadModalOpen = ref(false)
@@ -101,10 +101,10 @@ function copyToClipboard({ text, fieldName }) {
   textArea.select()
   try {
     document.execCommand('copy')
-    show(`${fieldName} disalin ke clipboard!`, 'success')
+    toast(`${fieldName} disalin ke clipboard!`, 'success')
   } catch (err) {
     console.error('Gagal menyalin:', err)
-    show('Gagal menyalin teks.', 'error')
+    toast('Gagal menyalin teks.', 'error')
   }
   document.body.removeChild(textArea)
 }
@@ -142,11 +142,11 @@ async function handleDeleteProduct(product) {
   try {
     const response = await axios.delete(`/products/${product.id}`)
     if (response.data.success) {
-      show('Produk berhasil dihapus', 'success')
+      toast('Produk berhasil dihapus', 'success')
       resetAndRefetch() // Refresh list
     }
   } catch (err) {
-    show(err.response?.data?.message || 'Gagal menghapus produk', 'error')
+    toast(err.response?.data?.message || 'Gagal menghapus produk', 'error')
   }
 }
 
@@ -173,13 +173,13 @@ function closeModal() {
 
 async function handleTransferConfirm(payload) {
   try {
-    show('Memproses transfer...', 'info')
+    toast('Memproses transfer...', 'info')
     const response = await transferStock(payload)
     if (response.success) {
-      show('Transfer stok berhasil!', 'success')
+      toast('Transfer stok berhasil!', 'success')
     }
   } catch (err) {
-    show(err.message || 'Gagal transfer.', 'error')
+    toast(err.message || 'Gagal transfer.', 'error')
   } finally {
     closeModal()
   }
@@ -187,13 +187,13 @@ async function handleTransferConfirm(payload) {
 
 async function handleAdjustConfirm(payload) {
   try {
-    show('Memproses penyesuaian...', 'info')
+    toast('Memproses penyesuaian...', 'info')
     const response = await adjustStock(payload)
     if (response.success) {
-      show('Penyesuaian stok berhasil!', 'success')
+      toast('Penyesuaian stok berhasil!', 'success')
     }
   } catch (err) {
-    show(err.message || 'Gagal penyesuaian.', 'error')
+    toast(err.message || 'Gagal penyesuaian.', 'error')
   } finally {
     closeModal()
   }

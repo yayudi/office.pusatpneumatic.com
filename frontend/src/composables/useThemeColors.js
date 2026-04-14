@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 
 /**
  * State warna tema global.
@@ -29,14 +29,14 @@ const updateThemeColors = () => {
     if (!val) return '#888888';
     const parts = val.replace(/%/g, '').split(/\s+/);
     if (parts.length < 3) return '#888888';
-    
+
     let h = parseFloat(parts[0]);
     let s = parseFloat(parts[1]) / 100;
     let l = parseFloat(parts[2]) / 100;
-    
+
     let a = s * Math.min(l, 1 - l);
     let f = (n, k = (n + h / 30) % 12) => l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-    
+
     const toHex = x => {
       const hex = Math.round(x * 255).toString(16);
       return hex.length === 1 ? '0' + hex : hex;

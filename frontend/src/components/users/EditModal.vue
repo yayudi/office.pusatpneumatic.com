@@ -13,7 +13,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'updated'])
-const { show } = useToast()
+const { toast } = useToast()
 
 const editableUser = ref({})
 const isLoading = ref(false)
@@ -39,11 +39,11 @@ async function handleSave() {
   isLoading.value = true
   try {
     await updateUser(props.user.id, editableUser.value)
-    show('Data pengguna berhasil diperbarui.', 'success')
+    toast('Data pengguna berhasil diperbarui.', 'success')
     emit('updated')
     emit('close')
   } catch (error) {
-    show(error.response?.data?.message || 'Gagal menyimpan perubahan.', 'error')
+    toast(error.response?.data?.message || 'Gagal menyimpan perubahan.', 'error')
   } finally {
     isLoading.value = false
   }

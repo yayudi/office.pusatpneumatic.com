@@ -4,6 +4,7 @@ import { useToast } from '@/composables/useToast.js'
 import axios from '@/api/axios.js'
 import Modal from '@/components/ui/Modal.vue'
 import { debounce } from 'lodash'
+import { formatCurrency } from '@/utils/formatters.js'
 
 const props = defineProps({
   show: Boolean,
@@ -11,7 +12,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 
-const { show: showToast } = useToast()
+const { toast } = useToast()
 
 // STATE
 const items = ref([]) // { product, quantity, price, weight }
@@ -102,11 +103,7 @@ const removeItem = (index) => {
   items.value.splice(index, 1)
 }
 
-const formatCurrency = (val) => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency', currency: 'IDR', minimumFractionDigits: 0
-  }).format(val)
-}
+// formatCurrency removed (imported from utils)
 
 const formatWeight = (val) => {
   const unit = WEIGHT_UNITS.find(u => u.value === weightUnit.value)

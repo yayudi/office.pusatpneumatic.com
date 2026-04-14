@@ -11,7 +11,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'void-confirmed'])
-const { show: showToast } = useToast()
+const { toast } = useToast()
 
 const items = ref([])
 const loading = ref(false)
@@ -36,7 +36,7 @@ async function loadDetails() {
     }
   } catch (err) {
     error.value = 'Gagal memuat detail item.'
-    showToast(error.value, 'error')
+    toast(error.value, 'error')
   } finally {
     loading.value = false
   }

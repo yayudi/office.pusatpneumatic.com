@@ -8,7 +8,7 @@ import api from '@/api/axios'
 import ProductSearchSelector from '@/components/transfer/ProductSearchSelector.vue'
 
 const router = useRouter()
-const { show } = useToast()
+const { toast } = useToast()
 
 const isLoading = ref(false)
 const locations = ref([])
@@ -44,27 +44,27 @@ function removeItemRow(index) {
   if (form.value.items.length > 1) {
     form.value.items.splice(index, 1)
   } else {
-    show('Minimal harus ada 1 barang.', 'warning')
+    toast('Minimal harus ada 1 barang.', 'warning')
   }
 }
 
 async function submitForm() {
   const formData = toRaw(form.value)
   if (!formData.invoiceId || formData.invoiceId.trim() === '')
-    return show('Nomor Invoice wajib diisi!', 'warning')
+    return toast('Nomor Invoice wajib diisi!', 'warning')
 
   const validItems = []
 
   for (const [index, item] of formData.items.entries()) {
     if (!item.selectedProduct)
-      return show(`Baris ke-${index + 1}: Produk belum dipilih!`, 'warning')
+      return toast(`Baris ke-${index + 1}: Produk belum dipilih!`, 'warning')
 
     const productId = item.selectedProduct.id || item.selectedProduct.product_id
-    if (!productId) return show(`Baris ke-${index + 1}: Data produk korup.`, 'error')
+    if (!productId) return toast(`Baris ke-${index + 1}: Data produk korup.`, 'error')
 
     if (!item.quantity || item.quantity < 1)
-      return show(`Baris ke-${index + 1}: Qty minimal 1.`, 'warning')
-    if (!item.locationId) return show(`Baris ke-${index + 1}: Lokasi belum dipilih!`, 'warning')
+      return toast(`Baris ke-${index + 1}: Qty minimal 1.`, 'warning')
+    if (!item.locationId) return toast(`Baris ke-${index + 1}: Lokasi belum dipilih!`, 'warning')
 
     // Pisahkan payload sesuai backend controller
     validItems.push({
@@ -88,7 +88,7 @@ async function submitForm() {
         successCount++
       } catch (err) {
         console.error('Gagal memproses item:', itemPayload, err)
-        show(
+        toast(
           `Gagal item ${itemPayload.reference}: ${err.response?.data?.message || 'Error'}`,
           'error',
         )
@@ -96,14 +96,14 @@ async function submitForm() {
     }
 
     if (successCount > 0) {
-      show(`Berhasil memproses ${successCount} item. Stok telah bertambah.`, 'success')
+      toast(`Berhasil memproses ${successCount} item. Stok telah bertambah.`, 'success')
       router.go(-1)
     } else {
-      show('Gagal memproses semua data. Silakan coba lagi.', 'error')
+      toast('Gagal memproses semua data. Silakan coba lagi.', 'error')
     }
   } catch (e) {
     console.error('Submit System Error:', e)
-    show('Terjadi kesalahan sistem.', 'error')
+    toast('Terjadi kesalahan sistem.', 'error')
   } finally {
     isLoading.value = false
   }

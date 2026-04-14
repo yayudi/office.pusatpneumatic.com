@@ -16,7 +16,7 @@ import BatchAdjustmentHeader from '@/components/batch/BatchAdjustmentHeader.vue'
 import ProductSearchAddForm from '@/components/batch/ProductSearchAddForm.vue'
 import BatchItemList from '@/components/batch/BatchItemList.vue'
 
-const { show } = useToast()
+const { toast } = useToast()
 const auth = useAuthStore()
 
 // --- STATE UTAMA ---
@@ -40,7 +40,7 @@ onMounted(async () => {
     myLocations.value = await fetchMyLocations()
     await loadImportHistory()
   } catch (error) {
-    show('Gagal memuat data awal.', 'error')
+    toast('Gagal memuat data awal.', 'error')
   } finally {
     isLoading.value = false
   }
@@ -56,7 +56,7 @@ async function loadImportHistory() {
     }
   } catch (error) {
     console.error('Gagal memuat riwayat impor:', error)
-    show('Gagal memuat riwayat laporan impor', 'error')
+    toast('Gagal memuat riwayat laporan impor', 'error')
   } finally {
     isImportHistoryLoading.value = false
   }
@@ -69,7 +69,7 @@ function handleFileSelect(event) {
     const fileExt = fileName.slice(fileName.lastIndexOf('.')).toLowerCase()
 
     if (fileExt !== '.xlsx') {
-      show('Hanya file .xlsx yang diizinkan.', 'error')
+      toast('Hanya file .xlsx yang diizinkan.', 'error')
       selectedFile.value = null
       uploadInputKey.value++
       return
@@ -80,22 +80,22 @@ function handleFileSelect(event) {
 
 async function handleUploadAdjustment() {
   if (!selectedFile.value) {
-    show('Pilih file .xlsx terlebih dahulu.', 'error')
+    toast('Pilih file .xlsx terlebih dahulu.', 'error')
     return
   }
   if (!notes.value.trim()) {
-    show('Catatan/alasan wajib diisi untuk unggahan.', 'error')
+    toast('Catatan/alasan wajib diisi untuk unggahan.', 'error')
     return
   }
 
   isUploading.value = true
   try {
     const response = await requestAdjustmentUpload(selectedFile.value, notes.value)
-    show(response.message || 'File diterima!', 'success')
+    toast(response.message || 'File diterima!', 'success')
     loadImportHistory()
     notes.value = ''
   } catch (error) {
-    show(error.message || 'Gagal mengunggah file.', 'error')
+    toast(error.message || 'Gagal mengunggah file.', 'error')
   } finally {
     isUploading.value = false
     selectedFile.value = null
@@ -121,7 +121,7 @@ async function downloadTemplate() {
     window.URL.revokeObjectURL(url)
   } catch (error) {
     console.error('Gagal mengunduh template:', error)
-    show('Gagal mengunduh template. Cek console untuk detail.', 'error')
+    toast('Gagal mengunduh template. Cek console untuk detail.', 'error')
   } finally {
     isDownloading.value = false
   }
@@ -138,11 +138,11 @@ const batchSearchLocationId = computed(() => {
 
 function handleAddProduct({ product, quantity }) {
   if (!product || !quantity) {
-    show('Pilih produk dan masukkan kuantitas yang valid.', 'warning')
+    toast('Pilih produk dan masukkan kuantitas yang valid.', 'warning')
     return
   }
   if (quantity === 0) {
-    show('Kuantitas penyesuaian tidak boleh nol.', 'warning')
+    toast('Kuantitas penyesuaian tidak boleh nol.', 'warning')
     return
   }
 
@@ -165,11 +165,11 @@ function removeFromBatch(sku) {
 
 async function submitBatch() {
   if (!isBatchLocationSelected.value || batchList.value.length === 0) {
-    show('Harap lengkapi lokasi dan tambahkan setidaknya satu item.', 'error')
+    toast('Harap lengkapi lokasi dan tambahkan setidaknya satu item.', 'error')
     return
   }
   if (!notes.value.trim()) {
-    show('Catatan/alasan wajib diisi untuk penyesuaian stok.', 'error')
+    toast('Catatan/alasan wajib diisi untuk penyesuaian stok.', 'error')
     return
   }
 
@@ -186,13 +186,13 @@ async function submitBatch() {
     const response = await processBatchMovement(payload)
 
     if (response.success) {
-      show(response.message, 'success')
+      toast(response.message, 'success')
       batchList.value = []
       adjustmentLocation.value = null
       notes.value = ''
     }
   } catch (error) {
-    show(error.message || 'Terjadi kesalahan saat submit batch.', 'error')
+    toast(error.message || 'Terjadi kesalahan saat submit batch.', 'error')
   } finally {
     isLoading.value = false
   }

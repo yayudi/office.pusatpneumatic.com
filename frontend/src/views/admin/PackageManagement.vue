@@ -11,7 +11,7 @@ import PackageTable from '@/components/products/PackageTable.vue'
 import PackageBatchEditModal from '@/components/products/PackageBatchEditModal.vue'
 import FilterContainer from '@/components/ui/FilterContainer.vue'
 
-const { show } = useToast()
+const { toast } = useToast()
 
 // --- STATE ---
 const products = ref([])
@@ -77,7 +77,7 @@ const fetchProducts = async () => {
     }
   } catch (err) {
     console.error(err)
-    show('Gagal memuat data paket.', 'error')
+    toast('Gagal memuat data paket.', 'error')
   } finally {
     loading.value = false
   }
@@ -131,12 +131,12 @@ const handleDelete = async (product) => {
   if (!confirm(`Arsipkan paket "${product.name}"?`)) return
   try {
     await axios.delete(`/products/${product.id}`)
-    show('Paket berhasil diarsipkan.', 'success')
+    toast('Paket berhasil diarsipkan.', 'success')
     if (selectedIds.value.has(product.id)) selectedIds.value.delete(product.id)
     fetchProducts()
   } catch (err) {
     console.error(err)
-    show('Gagal menghapus produk.', 'error')
+    toast('Gagal menghapus produk.', 'error')
   }
 }
 
@@ -144,12 +144,12 @@ const handleRestore = async (product) => {
   if (!confirm(`Pulihkan paket "${product.name}"?`)) return
   try {
     await axios.put(`/products/${product.id}`, { is_active: true })
-    show('Paket dipulihkan.', 'success')
+    toast('Paket dipulihkan.', 'success')
     if (selectedIds.value.has(product.id)) selectedIds.value.delete(product.id)
     fetchProducts()
   } catch (err) {
     console.error(err)
-    show('Gagal memulihkan produk.', 'error')
+    toast('Gagal memulihkan produk.', 'error')
   }
 }
 
@@ -182,11 +182,11 @@ const performBulkAction = async (actionType) => {
       else promises.push(axios.put(`/products/${id}`, { is_active: true, is_package: true }))
     })
     await Promise.all(promises)
-    show(`Berhasil memproses ${ids.length} paket.`, 'success')
+    toast(`Berhasil memproses ${ids.length} paket.`, 'success')
     selectedIds.value.clear()
     fetchProducts()
   } catch (err) {
-    show('Terjadi kesalahan saat batch processing.', 'error')
+    toast('Terjadi kesalahan saat batch processing.', 'error')
   } finally {
     isProcessingBulk.value = false
   }
@@ -209,11 +209,11 @@ const handleExport = async ({ format }) => {
     const response = await axios.get('/packages/export', { params })
 
     if (response.data.success) {
-      show('Permintaan export paket diterima. Cek menu Laporan Saya.', 'success')
+      toast('Permintaan export paket diterima. Cek menu Laporan Saya.', 'success')
     }
   } catch (err) {
     console.error(err)
-    show('Gagal request export paket.', 'error')
+    toast('Gagal request export paket.', 'error')
   } finally {
     isExporting.value = false
   }
@@ -225,12 +225,12 @@ const handleImport = async (formData) => {
     await axios.post('/packages/batch/update', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
-    show('File paket diunggah. Cek menu Logs/Laporan untuk status.', 'info')
+    toast('File paket diunggah. Cek menu Logs/Laporan untuk status.', 'info')
     showBatchEditModal.value = false
     fetchProducts()
   } catch (err) {
     console.error(err)
-    show(err.response?.data?.message || 'Gagal mengunggah file paket.', 'error')
+    toast(err.response?.data?.message || 'Gagal mengunggah file paket.', 'error')
   }
 }
 const handleProductSaved = () => {

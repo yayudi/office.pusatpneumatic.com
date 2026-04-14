@@ -9,9 +9,10 @@ import SearchInput from '@/components/ui/SearchInput.vue';
 import BaseSelect from '@/components/ui/BaseSelect.vue';
 import Tabs from '@/components/ui/Tabs.vue';
 import VueApexCharts from 'vue3-apexcharts';
+import { formatCurrency, formatNumber } from '@/utils/formatters.js';
 
 const authStore = useAuthStore();
-const { show } = useToast();
+const { toast } = useToast();
 
 const isDataLoading = ref(false);
 const showAdvancedFilters = ref(false);
@@ -93,7 +94,7 @@ const fetchStatistics = async () => {
     const data = await getInventoryValueStatistics(filterValues.value);
     statisticsList.value = data.data || [];
   } catch (error) {
-    show(error.message || 'Gagal mengambil data statistik', 'error');
+    toast(error.message || 'Gagal mengambil data statistik', 'error');
   } finally {
     isDataLoading.value = false;
   }
@@ -138,20 +139,7 @@ const applyFilters = () => {
   fetchStatistics();
 };
 
-const formatCurrency = (num) => {
-  if (num === null || num === undefined) return 'Rp 0';
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(num);
-};
-
-const formatNumber = (num) => {
-  if (num === null || num === undefined) return '0';
-  return new Intl.NumberFormat('id-ID').format(num);
-};
+// Formatters removed (using utility)
 
 const labelColor = computed(() => themeColors.value.text);
 

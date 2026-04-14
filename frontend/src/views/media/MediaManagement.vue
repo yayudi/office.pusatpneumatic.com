@@ -10,7 +10,7 @@ import LinkProductModal from './LinkProductModal.vue';
 import BulkEditTagsModal from './BulkEditTagsModal.vue';
 
 const auth = useAuthStore();
-const { show: toast } = useToast()
+const { toast } = useToast()
 const mediaList = ref([]);
 const pagination = ref({ page: 1, limit: 18, total: 0, totalPages: 1 });
 const isLoading = ref(false);

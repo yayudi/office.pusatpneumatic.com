@@ -72,7 +72,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'success'])
-const { show } = useToast()
+const { toast } = useToast()
 
 const fileInput = ref(null)
 const selectedFile = ref(null)
@@ -90,7 +90,7 @@ const downloadTemplate = async () => {
     link.click()
     document.body.removeChild(link)
   } catch (error) {
-    show('Gagal download template', 'error')
+    toast('Gagal download template', 'error')
   }
 }
 
@@ -115,7 +115,7 @@ const upload = async () => {
 
   try {
     await uploadScheduleImport(formData)
-    show('File berhasil diupload. Proses import berjalan di background.', 'success')
+    toast('File berhasil diupload. Proses import berjalan di background.', 'success')
     emit('success')
     close()
   } catch (error) {

@@ -19,7 +19,7 @@ import { fetchAllUsers } from '@/api/helpers/admin.js'
 
 // --- STATE ---
 const authStore = useAuthStore()
-const { show } = useToast()
+const { toast } = useToast()
 const isUploadModalOpen = ref(false)
 const isExclusionsModalOpen = ref(false)
 const isUploading = ref(false)
@@ -81,7 +81,7 @@ async function fetchAttendanceData() {
       users.value = fetchedUsers
     }
   } catch (err) {
-    show('Gagal memuat data absensi.', 'error')
+    toast('Gagal memuat data absensi.', 'error')
     console.error('Fetch absensi error:', err)
     users.value = []
     summary.value = null
@@ -101,7 +101,7 @@ watch(
 
 function handleRefresh() {
   fetchAttendanceData()
-  show('Data berhasil diperbarui', 'success')
+  toast('Data berhasil diperbarui', 'success')
 }
 
 // 3. Watcher User Login: Init Data Awal
@@ -120,7 +120,7 @@ watch(
             value: u.id,
           }))
         } catch (err) {
-          show('Gagal memuat daftar nama user untuk filter.', 'error')
+          toast('Gagal memuat daftar nama user untuk filter.', 'error')
           console.error('Gagal mengambil daftar user:', err)
         } finally {
           isLoadingUsers.value = false
@@ -141,7 +141,7 @@ function clearFilters() {
 // --- UPLOAD ---
 async function handleUpload(formData) {
   isUploading.value = true
-  show('Mengupload file...', 'info')
+  toast('Mengupload file...', 'info')
   try {
     const response = await uploadAbsensiFile(formData)
 
@@ -150,11 +150,11 @@ async function handleUpload(formData) {
 
       // CASE 1: Job Queue (Async)
       if (response.jobId) {
-        show(response.message || 'File masuk antrian background.', 'success')
+        toast(response.message || 'File masuk antrian background.', 'success')
       }
       // CASE 2: Direct Processing (Sync - Legacy Support)
       else if (response.processed) {
-        show('Upload berhasil! Menampilkan data terbaru.', 'success')
+        toast('Upload berhasil! Menampilkan data terbaru.', 'success')
 
         const { year, month } = response.processed || {}
         if (year && month) {
@@ -169,7 +169,7 @@ async function handleUpload(formData) {
     }
   } catch (error) {
     const errorMessage = error.response?.data?.message || error.message || 'Gagal mengupload file.'
-    show(errorMessage, 'error')
+    toast(errorMessage, 'error')
     console.error('Upload error:', error)
   } finally {
     isUploading.value = false

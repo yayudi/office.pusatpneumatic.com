@@ -15,7 +15,7 @@ import BaseSelect from '@/components/ui/BaseSelect.vue';
 import VueApexCharts from 'vue3-apexcharts';
 
 const authStore = useAuthStore();
-const { show } = useToast();
+const { toast } = useToast();
 
 const isDataLoading = ref(false);
 const isExporting = ref(false);
@@ -104,7 +104,7 @@ const fetchStatistics = async () => {
       statisticsList.value = Array.isArray(payload) ? payload : [];
     }
   } catch (error) {
-    show(error.message || 'Gagal mengambil data statistik', 'error');
+    toast(error.message || 'Gagal mengambil data statistik', 'error');
   } finally {
     isDataLoading.value = false;
   }
@@ -116,10 +116,10 @@ const handleExport = async () => {
   try {
     const data = await requestStatisticExport(filterValues.value);
     if (data.success) {
-      show(data.message || 'Sedang memproses export ke background', 'success');
+      toast(data.message || 'Sedang memproses export ke background', 'success');
     }
   } catch (error) {
-    show(error.message || 'Gagal request export', 'error');
+    toast(error.message || 'Gagal request export', 'error');
   } finally {
     isExporting.value = false;
   }

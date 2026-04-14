@@ -29,7 +29,7 @@ const popover = ref({
 })
 const isProcessing = ref(false)
 
-const { show } = useToast()
+const { toast } = useToast()
 
 // --- Computed Props for Calendar ---
 const currentMonthLabel = computed(() => {
@@ -94,7 +94,7 @@ const loadInitialData = async () => {
     users.value = usersData
     shifts.value = shiftsData
   } catch (error) {
-    show('Gagal memuat data awal', 'error')
+    toast('Gagal memuat data awal', 'error')
   } finally {
     loading.value = false
   }
@@ -118,7 +118,7 @@ const loadSchedules = async () => {
     const data = await fetchSchedules(selectedUserId.value, startDate, endDate)
     schedules.value = Array.isArray(data) ? data : []
   } catch (error) {
-    show('Gagal memuat jadwal', 'error')
+    toast('Gagal memuat jadwal', 'error')
   } finally {
     loading.value = false
   }
@@ -132,7 +132,7 @@ const changeMonth = (delta) => {
 const openPopover = (event, dayObj) => {
   if (dayObj.isPadding) return
   if (!selectedUserId.value) {
-    show('Pilih karyawan terlebih dahulu', 'warning')
+    toast('Pilih karyawan terlebih dahulu', 'warning')
     return
   }
 
@@ -172,9 +172,9 @@ const selectShift = async (shiftId) => {
     })
     closePopover()
     await loadSchedules() // Reload to reflect changes
-    show('Jadwal diperbarui', 'success')
+    toast('Jadwal diperbarui', 'success')
   } catch (error) {
-    show('Gagal menyimpan jadwal', 'error')
+    toast('Gagal menyimpan jadwal', 'error')
   } finally {
     isProcessing.value = false
   }
@@ -188,9 +188,9 @@ const clearSchedule = async () => {
     await deleteSchedule(selectedUserId.value, popover.value.dateStr)
     closePopover()
     await loadSchedules()
-    show('Jadwal dikembalikan ke default', 'success')
+    toast('Jadwal dikembalikan ke default', 'success')
   } catch (error) {
-    show('Gagal menghapus jadwal', 'error')
+    toast('Gagal menghapus jadwal', 'error')
   } finally {
     isProcessing.value = false
   }

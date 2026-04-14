@@ -13,7 +13,7 @@ import BatchItemList from '@/components/batch/BatchItemList.vue'
 import MultiLocationTransferTab from '@/components/batch/MultiLocationTransferTab.vue'
 import BatchInboundModal from '@/components/stock/BatchInboundModal.vue'
 
-const { show } = useToast()
+const { toast } = useToast()
 
 // --- STATE UTAMA ---
 const myLocations = ref([])
@@ -36,7 +36,7 @@ onMounted(async () => {
     myLocations.value = myLocs
     allLocations.value = allLocs
   } catch (error) {
-    show('Gagal memuat data lokasi.', 'error')
+    toast('Gagal memuat data lokasi.', 'error')
   } finally {
     isLoading.value = false
   }
@@ -62,7 +62,7 @@ const batchSearchLocationId = computed(() => {
 
 function handleAddProduct({ product, quantity }) {
   if (!product || !quantity) {
-    show('Pilih produk dan masukkan kuantitas yang valid.', 'warning')
+    toast('Pilih produk dan masukkan kuantitas yang valid.', 'warning')
     return
   }
 
@@ -85,7 +85,7 @@ function removeFromBatch(sku) {
 
 async function submitBatch() {
   if (!isBatchLocationSelected.value || batchList.value.length === 0) {
-    show('Harap lengkapi semua field dan tambahkan setidaknya satu item.', 'error')
+    toast('Harap lengkapi semua field dan tambahkan setidaknya satu item.', 'error')
     return
   }
 
@@ -102,7 +102,7 @@ async function submitBatch() {
     const response = await processBatchMovement(payload)
 
     if (response.success) {
-      show(response.message, 'success')
+      toast(response.message, 'success')
       // Reset form
       batchList.value = []
       fromLocation.value = null
@@ -110,7 +110,7 @@ async function submitBatch() {
       notes.value = ''
     }
   } catch (error) {
-    show(error.message || 'Terjadi kesalahan saat submit batch.', 'error')
+    toast(error.message || 'Terjadi kesalahan saat submit batch.', 'error')
   } finally {
     isLoading.value = false
   }
@@ -161,6 +161,6 @@ async function submitBatch() {
     </div>
 
     <BatchInboundModal :isOpen="isBatchInboundModalOpen" @close="isBatchInboundModalOpen = false"
-      @success="() => show('Batch Inbound diproses!', 'success')" />
+      @success="() => toast('Batch Inbound diproses!', 'success')" />
   </div>
 </template>

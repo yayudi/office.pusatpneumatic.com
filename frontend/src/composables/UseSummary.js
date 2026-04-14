@@ -1,10 +1,10 @@
+// frontend/src/composables/useSummary.js
 import { computed } from 'vue'
 import { calculateSummaryForUser } from '@/api/helpers/summary.js'
-import { useAuthStore } from '@/stores/auth.js' // ✅ Import auth store
+import { useAuthStore } from '@/stores/auth.js'
 
 export function useSummary(props) {
-  const auth = useAuthStore() // ✅ Inisialisasi auth store
-
+  const auth = useAuthStore()
   const summaries = computed(() => {
     console.log(`🚀 Menghitung ulang ringkasan untuk ${props.users.length} user...`)
 
@@ -18,7 +18,7 @@ export function useSummary(props) {
         props.year,
         props.month,
         props.globalInfo,
-        auth, // ✅ Kirim 'auth' sebagai parameter kelima
+        auth,
       )
       return { id: u.id, nama: u.nama, ...summary }
     })

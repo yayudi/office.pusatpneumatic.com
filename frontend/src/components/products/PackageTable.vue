@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import ProductRow from './ProductRow.vue'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
+import { formatCurrency } from '@/utils/formatters.js'
 
 const props = defineProps({
   products: { type: Array, required: true, default: () => [] },
@@ -230,10 +231,7 @@ const formatComponents = (components) => {
 
                 <!-- Price -->
                 <td class="px-4 py-3 text-right font-mono text-sm">
-                  {{ new Intl.NumberFormat('id-ID', {
-                    style: 'currency', currency: 'IDR', minimumFractionDigits: 0,
-                    maximumFractionDigits: 0
-                  }).format(product.price) }}
+                  {{ formatCurrency(product.price) }}
                 </td>
 
                 <!-- Status -->

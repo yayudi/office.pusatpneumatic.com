@@ -72,7 +72,7 @@ function parseOfflinePdfText(textContent) {
 // --- AKHIR FUNGSI PARSING ---
 
 export function usePickingClientParser() {
-  const { show } = useToast()
+  const { toast } = useToast()
   const isParsing = ref(false)
   const parsingError = ref(null)
   const parsedItems = ref(null) // Hasil parsing [{sku, qty}, ...]

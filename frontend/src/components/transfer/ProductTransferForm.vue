@@ -12,7 +12,7 @@ const props = defineProps({
 
 const emit = defineEmits(['transfer-complete', 'cancel'])
 
-const { show } = useToast()
+const { toast } = useToast()
 
 // State Internal
 const stockDetails = ref([])
@@ -31,7 +31,7 @@ watchEffect(async () => {
   try {
     stockDetails.value = await fetchProductStockDetails(props.product.id)
   } catch (error) {
-    show('Gagal memuat detail stok produk.', 'error')
+    toast('Gagal memuat detail stok produk.', 'error')
   } finally {
     isLoadingDetails.value = false
   }
@@ -42,7 +42,7 @@ function validateQuantity() {
   const maxQty = fromLocation.value.quantity
   if (quantity.value > maxQty) {
     quantity.value = maxQty
-    show(`Kuantitas transfer tidak boleh melebihi stok di lokasi asal (${maxQty}).`, 'warning')
+    toast(`Kuantitas transfer tidak boleh melebihi stok di lokasi asal (${maxQty}).`, 'warning')
   }
   if (quantity.value < 1) {
     quantity.value = 1
@@ -51,15 +51,15 @@ function validateQuantity() {
 
 async function submitTransfer() {
   if (!fromLocation.value || !toLocation.value || quantity.value < 1) {
-    show('Harap lengkapi lokasi asal, tujuan, dan kuantitas.', 'error')
+    toast('Harap lengkapi lokasi asal, tujuan, dan kuantitas.', 'error')
     return
   }
   if (fromLocation.value.location_id === toLocation.value.id) {
-    show('Lokasi asal dan tujuan tidak boleh sama.', 'error')
+    toast('Lokasi asal dan tujuan tidak boleh sama.', 'error')
     return
   }
   if (quantity.value > fromLocation.value.quantity) {
-    show('Kuantitas transfer melebihi stok yang tersedia.', 'error')
+    toast('Kuantitas transfer melebihi stok yang tersedia.', 'error')
     return
   }
 
@@ -74,10 +74,10 @@ async function submitTransfer() {
     }
 
     const response = await processSingleTransfer(payload)
-    show(response.message, 'success')
+    toast(response.message, 'success')
     emit('transfer-complete')
   } catch (error) {
-    show(error.message || 'Gagal melakukan transfer.', 'error')
+    toast(error.message || 'Gagal melakukan transfer.', 'error')
   } finally {
     isSubmitting.value = false
   }

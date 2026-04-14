@@ -1,3 +1,4 @@
+<!-- frontend/src/components/ui/MessageToast.vue -->
 <script setup>
 import { ref } from "vue"
 

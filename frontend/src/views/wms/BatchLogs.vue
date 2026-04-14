@@ -6,7 +6,7 @@ import { useToast } from '@/composables/useToast.js'
 import FilterContainer from '@/components/ui/FilterContainer.vue'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
 
-const { show } = useToast()
+const { toast } = useToast()
 
 // State Filter
 const startDate = ref('')
@@ -51,7 +51,7 @@ onMounted(async () => {
 
 async function handleSearch() {
   if (!startDate.value || !endDate.value) {
-    show('Silakan pilih tanggal mulai dan selesai.', 'warning')
+    toast('Silakan pilih tanggal mulai dan selesai.', 'warning')
     return
   }
 
@@ -68,7 +68,7 @@ async function handleSearch() {
 
     logs.value = await fetchBatchLogs(startDate.value, endDate.value, filters)
   } catch (error) {
-    show('Gagal memuat data log.', error.message)
+    toast('Gagal memuat data log.', error.message)
   } finally {
     loading.value = false
   }

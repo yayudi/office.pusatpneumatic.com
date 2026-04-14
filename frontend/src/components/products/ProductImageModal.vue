@@ -13,7 +13,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'refresh'])
 
-const { show: toast } = useToast()
+const { toast } = useToast()
 const authStore = useAuthStore()
 
 const loading = ref(false)
@@ -106,7 +106,7 @@ async function saveNewImages() {
     if (data.success) {
       toast(`${selectedImages.value.length} gambar masuk antrean pemrosesan.`, 'success')
       selectedImages.value = [] // Clear pending
-      
+
       // Tunggu proses worker sesaat
       setTimeout(async () => {
         await fetchImages() // Refresh list
@@ -217,17 +217,17 @@ const onImgError = (id) => {
                 class="group relative aspect-square bg-secondary/10 rounded-xl border border-secondary/20 overflow-hidden shadow-sm hover:shadow-md transition-all">
 
                 <!-- Image or Fallback -->
-                <img v-if="getImageUrl(img.image_path) && !brokenImages.has(img.id)"
-                  :src="getImageUrl(img.image_path)" class="w-full h-full object-cover"
-                  @error="onImgError(img.id)" />
-                <div v-else class="w-full h-full flex flex-col items-center justify-center bg-secondary/10 text-text/20">
+                <img v-if="getImageUrl(img.image_path) && !brokenImages.has(img.id)" :src="getImageUrl(img.image_path)"
+                  class="w-full h-full object-cover" @error="onImgError(img.id)" />
+                <div v-else
+                  class="w-full h-full flex flex-col items-center justify-center bg-secondary/10 text-text/20">
                   <font-awesome-icon icon="fa-solid fa-image" class="text-4xl mb-1" />
                   <span class="text-[10px] font-medium">No Image</span>
                 </div>
 
                 <!-- Primary Badge -->
                 <div v-if="img.is_primary"
-                  class="absolute top-2 left-2 bg-primary text-text text-[10px] font-bold px-2 py-0.5 rounded shadow-sm z-10 flex items-center gap-1">
+                  class="absolute top-2 left-2 bg-primary text-background text-[10px] font-bold px-2 py-0.5 rounded shadow-sm z-10 flex items-center gap-1">
                   <font-awesome-icon icon="fa-solid fa-star" /> Utama
                 </div>
 
@@ -237,13 +237,13 @@ const onImgError = (id) => {
 
                   <!-- Set Primary Btn -->
                   <button v-if="!img.is_primary && canUpload" @click="setPrimary(img.id)" :disabled="loading"
-                    class="bg-white/90 hover:bg-white text-primary px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all flex items-center gap-2">
+                    class="bg-primary/90 hover:bg-primary text-background px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all flex items-center gap-2">
                     <font-awesome-icon icon="fa-solid fa-star" /> Jadikan Utama
                   </button>
 
                   <!-- Delete Btn -->
                   <button v-if="canDelete" @click="deleteImage(img.id)" :disabled="loading"
-                    class="bg-danger/90 hover:bg-danger text-secondary px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all flex items-center gap-2 delay-75">
+                    class="bg-danger/90 hover:bg-danger text-background px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all flex items-center gap-2 delay-75">
                     <font-awesome-icon icon="fa-solid fa-trash" /> Hapus
                   </button>
                 </div>

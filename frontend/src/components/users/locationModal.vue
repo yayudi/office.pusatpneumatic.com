@@ -11,7 +11,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'updated'])
-const { show: showToast } = useToast()
+const { toast } = useToast()
 
 const allLocations = ref([])
 const selectedLocationIds = ref([])
@@ -31,8 +31,8 @@ watch(
         allLocations.value = allLocs
         selectedLocationIds.value = userLocIds
       } catch (error) {
-        // Menggunakan showToast yang sudah diganti namanya
-        showToast('Gagal memuat data izin lokasi.', 'error')
+        // Menggunakan toast yang sudah diganti namanya
+        toast('Gagal memuat data izin lokasi.', 'error')
       } finally {
         isLoading.value = false
       }
@@ -46,11 +46,11 @@ async function handleSave() {
   isLoading.value = true
   try {
     await updateUserLocations(props.user.id, selectedLocationIds.value)
-    showToast('Izin lokasi berhasil diperbarui.', 'success')
+    toast('Izin lokasi berhasil diperbarui.', 'success')
     emit('updated') // Beri tahu komponen induk bahwa data telah berubah
     emit('close')
   } catch (error) {
-    showToast(error.message || 'Gagal menyimpan izin.', 'error')
+    toast(error.message || 'Gagal menyimpan izin.', 'error')
   } finally {
     isLoading.value = false
   }

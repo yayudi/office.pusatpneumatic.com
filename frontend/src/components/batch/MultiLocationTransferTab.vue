@@ -11,7 +11,7 @@ const props = defineProps({
   isLoadingLocations: { type: Boolean, default: false },
 })
 
-const { show } = useToast()
+const { toast } = useToast()
 
 // --- STATE DAFTAR BATCH ---
 const batchList = ref([])
@@ -47,7 +47,7 @@ function onSearchChange(query) {
     try {
       searchResults.value = await searchProducts(query, null)
     } catch (error) {
-      show('Gagal mencari produk.', 'error')
+      toast('Gagal mencari produk.', 'error')
     } finally {
       isSearching.value = false
     }
@@ -64,7 +64,7 @@ async function onProductSelect(product) {
   try {
     stockDetails.value = await fetchProductStockDetails(product.id)
   } catch (error) {
-    show('Gagal memuat detail stok produk.', 'error')
+    toast('Gagal memuat detail stok produk.', 'error')
   } finally {
     isLoadingDetails.value = false
   }
@@ -75,7 +75,7 @@ function validateQuantity() {
   const maxQty = fromLocation.value.quantity
   if (quantity.value > maxQty) {
     quantity.value = maxQty
-    show(`Kuantitas tidak boleh melebihi stok di lokasi asal (${maxQty}).`, 'warning')
+    toast(`Kuantitas tidak boleh melebihi stok di lokasi asal (${maxQty}).`, 'warning')
   }
   if (quantity.value < 1) {
     quantity.value = 1
@@ -86,15 +86,15 @@ function validateQuantity() {
 
 function addItemToBatch() {
   if (!selectedProduct.value || !fromLocation.value || !toLocation.value || quantity.value < 1) {
-    show('Harap lengkapi Produk, Lokasi Asal, Lokasi Tujuan, dan Kuantitas.', 'warning')
+    toast('Harap lengkapi Produk, Lokasi Asal, Lokasi Tujuan, dan Kuantitas.', 'warning')
     return
   }
   if (fromLocation.value.location_id === toLocation.value.id) {
-    show('Lokasi asal dan tujuan tidak boleh sama.', 'error')
+    toast('Lokasi asal dan tujuan tidak boleh sama.', 'error')
     return
   }
   if (quantity.value > fromLocation.value.quantity) {
-    show('Kuantitas melebihi stok yang tersedia.', 'error')
+    toast('Kuantitas melebihi stok yang tersedia.', 'error')
     return
   }
 
@@ -136,7 +136,7 @@ function removeFromBatch(id) {
 
 async function submitDetailedBatch() {
   if (batchList.value.length === 0) {
-    show('Tambahkan setidaknya satu item ke daftar transfer.', 'error')
+    toast('Tambahkan setidaknya satu item ke daftar transfer.', 'error')
     return
   }
 
@@ -156,13 +156,13 @@ async function submitDetailedBatch() {
     }
 
     const response = await processBatchMovement(payload)
-    show(response.message, 'success')
+    toast(response.message, 'success')
 
     // Reset total
     batchList.value = []
     notes.value = ''
   } catch (error) {
-    show(error.message || 'Gagal memproses batch transfer.', 'error')
+    toast(error.message || 'Gagal memproses batch transfer.', 'error')
   } finally {
     isSubmitting.value = false
   }

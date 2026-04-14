@@ -9,7 +9,7 @@ import { visualizer } from 'rollup-plugin-visualizer'
 export default defineConfig({
   base: '/',
 
-  plugins: [vue(), vueDevTools(), visualizer()],
+  plugins: [vue(), vueDevTools(), visualizer({ filename: 'bundle-stats.html' })],
 
   resolve: {
     alias: {
@@ -40,10 +40,15 @@ export default defineConfig({
 
             // 3. UI Libs
             if (id.includes('@fortawesome') || id.includes('fontawesome')) {
-              return 'ui-vendor'
+              return 'fontawesome'
             }
 
-            // 4. Fallback for others (axios, dayjs, etc.)
+            // 4. Other Libs
+            if (id.includes('axios')) return 'axios'
+            if (id.includes('dayjs')) return 'dayjs'
+            if (id.includes('moment')) return 'moment'
+
+            // 5. Fallback for others
             return 'vendor'
           }
         },

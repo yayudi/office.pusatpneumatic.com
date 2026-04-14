@@ -12,7 +12,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['add-product'])
-const { show } = useToast()
+const { toast } = useToast()
 
 // State internal untuk form ini
 const searchResults = ref([])
@@ -43,7 +43,7 @@ function onSearchChange(query) {
       }
       // --- AKHIR LOG INVESTIGASI BARU ---
     } catch (error) {
-      show('Gagal mencari produk.', 'error')
+      toast('Gagal mencari produk.', 'error')
     } finally {
       isSearching.value = false
     }
@@ -52,7 +52,7 @@ function onSearchChange(query) {
 
 function onAddClick() {
   if (!selectedProduct.value) {
-    show('Harap pilih produk.', 'warning')
+    toast('Harap pilih produk.', 'warning')
     return
   }
 

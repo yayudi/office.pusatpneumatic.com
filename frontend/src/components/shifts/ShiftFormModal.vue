@@ -10,7 +10,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'updated'])
-const { show } = useToast()
+const { toast } = useToast()
 
 const form = ref({
   name: '',
@@ -64,7 +64,7 @@ async function handleSave() {
   form.value.work_days = selectedDays.value.join(',')
 
   if (!form.value.name || !form.value.start_time || !form.value.end_time) {
-    show('Nama dan Jam Kerja wajib diisi', 'warning')
+    toast('Nama dan Jam Kerja wajib diisi', 'warning')
     return
   }
 
@@ -72,15 +72,15 @@ async function handleSave() {
   try {
     if (props.shift) {
       await axios.put(`/shifts/${props.shift.id}`, form.value)
-      show('Shift berhasil diperbarui', 'success')
+      toast('Shift berhasil diperbarui', 'success')
     } else {
       await axios.post('/shifts', form.value)
-      show('Shift berhasil dibuat', 'success')
+      toast('Shift berhasil dibuat', 'success')
     }
     emit('updated')
     emit('close')
   } catch (error) {
-    show(error.response?.data?.message || 'Gagal menyimpan shift', 'error')
+    toast(error.response?.data?.message || 'Gagal menyimpan shift', 'error')
   } finally {
     isLoading.value = false
   }

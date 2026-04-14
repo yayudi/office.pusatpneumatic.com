@@ -14,7 +14,7 @@ import {
 import Modal from '@/components/ui/Modal.vue'
 
 // --- STATE ---
-const { show } = useToast()
+const { toast } = useToast()
 const allRoles = ref([])
 const allPermissions = ref([])
 const selectedRole = ref(null)
@@ -72,7 +72,7 @@ async function loadInitialData() {
       selectRole(roles[0])
     }
   } catch (error) {
-    show('Gagal memuat data peran & izin.', 'error')
+    toast('Gagal memuat data peran & izin.', 'error')
   } finally {
     isLoadingRoles.value = false
   }
@@ -97,7 +97,7 @@ async function selectRole(role) {
     selectedPermissionIds.value = permissionIds
     originalPermissionIds.value = [...permissionIds] // Simpan state asli
   } catch (error) {
-    show(`Gagal memuat izin untuk peran ${role.name}.`, 'error')
+    toast(`Gagal memuat izin untuk peran ${role.name}.`, 'error')
     selectedPermissionIds.value = []
     originalPermissionIds.value = []
   } finally {
@@ -114,9 +114,9 @@ async function handleSavePermissions() {
   try {
     await updateRolePermissions(selectedRole.value.id, selectedPermissionIds.value)
     originalPermissionIds.value = [...selectedPermissionIds.value] // Set state asli baru
-    show(`Izin untuk peran ${selectedRole.name} berhasil diperbarui.`, 'success')
+    toast(`Izin untuk peran ${selectedRole.name} berhasil diperbarui.`, 'success')
   } catch (error) {
-    show(error.message || 'Gagal menyimpan perubahan izin.', 'error')
+    toast(error.message || 'Gagal menyimpan perubahan izin.', 'error')
   } finally {
     isSaving.value = false
   }
@@ -158,17 +158,17 @@ async function handleSaveRole() {
       if (selectedRole.value?.id === updatedRole.data.id) {
         selectedRole.value = updatedRole.data
       }
-      show('Peran berhasil diperbarui.', 'success')
+      toast('Peran berhasil diperbarui.', 'success')
     } else {
       // Create
       const newRole = await createRole(roleForm.value)
       allRoles.value.push(newRole.data)
-      show('Peran berhasil dibuat.', 'success')
+      toast('Peran berhasil dibuat.', 'success')
     }
     isRoleModalOpen.value = false
     roleForm.value = { id: null, name: '', description: '' } // Reset form
   } catch (error) {
-    show(error.message || 'Gagal menyimpan peran.', 'error')
+    toast(error.message || 'Gagal menyimpan peran.', 'error')
   } finally {
     isSaving.value = false
   }
@@ -191,9 +191,9 @@ async function handleDeleteRole(role) {
     if (selectedRole.value?.id === role.id) {
       selectedRole.value = allRoles.value[0] || null
     }
-    show('Peran berhasil dihapus.', 'success')
+    toast('Peran berhasil dihapus.', 'success')
   } catch (error) {
-    show(error.message || 'Gagal menghapus peran.', 'error')
+    toast(error.message || 'Gagal menghapus peran.', 'error')
   } finally {
     isSaving.value = false
   }

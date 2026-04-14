@@ -6,7 +6,7 @@ import { useToast } from '@/composables/useToast.js'
 import axios from '@/api/axios.js'
 
 const emit = defineEmits(['upload-complete'])
-const { show: showToast } = useToast()
+const { toast } = useToast()
 
 const fileInputRef = ref(null)
 const selectedFiles = ref([])
@@ -62,7 +62,7 @@ function resetFileInput() {
 
 async function triggerUpload() {
   if (selectedFiles.value.length === 0) {
-    showToast('Silakan pilih minimal satu file.', 'warning')
+    toast('Silakan pilih minimal satu file.', 'warning')
     return
   }
 
@@ -74,17 +74,17 @@ async function triggerUpload() {
     const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls')
 
     if (selectedSource.value === 'Shopee' && !isExcel) {
-      showToast(`File ${file.name} salah format. Shopee hanya menerima Excel.`, 'error')
+      toast(`File ${file.name} salah format. Shopee hanya menerima Excel.`, 'error')
       return
     }
     if (!isCsv && !isExcel) {
-      showToast(`File ${file.name} format tidak didukung.`, 'error')
+      toast(`File ${file.name} format tidak didukung.`, 'error')
       return
     }
 
     // Validasi Ukuran
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      showToast(`File ${file.name} terlalu besar (Max ${MAX_SIZE_MB}MB).`, 'error')
+      toast(`File ${file.name} terlalu besar (Max ${MAX_SIZE_MB}MB).`, 'error')
       return
     }
   }
@@ -117,7 +117,7 @@ async function triggerUpload() {
         ? 'Simulasi selesai. Cek hasil validasi di riwayat.'
         : result.message || 'Berhasil masuk antrian'
 
-      showToast(msg, 'success')
+      toast(msg, 'success')
       emit('upload-complete', result.data)
       resetFileInput()
     } else {
@@ -126,7 +126,7 @@ async function triggerUpload() {
   } catch (error) {
     console.error('Upload Error:', error)
     const msg = error.response?.data?.message || error.message || 'Terjadi kesalahan saat upload.'
-    showToast(msg, 'error')
+    toast(msg, 'error')
   } finally {
     isLoading.value = false
     loadingMessage.value = ''
@@ -163,12 +163,12 @@ async function triggerUpload() {
         <div class="flex flex-col items-center justify-center gap-3 py-4">
           <!-- Icon berubah jika ada file -->
           <div class="w-12 h-12 rounded-full flex items-center justify-center transition-colors" :class="selectedFiles.length > 0
-              ? 'bg-success/10 text-success'
-              : 'bg-primary/10 text-primary group-hover:bg-primary/20'
+            ? 'bg-success/10 text-success'
+            : 'bg-primary/10 text-primary group-hover:bg-primary/20'
             ">
             <font-awesome-icon :icon="selectedFiles.length > 0
-                ? 'fa-solid fa-file-circle-check'
-                : 'fa-solid fa-cloud-arrow-up'
+              ? 'fa-solid fa-file-circle-check'
+              : 'fa-solid fa-cloud-arrow-up'
               " class="text-xl" />
           </div>
 

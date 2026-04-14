@@ -159,8 +159,8 @@ onUnmounted(() => {
 
     <!-- Panel Menu Mobile: Tampil di mobile, sembunyi di desktop -->
     <div v-if="isMobileMenuOpen" ref="mobileMenuPanel"
-      class="md:hidden absolute w-full bg-secondary backdrop-blur-md border-b border-secondary/20 shadow-lg z-99">
-      <nav class="container mx-auto px-4 sm:px-6 py-4 space-y-2">
+      class="md:hidden absolute w-full bg-secondary backdrop-blur-md border-b border-secondary/20 shadow-lg">
+      <nav class="container mx-auto px-4 sm:px-6 py-4 space-y-2 z-200">
         <RouterLink to="/absensi" @click="isMobileMenuOpen = false"
           class="block px-3 py-2 rounded-md text-base font-medium text-text/80 hover:bg-secondary/20 hover:text-primary"
           active-class="!text-primary font-bold bg-secondary/10">Absensi</RouterLink>
@@ -172,7 +172,7 @@ onUnmounted(() => {
         <RouterLink to="/media" @click="isMobileMenuOpen = false"
           v-if="auth.user?.permissions?.includes('manage-products')"
           class="block px-3 py-2 rounded-md text-base font-medium text-text/80 hover:bg-secondary/20 hover:text-primary"
-          active-class="!text-primary font-bold bg-secondary/10">Pustaka Media</RouterLink>
+          active-class="!text-primary font-bold bg-secondary/10">Media</RouterLink>
 
         <RouterLink to="/stats" @click="isMobileMenuOpen = false"
           v-if="auth.user?.permissions?.includes('view-reports')"

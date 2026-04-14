@@ -10,15 +10,12 @@ export function useTaskGrouping(itemsRef, filterStateRef) {
 
     let filtered = rawItems
 
-    // FILTERING
-
-    // A. Date Range
     if (filter.startDate || filter.endDate) {
       const start = filter.startDate
         ? new Date(filter.startDate + 'T00:00:00')
-        : new Date('2000-01-01') // Default masa lampau
+        : new Date('2000-01-01')
 
-      const end = filter.endDate ? new Date(filter.endDate + 'T23:59:59') : new Date('2100-12-31') // UBAH KE MASA DEPAN (Jangan new Date())
+      const end = filter.endDate ? new Date(filter.endDate + 'T23:59:59') : new Date('2100-12-31')
 
       filtered = filtered.filter((i) => {
         const d = new Date(i.order_date || i.created_at)
@@ -26,12 +23,10 @@ export function useTaskGrouping(itemsRef, filterStateRef) {
       })
     }
 
-    // B. Source
     if (filter.source !== 'ALL') {
       filtered = filtered.filter((i) => i.source === filter.source)
     }
 
-    // C. Search
     if (filter.search) {
       const q = filter.search.toLowerCase()
       filtered = filtered.filter(
@@ -43,7 +38,6 @@ export function useTaskGrouping(itemsRef, filterStateRef) {
       )
     }
 
-    // D. Stock Status (Logic berat dipindah kesini)
     if (filter.stockStatus !== 'ALL') {
       filtered = filtered.filter((i) => {
         const qty = Number(i.quantity || 0)
@@ -59,11 +53,9 @@ export function useTaskGrouping(itemsRef, filterStateRef) {
 
     if (filtered.length === 0) return []
 
-    // GROUPING BY INVOICE & LOCATION
     const groups = new Map()
 
     filtered.forEach((item) => {
-      // Gunakan ID yang valid & fallback
       const invId = item.original_invoice_id || `MANUAL-${item.picking_list_id}`
 
       if (!groups.has(invId)) {
@@ -73,10 +65,10 @@ export function useTaskGrouping(itemsRef, filterStateRef) {
           source: item.source || 'Unknown',
           customer_name: item.customer_name,
           status: item.status,
-          marketplace_status: item.marketplace_status, // Konsisten
+          marketplace_status: item.marketplace_status,
           order_date: item.order_date,
           created_at: item.created_at,
-          locations: {}, // Struktur Grouping Lokasi
+          locations: {},
         })
       }
 
@@ -89,7 +81,6 @@ export function useTaskGrouping(itemsRef, filterStateRef) {
       group.locations[locKey].push(item)
     })
 
-    // FLATTENING & SORTING
     const result = Array.from(groups.values())
 
     const sortKey = filter.sortBy
@@ -98,7 +89,6 @@ export function useTaskGrouping(itemsRef, filterStateRef) {
       const dateB = new Date(b.created_at)
 
       if (sortKey === 'oldest') return dateA - dateB
-      // Default: Newest
       return dateB - dateA
     })
 

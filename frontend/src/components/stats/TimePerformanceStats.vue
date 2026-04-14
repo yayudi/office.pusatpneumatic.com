@@ -10,7 +10,7 @@ import { fetchReportFilters } from '@/api/helpers/stats.js';
 import { getStockMovementStatistics } from '@/api/helpers/statistics.js';
 import VueApexCharts from 'vue3-apexcharts';
 
-const { show } = useToast();
+const { toast } = useToast();
 const isDataLoading = ref(false);
 const timelineList = ref([]);
 
@@ -116,7 +116,7 @@ const fetchStatistics = async () => {
       timelineList.value = [];
     }
   } catch (error) {
-    show(error.message || 'Gagal mengambil data statistik performa waktu', 'error');
+    toast(error.message || 'Gagal mengambil data statistik performa waktu', 'error');
   } finally {
     isDataLoading.value = false;
   }

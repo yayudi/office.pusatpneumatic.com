@@ -13,7 +13,7 @@ import {
   generateProductExportStreaming,
 } from "../../services/exportService.js";
 import * as packageExportService from "../../services/packageExportService.js";
-import * as statisticExportService from "../../services/statisticExportService.js";
+import * as statisticExportService from "../../services/statisticService.js";
 
 // --- KONFIGURASI ---
 const JOB_TIMEOUT_MINUTES = 15;
@@ -35,9 +35,9 @@ const getFormattedDateTime = () => {
     .getDate()
     .toString()
     .padStart(2, "0")}_${now.getHours().toString().padStart(2, "0")}-${now
-    .getMinutes()
-    .toString()
-    .padStart(2, "0")}`;
+      .getMinutes()
+      .toString()
+      .padStart(2, "0")}`;
 };
 
 export const processQueue = async () => {
@@ -80,12 +80,12 @@ export const processQueue = async () => {
       exportType === "PRODUCT_MASTER"
         ? `Master_Produk_${dateStr}_(Job-${jobId}).xlsx`
         : exportType === "EXPORT_PACKAGES"
-        ? `Data_Paket_${dateStr}_(Job-${jobId}).xlsx`
-        : exportType === "STATISTICS_STOCK_MOVEMENT"
-        ? `Statistik_Stok_${dateStr}_(Job-${jobId}).xlsx`
-        : exportType === "INVENTORY_VALUE"
-        ? `Nilai_Inventaris_${dateStr}_(Job-${jobId}).xlsx`
-        : `Laporan_Stok_${dateStr}_(Job-${jobId}).xlsx`;
+          ? `Data_Paket_${dateStr}_(Job-${jobId}).xlsx`
+          : exportType === "STATISTICS_STOCK_MOVEMENT"
+            ? `Statistik_Stok_${dateStr}_(Job-${jobId}).xlsx`
+            : exportType === "INVENTORY_VALUE"
+              ? `Nilai_Inventaris_${dateStr}_(Job-${jobId}).xlsx`
+              : `Laporan_Stok_${dateStr}_(Job-${jobId}).xlsx`;
 
     const filePath = path.join(EXPORT_DIR_PATH, fileName);
 

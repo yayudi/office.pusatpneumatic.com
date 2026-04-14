@@ -11,7 +11,7 @@ import {
 import Modal from '@/components/ui/Modal.vue'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
 
-const { show } = useToast()
+const { toast } = useToast()
 
 const purposeOptions = ref(['WAREHOUSE', 'DISPLAY', 'BRANCH', 'RECEIVING', 'WORKSHOP', 'TRANSIT'])
 
@@ -33,7 +33,7 @@ async function loadLocations() {
   try {
     allLocations.value = await fetchAllLocations()
   } catch (error) {
-    show('Gagal memuat data lokasi.', 'error')
+    toast('Gagal memuat data lokasi.', 'error')
   } finally {
     loading.value = false
   }
@@ -65,15 +65,15 @@ async function handleSave() {
   try {
     if (isEditing.value) {
       await updateLocation(selectedLocation.value.id, selectedLocation.value)
-      show('Lokasi berhasil diperbarui.', 'success')
+      toast('Lokasi berhasil diperbarui.', 'success')
     } else {
       await createLocation(selectedLocation.value)
-      show('Lokasi berhasil dibuat.', 'success')
+      toast('Lokasi berhasil dibuat.', 'success')
     }
     isModalOpen.value = false
     loadLocations() // Muat ulang data
   } catch (error) {
-    show(error.message || 'Gagal menyimpan data.', 'error')
+    toast(error.message || 'Gagal menyimpan data.', 'error')
   }
 }
 
@@ -85,10 +85,10 @@ async function handleDelete(locationId) {
   ) {
     try {
       await deleteLocation(locationId)
-      show('Lokasi berhasil dihapus.', 'success')
+      toast('Lokasi berhasil dihapus.', 'success')
       loadLocations() // Muat ulang data
     } catch (error) {
-      show(error.message || 'Gagal menghapus lokasi.', 'error')
+      toast(error.message || 'Gagal menghapus lokasi.', 'error')
     }
   }
 }

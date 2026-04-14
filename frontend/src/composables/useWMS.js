@@ -7,7 +7,7 @@ import { fetchAllLocations } from '@/api/helpers/stock.js'
 const AVAILABLE_COLUMNS = [
   { id: 'sku', label: 'SKU' },
   { id: 'weight', label: 'Berat' },
-  { id: 'price', label: 'Harga' }, // Conditional perms check in UI
+  { id: 'price', label: 'Harga' },
   { id: 'location', label: 'Lokasi' },
   { id: 'stock', label: 'Stok' },
 ]
@@ -27,8 +27,8 @@ export function useWms() {
   const loader = ref(null)
   const searchTerm = ref('')
   const searchBy = ref('name')
-  const stockStatusFilter = ref('all') // 'all', 'minus', 'positive'
-  const productTypeFilter = ref('all') // 'all', 'unit', 'package'
+  const stockStatusFilter = ref('all')
+  const productTypeFilter = ref('all')
   const selectedBuilding = ref('all')
   const selectedFloor = ref('all')
   const sortBy = ref('name')

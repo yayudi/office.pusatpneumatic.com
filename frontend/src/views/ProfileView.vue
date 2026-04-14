@@ -4,7 +4,7 @@ import api from '@/api/axios.js'
 import { useToast } from '@/composables/useToast.js'
 import { useAuthStore } from '@/stores/auth.js'
 
-const { show } = useToast()
+const { toast } = useToast()
 const auth = useAuthStore()
 
 // State untuk form
@@ -32,11 +32,11 @@ onMounted(async () => {
 
 async function handleUpdate() {
   if (newPassword.value && newPassword.value !== confirmNewPassword.value) {
-    show('Password baru dan konfirmasi tidak cocok.', 'warning')
+    toast('Password baru dan konfirmasi tidak cocok.', 'warning')
     return
   }
   if (!currentPassword.value) {
-    show('Password saat ini wajib diisi.', 'warning')
+    toast('Password saat ini wajib diisi.', 'warning')
     return
   }
 
@@ -50,7 +50,7 @@ async function handleUpdate() {
 
     const response = await api.put('/user/profile', payload)
 
-    show('Data akun berhasil diperbarui!', 'success')
+    toast('Data akun berhasil diperbarui!', 'success')
 
     auth.updateUserNickname(response.data.user.nickname)
 
@@ -60,7 +60,7 @@ async function handleUpdate() {
     confirmNewPassword.value = ''
   } catch (error) {
     const message = error.response?.data?.message || 'Gagal memperbarui data.'
-    show(message, 'error')
+    toast(message, 'error')
   } finally {
     loading.value = false
   }

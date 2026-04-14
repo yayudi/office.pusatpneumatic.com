@@ -5,7 +5,7 @@ import { useToast } from '@/composables/useToast.js'
 import { getImportJobs, cancelImportJob } from '@/api/helpers/stock.js'
 import PickingUploadForm from './PickingUploadForm.vue'
 
-const { show } = useToast()
+const { toast } = useToast()
 const emit = defineEmits(['view-errors', 'switch-tab'])
 
 // --- STATE HISTORY TABLE ---
@@ -40,10 +40,10 @@ async function handleCancelJob(job) {
   if (!confirm(`Batalkan antrian file "${job.original_filename}"?`)) return
   try {
     await cancelImportJob(job.id)
-    show('Antrian berhasil dibatalkan.', 'success')
+    toast('Antrian berhasil dibatalkan.', 'success')
     fetchJobHistory()
   } catch (error) {
-    show(error.response?.data?.message || 'Gagal membatalkan job.', 'error')
+    toast(error.response?.data?.message || 'Gagal membatalkan job.', 'error')
   }
 }
 
@@ -53,7 +53,7 @@ function handleUploadComplete(data) {
   fetchJobHistory()
 
   if (data?.jobId) {
-    show('File masuk antrian. Sedang diproses...', 'info')
+    toast('File masuk antrian. Sedang diproses...', 'info')
   }
 
   // Opsional: Jika ingin langsung pindah tab, uncomment baris bawah

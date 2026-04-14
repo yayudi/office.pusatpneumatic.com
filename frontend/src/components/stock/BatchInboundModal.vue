@@ -153,7 +153,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'success'])
 
-const { show: showToast } = useToast()
+const { toast } = useToast()
 const file = ref(null)
 const isDragging = ref(false)
 const isDownloading = ref(false)
@@ -191,10 +191,10 @@ const downloadTemplate = async () => {
     link.click()
     document.body.removeChild(link)
 
-    showToast('Template berhasil diunduh', 'success')
+    toast('Template berhasil diunduh', 'success')
   } catch (error) {
     console.error('Download error:', error)
-    showToast('Gagal mengunduh template', 'error')
+    toast('Gagal mengunduh template', 'error')
   } finally {
     isDownloading.value = false
   }
@@ -218,12 +218,12 @@ const validateAndSetFile = (selectedFile) => {
     selectedFile.name.endsWith('.xlsx')
 
   if (!isExcel) {
-    showToast('Hanya file Excel (.xlsx) yang diperbolehkan', 'error')
+    toast('Hanya file Excel (.xlsx) yang diperbolehkan', 'error')
     return
   }
 
   if (selectedFile.size > 10 * 1024 * 1024) {
-    showToast('Ukuran file maksimal 10MB', 'error')
+    toast('Ukuran file maksimal 10MB', 'error')
     return
   }
 
@@ -245,14 +245,14 @@ const uploadFile = async () => {
     })
 
     if (response.data.success) {
-      showToast(response.data.message, 'success')
+      toast(response.data.message, 'success')
       emit('success')
       activeTab.value = 'history' // Switch to history tab on success
       file.value = null // Clear file
     }
   } catch (error) {
     console.error('Upload Error:', error)
-    showToast(error.response?.data?.message || 'Gagal mengupload file', 'error')
+    toast(error.response?.data?.message || 'Gagal mengupload file', 'error')
   } finally {
     isUploading.value = false
   }

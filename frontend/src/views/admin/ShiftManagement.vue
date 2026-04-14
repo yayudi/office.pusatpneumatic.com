@@ -11,7 +11,7 @@ const loading = ref(true)
 const isModalOpen = ref(false)
 const selectedShift = ref(null)
 
-const { show } = useToast()
+const { toast } = useToast()
 
 const getShifts = async () => {
   loading.value = true
@@ -19,7 +19,7 @@ const getShifts = async () => {
     const data = await fetchShifts()
     shifts.value = data
   } catch (error) {
-    show('Gagal memuat data shift', 'error')
+    toast('Gagal memuat data shift', 'error')
   } finally {
     loading.value = false
   }
@@ -40,10 +40,10 @@ const deleteShift = async (id) => {
 
   try {
     await axios.delete(`/shifts/${id}`)
-    show('Shift dihapus', 'success')
+    toast('Shift dihapus', 'success')
     getShifts()
   } catch (error) {
-    show('Gagal menghapus shift', 'error')
+    toast('Gagal menghapus shift', 'error')
   }
 }
 

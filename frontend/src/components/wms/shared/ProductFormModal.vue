@@ -13,7 +13,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'refresh'])
-const { show: toast } = useToast()
+const { toast } = useToast()
 
 const form = ref({
   sku: '',

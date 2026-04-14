@@ -15,8 +15,9 @@ import TableSkeleton from '@/components/ui/TableSkeleton.vue'
 import StockMovementStats from '@/components/stats/StockMovementStats.vue'
 import InventoryValueStats from '@/components/stats/InventoryValueStats.vue'
 import TimePerformanceStats from '@/components/stats/TimePerformanceStats.vue'
+import { formatNumber, formatCurrency } from '@/utils/formatters.js'
 
-const { show: showToast } = useToast()
+const { toast } = useToast()
 const isSidebarOpen = ref(false)
 
 // State untuk data KPI
@@ -100,7 +101,7 @@ async function loadKpiData() {
     kpiData.value = data
   } catch (error) {
     errorMessage.value = error.message || 'Gagal terhubung ke server.'
-    showToast(errorMessage.value, 'error')
+    toast(errorMessage.value, 'error')
   } finally {
     isLoading.value = false
   }
@@ -128,7 +129,7 @@ async function loadHistory() {
     }
   } catch (error) {
     console.error('Gagal memuat riwayat:', error)
-    showToast('Gagal memuat riwayat laporan', 'error')
+    toast('Gagal memuat riwayat laporan', 'error')
   } finally {
     isHistoryLoading.value = false
   }
@@ -193,30 +194,18 @@ async function handleRequestExport() {
     const response = await requestExportStock(filters)
 
     // Tampilkan pesan sukses dari API
-    showToast(response.message || 'Permintaan diterima!', 'success')
+    toast(response.message || 'Permintaan diterima!', 'success')
 
     // Muat ulang riwayat untuk melihat status PENDING
     loadHistory()
   } catch (error) {
-    showToast(error.message || 'Gagal membuat permintaan.', 'error')
+    toast(error.message || 'Gagal membuat permintaan.', 'error')
   } finally {
     isRequesting.value = false
   }
 }
 
-const formatNumber = (num) => {
-  if (num === null || num === undefined) return '0'
-  return new Intl.NumberFormat('id-ID').format(num)
-}
-const formatCurrency = (num) => {
-  if (num === null || num === undefined) return 'Rp 0'
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(num)
-}
+// Removed locale formatters as they are now imported from utils
 </script>
 
 <template>
@@ -385,42 +374,26 @@ const formatCurrency = (num) => {
 
                       <div>
                         <label class="label-input">Gedung</label>
-                        <BaseSelect
-                          v-model="selectedFilters.building"
-                          :options="availableBuildings"
-                          :multiple="true"
-                          placeholder="Semua Gedung"
-                        />
+                        <BaseSelect v-model="selectedFilters.building" :options="availableBuildings" :multiple="true"
+                          placeholder="Semua Gedung" />
                       </div>
 
                       <div>
                         <label class="label-input">Tujuan</label>
-                        <BaseSelect
-                          v-model="selectedFilters.purpose"
-                          :options="purposeOptions"
-                          emitValue
-                          :searchable="false"
-                        />
+                        <BaseSelect v-model="selectedFilters.purpose" :options="purposeOptions" emitValue
+                          :searchable="false" />
                       </div>
 
                       <div class="grid grid-cols-2 gap-3">
                         <div>
                           <label class="label-input">Tipe</label>
-                          <BaseSelect
-                            v-model="selectedFilters.isPackage"
-                            :options="typeOptions"
-                            emitValue
-                            :searchable="false"
-                          />
+                          <BaseSelect v-model="selectedFilters.isPackage" :options="typeOptions" emitValue
+                            :searchable="false" />
                         </div>
                         <div>
                           <label class="label-input">Status Stok</label>
-                          <BaseSelect
-                            v-model="selectedFilters.stockStatus"
-                            :options="stockStatusOptions"
-                            emitValue
-                            :searchable="false"
-                          />
+                          <BaseSelect v-model="selectedFilters.stockStatus" :options="stockStatusOptions" emitValue
+                            :searchable="false" />
                         </div>
                       </div>
 

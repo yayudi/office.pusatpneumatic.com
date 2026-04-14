@@ -15,7 +15,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'updated'])
 
-const { show } = useToast()
+const { toast } = useToast()
 const users = ref([])
 const loading = ref(false)
 const searchQuery = ref('')
@@ -38,7 +38,7 @@ async function loadUsers() {
       users.value = res.data.users
     }
   } catch (err) {
-    show('Gagal memuat daftar pengguna.', 'error')
+    toast('Gagal memuat daftar pengguna.', 'error')
     console.error('Error loading users for exclusions:', err)
   } finally {
     loading.value = false
@@ -74,10 +74,10 @@ async function toggleExclusion(user) {
 
     // Update local state to reflect UI change instantly
     user.exclude_from_attendance = newValue
-    show(`Berhasil mengubah pengecualian untuk ${user.username}`, 'success')
+    toast(`Berhasil mengubah pengecualian untuk ${user.username}`, 'success')
     emit('updated')
   } catch (error) {
-    show(`Gagal menyimpan perubahan untuk ${user.username}`, 'error')
+    toast(`Gagal menyimpan perubahan untuk ${user.username}`, 'error')
     console.error(error)
   } finally {
     updatingId.value = null

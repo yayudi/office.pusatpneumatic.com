@@ -15,7 +15,7 @@ const loading = ref(false)
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
-const { show } = useToast()
+const { toast } = useToast()
 
 // --- Variabel untuk Tes Koneksi ---
 const testResult = ref(null)
@@ -23,7 +23,7 @@ const isTestLoading = ref(false)
 
 onMounted(() => {
   if (route.query.expired) {
-    show('Sesi Anda telah berakhir, silakan login kembali.', 'info')
+    toast('Sesi Anda telah berakhir, silakan login kembali.', 'info')
   }
 })
 
@@ -39,13 +39,13 @@ async function login() {
 
     if (res.data.success && res.data.token) {
       auth.setToken(res.data.token)
-      show('Login berhasil 🚀', 'success')
+      toast('Login berhasil 🚀', 'success')
       router.push('/')
     }
   } catch (err) {
     const message = err.response?.data?.message || 'Username atau password salah.'
     error.value = message
-    show(`${message} ❌`, 'error')
+    toast(`${message} ❌`, 'error')
   } finally {
     loading.value = false
   }

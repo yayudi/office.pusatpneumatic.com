@@ -19,7 +19,7 @@ const isLocationModalOpen = ref(false)
 const isEditModalOpen = ref(false)
 
 const newUser = ref({ username: '', password: '', role_id: null, shift_id: null, nickname: '' })
-const { show } = useToast()
+const { toast } = useToast()
 
 async function fetchData() {
   loading.value = true
@@ -30,7 +30,7 @@ async function fetchData() {
     allRoles.value = rolesData
     allShifts.value = shiftsData
   } catch (error) {
-    show('Gagal memuat data pengguna.', 'error')
+    toast('Gagal memuat data pengguna.', 'error')
   } finally {
     loading.value = false
   }
@@ -38,17 +38,17 @@ async function fetchData() {
 
 async function handleCreateUser() {
   if (!newUser.value.username || !newUser.value.password || !newUser.value.role_id) {
-    show('Username, password, dan role wajib diisi.', 'warning')
+    toast('Username, password, dan role wajib diisi.', 'warning')
     return
   }
   try {
     const response = await createUser(newUser.value)
-    show(response.message || 'Pengguna berhasil dibuat.', 'success')
+    toast(response.message || 'Pengguna berhasil dibuat.', 'success')
     isCreateModalOpen.value = false
     newUser.value = { username: '', password: '', role_id: null, shift_id: null, nickname: '' } // Reset form
     fetchData() // Muat ulang data
   } catch (error) {
-    show(error.response?.data?.message || 'Gagal membuat pengguna.', 'error')
+    toast(error.response?.data?.message || 'Gagal membuat pengguna.', 'error')
   }
 }
 
@@ -57,10 +57,10 @@ async function handleDeleteUser(userId) {
     try {
       // Ganti dengan helper API jika sudah dibuat
       await deleteUser(userId)
-      show('Pengguna berhasil dihapus.', 'success')
+      toast('Pengguna berhasil dihapus.', 'success')
       fetchData() // Muat ulang data
     } catch (error) {
-      show(error.response?.data?.message || 'Gagal menghapus pengguna.', 'error')
+      toast(error.response?.data?.message || 'Gagal menghapus pengguna.', 'error')
     }
   }
 }

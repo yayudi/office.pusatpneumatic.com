@@ -11,7 +11,7 @@ import PickingListCard from '@/components/picking/PickingListCard.vue'
 import PickingListCardCompact from '@/components/picking/PickingListCardCompact.vue' // Gunakan Compact Card untuk List
 import MasonryWall from '@yeger/vue-masonry-wall'
 
-const { show } = useToast()
+const { toast } = useToast()
 
 // --- STATE ---
 const isLoadingHistory = ref(false)
@@ -44,7 +44,7 @@ async function fetchHistoryItems() {
     const items = await getHistoryPickingItems()
     historyItems.value = items || []
   } catch (error) {
-    show(error.message || 'Gagal memuat riwayat.', 'error')
+    toast(error.message || 'Gagal memuat riwayat.', 'error')
   } finally {
     isLoadingHistory.value = false
   }
@@ -56,10 +56,10 @@ async function handleCancelItem(itemId) {
   if (!confirm('Apakah Anda yakin ingin membatalkan arsip ini? (Hanya admin)')) return
   try {
     await cancelPickingList(itemId)
-    show('Berhasil dibatalkan', 'success')
+    toast('Berhasil dibatalkan', 'success')
     fetchHistoryItems() // Refresh
   } catch (e) {
-    show(e.message, 'error')
+    toast(e.message, 'error')
   }
 }
 

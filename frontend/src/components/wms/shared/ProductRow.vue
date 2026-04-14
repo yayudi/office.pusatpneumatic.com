@@ -273,10 +273,10 @@ const displayWeight = computed(() => {
 })
 
 const imageUrl = computed(() => {
-  const targetPath = props.product.thumbnail_path
+  const targetPath = props.product.thumbnail_path || props.product.image_path
 
   if (!targetPath) return null
-  const apiBaseUrl = instance.defaults.baseURL || ''
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
   const baseUrl = apiBaseUrl.replace(/\/api\/?$/, '')
 
   const cleanPath = targetPath.replace(/^\/+/, '')
