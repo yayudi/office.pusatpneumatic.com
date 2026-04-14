@@ -63,7 +63,6 @@ const formatChanges = (changesJson) => {
 // Watchers
 watch([page, search, actionFilter, targetFilter, startDate, endDate], () => {
   if (search.value || actionFilter.value !== 'all' || targetFilter.value !== 'all' || startDate.value || endDate.value) {
-    // Reset page if filter changes, but careful not to loop if page changes
   }
   fetchLogs()
 })
@@ -131,7 +130,7 @@ onMounted(() => {
               <th class="px-6 py-3 border-b border-secondary/10">Perubahan</th>
             </tr>
           </thead>
-          <TransitionGroup tag="tbody" name="list" class="divide-y divide-secondary/5 relative">
+          <tbody class="divide-y divide-secondary/5 relative">
             <template v-if="isLoading">
               <TableSkeleton v-for="n in 5" :key="`skeleton-${n}`" />
             </template>
@@ -170,10 +169,10 @@ onMounted(() => {
                 <div class="flex flex-col">
                   <span class="font-bold text-xs text-primary bg-primary/5 px-2 py-0.5 rounded w-fit mb-1">{{
                     log.target_type
-                  }}</span>
+                    }}</span>
                   <span class="text-xs text-text/60 font-mono tracking-tight text-ellipsis overflow-hidden">{{
                     log.target_id
-                  }}</span>
+                    }}</span>
                 </div>
               </td>
               <td class="px-6 py-4 text-sm">
@@ -181,21 +180,28 @@ onMounted(() => {
                   <div v-for="(val, key) in formatChanges(log.changes)" :key="key"
                     class="grid grid-cols-[100px_1fr] gap-2 text-xs">
                     <span class="font-mono text-text/50 text-right truncate" :title="key">{{ key }}:</span>
-                    <div class="font-mono flex items-center gap-2 flex-wrap">
+                    <div v-if="val && typeof val === 'object'" class="font-mono flex items-center gap-2 flex-wrap">
                       <span
                         class="bg-danger/5 text-danger px-1.5 py-0.5 rounded decoration-auto line-through opacity-70 break-all">{{
-                          val.old || 'NULL' }}</span>
+                          val.old !== undefined ? val.old : 'NULL' }}</span>
                       <font-awesome-icon icon="fa-solid fa-arrow-right" class="text-text/20 text-[10px]" />
-                      <span class="bg-success/5 text-success px-1.5 py-0.5 rounded font-bold break-all">{{ val.new ||
+                      <span class="bg-success/5 text-success px-1.5 py-0.5 rounded font-bold break-all">{{ val.new !==
+                        undefined ?
+                        val.new :
                         'NULL'
                       }}</span>
+                    </div>
+
+                    <!-- Handle if val is a primitive (e.g. note: "User Logged in") -->
+                    <div v-else class="font-mono flex items-center gap-2 flex-wrap">
+                      <span class="text-text/80 break-all">{{ val !== null && val !== undefined ? val : 'NULL' }}</span>
                     </div>
                   </div>
                 </div>
                 <span v-else class="text-text/30 italic text-xs">- No details -</span>
               </td>
             </tr>
-          </TransitionGroup>
+          </tbody>
         </table>
       </div>
 
@@ -237,22 +243,5 @@ onMounted(() => {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: hsl(var(--color-secondary) / 0.5);
-}
-
-/* List Transitions */
-.list-enter-active,
-.list-leave-active {
-  transition: all 0.3s ease;
-}
-
-.list-enter-from,
-.list-leave-to {
-  opacity: 0;
-  transform: translateX(-10px);
-}
-
-.list-leave-active {
-  position: absolute;
-  width: 100%;
 }
 </style>

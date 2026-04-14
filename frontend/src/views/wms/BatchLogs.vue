@@ -28,6 +28,7 @@ const movementTypes = [
   'INBOUND',
   'RETURN',
   'ADJUSTMENT',
+  'OPNAME',
   'PICKING'
 ]
 
@@ -66,8 +67,8 @@ async function handleSearch() {
     }
 
     logs.value = await fetchBatchLogs(startDate.value, endDate.value, filters)
-  } catch (err) {
-    show('Gagal memuat data log.', 'error')
+  } catch (error) {
+    show('Gagal memuat data log.', error.message)
   } finally {
     loading.value = false
   }
@@ -227,7 +228,7 @@ function handleReset() {
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider" :class="{
                   'bg-primary/10 text-primary': log.movement_type === 'TRANSFER',
                   'bg-success/10 text-success': log.movement_type === 'INBOUND' || log.movement_type === 'RETURN',
-                  'bg-warning/10 text-warning': log.movement_type === 'ADJUSTMENT'
+                  'bg-warning/10 text-warning': log.movement_type === 'ADJUSTMENT' || log.movement_type === 'OPNAME'
                 }">
                   {{ log.movement_type }}
                 </span>

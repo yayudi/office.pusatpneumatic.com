@@ -80,7 +80,7 @@ function emitClear() {
         class="ml-auto px-3 py-2 bg-secondary/60 hover:bg-secondary text-text/80 text-sm rounded-lg shadow-sm transition-colors flex items-center gap-2"
         @click="emitClear">
         <font-awesome-icon icon="fa-solid fa-rotate-left" />
-        <span>Reset Filter</span>
+        <span>Reset</span>
       </button>
 
       <slot name="actions"></slot>

@@ -29,6 +29,8 @@ node_modules/
 dist/
 /frontend/dist/
 coverage/
+/frontend/coverage/
+/backend/coverage/
 .nyc_output/
 build/
 .cache/
@@ -86,6 +88,10 @@ build/
 
 # Specific generated JSON
 /backend/public/json/
+/backend/uploads/stock_import/
+/backend/uploads/stock_export/
+/backend/uploads/stock_opname/
+/backend/seed/
 
 # Docker
 /backend/Dockerfile

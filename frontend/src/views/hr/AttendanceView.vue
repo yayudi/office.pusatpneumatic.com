@@ -187,15 +187,30 @@ async function handleUpload(formData) {
         leave-from-class="transform translate-y-0 opacity-100 max-h-[500px]"
         leave-to-class="transform -translate-y-4 opacity-0 max-h-0">
         <div v-show="isHeaderExpanded" class="overflow-hidden">
+          <div class="flex flex-row gap-2 w-full md:w-auto shrink-0">
+            <button v-if="canViewAll" @click="isExclusionsModalOpen = true"
+              class="bg-accent/10 border border-accent/30 text-accent hover:bg-accent/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap flex-1 md:flex-none">
+              <font-awesome-icon icon="fa-solid fa-user-shield" />
+              <span class="hidden sm:inline">Pengecualian Absen</span>
+              <span class="sm:hidden">Pengecualian</span>
+            </button>
+
+            <button v-if="canViewAll" @click="isUploadModalOpen = true"
+              class="bg-primary/10 border border-primary/30 text-primary hover:bg-primary/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap flex-1 md:flex-none">
+              <font-awesome-icon icon="fa-solid fa-file-import" />
+              <span>Import Data</span>
+            </button>
+          </div>
           <div class="py-3 px-4 md:px-6 flex flex-col md:flex-row items-stretch md:items-center gap-4">
             <Tabs :tabs="[
               { label: 'Statistik', value: 'statistik' },
               { label: 'Ringkasan', value: 'summary' },
               { label: 'Detail Log', value: 'detail' },
-            ]" v-model="activeTab" class="w-full md:w-auto overflow-x-auto" />
+            ]" v-model="activeTab" class="w-full xl:w-auto overflow-x-auto shrink-0" />
 
-            <div class="flex flex-col md:flex-row gap-4 flex-1 items-stretch md:items-center">
-              <FilterBar :filters="[]" v-model="filterValues" @clear="clearFilters" class="w-full md:w-auto">
+            <div class="flex flex-row flex-wrap gap-4 flex-1 items-center justify-end w-full">
+              <FilterBar :filters="[]" v-model="filterValues" @clear="clearFilters"
+                class="w-full md:w-auto !mb-0 shrink-0">
                 <template #prepend>
                   <DateRangeFilter v-model:startDate="filterValues.startDate" v-model:endDate="filterValues.endDate"
                     align="left" />
@@ -215,26 +230,14 @@ async function handleUpload(formData) {
                       <font-awesome-icon icon="fa-solid fa-list" />
                     </button>
                   </div>
+
+                  <div v-if="canViewAll" class="w-full md:flex-1 min-w-[200px] shrink-0">
+                    <BaseSelect v-model="filterValues.name" :options="allUsersForFilter" :multiple="true"
+                      :loading="isLoadingUsers" :disabled="isLoadingUsers" label="label" track-by="value"
+                      placeholder="Pilih satu atau beberapa nama..." class="w-full" />
+                  </div>
                 </template>
               </FilterBar>
-
-              <div v-if="canViewAll" class="w-full md:flex-1 min-w-[200px]">
-                <BaseSelect v-model="filterValues.name" :options="allUsersForFilter" :multiple="true"
-                  :loading="isLoadingUsers" :disabled="isLoadingUsers" label="label" track-by="value"
-                  placeholder="Pilih satu atau beberapa nama..." class="w-full" />
-              </div>
-
-              <button v-if="canViewAll" @click="isExclusionsModalOpen = true"
-                class="bg-accent/10 border border-accent/30 text-accent hover:bg-accent/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap w-full md:w-auto">
-                <font-awesome-icon icon="fa-solid fa-user-shield" />
-                <span>Pengecualian Absen</span>
-              </button>
-
-              <button v-if="canViewAll" @click="isUploadModalOpen = true"
-                class="bg-primary/10 border border-primary/30 text-primary hover:bg-primary/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap w-full md:w-auto">
-                <font-awesome-icon icon="fa-solid fa-file-import" />
-                <span>Import Data</span>
-              </button>
             </div>
           </div>
         </div>
@@ -258,8 +261,7 @@ async function handleUpload(formData) {
             :start-date="filterValues.startDate" :end-date="filterValues.endDate" :year="currentYear"
             :month="currentMonth" :global-info="summary" :loading="isDataLoading" :mobile-layout="mobileLayout" />
           <p v-else class="text-center text-text/60 py-10">
-            Pilih tanggal untuk menampilkan data, atau tidak ada data yang cocok dengan
-            filter.
+            Pilih tanggal untuk menampilkan data, atau tidak ada data yang cocok dengan filter.
           </p>
         </div>
 

@@ -273,7 +273,7 @@ export const importQueue = async () => {
       logSummary = `${modeText}Selesai ${source}. DB Update: ${syncResult.updatedCount || 0
         } Invoice.`;
     } else if (realJobType === "ADJUST_STOCK") {
-      const result = await processStockImport(
+      const result = await stockImportService.processStockImport(
         connection,
         absoluteFilePath,
         job.user_id,

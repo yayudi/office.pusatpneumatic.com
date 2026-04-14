@@ -3,44 +3,42 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import mime from "mime-types";
+import { fileURLToPath } from "url";
 
 const router = express.Router();
 
-// Tentukan path absolut ke folder 'assets'
-
-const assetsPath = path.join(process.cwd(), "assets");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const assetsPath = path.resolve(__dirname, "..", "assets");
 
 // Buat "catch-all" route untuk menangani semua request file statis
-
 router.get("*", (req, res, next) => {
-  // Gabungkan path yang diminta dengan direktori aset kita
-
   const requestedPath = path.join(assetsPath, req.path);
 
   // Keamanan: Pastikan path yang diminta tidak mencoba keluar dari folder 'assets'
-
   if (!requestedPath.startsWith(assetsPath)) {
     return res.status(403).send("Forbidden");
   }
 
-  // Cek apakah file ada
-
-  fs.access(requestedPath, fs.constants.F_OK, (err) => {
-    if (err) {
-      // Jika file tidak ada, teruskan ke middleware selanjutnya (yaitu, 404 handler di server.js)
-
+  // [FIX] Gunakan fs.stat untuk cek file vs directory — mencegah EISDIR crash
+  fs.stat(requestedPath, (err, stats) => {
+    if (err || !stats.isFile()) {
+      // Path tidak ada atau adalah directory, lanjut ke 404 handler
       return next();
     }
 
-    // Tentukan Content-Type berdasarkan ekstensi file
-
     const contentType = mime.lookup(requestedPath) || "application/octet-stream";
-
     res.setHeader("Content-Type", contentType);
 
-    // Baca file dan kirimkan sebagai respons
-
-    fs.createReadStream(requestedPath).pipe(res);
+    // Aman untuk stream karena sudah dipastikan ini file
+    const stream = fs.createReadStream(requestedPath);
+    stream.on("error", (streamErr) => {
+      console.error("[ASSETS] Stream error:", streamErr.message);
+      if (!res.headersSent) {
+        res.status(500).send("Internal Server Error");
+      }
+    });
+    stream.pipe(res);
   });
 });
 
