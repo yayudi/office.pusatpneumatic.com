@@ -391,7 +391,7 @@ const imageUrl = computed(() => {
 
     <!-- STOCK -->
     <td v-if="visibleColumns.has('stock')"
-      class="md:table-cell flex flex-col md:block justify-start items-end md:justify-center md:items-center p-0 md:px-6 md:py-2 text-center whitespace-nowrap border-b-0 md:border-b border-secondary/80"
+      class="md:table-cell flex flex-col justify-start items-end md:justify-center md:items-center p-0 md:px-6 md:py-2 text-center whitespace-nowrap border-b-0 md:border-b border-secondary/80"
       :class="mobileLayout === 'compact' ? 'col-span-1' : ''">
       <div class="md:hidden flex flex-col items-end gap-0.5">
         <span v-if="mobileLayout === 'card'" class="text-[10px] font-bold text-text/50 uppercase tracking-wide">Stok
@@ -446,7 +446,7 @@ const imageUrl = computed(() => {
               <span class="font-mono text-primary-light">{{ loc.location_code }}</span>
               <span class="font-bold bg-primary/10 text-primary px-1.5 rounded">{{
                 loc.quantity
-                }}</span>
+              }}</span>
             </li>
           </ul>
         </FloatingTooltip>

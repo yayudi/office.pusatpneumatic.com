@@ -27,8 +27,10 @@ const canDelete = computed(() => authStore.hasPermission('product.image.delete')
 const apiBaseUrl = instance.defaults.baseURL || 'https://api.dpvindonesia.com'
 const baseUrl = apiBaseUrl.replace(/\/api\/?$/, '')
 
+const imgBroken = ref(false)
+
 function getImageUrl(path) {
-  if (!path) return 'https://placehold.co/300x300?text=No+Image'
+  if (!path) return null
   const cleanPath = path.replace(/^\/+/, '')
   const uploadPrefix = cleanPath.startsWith('uploads/') ? '' : 'uploads/'
   return `${baseUrl}/${uploadPrefix}${cleanPath}`
@@ -187,9 +189,15 @@ const formatTags = (tagsStr) => {
           <font-awesome-icon icon="fa-solid fa-spinner" spin class="text-primary text-3xl" />
         </div>
 
-        <img v-if="mediaData"
+        <img v-if="mediaData && getImageUrl(mediaData.main_path || mediaData.thumbnail_path || mediaData.temp_filepath) && !imgBroken"
           :src="getImageUrl(mediaData.main_path || mediaData.thumbnail_path || mediaData.temp_filepath)"
-          class="w-full h-auto rounded-xl shadow-lg border border-secondary/20 object-contain max-h-full max-w-[90%]" />
+          class="w-full h-auto rounded-xl shadow-lg border border-secondary/20 object-contain max-h-full max-w-[90%]"
+          @error="imgBroken = true" />
+        <div v-else-if="mediaData"
+          class="w-full h-64 flex flex-col items-center justify-center text-text/20 rounded-xl border border-secondary/20 bg-secondary/5">
+          <font-awesome-icon icon="fa-solid fa-image" class="text-6xl mb-2" />
+          <span class="text-sm font-medium">Gambar tidak tersedia</span>
+        </div>
 
         <button @click="$emit('close')"
           class="absolute top-4 left-4 md:hidden w-8 h-8 bg-secondary/20 flex items-center justify-center rounded-full text-text">

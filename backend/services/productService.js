@@ -211,12 +211,16 @@ export const deleteProductImageService = async (imageId, userId) => {
     const image = await productRepo.getImageById(connection, imageId);
     if (!image) throw new Error("Gambar tidak ditemukan.");
 
-    // Delete file
-    try {
-      const fullPath = path.resolve("uploads/products/", image.image_path);
-      await fs.unlink(fullPath);
-    } catch (err) {
-      console.warn(`[File System] Gagal menghapus file ${image.image_path}:`, err.message);
+    // Hanya delete physical file jika bukan dari sistem media_assets yang baru
+    // dan legacy image_path ada
+    if (image.image_path && !image.media_id) {
+      try {
+        const fullPath = path.resolve("uploads/products/", "legacy_" + image.image_path); // Just in case, handled gracefully
+        const actualPath = path.resolve("uploads/products/", image.image_path);
+        await fs.unlink(actualPath);
+      } catch (err) {
+        console.warn(`[File System] Gagal menghapus file ${image.image_path}:`, err.message);
+      }
     }
 
     // Delete DB Record

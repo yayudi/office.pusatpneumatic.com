@@ -273,13 +273,19 @@ const formatTags = (tagsRaw) => {
   return [];
 };
 
+const brokenImages = ref(new Set())
+
 const resolveUrl = (path) => {
-  if (!path) return 'https://placehold.co/300x300?text=No+Image';
+  if (!path) return null;
   const cleanPath = path.startsWith('/') ? path.substring(1) : path;
   if (cleanPath.startsWith('uploads/')) {
     return `${backendUrl}/${cleanPath}`;
   }
   return `${backendUrl}/uploads/${cleanPath}`;
+};
+
+const onImgError = (id) => {
+  brokenImages.value.add(id);
 };
 
 const copyToClipboard = async (url) => {
@@ -357,15 +363,6 @@ const bulkCopyLinks = async () => {
   } catch (err) {
     toast('Gagal menyalin tautan', 'error');
   }
-};
-
-const bulkCopyImages = async () => {
-  const items = getSelectedItems();
-  if (items.length === 0) return;
-  if (items.length > 1) {
-    toast('Browser hanya mendukung salin 1 gambar. Gambar pertama akan disalin.', 'warning');
-  }
-  await copyImageToClipboard(resolveUrl(items[0].main_path));
 };
 
 const bulkDownloadImages = async () => {
@@ -457,8 +454,8 @@ onUnmounted(() => {
     <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
         <h2 class="text-2xl font-bold text-text flex items-center gap-3">
-          <font-awesome-icon icon="fa-solid fa-warehouse" class="text-primary" />
-          <span>Pustaka Media</span>
+          <font-awesome-icon icon="fa-solid fa-images" class="text-primary" />
+          <span>Media</span>
         </h2>
       </div>
       <!-- Bulk Actions Bar (Hidden when not in selection mode) -->
@@ -479,11 +476,6 @@ onUnmounted(() => {
             class="px-3 py-1.5 rounded-lg hover:bg-primary/10 hover:text-primary text-text text-sm font-semibold transition-colors flex items-center whitespace-nowrap"
             title="Salin semua tautan">
             <font-awesome-icon icon="fa-solid fa-link" class="mr-2" /> Salin Link
-          </button>
-          <button @click="bulkCopyImages"
-            class="px-3 py-1.5 rounded-lg hover:bg-primary/10 hover:text-primary text-text text-sm font-semibold transition-colors flex items-center whitespace-nowrap"
-            title="Salin gambar ke clipboard">
-            <font-awesome-icon icon="fa-solid fa-copy" class="mr-2" /> Salin Gambar
           </button>
           <button @click="bulkDownloadImages"
             class="px-3 py-1.5 rounded-lg hover:bg-primary/10 hover:text-primary text-text text-sm font-semibold transition-colors flex items-center whitespace-nowrap"
@@ -558,8 +550,15 @@ onUnmounted(() => {
               <font-awesome-icon icon="fa-solid fa-check" class="text-sm" />
             </div>
           </div>
-          <img v-if="item.status === 'COMPLETED'" :src="resolveUrl(item.thumbnail_path || item.main_path)"
-            :alt="item.original_name" class="object-contain w-full h-full rounded-lg" />
+          <img
+            v-if="item.status === 'COMPLETED' && resolveUrl(item.thumbnail_path || item.main_path) && !brokenImages.has(item.id)"
+            :src="resolveUrl(item.thumbnail_path || item.main_path)" :alt="item.original_name"
+            class="object-contain w-full h-full rounded-lg" @error="onImgError(item.id)" />
+          <div v-else-if="item.status === 'COMPLETED'"
+            class="w-full h-full flex flex-col items-center justify-center text-text/20">
+            <font-awesome-icon icon="fa-solid fa-image" class="text-4xl mb-1" />
+            <span class="text-[10px] font-medium">No Image</span>
+          </div>
           <div v-else class="flex flex-col items-center justify-center w-full h-full opacity-60 text-text">
             <font-awesome-icon v-if="item.status === 'PENDING' || item.status === 'PROCESSING'"
               icon="fa-solid fa-spinner" spin class="text-primary text-2xl" />

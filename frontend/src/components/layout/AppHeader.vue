@@ -64,7 +64,7 @@ onUnmounted(() => {
 
 <template>
   <!-- Header dibuat 'relative' agar menu mobile bisa 'absolute' thd-nya -->
-  <header class="bg-secondary/15 backdrop-blur-md sticky top-0 z-40 border-b border-secondary/20 relative shadow-sm">
+  <header class="bg-secondary/15 backdrop-blur-md sticky top-0 z-40 border-b border-secondary/20 shadow-sm">
     <nav class="container mx-auto px-4 sm:px-6 py-3 flex justify-between items-center">
       <!-- Sisi Kiri: Logo & Nav Desktop -->
       <div class="flex items-center gap-6">
@@ -86,6 +86,12 @@ onUnmounted(() => {
             active-class="!text-primary text-lg font-bold border-primary">
             <font-awesome-icon icon="fa-solid fa-warehouse" />
             <span>WMS</span>
+          </RouterLink>
+          <RouterLink to="/media" v-if="auth.user?.permissions?.includes('manage-products')"
+            class="border-b-2 text-text/80 hover:text-primary transition-colors flex items-center gap-2"
+            active-class="!text-primary text-lg font-bold border-primary">
+            <font-awesome-icon icon="fa-solid fa-images" />
+            <span>Media</span>
           </RouterLink>
           <RouterLink to="/stats" v-if="auth.user?.permissions?.includes('view-reports')"
             class="border-b-2 text-text/80 hover:text-primary transition-colors flex items-center gap-2"
@@ -162,6 +168,11 @@ onUnmounted(() => {
         <RouterLink to="/wms" @click="isMobileMenuOpen = false"
           class="block px-3 py-2 rounded-md text-base font-medium text-text/80 hover:bg-secondary/20 hover:text-primary"
           active-class="!text-primary font-bold bg-secondary/10">WMS</RouterLink>
+
+        <RouterLink to="/media" @click="isMobileMenuOpen = false"
+          v-if="auth.user?.permissions?.includes('manage-products')"
+          class="block px-3 py-2 rounded-md text-base font-medium text-text/80 hover:bg-secondary/20 hover:text-primary"
+          active-class="!text-primary font-bold bg-secondary/10">Pustaka Media</RouterLink>
 
         <RouterLink to="/stats" @click="isMobileMenuOpen = false"
           v-if="auth.user?.permissions?.includes('view-reports')"

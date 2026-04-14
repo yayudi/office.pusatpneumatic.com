@@ -13,6 +13,7 @@ import {
   generateProductExportStreaming,
 } from "../../services/exportService.js";
 import * as packageExportService from "../../services/packageExportService.js";
+import * as statisticExportService from "../../services/statisticExportService.js";
 
 // --- KONFIGURASI ---
 const JOB_TIMEOUT_MINUTES = 15;
@@ -80,6 +81,10 @@ export const processQueue = async () => {
         ? `Master_Produk_${dateStr}_(Job-${jobId}).xlsx`
         : exportType === "EXPORT_PACKAGES"
         ? `Data_Paket_${dateStr}_(Job-${jobId}).xlsx`
+        : exportType === "STATISTICS_STOCK_MOVEMENT"
+        ? `Statistik_Stok_${dateStr}_(Job-${jobId}).xlsx`
+        : exportType === "INVENTORY_VALUE"
+        ? `Nilai_Inventaris_${dateStr}_(Job-${jobId}).xlsx`
         : `Laporan_Stok_${dateStr}_(Job-${jobId}).xlsx`;
 
     const filePath = path.join(EXPORT_DIR_PATH, fileName);
@@ -90,6 +95,8 @@ export const processQueue = async () => {
       await generateProductExportStreaming(filters, filePath);
     } else if (exportType === "EXPORT_PACKAGES") {
       await packageExportService.generatePackageExport(filters, filePath);
+    } else if (exportType === "STATISTICS_STOCK_MOVEMENT") {
+      await statisticExportService.generateStatisticExport(filters, filePath);
     } else {
       await generateStockReportStreaming(filters, filePath);
     }

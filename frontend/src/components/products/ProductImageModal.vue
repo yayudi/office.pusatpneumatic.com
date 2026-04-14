@@ -5,7 +5,6 @@ import { useToast } from '@/composables/useToast.js'
 import { useAuthStore } from '@/stores/auth.js'
 import axios from '@/api/axios.js'
 import { fetchProductById } from '@/api/helpers/products.js'
-import imageCompression from 'browser-image-compression'
 
 const props = defineProps({
   show: Boolean,
@@ -73,32 +72,12 @@ async function handleImageUpload(event) {
 
   if (validFiles.length === 0) return
 
-  try {
-    isCompressing.value = true
-    const compressionOptions = {
-      maxSizeMB: 0.5,
-      maxWidthOrHeight: 1280, // Sedikit lebih besar untuk galeri
-      useWebWorker: true,
-    }
+  validFiles.forEach(file => {
+    file.preview = URL.createObjectURL(file)
+    selectedImages.value.push(file)
+  })
 
-    // Process all files
-    const compressedPromises = validFiles.map(async (file) => {
-      const compressed = await imageCompression(file, compressionOptions)
-      // Add preview URL custom property
-      compressed.preview = URL.createObjectURL(compressed)
-      return compressed
-    })
-
-    const resultFiles = await Promise.all(compressedPromises)
-    selectedImages.value.push(...resultFiles)
-  } catch (error) {
-    console.error('Compression Error:', error)
-    toast('Gagal memproses gambar.', 'error')
-  } finally {
-    isCompressing.value = false
-    // Reset input value to allow re-upload same file if needed (tricky with multiple)
-    event.target.value = ''
-  }
+  event.target.value = ''
 }
 
 function removeSelectedImage(index) {
@@ -114,17 +93,24 @@ async function saveNewImages() {
     formData.append('images', file, file.name)
   })
 
+  // Tautkan ke produk ini
+  formData.append('products', props.productData.id.toString());
+
   try {
-    // Gunakan endpoint khusus upload banyak gambar
-    const { data } = await axios.post(`/products/${props.productData.id}/images`, formData, {
+    // Gunakan Pustaka Media (mediaWorker)
+    const { data } = await axios.post(`/media/upload`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
 
     if (data.success) {
-      toast(`${selectedImages.value.length} gambar berhasil ditambahkan.`, 'success')
+      toast(`${selectedImages.value.length} gambar masuk antrean pemrosesan.`, 'success')
       selectedImages.value = [] // Clear pending
-      await fetchImages() // Refresh list
-      emit('refresh')
+      
+      // Tunggu proses worker sesaat
+      setTimeout(async () => {
+        await fetchImages() // Refresh list
+        emit('refresh')
+      }, 1500)
     }
   } catch (error) {
     console.error(error)
@@ -170,9 +156,19 @@ async function setPrimary(imageId) {
   }
 }
 
-// Helpers
+const brokenImages = ref(new Set())
+
 function getImageUrl(path) {
-  return `${baseUrl}/uploads/products/${path}`
+  if (!path) return null
+  const clean = path.startsWith('/') ? path.substring(1) : path
+  if (clean.startsWith('temp/') || clean.startsWith('main/') || clean.startsWith('thumb/')) {
+    return `${baseUrl}/uploads/${clean}`
+  }
+  return `${baseUrl}/uploads/products/${clean}`
+}
+
+const onImgError = (id) => {
+  brokenImages.value.add(id)
 }
 </script>
 
@@ -219,8 +215,14 @@ function getImageUrl(path) {
               <div v-for="img in existingImages" :key="img.id"
                 class="group relative aspect-square bg-secondary/10 rounded-xl border border-secondary/20 overflow-hidden shadow-sm hover:shadow-md transition-all">
 
-                <!-- Image -->
-                <img :src="getImageUrl(img.image_path)" class="w-full h-full object-cover" />
+                <!-- Image or Fallback -->
+                <img v-if="getImageUrl(img.image_path) && !brokenImages.has(img.id)"
+                  :src="getImageUrl(img.image_path)" class="w-full h-full object-cover"
+                  @error="onImgError(img.id)" />
+                <div v-else class="w-full h-full flex flex-col items-center justify-center bg-secondary/10 text-text/20">
+                  <font-awesome-icon icon="fa-solid fa-image" class="text-4xl mb-1" />
+                  <span class="text-[10px] font-medium">No Image</span>
+                </div>
 
                 <!-- Primary Badge -->
                 <div v-if="img.is_primary"

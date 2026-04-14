@@ -20,6 +20,8 @@ import jobRoutes from "./jobRouter.js";
 import systemLogRoutes from "./systemLogRouter.js";
 import shiftRoutes from "./shiftRouter.js";
 import scheduleRoutes from "./scheduleRouter.js";
+import mediaRoutes from "./mediaRouter.js";
+import statisticRoutes from "./statistics.js";
 // import cronRouter from "./cronRouter.js";
 
 // Impor middleware yang diperlukan
@@ -51,6 +53,8 @@ apiRouter.use("/jobs", authenticateToken, jobRoutes);
 apiRouter.use("/logs", authenticateToken, canAccess("manage-users"), systemLogRoutes);
 apiRouter.use("/shifts", authenticateToken, shiftRoutes);
 apiRouter.use("/schedules", authenticateToken, scheduleRoutes);
+apiRouter.use("/media", authenticateToken, mediaRoutes);
+apiRouter.use("/statistics", statisticRoutes);
 // apiRouter.use("/cron", authenticateToken, cronRouter);
 
 // Rute tes "canary"

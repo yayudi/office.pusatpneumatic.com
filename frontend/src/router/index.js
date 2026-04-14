@@ -45,6 +45,12 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/media',
+    name: 'MediaManagement',
+    component: () => import('../views/media/MediaManagement.vue'),
+    meta: { requiresAuth: true, requiresPermission: 'manage-products' },
+  },
+  {
     path: '/wms/actions',
     component: () => import('../layouts/WMSActionsLayout.vue'),
     meta: { requiresAuth: true },

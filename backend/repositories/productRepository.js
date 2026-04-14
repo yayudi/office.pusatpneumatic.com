@@ -141,7 +141,7 @@ export const getProductsWithFilters = async (connection, filters) => {
   // --- 3. Ambil Data Produk (Main Select) ---
   const productsQuery = `
       SELECT p.id, p.sku, p.name, p.category, p.price, p.weight, p.is_package, p.is_active, p.deleted_at,
-      (SELECT image_path FROM product_images WHERE product_id = p.id AND is_primary = 1 LIMIT 1) as image_path
+      (SELECT ma.main_path FROM product_images pi JOIN media_assets ma ON pi.media_id = ma.id WHERE pi.product_id = p.id AND pi.is_primary = 1 LIMIT 1) as image_path
       FROM products p
       ${whereSql}
       GROUP BY p.id
@@ -286,7 +286,7 @@ export const getProductDetailWithStock = async (connection, id) => {
 
   // [NEW] Get Images
   const [images] = await connection.query(
-    "SELECT id, image_path, is_primary FROM product_images WHERE product_id = ? ORDER BY is_primary DESC, sort_order ASC",
+    "SELECT pi.id, ma.main_path as image_path, pi.is_primary FROM product_images pi JOIN media_assets ma ON pi.media_id = ma.id WHERE pi.product_id = ? ORDER BY pi.is_primary DESC, pi.sort_order ASC",
     [id]
   );
   product.images = images;
@@ -497,22 +497,17 @@ export const getAllPackagesWithComponents = async (connection) => {
 // WRITE OPERATIONS (ATOMIC SQL ONLY)
 // ============================================================================
 
-export const createProduct = async (connection, { sku, name, category, price, weight, is_package, image_path }) => {
+export const createProduct = async (connection, { sku, name, category, price, weight, is_package }) => {
   const [result] = await connection.query(
-    "INSERT INTO products (sku, name, category, price, weight, is_package, is_active, image_path) VALUES (?, ?, ?, ?, ?, ?, 1, ?)",
-    [sku, name, category, parseFloat(price || 0), parseFloat(weight || 0), is_package ? 1 : 0, image_path || null]
+    "INSERT INTO products (sku, name, category, price, weight, is_package, is_active) VALUES (?, ?, ?, ?, ?, ?, 1)",
+    [sku, name, category, parseFloat(price || 0), parseFloat(weight || 0), is_package ? 1 : 0]
   );
   return result.insertId;
 };
 
-export const updateProduct = async (connection, id, { name, category, price, weight, is_package, image_path }) => {
+export const updateProduct = async (connection, id, { name, category, price, weight, is_package }) => {
   let sql = "UPDATE products SET name = ?, category = ?, price = ?, weight = ?, is_package = ?";
   const params = [name, category, parseFloat(price || 0), parseFloat(weight || 0), is_package ? 1 : 0];
-
-  if (image_path !== undefined) {
-    sql += ", image_path = ?";
-    params.push(image_path);
-  }
 
   sql += " WHERE id = ?";
   params.push(id);
@@ -631,7 +626,6 @@ export const updateProductTransaction = async (
   if (updates.price !== undefined) processField("price", updates.price, "number");
   if (updates.weight !== undefined) processField("weight", updates.weight, "number");
   if (updates.is_package !== undefined) processField("is_package", updates.is_package, "boolean");
-  if (updates.image_path !== undefined) processField("image_path", updates.image_path, "string");
 
   // Jika ada perubahan, jalankan UPDATE
   if (fields.length > 0) {
@@ -650,12 +644,7 @@ export const updateProductTransaction = async (
 // ============================================================================
 
 export const insertImages = async (connection, productId, images) => {
-  if (!images || images.length === 0) return;
-  const values = images.map((img) => [productId, img.filename, img.is_primary ? 1 : 0]);
-  await connection.query(
-    "INSERT INTO product_images (product_id, image_path, is_primary) VALUES ?",
-    [values]
-  );
+  // Hanya disupport oleh central mediaWorker sekarang, fallback error dihapus
 };
 
 export const deleteImage = async (connection, imageId) => {
@@ -673,6 +662,6 @@ export const setPrimaryImage = async (connection, imageId) => {
 };
 
 export const getImageById = async (connection, imageId) => {
-  const [rows] = await connection.query("SELECT * FROM product_images WHERE id = ?", [imageId]);
-  return rows[0];
+  const [rows] = await connection.query("SELECT pi.*, ma.main_path as image_path FROM product_images pi JOIN media_assets ma ON pi.media_id = ma.id WHERE pi.id = ?", [imageId]);
+  return rows.length > 0 ? rows[0] : null;
 };

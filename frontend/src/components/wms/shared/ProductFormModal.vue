@@ -5,7 +5,6 @@ import axios from '@/api/axios.js'
 import { useToast } from '@/composables/useToast.js'
 import { formatCurrency } from '@/utils/formatters.js'
 import ProductHistoryList from '@/components/products/ProductHistoryList.vue'
-import imageCompression from 'browser-image-compression'
 
 const props = defineProps({
   show: Boolean,
@@ -209,23 +208,9 @@ async function handleImageUpload(event) {
     return toast('Mohon upload file gambar valid (JPG/PNG).', 'error')
   }
 
-  try {
-    isCompressing.value = true
-    const options = {
-      maxSizeMB: 0.5, // Max 500KB
-      maxWidthOrHeight: 1024,
-      useWebWorker: true,
-    }
-
-    const compressedFile = await imageCompression(file, options)
-    selectedImage.value = compressedFile
-    imagePreview.value = URL.createObjectURL(compressedFile)
-  } catch (error) {
-    console.error('Compression Error:', error)
-    toast('Gagal memproses gambar.', 'error')
-  } finally {
-    isCompressing.value = false
-  }
+  // Preview langsung tanpa kompresi klien (server akan menangani jika diperlukan)
+  selectedImage.value = file
+  imagePreview.value = URL.createObjectURL(file)
 }
 
 async function handleSubmit() {
@@ -396,7 +381,7 @@ async function handleSubmit() {
                   <input type="file" @change="handleImageUpload" accept="image/*"
                     class="block w-full text-sm text-text/60 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all cursor-pointer" />
                   <p class="text-[10px] text-text/40 mt-1">
-                    Format: JPG, PNG. Otomatis dikompresi (Max 500KB).
+                    Format: JPG, PNG. (Max 5MB direkomendasikan).
                   </p>
                 </div>
               </div>

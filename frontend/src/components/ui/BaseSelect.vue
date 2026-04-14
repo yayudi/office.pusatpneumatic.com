@@ -42,6 +42,10 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  emitValue: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'search-change'])
@@ -58,9 +62,17 @@ const dropdownStyle = ref({})
 // --- COMPUTED ---
 const displayValue = computed(() => {
   if (props.multiple) return ''
-  if (!props.modelValue) return ''
+  if (props.modelValue == null || props.modelValue === '') return ''
   if (typeof props.modelValue === 'object') {
     return props.modelValue[props.label]
+  }
+  if (props.emitValue) {
+    const matched = props.options.find(opt => {
+      if (typeof opt === 'object') return opt[props.trackBy] === props.modelValue
+      return opt === props.modelValue
+    })
+    if (matched && typeof matched === 'object') return matched[props.label]
+    if (matched) return matched
   }
   return props.modelValue
 })
@@ -133,12 +145,20 @@ function close() {
   }
 }
 
+function getOptionValue(option) {
+  if (props.emitValue && typeof option === 'object') {
+    return option[props.trackBy]
+  }
+  return option
+}
+
 function select(option) {
+  const valueToEmit = getOptionValue(option)
   if (props.multiple) {
     const current = Array.isArray(props.modelValue) ? [...props.modelValue] : []
-    const index = findIndex(current, option)
+    const index = findIndex(current, valueToEmit)
     if (index === -1) {
-      current.push(option)
+      current.push(valueToEmit)
     } else {
       current.splice(index, 1)
     }
@@ -150,11 +170,11 @@ function select(option) {
   }
 }
 
-function removeTag(option, event) {
+function removeTag(item, event) {
   event.stopPropagation()
   if (!props.multiple) return
   const current = Array.isArray(props.modelValue) ? [...props.modelValue] : []
-  const index = findIndex(current, option)
+  const index = findIndex(current, item)
   if (index !== -1) {
     current.splice(index, 1)
     emit('update:modelValue', current)
@@ -162,22 +182,44 @@ function removeTag(option, event) {
   }
 }
 
-function findIndex(array, option) {
-  if (typeof option === 'object' && props.trackBy) {
-    return array.findIndex((item) => item[props.trackBy] === option[props.trackBy])
-  }
-  return array.indexOf(option)
+function findIndex(array, val) {
+  return array.findIndex(item => {
+    if (typeof item === 'object' && typeof val === 'object') {
+      return props.trackBy && item[props.trackBy] === val[props.trackBy]
+    }
+    return item === val
+  })
 }
 
 function isSelected(option) {
+  const val = getOptionValue(option)
   if (props.multiple) {
-    return findIndex(selectedItems.value, option) !== -1
+    return findIndex(selectedItems.value, val) !== -1
   }
-  if (!props.modelValue) return false
-  if (typeof props.modelValue === 'object' && props.trackBy) {
-    return props.modelValue[props.trackBy] === option[props.trackBy]
+  if (props.modelValue == null || props.modelValue === '') return false
+  if (typeof props.modelValue === 'object' && typeof val === 'object' && props.trackBy) {
+    return props.modelValue[props.trackBy] === val[props.trackBy]
   }
-  return props.modelValue === option
+  return props.modelValue === val
+}
+
+function selectAll() {
+  if (!props.multiple) return
+  const current = Array.isArray(props.modelValue) ? [...props.modelValue] : []
+  filteredOptions.value.forEach(opt => {
+    const val = getOptionValue(opt)
+    if (findIndex(current, val) === -1) {
+      current.push(val)
+    }
+  })
+  emit('update:modelValue', current)
+  nextTick(updatePosition)
+}
+
+function clearSelection() {
+  if (!props.multiple) return
+  emit('update:modelValue', [])
+  nextTick(updatePosition)
 }
 
 // Click Outside Handler
@@ -227,7 +269,10 @@ onUnmounted(() => {
       <template v-if="multiple && selectedItems.length > 0">
         <div v-for="item in selectedItems" :key="typeof item === 'object' ? item[trackBy] : item"
           class="bg-primary/10 text-primary border border-primary/20 text-xs px-2 py-0.5 rounded-md flex items-center gap-1">
-          <span>{{ typeof item === 'object' ? item[label] : item }}</span>
+          <span>{{
+            (typeof item === 'object') ? item[label] :
+            (props.emitValue ? (options.find(o => (typeof o === 'object' ? o[trackBy] === item : o === item))?.[label] || item) : item)
+          }}</span>
           <span @click="(e) => removeTag(item, e)" class="cursor-pointer hover:text-primary/70 font-bold">&times;</span>
         </div>
       </template>
@@ -238,7 +283,7 @@ onUnmounted(() => {
       </span>
 
       <!-- Placeholder -->
-      <span v-if="(!modelValue && !multiple) || (multiple && selectedItems.length === 0)"
+      <span v-if="(modelValue == null || modelValue === '') && !multiple || (multiple && selectedItems.length === 0)"
         class="text-sm text-text/40 truncate pr-2 flex-grow">
         {{ placeholder }}
       </span>
@@ -268,8 +313,44 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <!-- Options List -->
-          <ul class="max-h-60 overflow-y-auto custom-scrollbar p-1">
+          <!-- Multiple Selection Action Buttons -->
+          <div v-if="multiple" class="p-2 border-b border-secondary/10 bg-background flex flex-wrap gap-2 justify-between items-center text-xs">
+             <button @click.stop="selectAll" class="text-primary hover:text-primary/80 font-semibold px-2 py-1 rounded hover:bg-primary/10 transition-colors">
+               <font-awesome-icon icon="fa-solid fa-check-double" class="mr-1" /> Pilih Semua
+             </button>
+             <button @click.stop="clearSelection" class="text-danger hover:text-danger/80 font-semibold px-2 py-1 rounded hover:bg-danger/10 transition-colors">
+               <font-awesome-icon icon="fa-solid fa-eraser" class="mr-1" /> Bersihkan
+             </button>
+          </div>
+
+          <!-- Options List (Multiple as Chip Cloud) -->
+          <div v-if="multiple" class="max-h-[300px] overflow-y-auto custom-scrollbar p-3 flex flex-wrap gap-2 items-start content-start">
+            <div v-if="loading" class="w-full text-center text-text/60 italic text-xs py-2">
+              Memuat data...
+            </div>
+            <div v-else-if="filteredOptions.length === 0" class="w-full text-center text-text/40 italic text-xs py-2">
+              <slot name="noResult">Tidak ada opsi ditemukan.</slot>
+            </div>
+            <button v-else v-for="(option, index) in filteredOptions"
+              :key="typeof option === 'object' ? option[trackBy] : index" @click.stop="select(option)"
+              class="px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all shadow-sm flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-primary/50"
+              :class="[
+                isSelected(option)
+                  ? 'bg-primary text-secondary border border-transparent hover:brightness-110'
+                  : 'bg-secondary/10 text-text border border-secondary/30 hover:bg-secondary/20'
+              ]">
+              <span class="truncate max-w-[200px] text-left">
+                <slot name="option" :option="option" :selected="isSelected(option)">
+                  {{ typeof option === 'object' ? option[label] : option }}
+                </slot>
+              </span>
+              <font-awesome-icon v-if="isSelected(option)" icon="fa-solid fa-check" class="text-[10px]" />
+              <font-awesome-icon v-else icon="fa-solid fa-plus" class="text-[10px]" />
+            </button>
+          </div>
+
+          <!-- Options List (Single mode) -->
+          <ul v-else class="max-h-60 overflow-y-auto custom-scrollbar p-1">
             <li v-if="loading" class="px-3 py-4 text-center text-text/60 italic text-xs">
               Memuat data...
             </li>

@@ -9,8 +9,12 @@ import {
 } from '@/api/helpers/stats.js'
 import { useToast } from '@/composables/useToast.js'
 import SearchInput from '@/components/ui/SearchInput.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 import FilterContainer from '@/components/ui/FilterContainer.vue'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
+import StockMovementStats from '@/components/stats/StockMovementStats.vue'
+import InventoryValueStats from '@/components/stats/InventoryValueStats.vue'
+import TimePerformanceStats from '@/components/stats/TimePerformanceStats.vue'
 
 const { show: showToast } = useToast()
 const isSidebarOpen = ref(false)
@@ -50,6 +54,12 @@ const reportsMenu = [
     icon: 'fa-solid fa-chart-line',
   },
   {
+    key: 'stock-movement',
+    label: 'Pergerakan Stok',
+    group: 'Laporan Utama',
+    icon: 'fa-solid fa-boxes-stacked',
+  },
+  {
     key: 'dead-stock',
     label: 'Laporan Stok Mati',
     group: 'Laporan Utama',
@@ -60,6 +70,12 @@ const reportsMenu = [
     label: 'Laporan Nilai Inventaris',
     group: 'Laporan Utama',
     icon: 'fa-solid fa-dollar-sign',
+  },
+  {
+    key: 'time-performance',
+    label: 'Performa Waktu',
+    group: 'Laporan Utama',
+    icon: 'fa-solid fa-clock-rotate-left',
   },
   {
     key: 'channel-performance',
@@ -127,6 +143,23 @@ onMounted(() => {
   loadHistory()
 })
 
+const purposeOptions = computed(() => [
+  { id: '', label: '-- Semua Tujuan --' },
+  ...(reportFilters.value?.purposes || []).map(p => ({ id: p, label: p }))
+])
+
+const typeOptions = [
+  { id: '', label: 'Semua' },
+  { id: '0', label: 'Tunggal' },
+  { id: '1', label: 'Paket' }
+]
+
+const stockStatusOptions = [
+  { id: 'positive', label: 'Positif' },
+  { id: 'negative', label: 'Minus' },
+  { id: 'all', label: 'Semua' }
+]
+
 const availableBuildings = computed(() => {
   const selectedPurpose = selectedFilters.value.purpose
   if (!selectedPurpose) {
@@ -151,6 +184,7 @@ async function handleRequestExport() {
     purpose: selectedFilters.value.purpose || null,
     isPackage: selectedFilters.value.isPackage,
     stockStatus: selectedFilters.value.stockStatus || 'all',
+    exportType: 'STOCK_REPORT',
   }
 
   isRequesting.value = true
@@ -186,14 +220,14 @@ const formatCurrency = (num) => {
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-secondary/10 font-sans text-text">
+  <div class="flex bg-secondary/10 font-sans text-text">
     <!-- Mobile Backdrop -->
     <div v-if="isSidebarOpen" @click="isSidebarOpen = false"
-      class="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm"></div>
+      class="fixed inset-0 bg-black/50 z-30 md:hidden backdrop-blur-sm"></div>
 
     <!-- Sidebar -->
     <aside
-      class="fixed md:sticky top-0 h-screen z-50 w-64 bg-background border-r border-secondary/20 transform transition-transform duration-300 ease-in-out flex flex-col shadow-lg md:shadow-none"
+      class="fixed md:sticky top-0 h-screen md:max-h-[700px] z-45 w-64 bg-background border-r border-secondary/20 transform transition-transform duration-300 ease-in-out flex flex-col shadow-lg md:shadow-none"
       :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'">
       <!-- Logo / Header -->
       <div class="p-6 border-b border-secondary/20 flex justify-between items-center bg-secondary/5">
@@ -230,27 +264,13 @@ const formatCurrency = (num) => {
           </div>
         </div>
       </nav>
-
-      <!-- Footer / User Info -->
-      <div class="p-4 border-t border-secondary/20 bg-secondary/5">
-        <div class="flex items-center gap-3">
-          <div
-            class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs">
-            <font-awesome-icon icon="fa-solid fa-user" />
-          </div>
-          <div class="text-sm">
-            <p class="font-semibold text-text">Dashboard User</p>
-            <p class="text-xs text-text/60">Laporan & Analisis</p>
-          </div>
-        </div>
-      </div>
     </aside>
 
     <!-- Main Content Wrapper -->
     <div class="flex-1 flex flex-col min-w-0 transition-all duration-300">
       <!-- Mobile Header -->
       <header
-        class="md:hidden h-16 bg-background/80 backdrop-blur-md border-b border-secondary/20 flex items-center justify-between px-4 sticky top-0 z-30 shadow-sm">
+        class="md:hidden h-16 bg-background/80 backdrop-blur-md border-b border-secondary/20 flex items-center justify-between px-4 sticky top-0 z-25 shadow-sm">
         <button @click="isSidebarOpen = !isSidebarOpen"
           class="p-2 -ml-2 text-text/70 hover:text-primary rounded-lg hover:bg-secondary/10 transition-colors">
           <font-awesome-icon icon="fa-solid fa-bars" size="lg" />
@@ -261,7 +281,7 @@ const formatCurrency = (num) => {
 
       <!-- Page Content -->
       <main class="flex-1 p-4 md:p-8 overflow-x-hidden w-full">
-        <div class="max-w-7xl mx-auto">
+        <div class="w-full md:w-auto mx-auto">
           <div
             class="bg-background rounded-xl shadow-md border border-secondary/20 p-6 min-h-[500px] relative overflow-hidden animate-fade-in">
             <div v-if="isLoading" class="flex flex-col items-center justify-center h-80">
@@ -333,6 +353,18 @@ const formatCurrency = (num) => {
               </div>
             </div>
 
+            <div v-else-if="activeReport === 'stock-movement'" class="animate-fade-in">
+              <StockMovementStats />
+            </div>
+
+            <div v-else-if="activeReport === 'inventory-value'" class="animate-fade-in">
+              <InventoryValueStats />
+            </div>
+
+            <div v-else-if="activeReport === 'time-performance'" class="animate-fade-in">
+              <TimePerformanceStats />
+            </div>
+
             <div v-else-if="activeReport === 'export-stock'" class="animate-fade-in">
               <div class="mb-6 border-b border-secondary/20 pb-4">
                 <h3 class="text-lg font-bold text-text">Ekspor Laporan Stok</h3>
@@ -353,61 +385,42 @@ const formatCurrency = (num) => {
 
                       <div>
                         <label class="label-input">Gedung</label>
-                        <select multiple id="building-filter" v-model="selectedFilters.building"
-                          class="input-select h-32">
-                          <option v-for="building in availableBuildings" :key="building" :value="building">
-                            {{ building }}
-                          </option>
-                        </select>
-                        <p class="text-[10px] text-text/40 mt-1 italic">
-                          *Tahan Ctrl/Cmd untuk memilih lebih dari satu.
-                        </p>
+                        <BaseSelect
+                          v-model="selectedFilters.building"
+                          :options="availableBuildings"
+                          :multiple="true"
+                          placeholder="Semua Gedung"
+                        />
                       </div>
 
                       <div>
                         <label class="label-input">Tujuan</label>
-                        <div class="relative">
-                          <select id="purpose-filter" v-model="selectedFilters.purpose"
-                            class="input-select appearance-none">
-                            <option value="">-- Semua Tujuan --</option>
-                            <option v-for="purpose in reportFilters.purposes" :key="purpose" :value="purpose">
-                              {{ purpose }}
-                            </option>
-                          </select>
-                          <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-text/40">
-                            <font-awesome-icon icon="fa-solid fa-chevron-down" size="xs" />
-                          </div>
-                        </div>
+                        <BaseSelect
+                          v-model="selectedFilters.purpose"
+                          :options="purposeOptions"
+                          emitValue
+                          :searchable="false"
+                        />
                       </div>
 
                       <div class="grid grid-cols-2 gap-3">
                         <div>
                           <label class="label-input">Tipe</label>
-                          <div class="relative">
-                            <select id="type-filter" v-model="selectedFilters.isPackage"
-                              class="input-select appearance-none">
-                              <option value="">Semua</option>
-                              <option value="0">Tunggal</option>
-                              <option value="1">Paket</option>
-                            </select>
-                            <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-text/40">
-                              <font-awesome-icon icon="fa-solid fa-chevron-down" size="xs" />
-                            </div>
-                          </div>
+                          <BaseSelect
+                            v-model="selectedFilters.isPackage"
+                            :options="typeOptions"
+                            emitValue
+                            :searchable="false"
+                          />
                         </div>
                         <div>
                           <label class="label-input">Status Stok</label>
-                          <div class="relative">
-                            <select id="stock-status-filter" v-model="selectedFilters.stockStatus"
-                              class="input-select appearance-none">
-                              <option value="positive">Positif</option>
-                              <option value="negative">Minus</option>
-                              <option value="all">Semua</option>
-                            </select>
-                            <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-text/40">
-                              <font-awesome-icon icon="fa-solid fa-chevron-down" size="xs" />
-                            </div>
-                          </div>
+                          <BaseSelect
+                            v-model="selectedFilters.stockStatus"
+                            :options="stockStatusOptions"
+                            emitValue
+                            :searchable="false"
+                          />
                         </div>
                       </div>
 
@@ -526,7 +539,7 @@ const formatCurrency = (num) => {
   </div>
 </template>
 
-<style scoped>
+<style lang="postcss" scoped>
 .label-input {
   @apply block text-xs font-bold text-text/60 uppercase mb-1.5;
 }

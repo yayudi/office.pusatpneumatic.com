@@ -12,9 +12,10 @@ const props = defineProps({
 const emit = defineEmits(['close']);
 
 const currentIndex = ref(0);
+const imgBroken = ref(false);
 
 const resolveUrl = (path) => {
-  if (!path) return 'https://placehold.co/800x800?text=No+Image';
+  if (!path) return null;
   const cleanPath = path.startsWith('/') ? path.substring(1) : path;
 
   const apiBaseUrl = instance.defaults.baseURL || 'https://api.dpvindonesia.com'
@@ -34,6 +35,7 @@ const handleKeydown = (e) => {
 watch(() => props.show, (newVal) => {
   if (newVal) {
     currentIndex.value = props.initialIndex || 0;
+    imgBroken.value = false;
     window.addEventListener('keydown', handleKeydown);
     document.body.style.overflow = 'hidden'; // prevent scroll behind
   } else {
@@ -48,6 +50,7 @@ const close = () => {
 
 const next = () => {
   if (!props.images || props.images.length === 0) return;
+  imgBroken.value = false;
   if (currentIndex.value < props.images.length - 1) {
     currentIndex.value++;
   } else {
@@ -57,6 +60,7 @@ const next = () => {
 
 const prev = () => {
   if (!props.images || props.images.length === 0) return;
+  imgBroken.value = false;
   if (currentIndex.value > 0) {
     currentIndex.value--;
   } else {
@@ -100,9 +104,16 @@ onUnmounted(() => {
     <div
       class="relative w-full h-full max-w-[90vw] max-h-[90vh] flex flex-col items-center justify-center pointer-events-none px-12 pb-16">
       <template v-if="images[currentIndex]">
-        <img :src="resolveUrl(images[currentIndex].main_path || images[currentIndex].thumbnail_path)"
+        <img v-if="resolveUrl(images[currentIndex].main_path || images[currentIndex].thumbnail_path) && !imgBroken"
+          :src="resolveUrl(images[currentIndex].main_path || images[currentIndex].thumbnail_path)"
           class="max-h-full max-w-full object-contain pointer-events-auto rounded shadow-2xl transition-transform duration-300"
-          :alt="images[currentIndex].original_name" />
+          :alt="images[currentIndex].original_name"
+          @error="imgBroken = true" />
+        <div v-else
+          class="w-64 h-64 flex flex-col items-center justify-center text-white/30 pointer-events-auto">
+          <font-awesome-icon icon="fa-solid fa-image" class="text-7xl mb-3" />
+          <span class="text-sm font-medium">Gambar tidak tersedia</span>
+        </div>
 
         <!-- Bottom Metadata Overlay -->
         <div
