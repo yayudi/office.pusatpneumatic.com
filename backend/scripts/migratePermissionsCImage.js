@@ -19,7 +19,7 @@ const migratePermissions = async () => {
       const [existing] = await connection.query("SELECT id FROM permissions WHERE name = ?", [perm.name]);
       if (existing.length === 0) {
         await connection.query("INSERT INTO permissions (name, description) VALUES (?, ?)", [perm.name, perm.description]);
-        console.log(`✅ Permission created: ${perm.name}`);
+        console.log(`Permission created: ${perm.name}`);
       } else {
         console.log(`ℹ️ Permission already exists: ${perm.name}`);
       }
@@ -64,7 +64,7 @@ const migratePermissions = async () => {
     await assign("cs", limitedPerms);
 
     await connection.commit();
-    console.log("✅ Migration permissions completed successfully.");
+    console.log("Migration permissions completed successfully.");
   } catch (error) {
     await connection.rollback();
     console.error("❌ Migration failed:", error);

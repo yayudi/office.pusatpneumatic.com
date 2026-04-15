@@ -1,5 +1,5 @@
 {
-  "name": "office.pusatpneumatic.com",
+  "name": "Warehouse Management System",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -47,6 +47,7 @@
     "prettier": "3.6.2",
     "tailwindcss": "^3.4.18",
     "vite": "^7.0.6",
+    "vite-plugin-pwa": "^1.2.0",
     "vite-plugin-vue-devtools": "^8.0.0"
   },
   "description": "This template should help get you started developing with Vue 3 in Vite.",

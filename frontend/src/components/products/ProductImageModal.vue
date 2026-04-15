@@ -18,19 +18,16 @@ const authStore = useAuthStore()
 
 const loading = ref(false)
 const fetching = ref(false)
-const selectedImages = ref([]) // Array of File objects (New Uploads)
-const existingImages = ref([]) // Array of DB Image Objects (fetched)
+const selectedImages = ref([])
+const existingImages = ref([])
 const isCompressing = ref(false)
 
-// Permissions
 const canUpload = computed(() => authStore.hasPermission('product.image.upload'))
 const canDelete = computed(() => authStore.hasPermission('product.image.delete'))
 
-// Base URL for Images
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
 const baseUrl = apiBaseUrl.replace(/\/api\/?$/, '')
 
-// Fetch Latest Images
 async function fetchImages() {
   if (!props.productData?.id) return
   fetching.value = true
@@ -48,15 +45,14 @@ async function fetchImages() {
   }
 }
 
-// Watch Modal Open
 watch(
   () => props.show,
   (val) => {
     if (val) {
       loading.value = false
       selectedImages.value = []
-      existingImages.value = [] // Reset
-      fetchImages() // Fetch fresh data
+      existingImages.value = []
+      fetchImages()
     }
   }
 )
@@ -65,7 +61,6 @@ async function handleImageUpload(event) {
   const files = Array.from(event.target.files)
   if (files.length === 0) return
 
-  // Filter & Validate
   const validFiles = files.filter(f => f.type.match('image.*'))
   if (validFiles.length < files.length) {
     toast('Beberapa file bukan gambar dan diabaikan.', 'warning')
@@ -94,22 +89,19 @@ async function saveNewImages() {
     formData.append('images', file, file.name)
   })
 
-  // Tautkan ke produk ini
   formData.append('products', props.productData.id.toString());
 
   try {
-    // Gunakan Pustaka Media (mediaWorker)
     const { data } = await axios.post(`/media/upload`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
 
     if (data.success) {
       toast(`${selectedImages.value.length} gambar masuk antrean pemrosesan.`, 'success')
-      selectedImages.value = [] // Clear pending
+      selectedImages.value = []
 
-      // Tunggu proses worker sesaat
       setTimeout(async () => {
-        await fetchImages() // Refresh list
+        await fetchImages()
         emit('refresh')
       }, 1500)
     }
@@ -147,7 +139,7 @@ async function setPrimary(imageId) {
     if (data.success) {
       toast('Gambar utama diperbarui.', 'success')
       await fetchImages()
-      emit('refresh') // ProductRow perlu update thumbnail
+      emit('refresh')
     }
   } catch (error) {
     console.error(error)
@@ -163,9 +155,9 @@ function getImageUrl(path) {
   if (!path) return null
   const clean = path.startsWith('/') ? path.substring(1) : path
   if (clean.startsWith('temp/') || clean.startsWith('main/') || clean.startsWith('thumb/')) {
-    return `${baseUrl}/uploads/${clean}`
+    return `${baseUrl}${clean}`
   }
-  return `${baseUrl}/uploads/products/${clean}`
+  return `${baseUrl}${clean}`
 }
 
 const onImgError = (id) => {
@@ -178,7 +170,6 @@ const onImgError = (id) => {
     @click.self="$emit('close')">
     <div
       class="bg-background w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] transition-all">
-      <!-- Header -->
       <div class="px-6 py-4 border-b border-secondary/10 flex justify-between items-center bg-secondary/5">
         <div>
           <h3 class="font-bold text-lg text-text">Galeri Produk</h3>
@@ -190,16 +181,13 @@ const onImgError = (id) => {
         </button>
       </div>
 
-      <!-- Content -->
       <div class="p-6 flex flex-col gap-6 overflow-y-auto h-full">
-        <!-- Loading State -->
         <div v-if="fetching" class="flex flex-col items-center justify-center py-12 text-text/40">
           <font-awesome-icon icon="fa-solid fa-spinner" class="animate-spin text-3xl mb-3" />
           <span class="text-sm">Memuat galeri...</span>
         </div>
 
         <div v-else class="flex flex-col gap-8">
-          <!-- 1. Primary & Existing Gallery -->
           <div>
             <div class="flex items-center justify-between mb-3">
               <h4 class="font-bold text-text/80 text-sm uppercase tracking-wide">Foto Tersimpan</h4>
@@ -215,8 +203,6 @@ const onImgError = (id) => {
             <div v-else class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
               <div v-for="img in existingImages" :key="img.id"
                 class="group relative aspect-square bg-secondary/10 rounded-xl border border-secondary/20 overflow-hidden shadow-sm hover:shadow-md transition-all">
-
-                <!-- Image or Fallback -->
                 <img v-if="getImageUrl(img.image_path) && !brokenImages.has(img.id)" :src="getImageUrl(img.image_path)"
                   class="w-full h-full object-cover" @error="onImgError(img.id)" />
                 <div v-else
@@ -224,24 +210,16 @@ const onImgError = (id) => {
                   <font-awesome-icon icon="fa-solid fa-image" class="text-4xl mb-1" />
                   <span class="text-[10px] font-medium">No Image</span>
                 </div>
-
-                <!-- Primary Badge -->
                 <div v-if="img.is_primary"
                   class="absolute top-2 left-2 bg-primary text-background text-[10px] font-bold px-2 py-0.5 rounded shadow-sm z-10 flex items-center gap-1">
                   <font-awesome-icon icon="fa-solid fa-star" /> Utama
                 </div>
-
-                <!-- Overlay Actions -->
                 <div
                   class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 backdrop-blur-[1px]">
-
-                  <!-- Set Primary Btn -->
                   <button v-if="!img.is_primary && canUpload" @click="setPrimary(img.id)" :disabled="loading"
                     class="bg-primary/90 hover:bg-primary text-background px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all flex items-center gap-2">
                     <font-awesome-icon icon="fa-solid fa-star" /> Jadikan Utama
                   </button>
-
-                  <!-- Delete Btn -->
                   <button v-if="canDelete" @click="deleteImage(img.id)" :disabled="loading"
                     class="bg-danger/90 hover:bg-danger text-background px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all flex items-center gap-2 delay-75">
                     <font-awesome-icon icon="fa-solid fa-trash" /> Hapus
@@ -250,13 +228,9 @@ const onImgError = (id) => {
               </div>
             </div>
           </div>
-
-          <!-- 2. Upload New -->
           <div v-if="canUpload" class="border-t border-secondary/10 pt-6">
             <h4 class="font-bold text-text/80 text-sm uppercase tracking-wide mb-3">Upload Baru</h4>
-
             <div class="flex flex-col gap-4">
-              <!-- Upload Input Area -->
               <label
                 class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-primary/30 rounded-xl cursor-pointer bg-primary/5 hover:bg-primary/10 transition-colors group">
                 <div
@@ -269,8 +243,6 @@ const onImgError = (id) => {
                 <input type="file" @change="handleImageUpload" accept="image/*" class="hidden" multiple
                   :disabled="loading" />
               </label>
-
-              <!-- Preview Pending Uploads -->
               <div v-if="selectedImages.length > 0" class="flex flex-col gap-3 animate-slide-up">
                 <div class="grid grid-cols-3 md:grid-cols-6 gap-3">
                   <div v-for="(file, idx) in selectedImages" :key="idx"
@@ -282,8 +254,6 @@ const onImgError = (id) => {
                     </button>
                   </div>
                 </div>
-
-                <!-- Save Action -->
                 <div class="flex justify-end gap-3 mt-2">
                   <button @click="selectedImages = []"
                     class="px-4 py-2 text-text/60 font-bold hover:bg-secondary/10 rounded-lg text-sm transition-colors">

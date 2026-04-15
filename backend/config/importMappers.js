@@ -341,14 +341,13 @@ export const Mappers = {
 
       return {
         sku,
-        // Field berikut hanya akan undefined jika tidak ada di CSV
         name,
         price,
         weight,
         is_package,
         is_active,
 
-        invoiceId: `UPD-${sku}`, // Dummy ID
+        invoiceId: `UPD-${sku}`,
         status: "NEW",
       };
     },

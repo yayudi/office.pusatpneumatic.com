@@ -41,7 +41,7 @@ async function migrate() {
   let connection;
   try {
     connection = await db.getConnection();
-    log("✅ Koneksi database berhasil dibuat.");
+    log("Koneksi database berhasil dibuat.");
 
     const files = findJsonFilesRecursive(BASE_JSON_DIR);
     if (files.length === 0) {

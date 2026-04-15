@@ -28,7 +28,7 @@ const initVips = async () => {
   return vipsInstance
 }
 
-const runMediaWorker = async () => {
+export const runMediaWorker = async () => {
   try {
     // 1. Cleanup Jobs Terjebak
     await cleanupMediaJobs()

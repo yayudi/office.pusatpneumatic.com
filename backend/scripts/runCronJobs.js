@@ -92,7 +92,7 @@ async function processQueue() {
       [jobId]
     );
 
-    log(`✅ Tugas '${job.task_name}' (ID: ${jobId}) berhasil diselesaikan.`);
+    log(`Tugas '${job.task_name}' (ID: ${jobId}) berhasil diselesaikan.`);
   } catch (error) {
     log(`❌ Gagal memproses tugas (ID: ${jobId}). Error: ${error.message}`);
     if (connection && jobId) {

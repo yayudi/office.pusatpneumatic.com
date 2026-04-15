@@ -23,7 +23,7 @@ async function migrateMasterProducts() {
   try {
     connection = await db.getConnection();
     await connection.beginTransaction();
-    log("✅ Koneksi database berhasil dan transaksi dimulai.");
+    log("Koneksi database berhasil dan transaksi dimulai.");
 
     // (Opsional) Ambil data dari Google Sheets
     log("⬇️  Mengambil data dari SPREADSHEET_MASTER...");
@@ -62,7 +62,7 @@ async function migrateMasterProducts() {
     }
 
     await connection.commit();
-    log("✅ Transaksi berhasil di-commit.");
+    log("Transaksi berhasil di-commit.");
     log(`🎉 Migrasi Selesai!`);
     log(`   - ${productsCreated} produk berhasil dibuat dari MASTER.`);
   } catch (error) {

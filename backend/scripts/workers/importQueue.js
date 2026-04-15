@@ -184,12 +184,8 @@ export const importQueue = async () => {
     }
 
     jobId = job.id;
-
-    // Lock Job
     await jobRepo.lockImportJob(connection, jobId);
     connection.release();
-
-    // ✅ FIX PATH: Resolve path absolute agar FS bisa baca
     let absoluteFilePath = job.file_path;
     if (!path.isAbsolute(absoluteFilePath)) {
       absoluteFilePath = path.resolve(__dirname, "../..", absoluteFilePath);
@@ -230,7 +226,6 @@ export const importQueue = async () => {
     const realJobType = (isDryRun ? job.job_type.replace("_DRY_RUN", "") : job.job_type).trim();
 
     // --- SWITCH CASE ---
-
     if (realJobType.startsWith("IMPORT_SALES_")) {
       const sourceMap = {
         IMPORT_SALES_TOKOPEDIA: "Tokopedia",

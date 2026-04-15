@@ -61,7 +61,7 @@ export async function syncStockToDatabase() {
       }
     }
     logToFile(`Penggabungan data selesai. ${merged.length} produk ditemukan.`);
-    logToFile("✅ Proses selesai tanpa error fatal.");
+    logToFile("Proses selesai tanpa error fatal.");
     logToFile("===== SIKLUS SINKRONISASI SELESAI =====\n");
   } catch (error) {
     logToFile(`❌ Terjadi error fatal saat proses: ${error.message}`);

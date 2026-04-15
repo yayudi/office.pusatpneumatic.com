@@ -15,7 +15,7 @@ router.get("/", async (req, res) => {
       LEFT JOIN roles r ON u.role_id = r.id
       LEFT JOIN shifts s ON u.shift_id = s.id
       ORDER BY u.username ASC
-    `; // FIX: Menggunakan LEFT JOIN agar lebih defensif terhadap data role/shift yang tidak sinkron
+    `;
     const [users] = await db.query(query);
     res.json({ success: true, users });
   } catch (err) {
@@ -243,7 +243,6 @@ router.put("/:id/locations", async (req, res) => {
     res.json({ success: true, message: "Izin lokasi pengguna berhasil diperbarui." });
   } catch (error) {
     if (connection) await connection.rollback();
-    // Tangani jika location_id tidak valid
     if (error.code === "ER_NO_REFERENCED_ROW_2") {
       return res
         .status(400)

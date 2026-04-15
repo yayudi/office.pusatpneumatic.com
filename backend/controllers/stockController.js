@@ -8,8 +8,6 @@ import * as jobService from "../services/jobService.js";
 
 export const getAllStocks = async (req, res) => {
   try {
-    // Implementasi get stock (biasanya filter/pagination)
-    // ... (sesuaikan dengan logic lama jika ada, atau gunakan service)
     const stocks = await stockService.getAllStocks(req.query);
     res.json({ success: true, data: stocks });
   } catch (error) {
@@ -32,10 +30,7 @@ export const uploadAdjustment = async (req, res) => {
     }
 
     const userId = req.user.id;
-    // Deteksi flag dryRun dari form-data
     const isDryRun = req.body.dryRun === "true" || req.body.dryRun === true;
-
-    // Tentukan Tipe Job
     const jobType = isDryRun ? "ADJUST_STOCK_DRY_RUN" : "ADJUST_STOCK";
 
     // Create Job
@@ -92,13 +87,9 @@ export const adjustStock = async (req, res) => {
   try {
     let { productId, locationId, quantity, type, notes } = req.body;
     const userId = req.user.id;
-
-    // FIX: Hapus 'type' dari validasi wajib
     if (!productId || !locationId || quantity === undefined || quantity === null) {
       return res.status(400).json({ success: false, message: "Data adjustment tidak lengkap." });
     }
-
-    // Logic Adaptor: Jika frontend mengirim type, sesuaikan tanda quantity
     if (type) {
       if ((type === "ADJUST_MINUS" || type === "OUT") && quantity > 0) {
         quantity = -quantity;
@@ -106,11 +97,10 @@ export const adjustStock = async (req, res) => {
         quantity = Math.abs(quantity);
       }
     }
-
     await stockService.adjustStockService({
       productId,
       locationId,
-      quantity, // Service sekarang menerima signed quantity (negatif/positif)
+      quantity,
       userId,
       notes,
     });
@@ -162,7 +152,6 @@ export const importBatchInbound = async (req, res) => {
     }
 
     const userId = req.user.id;
-    // Create Job IMPORT_STOCK_INBOUND
     const jobId = await jobService.createJobService({
       userId,
       type: "IMPORT_STOCK_INBOUND",
@@ -183,14 +172,11 @@ export const importBatchInbound = async (req, res) => {
 };
 
 export const requestAdjustmentUpload = async (req, res) => {
-  // Legacy wrapper - redirect to uploadAdjustment logic or deprecate
-  // For now, reuse logic or call uploadAdjustment internally if structure allows
   return uploadAdjustment(req, res);
 };
 
 export const getImportJobs = async (req, res) => {
   try {
-    // Menggunakan jobService
     const jobs = await jobService.getUserJobsService(req.user.id);
     res.json({ success: true, data: jobs });
   } catch (error) {
@@ -201,7 +187,6 @@ export const getImportJobs = async (req, res) => {
 
 export const cancelImportJob = async (req, res) => {
   try {
-    // Menggunakan jobService
     await jobService.cancelJobService(req.params.id, req.user.id);
     res.json({ success: true, message: "Antrian berhasil dibatalkan." });
   } catch (error) {
@@ -213,7 +198,6 @@ export const cancelImportJob = async (req, res) => {
 // ============================================================================
 // BATCH PROCESS & HISTORY
 // ============================================================================
-
 export const processBatchMovements = async (req, res) => {
   try {
     const { type, fromLocationId, toLocationId, notes, movements } = req.body;
@@ -265,7 +249,6 @@ export const batchTransfer = async (req, res) => {
     res.json({ success: true, message: "Batch transfer berhasil.", ...result });
   } catch (error) {
     console.error("[StockController] Batch Transfer Error:", error);
-    // Handle specific permission errors with 403 if needed
     const status = error.message.includes("Akses ditolak") ? 403 : 400;
     res.status(status).json({ success: false, message: error.message });
   }

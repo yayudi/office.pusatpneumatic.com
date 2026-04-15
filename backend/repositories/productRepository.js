@@ -23,7 +23,7 @@ export const getProductsWithFilters = async (connection, filters) => {
   const allowedSortColumns = ["name", "sku", "price", "updated_at", "deleted_at", "weight"];
   const safeSortBy = allowedSortColumns.includes(sortBy) ? `p.${sortBy}` : "p.name";
 
-  // ✅ LOGIKA STATUS: Menggunakan is_active DAN deleted_at
+  // LOGIKA STATUS: Menggunakan is_active DAN deleted_at
   let whereClauses = [];
   let queryParams = [];
 
@@ -116,10 +116,7 @@ export const getProductsWithFilters = async (connection, filters) => {
       statusConditions.length > 0 ? `AND ${statusConditions.join(" AND ")}` : "";
 
     // Subquery untuk cek total stok
-    // operator logic: minus (< 0), positive (>= 0)
     const operator = stockStatus === "minus" ? "<" : ">=";
-
-    // Fix: Menggunakan SUM stok
     const statusStockSql = `(
         COALESCE((
           SELECT SUM(sl.quantity)
@@ -132,13 +129,9 @@ export const getProductsWithFilters = async (connection, filters) => {
   }
 
   const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
-
-  // --- 2. Hitung Total Data (Count) ---
   const countQuery = `SELECT COUNT(DISTINCT p.id) as total FROM products p ${whereSql}`;
   const [totalRows] = await connection.query(countQuery, queryParams);
   const totalProducts = totalRows[0]?.total || 0;
-
-  // --- 3. Ambil Data Produk (Main Select) ---
   const productsQuery = `
       SELECT p.id, p.sku, p.name, p.category, p.price, p.weight, p.is_package, p.is_active, p.deleted_at,
       (SELECT ma.main_path FROM product_images pi JOIN media_assets ma ON pi.media_id = ma.id WHERE pi.product_id = p.id AND pi.is_primary = 1 LIMIT 1) as image_path,
@@ -149,18 +142,7 @@ export const getProductsWithFilters = async (connection, filters) => {
       ORDER BY ${safeSortBy} ${sortOrder}
       LIMIT ? OFFSET ?
     `;
-
-  // Clone queryParams karena params sebelumnya "consumed" oleh countQuery jika connection bukan prepared statement reuse
-  // Tapi di mysql2/promise `query`, kita kirim params array baru.
-  // PENTING: Urutan params harus sesuai dengan urutan `?` di productsQuery.
-  // Logic `minusStockOnly` di atas menambahkan params ke `queryParams` yg juga dipakai count.
-  // Kita harus hati-hati. Cara paling aman adalah menyusun params ulang.
-
-  // Re-collect params for main query safety
   let finalParams = [];
-  // ... (Re-logic parameters di atas agak berisiko error jika dicopy manual).
-  // Untuk file ini, kita pakai `queryParams` yang sudah terkumpul karena urutannya linear dari atas ke bawah.
-
   finalParams = [...queryParams, limit, offset];
 
   const [products] = await connection.query(productsQuery, finalParams);
@@ -168,8 +150,6 @@ export const getProductsWithFilters = async (connection, filters) => {
   if (products.length === 0) {
     return { data: [], total: totalProducts };
   }
-
-  // --- 4. Attach Informasi Stok ---
   const productIds = products.map((p) => p.id);
   const stockLocationsQuery = `
       SELECT sl.product_id, l.code as location_code, l.purpose, sl.quantity
@@ -188,11 +168,9 @@ export const getProductsWithFilters = async (connection, filters) => {
       stock_locations: relevantLocations,
       total_stock: total_stock,
       all_locations_code: all_locations_code,
-      components: [], // Initialize components array
+      components: [],
     };
   });
-
-  // --- 5. Attach Components (Jika ada paket) ---
   const packageIds = products.filter((p) => p.is_package === 1).map((p) => p.id);
 
   if (packageIds.length > 0) {
@@ -208,13 +186,7 @@ export const getProductsWithFilters = async (connection, filters) => {
       JOIN products p ON pc.component_product_id = p.id
       WHERE pc.package_product_id IN (?)
     `;
-
-    // Gunakan try-catch atau pastikan packageIds valid (sudah dicek length > 0)
     const [componentRows] = await connection.query(componentsQuery, [packageIds]);
-
-    // [NEW] Get Component Stock (Respecting Location Filter if Possible)
-    // Jika location filter aktif, kita harus ambil stok komponen di lokasi tersebut saja
-    // Agar perhitungan "paket yang bisa dibuat" akurat sesuai filter gudang/pajangan
     const componentIds = [...new Set(componentRows.map((c) => c.id))];
     let componentStockMap = {}; // Map<ComponentID, TotalStock>
 
@@ -226,8 +198,6 @@ export const getProductsWithFilters = async (connection, filters) => {
           WHERE sl.product_id IN (?)
       `;
       let stockParams = [componentIds];
-
-      // Re-apply Location Filter Logic for Components
       if (location !== "all") {
         stockQuery += " AND l.purpose = ?";
         stockParams.push(purpose);
@@ -280,12 +250,9 @@ export const getProductsWithFilters = async (connection, filters) => {
 };
 
 export const getProductDetailWithStock = async (connection, id) => {
-  // 1. Ambil Product Core
   const [rows] = await connection.query("SELECT * FROM products WHERE id = ?", [id]);
   if (rows.length === 0) return null;
   const product = rows[0];
-
-  // [NEW] Get Images
   const [images] = await connection.query(
     "SELECT pi.id, ma.main_path as image_path, ma.thumbnail_path, pi.is_primary FROM product_images pi JOIN media_assets ma ON pi.media_id = ma.id WHERE pi.product_id = ? ORDER BY pi.is_primary DESC, pi.sort_order ASC",
     [id]
@@ -303,16 +270,15 @@ export const getProductDetailWithStock = async (connection, id) => {
   if (product.is_package) {
     const [components] = await connection.query(
       `SELECT pc.component_product_id as id, p.sku, p.name, pc.quantity_per_package, pc.quantity_per_package as quantity
-       FROM package_components pc
-       JOIN products p ON pc.component_product_id = p.id
-       WHERE pc.package_product_id = ?`,
+        FROM package_components pc
+        JOIN products p ON pc.component_product_id = p.id
+        WHERE pc.package_product_id = ?`,
       [id]
     );
     product.components = components;
     components.forEach((comp) => productIdsToCheck.push(comp.id));
   }
 
-  // 3. Ambil Stok untuk Product Utama & Komponen
   if (productIdsToCheck.length > 0) {
     const stockLocationsQuery = `
         SELECT sl.product_id, l.code as location_code, l.purpose, sl.quantity
@@ -321,11 +287,7 @@ export const getProductDetailWithStock = async (connection, id) => {
         WHERE sl.quantity > 0 AND sl.product_id IN (?)`;
 
     const [stockRows] = await connection.query(stockLocationsQuery, [productIdsToCheck]);
-
-    // Assign stok ke produk utama
     product.stock_locations = stockRows.filter((stock) => stock.product_id === product.id);
-
-    // Assign stok ke komponen (nested)
     if (product.components.length > 0) {
       product.components = product.components.map((comp) => {
         return {
@@ -373,13 +335,13 @@ export const searchProducts = async (connection, searchTerm, locationId) => {
   let query, queryParams;
   if (locationId && locationId !== "null" && locationId !== "undefined" && locationId !== "") {
     query = `SELECT p.id, p.sku, p.name, p.price, p.weight, sl.quantity AS current_stock
-             FROM products p JOIN stock_locations sl ON p.id = sl.product_id
-             WHERE sl.location_id = ? AND (LOWER(p.name) LIKE ? OR LOWER(p.sku) LIKE ?)
-             AND sl.quantity != 0 LIMIT 10`;
+              FROM products p JOIN stock_locations sl ON p.id = sl.product_id
+              WHERE sl.location_id = ? AND (LOWER(p.name) LIKE ? OR LOWER(p.sku) LIKE ?)
+              AND sl.quantity != 0 LIMIT 10`;
     queryParams = [locationId, searchTerm, searchTerm];
   } else {
     query = `SELECT id, sku, name, price, weight FROM products
-             WHERE (LOWER(name) LIKE ? OR LOWER(sku) LIKE ?) AND is_active = 1 LIMIT 10`;
+              WHERE (LOWER(name) LIKE ? OR LOWER(sku) LIKE ?) AND is_active = 1 LIMIT 10`;
     queryParams = [searchTerm, searchTerm];
   }
   const [results] = await connection.query(query, queryParams);
@@ -396,7 +358,6 @@ export const getProductStockDetails = async (connection, id) => {
   return rows;
 };
 
-// Digunakan oleh Import Worker untuk mapping bulk
 export const getBulkPackageComponents = async (connection, packageProductIds) => {
   if (packageProductIds.length === 0) return [];
   const [rows] = await connection.query(
@@ -414,15 +375,11 @@ export const getBulkPackageComponents = async (connection, packageProductIds) =>
   return rows;
 };
 
-// Digunakan oleh Import Worker untuk membangun Map produk lengkap
 export const getProductMapWithComponents = async (connection, skuArray) => {
   const productMap = new Map();
   if (!skuArray || skuArray.length === 0) return productMap;
-
-  // 1. Ambil Produk
   const products = await getProductsBySkus(connection, skuArray);
   const packageIds = [];
-
   products.forEach((p) => {
     productMap.set(p.sku, {
       id: p.id,
@@ -433,8 +390,6 @@ export const getProductMapWithComponents = async (connection, skuArray) => {
     });
     if (p.is_package === 1) packageIds.push(p.id);
   });
-
-  // 2. Ambil Komponen untuk Paket
   if (packageIds.length > 0) {
     const components = await getBulkPackageComponents(connection, packageIds);
     components.forEach((c) => {
@@ -557,7 +512,6 @@ export const insertAuditLog = async (
   );
 };
 
-// [NEW] Fungsi Transactional Update dengan Audit Log
 export const updateProductTransaction = async (
   connection,
   id,
@@ -565,7 +519,6 @@ export const updateProductTransaction = async (
   components = [],
   userId
 ) => {
-  // 1. Ambil Data Lama untuk Audit Log
   const [oldRows] = await connection.query("SELECT * FROM products WHERE id = ?", [id]);
   const oldData = oldRows[0];
 
@@ -596,7 +549,6 @@ export const updateProductTransaction = async (
     }
 
     if (isChanged) {
-      // 1. Add to SQL Update
       if (type === 'boolean') {
         fields.push(`${fieldName} = ?`);
         values.push(newValue ? 1 : 0);
@@ -604,8 +556,6 @@ export const updateProductTransaction = async (
         fields.push(`${fieldName} = ?`);
         values.push(newValue);
       }
-
-      // 2. Add to Audit Log
       auditPromises.push(
         insertAuditLog(connection, {
           productId: id,
@@ -643,11 +593,6 @@ export const updateProductTransaction = async (
 // ============================================================================
 // IMAGE MANAGEMENT
 // ============================================================================
-
-export const insertImages = async (connection, productId, images) => {
-  // Hanya disupport oleh central mediaWorker sekarang, fallback error dihapus
-};
-
 export const deleteImage = async (connection, imageId) => {
   await connection.query("DELETE FROM product_images WHERE id = ?", [imageId]);
 };

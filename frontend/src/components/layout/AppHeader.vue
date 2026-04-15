@@ -6,11 +6,10 @@ import ThemeSwitcher from '../ui/ThemeSwitcher.vue'
 import { useAuthStore } from '../../stores/auth.js'
 
 const isDropdownOpen = ref(false)
-const isMobileMenuOpen = ref(false) // State baru untuk menu mobile
+const isMobileMenuOpen = ref(false)
 const emit = defineEmits(['logout'])
 const auth = useAuthStore()
 
-// Refs untuk click-outside
 const dropdownContainer = ref(null)
 const mobileMenuPanel = ref(null)
 const hamburgerButton = ref(null)
@@ -29,7 +28,6 @@ function handleLogout() {
   emit('logout')
 }
 
-// Menutup satu menu jika menu lain dibuka
 watch(isDropdownOpen, (isOpen) => {
   if (isOpen) isMobileMenuOpen.value = false
 })
@@ -38,11 +36,9 @@ watch(isMobileMenuOpen, (isOpen) => {
 })
 
 function handleClickOutside(event) {
-  // Cek dropdown user
   if (dropdownContainer.value && !dropdownContainer.value.contains(event.target)) {
     isDropdownOpen.value = false
   }
-  // Cek menu mobile
   if (
     mobileMenuPanel.value &&
     !mobileMenuPanel.value.contains(event.target) &&
@@ -63,17 +59,16 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <!-- Header dibuat 'relative' agar menu mobile bisa 'absolute' thd-nya -->
   <header class="bg-secondary/15 backdrop-blur-md sticky top-0 z-40 border-b border-secondary/20 shadow-sm">
-    <nav class="container mx-auto px-4 sm:px-6 py-3 flex justify-between items-center">
-      <!-- Sisi Kiri: Logo & Nav Desktop -->
+    <nav class="container mx-auto px-4 sm:px-6 py-3 flex justify-between items-center" title="Navigation Menu"
+      aria-current="page" aria-controls="desktop-menu" aria-expanded="false" aria-haspopup="true"
+      aria-labelledby="desktop-menu" role="menu">
       <div class="flex items-center gap-6">
         <RouterLink to="/" class="font-bold text-lg text-primary hover:opacity-80 transition-opacity flex-shrink-0"
-          @click="isMobileMenuOpen = false">
+          @click="isMobileMenuOpen = false" title="Logo" aria-label="Logo" role="button" tabindex="0">
           Dunia Pratama Sejahtera
         </RouterLink>
 
-        <!-- Navigasi Desktop: Sembunyi di mobile, tampil di desktop -->
         <div class="hidden md:flex items-center gap-6 text-sm font-medium">
           <RouterLink to="/absensi"
             class="border-b-2 text-text/80 hover:text-primary transition-colors flex items-center gap-2"
@@ -108,9 +103,7 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- Sisi Kanan: Dropdown User & Tombol Hamburger -->
-      <div class="flex items-center gap-2">
-        <!-- Dropdown User -->
+      <div class="flex items-center gap-2" title="User Dropdown">
         <div class="relative" ref="dropdownContainer">
           <button @click="isDropdownOpen = !isDropdownOpen"
             class="flex items-center gap-2 px-3 text-text/80 hover:text-primary transition-colors">
@@ -120,7 +113,6 @@ onUnmounted(() => {
               :class="isDropdownOpen && 'rotate-180'" />
           </button>
 
-          <!-- Panel Dropdown User -->
           <div v-if="isDropdownOpen"
             class="absolute right-0 mt-2 w-64 bg-background border border-secondary/30 rounded-lg shadow-lg py-2 z-40">
             <RouterLink to="/account" @click="isDropdownOpen = false"
@@ -149,16 +141,15 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Tombol Hamburger: Tampil di mobile, sembunyi di desktop -->
-        <button @click="isMobileMenuOpen = !isMobileMenuOpen" ref="hamburgerButton"
+        <button @click="isMobileMenuOpen = !isMobileMenuOpen" title="Hamburger Menu" ref="hamburgerButton"
           class="md:hidden p-2 text-text/80 hover:text-primary" aria-label="Buka menu">
           <font-awesome-icon icon="fa-solid fa-bars" class="text-xl w-5" />
         </button>
       </div>
     </nav>
 
-    <!-- Panel Menu Mobile: Tampil di mobile, sembunyi di desktop -->
-    <div v-if="isMobileMenuOpen" ref="mobileMenuPanel"
+    <div v-if="isMobileMenuOpen" ref="mobileMenuPanel" title="Mobile Menu" id="mobile-menu" aria-expanded="true"
+      aria-haspopup="true" aria-labelledby="mobile-menu" role="menu"
       class="md:hidden absolute w-full bg-secondary backdrop-blur-md border-b border-secondary/20 shadow-lg">
       <nav class="container mx-auto px-4 sm:px-6 py-4 space-y-2 z-200">
         <RouterLink to="/absensi" @click="isMobileMenuOpen = false"

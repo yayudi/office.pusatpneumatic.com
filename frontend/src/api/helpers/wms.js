@@ -1,5 +1,5 @@
 // frontend/src/api/helpers/wms.js
-import axios from '../axios' // Pastikan instance axios ini sudah dikonfigurasi dengan baseURL: 'https://api.pusatpneumatic.com'
+import axios from '../axios'
 
 /**
  * Mengambil produk dari API dengan filter, pagination, dan pencarian di sisi server.

@@ -23,7 +23,7 @@ async function migrateWmsData() {
   try {
     connection = await db.getConnection();
     await connection.beginTransaction();
-    log("✅ Koneksi database berhasil dan transaksi dimulai.");
+    log("Koneksi database berhasil dan transaksi dimulai.");
 
     // Ambil semua data lokasi dari DB untuk pemetaan
     const [locations] = await connection.query("SELECT id, code FROM locations");
@@ -105,7 +105,7 @@ async function migrateWmsData() {
     }
 
     await connection.commit();
-    log("✅ Transaksi berhasil di-commit.");
+    log("Transaksi berhasil di-commit.");
     log(`🎉 Migrasi Selesai!`);
     log(`   - ${productsCreated} produk berhasil dibuat.`);
     log(`   - ${stockLocationsCreated} data lokasi stok berhasil dibuat.`);

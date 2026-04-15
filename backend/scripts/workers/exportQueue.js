@@ -48,13 +48,11 @@ export const processQueue = async () => {
     connection = await db.getConnection();
 
     // Clean Up Stuck Jobs
-    // console.log("[ExportWorker] Checking stuck jobs...");
     await jobRepo.timeoutStuckExportJobs(connection, JOB_TIMEOUT_MINUTES);
 
     // Ambil Job Pending
     const job = await jobRepo.getPendingExportJob(connection);
     if (!job) {
-      // console.log("[ExportWorker] No pending job found.");
       connection.release();
       return;
     }
@@ -66,15 +64,11 @@ export const processQueue = async () => {
     console.log(`[ExportWorker] Locking Job ${jobId}...`);
     await jobRepo.lockExportJob(connection, jobId);
     console.log(`[ExportWorker] Job ${jobId} LOCKED. Releasing main connection.`);
-
-    // Release koneksi utama karena proses generate akan memakan waktu dan menggunakan koneksi streaming sendiri di service
     connection.release();
 
     // Parse Filters & Determine Type
     const filters = JSON.parse(job.filters || "{}");
     const exportType = filters.exportType || "STOCK_REPORT";
-
-    // ✅ FORCE EXCEL EXTENSION
     const dateStr = getFormattedDateTime();
     const fileName =
       exportType === "PRODUCT_MASTER"

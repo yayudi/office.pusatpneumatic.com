@@ -15,7 +15,6 @@ export const searchProducts = async (req, res) => {
   try {
     const { q, locationId } = req.query;
     const searchTerm = `%${q ? q.toLowerCase() : ""}%`;
-    // Pass 'db' pool directly to Repo
     const results = await productRepo.searchProducts(db, searchTerm, locationId);
     res.json(results);
   } catch (error) {
@@ -39,42 +38,26 @@ export const getAdminProductList = async (req, res) => {
 // GET /
 // Main Product List (Mendukung Filter Status, Tipe, Search, Sort)
 export const getProducts = async (req, res) => {
-  // Disable Cache untuk Admin Panel agar data selalu realtime
   res.setHeader("Cache-Control", "no-store");
 
   try {
-    // 1. Parsing Query Params dari Frontend
     const filters = {
       page: parseInt(req.query.page) || 1,
       limit: parseInt(req.query.limit) || 20,
       search: req.query.search || "",
       searchBy: req.query.searchBy === "sku" ? "sku" : "name",
-      location: req.query.location || "all", // Support filter WMS
-
-      // Filter Status (Active / Archived)
+      location: req.query.location || "all",
       status: req.query.status || "active",
-
-      // Filter Tipe Produk (Satuan / Paket)
-      // Konversi string 'true'/'false' ke boolean jika ada
       is_package: req.query.is_package !== undefined ? req.query.is_package === "true" : undefined,
-
-      // Backward compatibility untuk WMS Dashboard lama
       packageOnly: req.query.packageOnly === "true",
-      // Filter Status Stok (All / Minus / Positive)
       stockStatus: req.query.minusOnly === "true" ? "minus" : (req.query.stockStatus || "all"),
-
       building: req.query.building || "all",
       floor: req.query.floor || "all",
-
-      // Default Sort: SKU Descending (Produk terbaru biasanya SKU lebih besar/akhir)
       sortBy: req.query.sortBy || "sku",
       sortOrder: req.query.sortOrder === "asc" ? "ASC" : "DESC",
     };
     filters.offset = (filters.page - 1) * filters.limit;
-
-    // 2. Panggil Repo
     const result = await productRepo.getProductsWithFilters(db, filters);
-
     res.json(result);
   } catch (error) {
     console.error("Error fetching products:", error);
@@ -114,7 +97,7 @@ export const getProductStockDetails = async (req, res) => {
   }
 };
 
-// ✅ GET /:id/history
+// GET /:id/history
 export const getProductHistory = async (req, res) => {
   try {
     const { id } = req.params;
@@ -306,7 +289,6 @@ export const setPrimaryImage = async (req, res) => {
  */
 export const exportProducts = async (req, res) => {
   try {
-    // 1. Ambil filter dari Query Params (Sama persis dengan getProducts)
     const filters = {
       search: req.query.search || "",
       searchBy: req.query.searchBy === "sku" ? "sku" : "name",
@@ -319,12 +301,8 @@ export const exportProducts = async (req, res) => {
       floor: req.query.floor || "all",
       sortBy: req.query.sortBy || "sku",
       sortOrder: req.query.sortOrder === "desc" ? "DESC" : "ASC",
-
-      // Matikan Pagination untuk Export (Set limit sangat besar)
       limit: 1000000,
       offset: 0,
-
-      // ✅ TAMBAHKAN TIPE EXPORT
       exportType: "PRODUCT_MASTER",
       format: req.query.format || "xlsx",
     };

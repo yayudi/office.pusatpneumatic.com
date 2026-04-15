@@ -10,10 +10,8 @@ import { createJobService } from "../services/jobService.js";
 const router = express.Router();
 
 // ============================================================================
-// ✅ CONFIGURATION
+// CONFIGURATION
 // ============================================================================
-
-// ✅ FIX: Pastikan folder upload ada sebelum multer mencoba menyimpan file
 const uploadDir = "uploads/imports/";
 if (!fs.existsSync(uploadDir)) {
   try {
@@ -37,7 +35,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// ✅ CONFIG: Multer untuk Product Images
+// CONFIG: Multer untuk Product Images
 const productUploadDir = "uploads/products/";
 if (!fs.existsSync(productUploadDir)) {
   try {
@@ -71,7 +69,7 @@ const productUpload = multer({
 });
 
 // ============================================================================
-// ✅ SPECIFIC ROUTES (MUST BE DEFINED FIRST)
+// SPECIFIC ROUTES (MUST BE DEFINED FIRST)
 // ============================================================================
 
 /**
@@ -88,14 +86,8 @@ router.post(
       if (!req.file) {
         return res.status(400).json({ message: "File tidak ditemukan." });
       }
-
       const { dryRun } = req.body;
-
-      // Tentukan Tipe Job
-      // Jika dryRun=true, tambahkan suffix _DRY_RUN agar worker tahu mode simulasi
       const jobType = dryRun === "true" ? "BATCH_EDIT_PRODUCT_DRY_RUN" : "BATCH_EDIT_PRODUCT";
-
-      // Buat Job di Database
       const jobId = await createJobService({
         userId: req.user.id,
         type: jobType,
@@ -135,7 +127,7 @@ router.get("/search", productController.searchProducts);
 router.get("/admin-list", canAccess("manage-products"), productController.getAdminProductList);
 
 // ============================================================================
-// ✅ GENERAL ROUTES
+// GENERAL ROUTES
 // ============================================================================
 
 /**
@@ -145,7 +137,7 @@ router.get("/admin-list", canAccess("manage-products"), productController.getAdm
 router.get("/", productController.getProducts);
 
 // ============================================================================
-// ✅ PARAMETERIZED ROUTES (MUST BE LAST)
+// PARAMETERIZED ROUTES (MUST BE LAST)
 // ============================================================================
 
 /**
@@ -167,13 +159,9 @@ router.get("/:id/stock-details", productController.getProductStockDetails);
 router.get("/:id/history", canAccess("view-prices"), productController.getProductHistory);
 
 // ============================================================================
-// ✅ WRITE OPERATIONS
+// WRITE OPERATIONS
 // ============================================================================
 
-/**
- * POST /api/products
- * Membuat produk baru (Mendukung Paket & Berat).
- */
 /**
  * POST /api/products
  * Membuat produk baru (Mendukung Paket, Berat & Foto).
@@ -185,10 +173,6 @@ router.post(
   productController.createProduct
 );
 
-/**
- * PUT /api/products/:id
- * Mengupdate produk (Mendukung Paket, Berat, & Restore).
- */
 /**
  * PUT /api/products/:id
  * Mengupdate produk (Mendukung Paket, Berat, Foto & Restore).
@@ -207,7 +191,7 @@ router.put(
 router.delete("/:id", canAccess("manage-products"), productController.deleteProduct);
 
 // ============================================================================
-// ✅ IMAGE SPECIFIC ROUTES (GRANULAR PERMISSIONS)
+// IMAGE SPECIFIC ROUTES (GRANULAR PERMISSIONS)
 // ============================================================================
 
 /**

@@ -453,7 +453,7 @@ async function handleSubmit() {
                     <div class="flex flex-col">
                       <span class="font-medium text-text group-hover:text-primary">{{
                         res.name
-                        }}</span>
+                      }}</span>
                       <span class="font-mono text-[10px] text-text/40">{{ res.sku }}</span>
                     </div>
                     <div class="text-primary text-xs font-bold opacity-0 group-hover:opacity-100">
@@ -502,7 +502,7 @@ async function handleSubmit() {
               </div>
             </div>
 
-            <!-- ✅ Integrasi Riwayat Perubahan (Audit Log) -->
+            <!-- Integrasi Riwayat Perubahan (Audit Log) -->
             <div v-if="mode === 'edit' && productData.id">
               <ProductHistoryList :productId="productData.id" />
             </div>

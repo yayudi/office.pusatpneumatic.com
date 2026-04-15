@@ -10,10 +10,9 @@
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "start": "node server.js",
-    "dev": "concurrently \"npm run server:dev\" \"npm run exportWorker:dev\" \"npm run importWorker:dev\"",
+    "dev": "concurrently \"npm run server:dev\" \"npm run worker:dev\"",
     "server:dev": "nodemon server.js",
-    "exportWorker:dev": "node scripts/workers/devExport.js",
-    "importWorker:dev": "node scripts/workers/devImport.js",
+    "worker:dev": "node scripts/workers/devCron.js",
     "migrate:attendance": "node scripts/migrateAttendance.js",
     "migrate:wms": "node scripts/migrateWms.js",
     "migrate:wmsMaster": "node scripts/migrateMasterProducts.js",

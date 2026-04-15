@@ -8,7 +8,7 @@ import * as packageController from "../controllers/packageController.js";
 const router = express.Router();
 
 // ============================================================================
-// ✅ CONFIGURATION (Shared Uploads Directory)
+// CONFIGURATION (Shared Uploads Directory)
 // ============================================================================
 const uploadDir = "uploads/imports/";
 if (!fs.existsSync(uploadDir)) {
@@ -33,7 +33,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // ============================================================================
-// ✅ ROUTES
+// ROUTES
 // ============================================================================
 
 /**

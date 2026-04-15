@@ -1,10 +1,8 @@
 // backend\repositories\jobRepository.js
-import db from "../config/db.js";
 // ============================================================================
-// GENERAL CRUD (Used by jobService)
+// GENERAL CRUD
 // ============================================================================
 
-// [UPDATED] Support 'options' parameter
 export const create = async (
   connection,
   { userId, jobType, filename, filePath, notes, options }
@@ -12,16 +10,14 @@ export const create = async (
   const optionsStr = options ? JSON.stringify(options) : null;
   const [result] = await connection.query(
     `INSERT INTO import_jobs (user_id, job_type, original_filename, file_path, status, notes, options, created_at, updated_at)
-     VALUES (?, ?, ?, ?, 'PENDING', ?, ?, NOW(), NOW())`,
+      VALUES (?, ?, ?, ?, 'PENDING', ?, ?, NOW(), NOW())`,
     [userId, jobType, filename, filePath, notes || null, optionsStr]
   );
   return result.insertId;
 };
 
-// Update Status & Log Job
 export const update = async (connection, jobId, { status, summary, errorLog }) => {
   const errorLogStr = errorLog ? JSON.stringify(errorLog) : null;
-  // Jika status berubah jadi PROCESSING, set processing_started_at
   if (status === "PROCESSING") {
     await connection.query(
       `UPDATE import_jobs
@@ -39,7 +35,6 @@ export const update = async (connection, jobId, { status, summary, errorLog }) =
   }
 };
 
-// Ambil History Job User
 export const findByUser = async (connection, userId, limit = 20) => {
   const [rows] = await connection.query(
     `SELECT * FROM import_jobs WHERE user_id = ? ORDER BY created_at DESC LIMIT ?`,
@@ -48,17 +43,15 @@ export const findByUser = async (connection, userId, limit = 20) => {
   return rows;
 };
 
-// Fungsi Update Progress Ringan (dipanggil oleh Worker)
 export const updateProgress = async (connection, jobId, processed, total) => {
   return connection.query(
     `UPDATE import_jobs
-     SET processed_records = ?, total_records = ?, updated_at = NOW()
-     WHERE id = ?`,
+      SET processed_records = ?, total_records = ?, updated_at = NOW()
+      WHERE id = ?`,
     [processed, total, jobId]
   );
 };
 
-// Cancel Job (Hanya jika status PENDING)
 export const cancel = async (connection, jobId, userId) => {
   const [result] = await connection.query(
     `UPDATE import_jobs
@@ -74,8 +67,7 @@ export const cancel = async (connection, jobId, userId) => {
 // ============================================================================
 
 /**
- * [UPDATED] Ambil Job Pending ATAU Job Retrying yang sudah menunggu > 10 detik
- * Mencegah "Looping Hell" dengan jeda waktu (Backoff).
+ * Ambil Job Pending ATAU Job Retrying yang sudah menunggu > 10 detik
  */
 export const getPendingImportJob = async (connection) => {
   const [rows] = await connection.query(
@@ -95,9 +87,6 @@ export const lockImportJob = async (connection, jobId) => {
   );
 };
 
-// [NEW] Fungsi Retry
-// Menaikkan retry_count dan set status ke RETRYING.
-// updated_at diupdate agar query getPendingImportJob menundanya selama 10 detik.
 export const retryImportJob = async (connection, jobId, currentRetryCount, errorMessage) => {
   const nextRetry = currentRetryCount + 1;
   const note = `Retry #${nextRetry}: ${errorMessage.substring(0, 100)}...`;
@@ -140,13 +129,12 @@ export const failImportJob = async (connection, jobId, summary) => {
 // EXPORT JOBS
 // ============================================================================
 
-// ✅ NEW: Fungsi untuk membuat Job Export baru
-// ✅ NEW: Fungsi untuk membuat Job Export baru
+// Fungsi untuk membuat Job Export baru
 export const createExportJob = async (connection, { userId, filters, jobType }) => {
   const filtersStr = JSON.stringify(filters);
   const [result] = await connection.query(
     `INSERT INTO export_jobs (user_id, status, filters, job_type, created_at)
-     VALUES (?, 'PENDING', ?, ?, NOW())`,
+      VALUES (?, 'PENDING', ?, ?, NOW())`,
     [userId, filtersStr, jobType || "STOCK_REPORT"]
   );
   return result.insertId;
@@ -183,9 +171,9 @@ export const failExportJob = async (connection, jobId, errorMessage) => {
 export const timeoutStuckExportJobs = async (connection, timeoutMinutes) => {
   return connection.query(
     `UPDATE export_jobs
-     SET status = 'FAILED', error_message = CONCAT('Job timeout after ', ?, ' minutes')
-     WHERE status = 'PROCESSING'
-     AND processing_started_at < NOW() - INTERVAL ? MINUTE`,
+      SET status = 'FAILED', error_message = CONCAT('Job timeout after ', ?, ' minutes')
+      WHERE status = 'PROCESSING'
+      AND processing_started_at < NOW() - INTERVAL ? MINUTE`,
     [timeoutMinutes, timeoutMinutes]
   );
 };

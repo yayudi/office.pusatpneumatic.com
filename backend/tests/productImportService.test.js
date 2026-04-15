@@ -155,7 +155,7 @@ describe("Product Import Service - Logic Processing", () => {
       1,
       "test.xlsx",
       null,
-      true // ✅ DRY RUN
+      true // DRY RUN
     );
 
     // ASSERT
@@ -183,7 +183,7 @@ describe("Product Import Service - Logic Processing", () => {
       "test.xlsx",
       null,
       false,
-      { lastRow: 1 } // ✅ Resume Options
+      { lastRow: 1 } // Resume Options
     );
 
     // ASSERT

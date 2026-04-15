@@ -1,7 +1,7 @@
 // backend/services/attendanceParser.js
 import fs from "fs";
 import csv from "csv-parser";
-import { PARSER_CONSTANTS } from "../../config/wmsConstants.js"; // ✅ Import Config
+import { PARSER_CONSTANTS } from "../../config/wmsConstants.js"; // Import Config
 
 /**
  * Mencoba mengekstrak tanggal dari 10 baris pertama file (Metadata Header)
@@ -18,7 +18,7 @@ export async function extractDateFromCsv(filepath) {
       // Regex flexible: support separator / atau -
       const match = line.match(/From\s+(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})\s+To/i);
       if (match) {
-        console.log(`[Parser] ✅ Metadata ditemukan: "${line.trim()}"`);
+        console.log(`[Parser] Metadata ditemukan: "${line.trim()}"`);
         return { year: parseInt(match[1]), month: parseInt(match[2]) };
       }
     }
@@ -140,7 +140,7 @@ export function parseCsvToUserData(filepath) {
         validRowCount++;
       })
       .on("end", () => {
-        console.log(`[Parser] ✅ Parsing Selesai.`);
+        console.log(`[Parser] Parsing Selesai.`);
         console.log(
           `[Parser] 📊 Statistik: Total=${rowCount}, Valid=${validRowCount}, Skipped=${skippedCount}`
         );

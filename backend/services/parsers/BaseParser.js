@@ -212,7 +212,7 @@ export class BaseParser {
     }
 
     console.log(
-      `[${this.source}Parser] ✅ Header: Row ${headerRowIdx} @ Sheet "${bestSheet.name}"`
+      `[${this.source}Parser] Header: Row ${headerRowIdx} @ Sheet "${bestSheet.name}"`
     );
 
     const orders = new Map();

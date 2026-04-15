@@ -1,16 +1,9 @@
 <!-- frontend/src/components/product/PriceUpdateModal.vue -->
 <template>
-  <!-- Menggunakan Base Modal Wrapper -->
   <div v-if="isOpen"
     class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-    <!--
-      UPDATE: Background & Text menggunakan variabel tema.
-      bg-[hsl(var(--color-background))] -> Mengambil warna background tema aktif
-      text-[hsl(var(--color-text))] -> Mengambil warna teks tema aktif
-    -->
     <div
       class="bg-[hsl(var(--color-background))] text-[hsl(var(--color-text))] rounded-xl shadow-2xl w-full max-w-md p-6 transform transition-all border border-[hsl(var(--color-secondary))/0.3]">
-      <!-- Header -->
       <div class="flex justify-between items-center mb-6">
         <h3 class="text-xl font-bold">Import Produk Massal</h3>
         <button @click="close"
@@ -19,9 +12,7 @@
         </button>
       </div>
 
-      <!-- Body -->
       <div class="space-y-5">
-        <!-- Info Box -->
         <div
           class="bg-[hsl(var(--color-primary))/0.1] text-[hsl(var(--color-primary))] p-4 rounded-lg text-sm border border-[hsl(var(--color-primary))/0.2]">
           <p class="font-bold mb-2 flex items-center gap-2">
@@ -46,7 +37,6 @@
           </div>
         </div>
 
-        <!-- File Input Area -->
         <div
           class="border-2 border-dashed border-[hsl(var(--color-secondary))] rounded-xl p-8 text-center cursor-pointer hover:border-[hsl(var(--color-primary))] hover:bg-[hsl(var(--color-primary))/0.05] transition-all group"
           @click="$refs.fileInput.click()" @dragover.prevent @drop.prevent="handleDrop">
@@ -68,7 +58,6 @@
           </div>
         </div>
 
-        <!-- Dry Run Option -->
         <div
           class="flex items-center gap-3 p-3 rounded-lg hover:bg-[hsl(var(--color-secondary))/0.05] transition-colors cursor-pointer"
           @click="isDryRun = !isDryRun">
@@ -84,7 +73,6 @@
           </label>
         </div>
 
-        <!-- Error Message -->
         <div v-if="errorMessage"
           class="bg-[hsl(var(--color-danger))/0.1] text-[hsl(var(--color-danger))] px-4 py-3 rounded-lg text-sm flex items-start gap-3">
           <font-awesome-icon icon="fa-solid fa-circle-exclamation" class="mt-0.5 shrink-0" />
@@ -92,7 +80,6 @@
         </div>
       </div>
 
-      <!-- Footer -->
       <div class="mt-8 flex justify-end gap-3">
         <button @click="close"
           class="px-5 py-2.5 rounded-lg font-medium text-[hsl(var(--color-text))] opacity-70 hover:opacity-100 hover:bg-[hsl(var(--color-secondary))/0.1] transition-all flex items-center gap-2">
@@ -100,7 +87,7 @@
           Batal
         </button>
         <button @click="upload" :disabled="!selectedFile || isLoading"
-          class="px-5 py-2.5 bg-[hsl(var(--color-primary))] text-secondary rounded-lg shadow-lg shadow-[hsl(var(--color-primary))/0.3] font-bold hover:bg-[hsl(var(--color-primary))/0.9] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all flex items-center gap-2">
+          class="px-5 py-2.5 bg-[hsl(var(--color-primary))] text-background rounded-lg shadow-lg shadow-[hsl(var(--color-primary))/0.3] font-bold hover:bg-[hsl(var(--color-primary))/0.9] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all flex items-center gap-2">
           <font-awesome-icon v-if="isLoading" icon="fa-solid fa-spinner" spin />
           <font-awesome-icon v-else icon="fa-solid fa-file-import" />
           <span>{{ isLoading ? 'Mengunggah...' : 'Mulai Import' }}</span>
@@ -137,7 +124,6 @@ const handleDrop = (event) => {
 }
 
 const validateAndSetFile = (file) => {
-  // Validasi sederhana tipe file bisa ditambahkan di sini jika perlu
   selectedFile.value = file
   errorMessage.value = ''
 }
@@ -174,7 +160,6 @@ const upload = async () => {
     close()
   } catch (error) {
     console.error(error)
-    // Mengambil pesan error dari response backend atau fallback ke pesan default
     errorMessage.value = error.response?.data?.message || error.message || 'Gagal mengunggah file.'
   } finally {
     isLoading.value = false

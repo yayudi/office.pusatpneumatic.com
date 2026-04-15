@@ -11,7 +11,7 @@ function timeToMinutes(timeStr) {
 }
 
 /**
- * ✅ REFACTOR BESAR:
+ * REFACTOR BESAR:
  * Memproses data mentah dari API SQL (bukan JSON padat) menjadi format
  * yang siap digunakan oleh komponen Vue.
  *
@@ -23,7 +23,7 @@ function timeToMinutes(timeStr) {
  * @returns {Array} - Array pengguna dengan data log yang sudah dinormalisasi.
  */
 /**
- * ✅ REFACTOR BESAR:
+ * REFACTOR BESAR:
  * Memproses data mentah dari API SQL (bukan JSON padat) menjadi format
  * yang siap digunakan oleh komponen Vue.
  *

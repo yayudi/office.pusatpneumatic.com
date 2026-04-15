@@ -7,6 +7,7 @@ import AppHeader from '@/components/layout/AppHeader.vue'
 import MessageToast from '@/components/ui/MessageToast.vue'
 import { registerToast } from '@/composables/useToast.js'
 import { useTheme } from '@/composables/useTheme'
+import PwaUpdatePrompt from '@/components/ui/PwaUpdatePrompt.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -32,6 +33,7 @@ function handleLogout() {
 <template>
   <div class="bg-background text-text min-h-screen font-sans">
     <MessageToast ref="toastComponentRef" />
+    <PwaUpdatePrompt />
 
     <AppHeader v-if="showHeader" @logout="handleLogout" />
     <main class="container mx-auto">

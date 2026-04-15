@@ -44,7 +44,7 @@ const purgeObsoleteData = async () => {
     const totalToDelete = countRes[0].total;
 
     if (totalToDelete === 0) {
-      log("✅ Tidak ada data usang yang perlu dihapus.");
+      log("Tidak ada data usang yang perlu dihapus.");
       return;
     }
 

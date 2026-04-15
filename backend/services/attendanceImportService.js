@@ -17,7 +17,7 @@ const logTypeMap = { in: "in", out: "out", "break-in": "break-in", "break-out": 
 export async function processAttendanceImport(
   connection,
   filePath,
-  userId, // ✅ Parameter ini WAJIB ADA agar urutan argumen sesuai dengan caller
+  userId, // Parameter ini WAJIB ADA agar urutan argumen sesuai dengan caller
   originalFilename,
   updateProgress,
   isDryRun = false,

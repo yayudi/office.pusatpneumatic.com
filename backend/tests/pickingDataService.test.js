@@ -127,7 +127,7 @@ describe("PickingDataService - Complete Items Logic", () => {
     expect(locationRepo.findBestStock).not.toHaveBeenCalled();
     expect(locationRepo.deductStock).toHaveBeenCalledWith(mockConnection, 99, 10, 5);
 
-    // ✅ VERIFIKASI INPUT LOG (STOCK MOVEMENTS)
+    // VERIFIKASI INPUT LOG (STOCK MOVEMENTS)
     // Memastikan sistem mencatat pergerakan stok 'SALE'
     expect(stockRepo.createLog).toHaveBeenCalledWith(
       mockConnection,
@@ -175,7 +175,7 @@ describe("PickingDataService - Complete Items Logic", () => {
     // Should deduct from the NEW location (50)
     expect(locationRepo.deductStock).toHaveBeenCalledWith(mockConnection, 88, 50, 2);
 
-    // ✅ VERIFIKASI INPUT LOG (STOCK MOVEMENTS)
+    // VERIFIKASI INPUT LOG (STOCK MOVEMENTS)
     // Memastikan log dicatat dengan LOKASI BARU (ID 50)
     expect(stockRepo.createLog).toHaveBeenCalledWith(
       mockConnection,
@@ -213,7 +213,7 @@ describe("PickingDataService - Complete Items Logic", () => {
 
     expect(mockConnection.rollback).toHaveBeenCalled();
     expect(locationRepo.deductStock).not.toHaveBeenCalled();
-    // ✅ Pastikan TIDAK ada log yang dibuat jika gagal
+    // Pastikan TIDAK ada log yang dibuat jika gagal
     expect(stockRepo.createLog).not.toHaveBeenCalled();
   });
 
@@ -260,7 +260,7 @@ describe("PickingDataService - Complete Items Logic", () => {
     // Transaction Integrity Check
     expect(mockConnection.rollback).toHaveBeenCalled();
     expect(locationRepo.deductStock).not.toHaveBeenCalled(); // No stocks should be deducted if batch fails
-    // ✅ Pastikan TIDAK ada log yang dibuat karena validasi dilakukan di awal (batch validation)
+    // Pastikan TIDAK ada log yang dibuat karena validasi dilakukan di awal (batch validation)
     expect(stockRepo.createLog).not.toHaveBeenCalled();
   });
 });

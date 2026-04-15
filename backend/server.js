@@ -16,12 +16,12 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// [FIX V5] Enable Trust Proxy for Reverse Proxies (Cloudflare/Nginx)
+// Enable Trust Proxy for Reverse Proxies (Cloudflare/Nginx)
 // Ensure req.protocol detects 'https' correctly
 app.set('trust proxy', true);
 
 // ==================================================================
-// [FIX CORS V5] Konfigurasi CORS Permissive
+// Konfigurasi CORS Permissive
 // ==================================================================
 // Mengatasi masalah "CORS request did not succeed" di Shared Hosting.
 // Kita menggunakan strategi "Reflect Origin" (callback null, true) yang
@@ -43,7 +43,7 @@ app.options("*", cors(corsOptions)); // Handle Preflight (OPTIONS) requests
 app.use(express.json());
 
 // ==================================================================
-// [DEBUGGER V5] Middleware Logger untuk Download
+// Middleware Logger untuk Download
 // ==================================================================
 // Mencatat request download file untuk memastikan file ada di disk.
 app.use("/uploads", (req, res, next) => {
@@ -69,7 +69,7 @@ app.use("/uploads", (req, res, next) => {
   } catch (err) {
     console.error("Logger Error:", err);
   }
-  next(); // Lanjut ke express.static
+  next();
 });
 
 // ==================================================================

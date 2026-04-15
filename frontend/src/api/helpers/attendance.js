@@ -24,7 +24,7 @@ export async function getAbsensiData(year, month) {
     const { data: raw } = await axios.get(url)
     // raw = { allUsers: [...], logRows: [...], globalInfo: {...} }
 
-    // ✅ PERUBAHAN: Kirim data yang sudah bersih ke normalizeLogs
+    // PERUBAHAN: Kirim data yang sudah bersih ke normalizeLogs
     //    Kita mem-pass parameter yang dibutuhkan oleh normalize.js
     return {
       summary: raw.globalInfo, // Kirim globalInfo langsung

@@ -7,6 +7,6 @@ import NodeCache from "node-cache";
  */
 const cache = new NodeCache({ stdTTL: 120, checkperiod: 150 });
 
-console.log("✅ Modul Cache berhasil dimuat.");
+console.log("Modul Cache berhasil dimuat.");
 
 export default cache;

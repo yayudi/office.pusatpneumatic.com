@@ -57,7 +57,7 @@ const upload = multer({
 });
 
 // ============================================================================
-// ✅ STOCK OPERATIONS (Transfer, Adjust, Batch)
+// STOCK OPERATIONS (Transfer, Adjust, Batch)
 // ============================================================================
 
 /**
@@ -91,7 +91,7 @@ router.post("/batch-transfer", stockController.batchTransfer);
 router.post("/validate-return", stockController.validateReturn);
 
 // ============================================================================
-// ✅ READ / HISTORY
+// READ / HISTORY
 // ============================================================================
 
 /**
@@ -107,7 +107,7 @@ router.get("/history/:productId", stockController.getStockHistory);
 router.get("/batch-log", stockController.getBatchLogs);
 
 // ============================================================================
-// ✅ IMPORT / EXPORT (Stock Opname)
+// IMPORT / EXPORT (Stock Opname)
 // ============================================================================
 
 /**

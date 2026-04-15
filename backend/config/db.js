@@ -1,7 +1,6 @@
 // backend/config/db.js
-
 import mysql from "mysql2/promise";
-import "dotenv/config"; // Cara ESM untuk memuat .env
+import "dotenv/config";
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
@@ -11,7 +10,7 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  dateStrings: ['DATE', 'DATETIME'], // Penting: Agar tanggal tidak dikonversi ke UTC otomatis
+  dateStrings: ['DATE', 'DATETIME'],
 });
 
 export default pool;

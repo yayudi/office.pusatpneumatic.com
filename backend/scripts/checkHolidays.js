@@ -1,6 +1,5 @@
 
 import { loadHolidays } from "../services/helpers/fileHelpers.js";
-import db from "../config/db.js";
 
 (async () => {
   try {
@@ -8,7 +7,7 @@ import db from "../config/db.js";
     const holidays = await loadHolidays(2025);
     console.log("Holidays Map Keys:", Object.keys(holidays).length);
     if (holidays['2025-12-25']) {
-      console.log("✅ Success: Christmas 2025 found in map!");
+      console.log("Success: Christmas 2025 found in map!");
     } else {
       console.error("❌ Failed: Christmas 2025 NOT found.");
     }
