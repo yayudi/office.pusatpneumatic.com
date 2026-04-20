@@ -212,11 +212,11 @@ async function handleRequestExport() {
   <div class="flex bg-secondary/10 font-sans text-text">
     <!-- Mobile Backdrop -->
     <div v-if="isSidebarOpen" @click="isSidebarOpen = false"
-      class="fixed inset-0 bg-black/50 z-30 md:hidden backdrop-blur-sm"></div>
+      class="fixed inset-0 bg-black/50 z-20 md:hidden backdrop-blur-sm"></div>
 
     <!-- Sidebar -->
     <aside
-      class="fixed md:sticky top-0 h-screen md:max-h-[700px] z-45 w-64 bg-background border-r border-secondary/20 transform transition-transform duration-300 ease-in-out flex flex-col shadow-lg md:shadow-none"
+      class="fixed md:sticky top-0 h-screen md:max-h-[700px] z-50 w-64 bg-background border-r border-secondary/20 transform transition-transform duration-300 ease-in-out flex flex-col shadow-lg md:shadow-none"
       :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'">
       <!-- Logo / Header -->
       <div class="p-6 border-b border-secondary/20 flex justify-between items-center bg-secondary/5">
@@ -423,10 +423,10 @@ async function handleRequestExport() {
                     class="bg-background border border-secondary/20 rounded-xl overflow-hidden shadow-md overflow-x-auto overflow-y-auto relative custom-scrollbar max-h-[400px]">
                     <table class="w-full text-left text-sm min-w-[500px] border-collapse">
                       <thead
-                        class="sticky top-0 z-30 bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5">
+                        class="sticky top-0 z-10 bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5">
                         <tr>
                           <th
-                            class="px-6 py-3 font-bold text-xs text-text/60 uppercase sticky left-0 z-30 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                            class="px-6 py-3 font-bold text-xs text-text/60 uppercase sticky left-0 z-10 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
                             Waktu</th>
                           <th class="px-6 py-3 font-bold text-xs text-text/60 uppercase border-b border-secondary/10">
                             Status</th>
@@ -452,10 +452,10 @@ async function handleRequestExport() {
                         <tr v-else v-for="job in jobHistory" :key="job.id"
                           class="hover:bg-secondary/5 transition-colors group relative">
                           <td
-                            class="px-6 py-4 text-text text-xs sticky left-0 z-20 bg-background group-hover:bg-secondary/5 transition-colors shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                            class="px-6 py-4 text-text text-xs sticky left-0 z-10 bg-background group-hover:bg-secondary/5 transition-colors shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
                             <div class="flex flex-col">
                               <span class="font-bold text-sm">{{ new Date(job.created_at).toLocaleDateString('id-ID')
-                                }}</span>
+                              }}</span>
                               <span class="text-text/40 text-[10px]">{{ new
                                 Date(job.created_at).toLocaleTimeString('id-ID') }}</span>
                             </div>
@@ -477,7 +477,7 @@ async function handleRequestExport() {
                             </span>
                           </td>
                           <td
-                            class="px-6 py-4 text-right sticky right-0 z-20 bg-background group-hover:bg-secondary/5 transition-colors shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                            class="px-6 py-4 text-right sticky right-0 z-10 bg-background group-hover:bg-secondary/5 transition-colors shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]">
                             <a v-if="job.status === 'COMPLETED'" :href="job.download_url" download
                               class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary hover:text-secondary transition-all shadow-sm">
                               <font-awesome-icon icon="fa-solid fa-download" /> Unduh

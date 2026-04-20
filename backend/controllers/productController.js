@@ -225,18 +225,42 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
+// POST /:id/link-media
+export const linkMediaToProduct = async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+  const { mediaIds } = req.body;
+
+  if (!mediaIds || !Array.isArray(mediaIds) || mediaIds.length === 0) {
+    return res.status(400).json({ success: false, message: "Media ID tidak valid atau kosong." });
+  }
+
+  try {
+    await productService.linkMediaToProductService(id, mediaIds, userId);
+    cache.flushAll(); 
+    return res.json({
+      success: true,
+      message: "Media berhasil disematkan.",
+    });
+  } catch (error) {
+    console.error("Link Media Error:", error);
+    return res.status(500).json({ success: false, message: "Gagal menyematkan media." });
+  }
+};
+
 // POST /:id/images
 export const uploadMoreImages = async (req, res) => {
   const { id } = req.params;
   const userId = req.user.id;
   const images = req.files;
-  console.log("DEBUG UPLOAD:", req.files); // Log file structure
 
+  // Handle Raw Uploads (Old Flow / Backward Compat)
   if (!images || images.length === 0) {
     return res.status(400).json({ success: false, message: "Tidak ada gambar yang diunggah." });
   }
 
   try {
+    // This expects insertImages to be defined (Currently missing in repo but keeping logic intact if it exists elsewhere)
     await productService.uploadProductImagesService(id, images, userId);
     cache.flushAll(); // Reset cache
     res.json({

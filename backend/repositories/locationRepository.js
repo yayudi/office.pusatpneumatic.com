@@ -72,24 +72,26 @@ export const getTotalStockByProductIds = async (connection, productIds, purpose 
 /**
  * Find Best Stock (Single Lookup)
  */
-export const findBestStock = async (connection, productId, qtyNeeded) => {
+export const findBestStock = async (connection, productId, qtyNeeded, purpose = "DISPLAY") => {
   const [rows] = await connection.query(
     `SELECT sl.location_id, sl.quantity
       FROM stock_locations sl
       JOIN locations l ON sl.location_id = l.id
       WHERE sl.product_id = ?
         AND sl.quantity > 0
-        AND l.purpose = 'DISPLAY'
+        AND l.purpose = ?
       ORDER BY
         CASE
-          WHEN sl.location_id IN (2, 3) THEN 1
-          WHEN sl.location_id IN (4, 5) THEN 2
+          WHEN l.purpose = 'DISPLAY' AND sl.location_id IN (2, 3)
+            THEN 1
+          WHEN l.purpose = 'DISPLAY' AND sl.location_id IN (4, 5)
+            THEN 2
           ELSE 3
         END ASC,
         CASE WHEN sl.quantity >= ? THEN 1 ELSE 2 END ASC,
         sl.quantity DESC
       LIMIT 1`,
-    [productId, qtyNeeded, qtyNeeded]
+    [productId, purpose, qtyNeeded, qtyNeeded]
   );
   return rows.length > 0 ? rows[0].location_id : null;
 };

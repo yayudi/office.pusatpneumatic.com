@@ -6,6 +6,9 @@ import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
+import BasePagination from '@/components/ui/BasePagination.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
+import { computed } from 'vue'
 
 const logs = ref([])
 const total = ref(0)
@@ -20,6 +23,23 @@ const targetFilter = ref('all')
 
 const startDate = ref(null)
 const endDate = ref(null)
+
+const actionOptions = [
+  { value: 'all', label: 'Semua Aksi' },
+  { value: 'CREATE', label: 'CREATE' },
+  { value: 'UPDATE', label: 'UPDATE' },
+  { value: 'DELETE', label: 'DELETE' },
+  { value: 'LOGIN', label: 'LOGIN' },
+]
+
+const targetOptions = [
+  { value: 'all', label: 'Semua Tipe' },
+  { value: 'PRODUCT', label: 'PRODUCT' },
+  { value: 'USER', label: 'USER' },
+  { value: 'ROLE', label: 'ROLE' },
+  { value: 'LOCATION', label: 'LOCATION' },
+  { value: 'SETTING', label: 'SETTING' },
+]
 
 const fetchLogs = async () => {
   isLoading.value = true
@@ -60,8 +80,22 @@ const formatChanges = (changesJson) => {
   }
 }
 
+// Computed Pagination
+const paginationData = computed(() => ({
+  page: page.value,
+  limit: limit.value,
+  total: total.value,
+  totalPages: Math.ceil(total.value / limit.value) || 1
+}))
+
+const onChangePage = (p) => { page.value = p }
+const onUpdateLimit = (l) => {
+  limit.value = l
+  page.value = 1
+}
+
 // Watchers
-watch([page, search, actionFilter, targetFilter, startDate, endDate], () => {
+watch([page, limit, search, actionFilter, targetFilter, startDate, endDate], () => {
   if (search.value || actionFilter.value !== 'all' || targetFilter.value !== 'all' || startDate.value || endDate.value) {
   }
   fetchLogs()
@@ -97,21 +131,8 @@ onMounted(() => {
 
       <DateRangeFilter v-model:startDate="startDate" v-model:endDate="endDate" />
 
-      <select v-model="actionFilter" class="px-4 py-2 bg-background border border-secondary/30 rounded-lg text-text">
-        <option value="all">Semua Aksi</option>
-        <option value="CREATE">CREATE</option>
-        <option value="UPDATE">UPDATE</option>
-        <option value="DELETE">DELETE</option>
-        <option value="LOGIN">LOGIN</option>
-      </select>
-      <select v-model="targetFilter" class="px-4 py-2 bg-background border border-secondary/30 rounded-lg text-text">
-        <option value="all">Semua Tipe</option>
-        <option value="PRODUCT">PRODUCT</option>
-        <option value="USER">USER</option>
-        <option value="ROLE">ROLE</option>
-        <option value="LOCATION">LOCATION</option>
-        <option value="SETTING">SETTING</option>
-      </select>
+      <BaseSelect v-model="actionFilter" :options="actionOptions" track-by="value" emit-value :searchable="false" class="min-w-[150px]" />
+      <BaseSelect v-model="targetFilter" :options="targetOptions" track-by="value" emit-value :searchable="false" class="min-w-[150px]" />
     </div>
 
     <!-- Table & Pagination Card -->
@@ -206,21 +227,12 @@ onMounted(() => {
       </div>
 
       <!-- Pagination (Sticky Bottom) -->
-      <div v-if="total > limit"
-        class="p-4 border-t border-secondary/20 flex justify-between items-center bg-background rounded-b-xl shrink-0">
-        <span class="text-xs text-text/50">
-          Showing {{ (page - 1) * limit + 1 }} - {{ Math.min(page * limit, total) }} of {{ total }}
-        </span>
-        <div class="flex gap-2">
-          <button @click="page > 1 && page--" :disabled="page === 1"
-            class="px-3 py-1 rounded border border-secondary/30 text-xs disabled:opacity-30 hover:bg-secondary/10">
-            Prev
-          </button>
-          <button @click="page * limit < total && page++" :disabled="page * limit >= total"
-            class="px-3 py-1 rounded border border-secondary/30 text-xs disabled:opacity-30 hover:bg-secondary/10">
-            Next
-          </button>
-        </div>
+      <div class="border-t border-secondary/20 flex justify-between items-center bg-background rounded-b-xl shrink-0">
+        <BasePagination 
+          :pagination="paginationData" 
+          @changePage="onChangePage" 
+          @update:limit="onUpdateLimit" 
+        />
       </div>
     </div>
   </div>

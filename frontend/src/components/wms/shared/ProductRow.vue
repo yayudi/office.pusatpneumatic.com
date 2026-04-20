@@ -6,6 +6,7 @@ import { formatCurrency } from '@/utils/formatters.js'
 import { fetchProductById } from '@/api/helpers/products.js'
 import { formatNumber } from '@/api/helpers/format'
 import FloatingTooltip from '@/components/ui/FloatingTooltip.vue'
+import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/vue'
 
 const PPN_RATE = 0.11
 
@@ -29,36 +30,37 @@ const emit = defineEmits([
 const auth = useAuthStore()
 
 // --- STATE ---
+// Template Refs for Floating UI
+const locationTargetRef = ref(null)
 const tooltipContainer = ref(null)
-const packageTriggerRef = ref(null) // Ref untuk tombol PAKET spesifik baris ini
+const packageTargetRef = ref(null)
+const priceTargetRef = ref(null)
+const menuTargetRef = ref(null)
 
 // Location Tooltip State
 const isTooltipVisible = ref(false)
-const tooltipX = ref(0)
-const tooltipY = ref(0)
 
 // Package Tooltip State
 const isPackageTooltipVisible = ref(false)
-const packageTooltipX = ref(0)
-const packageTooltipY = ref(0)
 const localComponents = ref([])
 const isLoadingComponents = ref(false)
 const hasFetchedComponents = ref(false)
 
 // Menu State
 const isMenuVisible = ref(false)
-const menuX = ref(0)
-const menuY = ref(0)
+const menuFloating = ref(null)
+
+const { floatingStyles: menuFloatingStyles } = useFloating(menuTargetRef, menuFloating, {
+  placement: 'bottom-end',
+  strategy: 'fixed',
+  middleware: [offset(4), flip(), shift({ padding: 8 })],
+  whileElementsMounted: autoUpdate
+})
 
 // Price Tooltip State
 const isPriceTooltipVisible = ref(false)
-const priceTooltipX = ref(0)
-const priceTooltipY = ref(0)
 
-function handlePriceMouseEnter(event) {
-  const rect = event.target.getBoundingClientRect()
-  priceTooltipX.value = rect.left + rect.width / 2
-  priceTooltipY.value = rect.top
+function handlePriceMouseEnter() {
   isPriceTooltipVisible.value = true
 }
 
@@ -93,12 +95,7 @@ function handleToggleTooltip() {
       isTooltipVisible.value = false
       return
     }
-    const targetElement = tooltipContainer.value.querySelector('.location-cell')
-    if (targetElement) {
-      const rect = targetElement.getBoundingClientRect()
-      tooltipX.value = rect.left + rect.width / 2
-      tooltipY.value = rect.top
-    }
+
     isTooltipVisible.value = true
   }
 }
@@ -120,7 +117,7 @@ const fetchPackageComponents = async () => {
   }
 }
 
-const handleTogglePackageTooltip = async (event) => {
+const handleTogglePackageTooltip = async () => {
   // Tutup yang lain (menu & tooltip lokasi)
   isMenuVisible.value = false
   isTooltipVisible.value = false
@@ -132,9 +129,6 @@ const handleTogglePackageTooltip = async (event) => {
   }
 
   // Buka tooltip
-  const rect = event.currentTarget.getBoundingClientRect()
-  packageTooltipX.value = rect.left + rect.width / 2
-  packageTooltipY.value = rect.top
   isPackageTooltipVisible.value = true
 
   // Fetch data jika belum ada
@@ -154,7 +148,7 @@ const handleTogglePackageTooltip = async (event) => {
 }
 
 // --- MENU LOGIC ---
-function handleToggleMenu(event) {
+function handleToggleMenu() {
   isTooltipVisible.value = false
   isPackageTooltipVisible.value = false
 
@@ -163,9 +157,6 @@ function handleToggleMenu(event) {
     return
   }
 
-  const rect = event.currentTarget.getBoundingClientRect()
-  menuX.value = rect.left - 120
-  menuY.value = rect.bottom + 5
   isMenuVisible.value = true
 }
 
@@ -181,9 +172,7 @@ function handleClickOutside(event) {
   }
 
   // Handle Package Tooltip
-  // Cek apakah klik terjadi pada TOMBOL paket milik baris INI
-  const isClickOnTrigger = packageTriggerRef.value && packageTriggerRef.value.contains(event.target)
-  // Cek apakah klik terjadi di dalam TOOLTIP yang muncul
+  const isClickOnTrigger = packageTargetRef.value && packageTargetRef.value.contains(event.target)
   const isClickOnTooltip = event.target.closest('.package-tooltip-teleported')
 
   // Jika klik BUKAN di tombol ini DAN BUKAN di tooltip -> Tutup
@@ -287,7 +276,7 @@ const imageUrl = computed(() => {
 
 <template>
   <tr ref="tooltipContainer"
-    class="group relative transition-colors duration-500 md:table-row mb-2 bg-background md:bg-transparent border md:border-0 border-secondary/20 rounded-xl md:rounded-none shadow-sm md:shadow-none overflow-hidden"
+    class="group relative transition-colors duration-500 md:table-row mb-2 bg-background md:bg-background border md:border-0 border-secondary/20 rounded-xl md:rounded-none shadow-sm md:shadow-none overflow-hidden"
     :class="[
       isUpdated ? 'bg-success/20' : 'md:hover:bg-secondary/20',
       mobileLayout === 'compact' ? 'grid grid-cols-[1fr_auto] gap-x-3 p-3 items-start' : 'grid grid-cols-2 gap-x-4 gap-y-2 p-3'
@@ -295,7 +284,7 @@ const imageUrl = computed(() => {
 
     <!-- IMAGE (Sticky Left) -->
     <td
-      class="hidden md:table-cell p-0 md:px-2 md:py-2 text-center whitespace-nowrap md:border-b border-secondary/10 md:border-secondary/80 md:sticky md:left-0 z-20 group-hover:bg-secondary/5 transition-colors md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] bg-transparent w-16">
+      class="hidden md:table-cell p-0 md:px-2 md:py-2 text-center whitespace-nowrap md:border-b border-secondary/10 md:border-secondary/80 md:sticky md:left-0 z-20 group-hover:bg-secondary/5 transition-colors md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] bg-background w-16">
       <div @click.stop="$emit('view-image', product)"
         class="mx-auto w-10 h-10 rounded-lg bg-secondary/10 border border-secondary/20 overflow-hidden shrink-0 flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all relative group/img">
         <img v-if="imageUrl" :src="imageUrl" class="w-full h-full object-cover" loading="lazy" />
@@ -310,7 +299,7 @@ const imageUrl = computed(() => {
 
     <!-- NAME (Sticky Left next to Image) -->
     <td
-      class="md:table-cell flex items-center justify-between p-0 md:px-6 md:py-2 whitespace-nowrap md:border-b border-secondary/10 md:border-secondary/80 md:sticky md:left-16 z-20 group-hover:bg-secondary/5 transition-colors md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] bg-transparent"
+      class="md:table-cell flex items-center justify-between p-0 md:px-6 md:py-2 whitespace-nowrap md:border-b border-secondary/10 md:border-secondary/80 md:sticky md:left-16 z-20 group-hover:bg-secondary/5 transition-colors md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] bg-background"
       :class="mobileLayout === 'compact' ? 'col-span-1' : 'col-span-2'">
       <div class="flex items-center gap-3 w-full overflow-hidden">
         <!-- Mobile Thumbnail (Hidden on Desktop) -->
@@ -327,7 +316,7 @@ const imageUrl = computed(() => {
               :title="product.name">
               {{ product.name }}
             </span>
-            <span v-if="product.is_package" ref="packageTriggerRef" @click.stop="handleTogglePackageTooltip"
+            <span v-if="product.is_package" ref="packageTargetRef" @click.stop="handleTogglePackageTooltip"
               class="package-badge-trigger shrink-0 inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-accent/10 text-accent border border-accent/20 tracking-wide cursor-pointer hover:bg-accent/20 transition-colors">
               PAKET
             </span>
@@ -353,7 +342,7 @@ const imageUrl = computed(() => {
       <span class="md:hidden text-[10px] font-bold text-text/50 uppercase tracking-wide">SKU</span>
       <div class="text-left text-xs text-text/70 font-mono">
         <span @click="copyToClipboard(product.sku, 'SKU')"
-          class="cursor-pointer hover:text-primary bg-secondary/5 px-2 py-1 rounded border border-secondary/80 transition-colors">
+          class="cursor-pointer hover:text-primary bg-secondary/5 px-2 py-1 z-50 rounded border border-secondary/80 transition-colors">
           {{ product.sku }}
         </span>
       </div>
@@ -372,14 +361,13 @@ const imageUrl = computed(() => {
       class="md:table-cell flex justify-between items-center px-4 py-2 md:px-6 md:py-2 text-right whitespace-nowrap text-sm text-text/70 font-mono border-b border-secondary/10 md:border-secondary/80"
       :class="{ 'hidden md:flex': mobileLayout === 'compact' }">
       <span class="md:hidden text-[10px] font-bold text-text/50 uppercase tracking-wide">Harga</span>
-      <span @click="copyToClipboard(product.price, 'Harga')" @mouseenter="handlePriceMouseEnter"
+      <span ref="priceTargetRef" @click="copyToClipboard(product.price, 'Harga')" @mouseenter="handlePriceMouseEnter"
         @mouseleave="handlePriceMouseLeave" class="cursor-pointer hover:text-primary transition-colors">
         {{ formatCurrency(product.price) }}
       </span>
     </td>
 
-    <!-- LOCATION -->
-    <td v-if="visibleColumns.has('location')"
+    <td v-if="visibleColumns.has('location')" ref="locationTargetRef"
       class="md:table-cell flex justify-between items-center px-4 py-2 md:px-6 md:py-2 text-center whitespace-nowrap location-cell relative border-b border-secondary/10 md:border-secondary/80"
       :class="[{ 'cursor-pointer hover:text-primary text-primary font-bold': showTooltip }, { 'hidden md:flex': mobileLayout === 'compact' }]"
       @click="handleToggleTooltip">
@@ -432,28 +420,28 @@ const imageUrl = computed(() => {
 
     <!-- ACTIONS (Sticky Right) -->
     <td
-      class="hidden md:table-cell px-6 py-2 w-[80px] text-center md:sticky md:right-0 z-20 group-hover:bg-secondary/5 transition-colors shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)] border-b border-secondary/80">
+      class="hidden md:table-cell px-6 py-2 w-[80px] text-center md:sticky md:right-0 z-20 bg-background group-hover:bg-secondary/5 transition-colors shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)] border-b border-secondary/80">
       <div class="flex justify-center items-center relative">
-        <button @click="handleToggleMenu"
+        <button ref="menuTargetRef" @click="handleToggleMenu"
           class="action-btn w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary/20 text-text/60 hover:text-primary transition-colors">
           <font-awesome-icon icon="fa-solid fa-ellipsis-vertical" />
         </button>
 
-        <!-- Location Tooltip -->
-        <FloatingTooltip :show="showTooltip && isTooltipVisible" :x="tooltipX" :y="tooltipY" title="Detail Lokasi">
+        <FloatingTooltip :show="showTooltip && isTooltipVisible" :reference-el="locationTargetRef"
+          title="Detail Lokasi">
           <ul class="space-y-1.5">
             <li v-for="loc in locationsForTooltip" :key="loc.location_code" class="flex justify-between items-center">
               <span class="font-mono text-primary-light">{{ loc.location_code }}</span>
-              <span class="font-bold bg-primary/10 text-primary px-1.5 rounded">{{
-                loc.quantity
-              }}</span>
+              <span class="font-bold bg-primary/10 text-primary px-1.5 rounded">
+                {{ loc.quantity }}
+              </span>
             </li>
           </ul>
         </FloatingTooltip>
 
         <!-- Package Components Tooltip -->
-        <FloatingTooltip :show="isPackageTooltipVisible" :x="packageTooltipX" :y="packageTooltipY"
-          title="Komponen Paket" :loading="isLoadingComponents">
+        <FloatingTooltip :show="isPackageTooltipVisible" :reference-el="packageTargetRef" title="Komponen Paket"
+          :loading="isLoadingComponents">
           <div v-if="localComponents && localComponents.length > 0">
             <ul class="space-y-2">
               <li v-for="comp in localComponents" :key="comp.id || comp.component_product_id"
@@ -472,7 +460,7 @@ const imageUrl = computed(() => {
         </FloatingTooltip>
 
         <!-- Price PPN Tooltip -->
-        <FloatingTooltip :show="isPriceTooltipVisible" :x="priceTooltipX" :y="priceTooltipY" title="Harga + PPN">
+        <FloatingTooltip :show="isPriceTooltipVisible" :reference-el="priceTargetRef" title="Harga + PPN">
           <div class="flex justify-between gap-4 min-w-[120px]">
             <span class="text-text/70">DPP:</span>
             <span class="font-mono">{{ formatCurrency(product.price) }}</span>
@@ -485,38 +473,40 @@ const imageUrl = computed(() => {
 
         <!-- Action Menu -->
         <Teleport to="body">
-          <div v-if="isMenuVisible"
-            class="menu-teleported fixed z-[99999] bg-background text-text w-48 rounded-lg shadow-xl border border-secondary py-1 text-sm overflow-hidden animate-scale-in"
-            :style="{ left: menuX + 'px', top: menuY + 'px' }">
-            <button v-if="auth.hasPermission('manage-stock-adjustment')" @click="handleMenuAction('openAdjust')"
-              class="w-full text-left px-4 py-2.5 hover:bg-primary/10 hover:text-primary flex items-center gap-3 transition-colors">
-              <font-awesome-icon icon="fa-solid fa-calculator" class="w-4 text-center" /> Sesuaikan Stok
-            </button>
+          <Transition name="fade">
+            <div v-if="isMenuVisible" ref="menuFloating"
+              class="menu-teleported fixed z-[9999] bg-background text-text w-48 rounded-lg shadow-xl border border-secondary py-1 text-sm overflow-hidden"
+              :style="menuFloatingStyles">
+              <button v-if="auth.hasPermission('manage-stock-adjustment')" @click="handleMenuAction('openAdjust')"
+                class="w-full text-left px-4 py-2.5 hover:bg-primary/10 hover:text-primary flex items-center gap-3 transition-colors">
+                <font-awesome-icon icon="fa-solid fa-calculator" class="w-4 text-center" /> Sesuaikan Stok
+              </button>
 
-            <button @click="handleMenuAction('openTransfer')"
-              class="w-full text-left px-4 py-2.5 hover:bg-primary/10 hover:text-primary flex items-center gap-3 transition-colors">
-              <font-awesome-icon icon="fa-solid fa-right-left" class="w-4 text-center" /> Transfer Stok
-            </button>
+              <button @click="handleMenuAction('openTransfer')"
+                class="w-full text-left px-4 py-2.5 hover:bg-primary/10 hover:text-primary flex items-center gap-3 transition-colors">
+                <font-awesome-icon icon="fa-solid fa-right-left" class="w-4 text-center" /> Transfer Stok
+              </button>
 
-            <div class="h-px bg-primary/10 my-1"></div>
+              <div class="h-px bg-primary/10 my-1"></div>
 
-            <button v-if="auth.hasPermission('manage-products')" @click="handleMenuAction('openEdit')"
-              class="w-full text-left px-4 py-2.5 hover:bg-warning/10 hover:text-warning flex items-center gap-3 transition-colors">
-              <font-awesome-icon icon="fa-solid fa-pencil" class="w-4 text-center" /> Edit Produk
-            </button>
+              <button v-if="auth.hasPermission('product.image.view')" @click="handleMenuAction('openEdit')"
+                class="w-full text-left px-4 py-2.5 hover:bg-warning/10 hover:text-warning flex items-center gap-3 transition-colors">
+                <font-awesome-icon icon="fa-solid fa-pencil" class="w-4 text-center" /> Edit Produk
+              </button>
 
-            <button @click="handleMenuAction('openHistory')"
-              class="w-full text-left px-4 py-2.5 hover:bg-accent/10 hover:text-accent flex items-center gap-3 transition-colors">
-              <font-awesome-icon icon="fa-solid fa-clock-rotate-left" class="w-4 text-center" /> Riwayat
-            </button>
+              <button @click="handleMenuAction('openHistory')"
+                class="w-full text-left px-4 py-2.5 hover:bg-accent/10 hover:text-accent flex items-center gap-3 transition-colors">
+                <font-awesome-icon icon="fa-solid fa-clock-rotate-left" class="w-4 text-center" /> Riwayat
+              </button>
 
-            <div v-if="auth.hasPermission('manage-products')" class="h-px bg-secondary/10 my-1"></div>
+              <div v-if="auth.hasPermission('product.image.delete')" class="h-px bg-secondary/10 my-1"></div>
 
-            <button v-if="auth.hasPermission('manage-products')" @click="handleMenuAction('delete')"
-              class="w-full text-left px-4 py-2.5 text-danger hover:bg-danger/10 flex items-center gap-3 transition-colors">
-              <font-awesome-icon icon="fa-solid fa-trash" class="w-4 text-center" /> Hapus Produk
-            </button>
-          </div>
+              <button v-if="auth.hasPermission('product.image.delete')" @click="handleMenuAction('delete')"
+                class="w-full text-left px-4 py-2.5 text-danger hover:bg-danger/10 flex items-center gap-3 transition-colors">
+                <font-awesome-icon icon="fa-solid fa-trash" class="w-4 text-center" /> Hapus Produk
+              </button>
+            </div>
+          </Transition>
         </Teleport>
       </div>
     </td>

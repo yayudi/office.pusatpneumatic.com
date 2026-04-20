@@ -3,6 +3,8 @@ import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 
+const { toast } = useToast()
+
 // Buat instance axios
 const instance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
@@ -48,7 +50,7 @@ instance.interceptors.response.use(
       if (status === 401) {
         authStore.logout()
         // Tampilkan Toast "Sesi expired"
-        useToast().show('Sesi telah berakhir, silakan login kembali.', 'error')
+        toast('Sesi telah berakhir, silakan login kembali.', 'error')
         // Redirect ke login page
         window.location.href = '/login'
       }
@@ -57,7 +59,7 @@ instance.interceptors.response.use(
       // -> JANGAN Logout, tapi beri tahu user
       else if (status === 403) {
         const serverMessage = error.response.data?.message || 'Akses ditolak.'
-        useToast().show(`Gagal: ${serverMessage}`, 'error')
+        toast(`Gagal: ${serverMessage}`, 'error')
       }
     }
 

@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
 import { useToast } from '@/composables/useToast.js';
-import { useThemeColors } from '@/composables/useThemeColors.js';
+import { useTheme } from '@/composables/useTheme.js';
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import BaseSelect from '@/components/ui/BaseSelect.vue';
@@ -28,7 +28,7 @@ const reportFilters = ref({
   allBuildings: []
 });
 
-const { themeColors, isDarkTheme } = useThemeColors();
+const { themeColors, isDarkTheme } = useTheme();
 
 onMounted(async () => {
   try {

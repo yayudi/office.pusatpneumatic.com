@@ -2,10 +2,9 @@
 import { onMounted, ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-
-// Components
 import Modal from '@/components/ui/Modal.vue'
 import Tabs from '@/components/ui/Tabs.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 import { useReturnManager } from '@/composables/useReturnManager'
 import { formatDate } from '@/api/helpers/time'
 
@@ -63,10 +62,15 @@ const tabList = [
 ]
 
 const sourceOptions = [
-  { label: 'Semua Sumber', value: '' },
-  { label: 'Tokopedia', value: 'tokopedia' },
-  { label: 'Shopee', value: 'shopee' },
-  { label: 'Manual', value: 'manual' },
+  { id: '', label: 'Semua Sumber' },
+  { id: 'tokopedia', label: 'Tokopedia' },
+  { id: 'shopee', label: 'Shopee' },
+  { id: 'manual', label: 'Manual' },
+]
+
+const sortOptionsReturn = [
+  { id: 'desc', label: 'Terbaru' },
+  { id: 'asc', label: 'Terlama' },
 ]
 
 const displayItems = computed(() => {
@@ -134,19 +138,14 @@ onMounted(() => {
 
         <!-- Filter Source -->
         <div class="md:col-span-3">
-          <select v-model="sourceFilter" class="input-filter appearance-none cursor-pointer">
-            <option v-for="opt in sourceOptions" :key="opt.value" :value="opt.value">
-              {{ opt.label }}
-            </option>
-          </select>
+          <BaseSelect v-model="sourceFilter" :options="sourceOptions" label="label" track-by="id" placeholder="Sumber"
+            :searchable="false" emit-value />
         </div>
 
         <!-- Sort Date -->
         <div class="md:col-span-2">
-          <select v-model="sortOrder" class="input-filter appearance-none cursor-pointer">
-            <option value="desc">Terbaru</option>
-            <option value="asc">Terlama</option>
-          </select>
+          <BaseSelect v-model="sortOrder" :options="sortOptionsReturn" label="label" track-by="id" placeholder="Urutan"
+            :searchable="false" emit-value />
         </div>
 
         <!-- Stats / Counter -->
@@ -310,10 +309,10 @@ onMounted(() => {
               <div class="flex items-center gap-2">
                 <span>Total: <b>{{ processForm.itemData?.quantity }}</b></span>
                 <span class="px-2 py-0.5 rounded-full font-bold text-[10px] border" :class="isOverLimit
-                    ? 'bg-danger text-secondary border-danger'
-                    : remainingQty === 0
-                      ? 'bg-success text-secondary border-success'
-                      : 'bg-warning/10 text-warning border-warning'
+                  ? 'bg-danger text-secondary border-danger'
+                  : remainingQty === 0
+                    ? 'bg-success text-secondary border-success'
+                    : 'bg-warning/10 text-warning border-warning'
                   ">
                   Sisa: {{ remainingQty }}
                 </span>
@@ -340,14 +339,8 @@ onMounted(() => {
               <div>
                 <label class="label-input !text-success/70">Masuk Rak</label>
                 <div class="relative">
-                  <select v-model="processForm.good.locationId" class="input-field appearance-none !border-success/30">
-                    <option value="" disabled>-- Pilih Rak --</option>
-                    <option v-for="loc in locations" :key="loc.id" :value="loc.id">
-                      {{ loc.code }}
-                    </option>
-                  </select>
-                  <font-awesome-icon icon="fa-solid fa-chevron-down"
-                    class="absolute right-3 top-3 text-xs text-success/40 pointer-events-none" />
+                  <BaseSelect v-model="processForm.good.locationId" :options="locations" label="code" track-by="id"
+                    emit-value placeholder="-- Pilih Rak --" :searchable="true" />
                 </div>
               </div>
             </div>
@@ -398,7 +391,7 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped>
+<style lang="postcss" scoped>
 /* Utility */
 .btn-primary {
   @apply bg-primary text-secondary px-4 py-2 rounded-lg font-bold hover:bg-primary/90 transition-all;

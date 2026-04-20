@@ -3,7 +3,7 @@ import { ref, watch, onMounted, computed, onUnmounted } from 'vue';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
 import { useAuthStore } from '@/stores/auth';
 import { useToast } from '@/composables/useToast.js';
-import { useThemeColors } from '@/composables/useThemeColors.js';
+import { useTheme } from '@/composables/useTheme.js';
 import FilterBar from '@/components/ui/FilterBar.vue';
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue';
 import { getStockMovementStatistics } from '@/api/helpers/statistics.js';
@@ -60,7 +60,7 @@ const chartMaxCapOptions = [
   { id: 50, label: 'Top 50' }
 ];
 
-const { themeColors, isDarkTheme } = useThemeColors();
+const { themeColors, isDarkTheme } = useTheme();
 
 onMounted(async () => {
   try {

@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { useFloating, autoUpdate, offset, flip, shift, size } from '@floating-ui/vue'
 
 const props = defineProps({
   modelValue: {
@@ -57,7 +58,22 @@ const triggerRef = ref(null)
 const dropdownRef = ref(null)
 const inputRef = ref(null)
 
-const dropdownStyle = ref({})
+const { floatingStyles } = useFloating(triggerRef, dropdownRef, {
+  placement: 'bottom-start',
+  whileElementsMounted: autoUpdate,
+  middleware: [
+    offset(4),
+    flip(),
+    shift({ padding: 8 }),
+    size({
+      apply({ rects, elements }) {
+        Object.assign(elements.floating.style, {
+          width: `${rects.reference.width}px`
+        })
+      }
+    })
+  ]
+})
 
 // --- COMPUTED ---
 const displayValue = computed(() => {
@@ -111,19 +127,6 @@ function toggle() {
   }
 }
 
-function updatePosition() {
-  if (!isOpen.value || !triggerRef.value) return
-
-  const rect = triggerRef.value.getBoundingClientRect()
-
-  dropdownStyle.value = {
-    position: 'absolute',
-    top: `${rect.bottom + window.scrollY}px`,
-    left: `${rect.left + window.scrollX}px`,
-    width: `${rect.width}px`
-  }
-}
-
 function open() {
   isOpen.value = true
   if (!props.internalSearch) {
@@ -131,7 +134,6 @@ function open() {
     searchQuery.value = ''
   }
   nextTick(() => {
-    updatePosition()
     if (props.searchable && inputRef.value) {
       inputRef.value.focus()
     }
@@ -154,6 +156,7 @@ function getOptionValue(option) {
 
 function select(option) {
   const valueToEmit = getOptionValue(option)
+
   if (props.multiple) {
     const current = Array.isArray(props.modelValue) ? [...props.modelValue] : []
     const index = findIndex(current, valueToEmit)
@@ -163,9 +166,8 @@ function select(option) {
       current.splice(index, 1)
     }
     emit('update:modelValue', current)
-    nextTick(updatePosition)
   } else {
-    emit('update:modelValue', option)
+    emit('update:modelValue', valueToEmit)
     close()
   }
 }
@@ -178,14 +180,15 @@ function removeTag(item, event) {
   if (index !== -1) {
     current.splice(index, 1)
     emit('update:modelValue', current)
-    nextTick(updatePosition)
   }
 }
 
 function findIndex(array, val) {
   return array.findIndex(item => {
-    if (typeof item === 'object' && typeof val === 'object') {
-      return props.trackBy && item[props.trackBy] === val[props.trackBy]
+    if (typeof item === 'object' && typeof val === 'object' && props.trackBy) {
+      if (item[props.trackBy] !== undefined) {
+        return item[props.trackBy] === val[props.trackBy]
+      }
     }
     return item === val
   })
@@ -198,7 +201,9 @@ function isSelected(option) {
   }
   if (props.modelValue == null || props.modelValue === '') return false
   if (typeof props.modelValue === 'object' && typeof val === 'object' && props.trackBy) {
-    return props.modelValue[props.trackBy] === val[props.trackBy]
+    if (props.modelValue[props.trackBy] !== undefined) {
+      return props.modelValue[props.trackBy] === val[props.trackBy]
+    }
   }
   return props.modelValue === val
 }
@@ -213,13 +218,11 @@ function selectAll() {
     }
   })
   emit('update:modelValue', current)
-  nextTick(updatePosition)
 }
 
 function clearSelection() {
   if (!props.multiple) return
   emit('update:modelValue', [])
-  nextTick(updatePosition)
 }
 
 // Click Outside Handler
@@ -232,30 +235,20 @@ const handleClickOutside = (event) => {
   }
 }
 
-const handleResizeOrScroll = () => {
-  if (isOpen.value) {
-    updatePosition()
-  }
-}
-
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
-  window.addEventListener('resize', handleResizeOrScroll)
-  window.addEventListener('scroll', handleResizeOrScroll, true)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
-  window.removeEventListener('resize', handleResizeOrScroll)
-  window.removeEventListener('scroll', handleResizeOrScroll, true)
 })
 </script>
 
 <template>
-  <div ref="containerRef" class="relative w-full text-left font-sans">
+  <div ref="containerRef" class="relativ text-left font-sans">
     <!-- TRIGGER AREA -->
     <div ref="triggerRef" @click="toggle"
-      class="w-full min-h-[42px] px-3 py-2 bg-background border rounded-lg cursor-pointer flex flex-wrap gap-1.5 items-center transition-all shadow-sm"
+      class="w-full min-h-[42px] px-2 bg-background border rounded-lg cursor-pointer flex flex-wrap gap-1.5 items-center transition-all shadow-sm"
       :class="[
         isOpen ? 'border-primary ring-1 ring-primary' : 'border-secondary/50 hover:border-primary/50',
         disabled ? 'opacity-50 cursor-not-allowed bg-secondary/10' : ''
@@ -271,7 +264,8 @@ onUnmounted(() => {
           class="bg-primary/10 text-primary border border-primary/20 text-xs px-2 py-0.5 rounded-md flex items-center gap-1">
           <span>{{
             (typeof item === 'object') ? item[label] :
-            (props.emitValue ? (options.find(o => (typeof o === 'object' ? o[trackBy] === item : o === item))?.[label] || item) : item)
+              (props.emitValue ? (options.find(o => (typeof o === 'object' ? o[trackBy] === item : o === item))?.[label]
+                || item) : item)
           }}</span>
           <span @click="(e) => removeTag(item, e)" class="cursor-pointer hover:text-primary/70 font-bold">&times;</span>
         </div>
@@ -297,11 +291,11 @@ onUnmounted(() => {
 
     <!-- DROPDOWN MENU (TELEPORTED) -->
     <Teleport to="body">
-      <transition enter-active-class="transition duration-100 ease-out" enter-from-class="transform scale-95 opacity-0"
-        enter-to-class="transform scale-100 opacity-100" leave-active-class="transition duration-75 ease-in"
-        leave-from-class="transform scale-100 opacity-100" leave-to-class="transform scale-95 opacity-0">
-        <div v-if="isOpen" ref="dropdownRef" :style="dropdownStyle"
-          class="fixed z-[9999] mt-1 bg-background border border-secondary/20 rounded-lg shadow-xl overflow-hidden text-sm">
+      <transition enter-active-class="transition-opacity duration-150 ease-out" enter-from-class="opacity-0"
+        enter-to-class="opacity-100" leave-active-class="transition-opacity duration-100 ease-in"
+        leave-from-class="opacity-100" leave-to-class="opacity-0">
+        <div v-if="isOpen" ref="dropdownRef" :style="floatingStyles"
+          class="z-[9999] bg-background border border-secondary/20 rounded-lg shadow-xl overflow-hidden text-sm">
           <!-- Search Input -->
           <div v-if="searchable" class="p-2 border-b border-secondary/10 bg-secondary/5">
             <div class="relative">
@@ -314,17 +308,21 @@ onUnmounted(() => {
           </div>
 
           <!-- Multiple Selection Action Buttons -->
-          <div v-if="multiple" class="p-2 border-b border-secondary/10 bg-background flex flex-wrap gap-2 justify-between items-center text-xs">
-             <button @click.stop="selectAll" class="text-primary hover:text-primary/80 font-semibold px-2 py-1 rounded hover:bg-primary/10 transition-colors">
-               <font-awesome-icon icon="fa-solid fa-check-double" class="mr-1" /> Pilih Semua
-             </button>
-             <button @click.stop="clearSelection" class="text-danger hover:text-danger/80 font-semibold px-2 py-1 rounded hover:bg-danger/10 transition-colors">
-               <font-awesome-icon icon="fa-solid fa-eraser" class="mr-1" /> Bersihkan
-             </button>
+          <div v-if="multiple"
+            class="p-2 border-b border-secondary/10 bg-background flex flex-wrap gap-2 justify-between items-center text-xs">
+            <button @click.stop="selectAll"
+              class="text-primary hover:text-primary/80 font-semibold px-2 py-1 rounded hover:bg-primary/10 transition-colors">
+              <font-awesome-icon icon="fa-solid fa-check-double" class="mr-1" /> Pilih Semua
+            </button>
+            <button @click.stop="clearSelection"
+              class="text-danger hover:text-danger/80 font-semibold px-2 py-1 rounded hover:bg-danger/10 transition-colors">
+              <font-awesome-icon icon="fa-solid fa-eraser" class="mr-1" /> Bersihkan
+            </button>
           </div>
 
           <!-- Options List (Multiple as Chip Cloud) -->
-          <div v-if="multiple" class="max-h-[300px] overflow-y-auto custom-scrollbar p-3 flex flex-wrap gap-2 items-start content-start">
+          <div v-if="multiple"
+            class="max-h-[300px] overflow-y-auto custom-scrollbar p-3 flex flex-wrap gap-2 items-start content-start">
             <div v-if="loading" class="w-full text-center text-text/60 italic text-xs py-2">
               Memuat data...
             </div>
@@ -359,7 +357,7 @@ onUnmounted(() => {
             </li>
 
             <li v-else v-for="(option, index) in filteredOptions"
-              :key="typeof option === 'object' ? option[trackBy] : index" @click="select(option)"
+              :key="typeof option === 'object' ? option[trackBy] : index" @mousedown.prevent.stop="select(option)"
               class="px-3 py-2 rounded-md cursor-pointer flex justify-between items-center transition-colors group"
               :class="[
                 isSelected(option)

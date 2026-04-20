@@ -5,6 +5,7 @@ import { fetchAllUsers, fetchShifts } from '@/api/helpers/admin.js'
 import { fetchSchedules, createSchedule, deleteSchedule } from '@/api/helpers/schedule.js'
 import axios from '@/api/axios'
 import BatchScheduleImportModal from '@/components/shifts/BatchScheduleImportModal.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 
 // State
 const users = ref([])
@@ -13,6 +14,10 @@ const schedules = ref([])
 const selectedUserId = ref('')
 const loading = ref(false)
 const isImportModalOpen = ref(false)
+
+const userOptions = computed(() => {
+  return users.value.map(u => ({ id: u.id, label: u.nama || u.username }))
+})
 
 // Calendar State
 const currentDate = ref(new Date())
@@ -262,11 +267,7 @@ onMounted(loadInitialData)
           <font-awesome-icon icon="fa-solid fa-file-excel" /> Import Excel
         </button>
 
-        <select v-model="selectedUserId"
-          class="w-full md:w-64 px-3 py-2 bg-background border border-secondary/50 rounded-lg focus:ring-primary focus:border-primary text-text">
-          <option value="" disabled>Pilih Karyawan...</option>
-          <option v-for="u in users" :key="u.id" :value="u.id">{{ u.nama || u.username }}</option>
-        </select>
+        <BaseSelect v-model="selectedUserId" :options="userOptions" track-by="id" emit-value placeholder="Pilih Karyawan..." class="w-full md:w-[250px]" />
       </div>
     </div>
 

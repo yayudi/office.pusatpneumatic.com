@@ -4,6 +4,8 @@ import { ref, watch } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { updateUser } from '@/api/helpers/admin.js'
 import Modal from '@/components/ui/Modal.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
+import { computed } from 'vue'
 
 const props = defineProps({
   show: Boolean,
@@ -17,6 +19,16 @@ const { toast } = useToast()
 
 const editableUser = ref({})
 const isLoading = ref(false)
+
+const shiftOptions = computed(() => {
+  return [
+    { id: null, label: 'Default (Regular Office)' },
+    ...(props.shifts || []).map(s => ({
+      id: s.id,
+      label: `${s.name} (${s.start_time?.slice(0, 5)} - ${s.end_time?.slice(0, 5)})`
+    }))
+  ]
+})
 
 // Salin data user ke state lokal saat modal dibuka
 watch(
@@ -68,18 +80,11 @@ async function handleSave() {
       </div>
       <div>
         <label class="block text-sm font-medium text-text/80 mb-1">Role</label>
-        <select v-model="editableUser.role_id" required class="w-full input-field">
-          <option v-for="role in roles" :key="role.id" :value="role.id">{{ role.name }}</option>
-        </select>
+        <BaseSelect v-model="editableUser.role_id" :options="roles" track-by="id" label="name" emit-value placeholder="Pilih Role" />
       </div>
       <div>
         <label class="block text-sm font-medium text-text/80 mb-1">Shift</label>
-        <select v-model="editableUser.shift_id" class="w-full input-field">
-          <option :value="null">Default (Regular Office)</option>
-          <option v-for="shift in shifts" :key="shift.id" :value="shift.id">
-            {{ shift.name }} ({{ shift.start_time.slice(0, 5) }} - {{ shift.end_time.slice(0, 5) }})
-          </option>
-        </select>
+        <BaseSelect v-model="editableUser.shift_id" :options="shiftOptions" track-by="id" emit-value placeholder="Pilih Shift" />
       </div>
     </div>
     <template #footer>

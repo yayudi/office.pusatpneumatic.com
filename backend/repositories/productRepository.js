@@ -597,6 +597,12 @@ export const deleteImage = async (connection, imageId) => {
   await connection.query("DELETE FROM product_images WHERE id = ?", [imageId]);
 };
 
+export const linkMedia = async (connection, productId, mediaIds) => {
+  if (!mediaIds || mediaIds.length === 0) return;
+  const values = mediaIds.map(mediaId => [productId, mediaId, 0]); // is_primary = 0 default
+  await connection.query("INSERT INTO product_images (product_id, media_id, is_primary) VALUES ?", [values]);
+};
+
 export const resetPrimaryImage = async (connection, productId) => {
   await connection.query("UPDATE product_images SET is_primary = 0 WHERE product_id = ?", [
     productId,

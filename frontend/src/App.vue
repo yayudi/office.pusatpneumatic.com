@@ -1,4 +1,4 @@
-<!-- App.vue -->
+<!-- frontend\src\App.vue -->
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import { RouterView, useRouter, useRoute } from 'vue-router'
@@ -8,6 +8,7 @@ import MessageToast from '@/components/ui/MessageToast.vue'
 import { registerToast } from '@/composables/useToast.js'
 import { useTheme } from '@/composables/useTheme'
 import PwaUpdatePrompt from '@/components/ui/PwaUpdatePrompt.vue'
+import PwaInstallBanner from '@/components/ui/PwaInstallBanner.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -34,6 +35,7 @@ function handleLogout() {
   <div class="bg-background text-text min-h-screen font-sans">
     <MessageToast ref="toastComponentRef" />
     <PwaUpdatePrompt />
+    <PwaInstallBanner />
 
     <AppHeader v-if="showHeader" @logout="handleLogout" />
     <main class="container mx-auto">

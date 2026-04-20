@@ -1,9 +1,18 @@
 <!-- frontend\src\components\ui\ThemeSwitcher.vue -->
 <script setup>
 import { computed } from 'vue'
-import { useTheme } from '@/composables/useTheme' // Sesuaikan path
+import { useTheme } from '@/composables/useTheme'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 
 const { themes, currentTheme, applyTheme } = useTheme()
+
+// Format options pattern untuk BaseSelect
+const themeOptions = computed(() => {
+  return themes.map(theme => ({
+    id: theme,
+    label: theme.charAt(0).toUpperCase() + theme.slice(1)
+  }))
+})
 
 // Proxy computed agar v-model bisa mentrigger fungsi applyTheme
 const themeProxy = computed({
@@ -14,15 +23,10 @@ const themeProxy = computed({
 
 <template>
   <div>
-    <label for="theme-select" class="text-sm font-medium text-text/80">Pilih Tema:</label>
-    <select
-      id="theme-select"
-      v-model="themeProxy"
-      class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-secondary bg-background text-text border rounded-md focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-    >
-      <option v-for="theme in themes" :key="theme" :value="theme">
-        {{ theme.charAt(0).toUpperCase() + theme.slice(1) }}
-      </option>
-    </select>
+    <label for="theme-select" class="text-sm font-medium text-text/80 mb-1 block">Pilih Tema:</label>
+    <div class="w-full">
+      <BaseSelect id="theme-select" v-model="themeProxy" :options="themeOptions" :emitValue="true" trackBy="id"
+        label="label" :searchable="false" placeholder="Pilih tema..." />
+    </div>
   </div>
 </template>

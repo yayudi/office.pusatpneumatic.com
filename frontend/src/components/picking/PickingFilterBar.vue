@@ -2,6 +2,34 @@
 import { reactive, watch, computed } from 'vue'
 import FilterContainer from '@/components/ui/FilterContainer.vue'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
+
+const sourceOptions = [
+  { id: 'ALL', label: 'Semua Sumber' },
+  { id: 'Tokopedia', label: 'Tokopedia' },
+  { id: 'Shopee', label: 'Shopee' },
+  { id: 'Offline', label: 'Offline' },
+]
+
+const purposeOptions = [
+  { id: 'ALL', label: 'Semua Lokasi' },
+  { id: 'DISPLAY', label: 'Utama (DISPLAY)' },
+  { id: 'BRANCH', label: 'Cabang (BRANCH)' },
+]
+
+const stockStatusOptions = [
+  { id: 'ALL', label: 'Semua Status' },
+  { id: 'READY', label: 'Siap Pick' },
+  { id: 'ISSUE', label: 'Bermasalah' },
+  { id: 'EMPTY', label: 'Stok Kosong' },
+]
+
+const sortOptions = [
+  { id: 'newest', label: 'Terbaru' },
+  { id: 'oldest', label: 'Terlama' },
+  { id: 'invoice_asc', label: 'A-Z' },
+  { id: 'invoice_desc', label: 'Z-A' },
+]
 
 const props = defineProps({
   modelValue: {
@@ -10,6 +38,7 @@ const props = defineProps({
       return {
         search: '',
         source: 'ALL',
+        locationPurpose: 'ALL',
         stockStatus: 'ALL',
         sortBy: 'newest',
         viewMode: 'grid',
@@ -55,6 +84,7 @@ function onSearchInput(event) {
 const hasActiveFilters = computed(() => {
   return (
     localValues.source !== 'ALL' ||
+    localValues.locationPurpose !== 'ALL' ||
     localValues.stockStatus !== 'ALL' ||
     localValues.search !== '' ||
     localValues.startDate !== '' ||
@@ -65,16 +95,27 @@ const hasActiveFilters = computed(() => {
 function clearFilters() {
   localValues.search = ''
   localValues.source = 'ALL'
+  localValues.locationPurpose = 'ALL'
   localValues.stockStatus = 'ALL'
   localValues.startDate = ''
   localValues.endDate = ''
+  emitChange()
+}
+
+function onSelectChange(field, option) {
+  localValues[field] = typeof option === 'object' ? option.id : option
+
+  if (field === 'source' && localValues.source !== 'Offline') {
+    localValues.locationPurpose = 'ALL'
+  }
+
   emitChange()
 }
 </script>
 
 <template>
   <FilterContainer title="Filter Picking">
-    <!-- Group 1: Search & Date (Flexible Grow) -->
+    <!-- Search & Date -->
     <div class="flex flex-col sm:flex-row gap-2 flex-grow">
       <!-- Search -->
       <div class="relative flex-grow group">
@@ -95,89 +136,54 @@ function clearFilters() {
         class="shrink-0" />
     </div>
 
-    <!-- Group 2: Dropdowns & Actions (Shrink if needed) -->
-    <div class="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+    <!-- Dropdowns & Actions -->
+    <div class="flex flex-wrap md:flex-nowrap gap-2 items-center">
       <!-- Filter Source -->
-      <div class="relative w-full sm:w-auto">
-        <select v-model="localValues.source" @change="emitChange"
-          class="appearance-none w-full sm:w-auto pl-9 pr-8 py-2 rounded-lg border text-xs font-bold outline-none focus:border-primary cursor-pointer h-[42px] transition-all"
-          :class="localValues.source !== 'ALL'
-              ? 'bg-primary/5 text-primary border-primary shadow-sm'
-              : 'bg-secondary/5 border-transparent hover:border-secondary/20 text-text/60 hover:text-text'
-            ">
-          <option value="ALL">Semua Sumber</option>
-          <option value="Tokopedia">Tokopedia</option>
-          <option value="Shopee">Shopee</option>
-          <option value="Offline">Offline</option>
-        </select>
-        <font-awesome-icon icon="fa-solid fa-shop" class="absolute left-3 top-3 text-xs pointer-events-none"
-          :class="localValues.source !== 'ALL' ? 'text-inherit' : 'text-text/40'" />
-        <font-awesome-icon icon="fa-solid fa-chevron-down"
-          class="absolute right-3 top-3.5 text-[10px] pointer-events-none opacity-50"
-          :class="localValues.source !== 'ALL' ? 'text-inherit' : 'text-text/40'" />
+      <div class="w-full sm:w-1/3 md:w-40">
+        <BaseSelect :model-value="localValues.source" @update:model-value="(v) => onSelectChange('source', v)"
+          :options="sourceOptions" label="label" track-by="id" placeholder="Sumber" :searchable="false" emit-value />
+      </div>
+
+      <!-- Filter Location Purpose -->
+      <div v-if="localValues.source === 'Offline'" class="w-full sm:w-1/4 md:w-41 animate-fade-in origin-left">
+        <BaseSelect :model-value="localValues.locationPurpose"
+          @update:model-value="(v) => onSelectChange('locationPurpose', v)" :options="purposeOptions" label="label"
+          track-by="id" placeholder="Lokasi Stok" :searchable="false" emit-value />
       </div>
 
       <!-- Filter Stock Status -->
-      <div class="relative w-full sm:w-auto">
-        <select v-model="localValues.stockStatus" @change="emitChange"
-          class="appearance-none w-full sm:w-auto pl-9 pr-8 py-2 rounded-lg border text-xs font-bold outline-none focus:border-primary cursor-pointer h-[42px] transition-all"
-          :class="{
-            'bg-secondary/5 border-transparent hover:border-secondary/20 text-text/60 hover:text-text':
-              localValues.stockStatus === 'ALL',
-            'bg-success/5 text-success border-success shadow-sm':
-              localValues.stockStatus === 'READY',
-            'bg-danger/5 text-danger border-danger shadow-sm': localValues.stockStatus === 'EMPTY',
-            'bg-warning/5 text-warning border-warning shadow-sm':
-              localValues.stockStatus === 'ISSUE',
-          }">
-          <option value="ALL">Semua Status</option>
-          <option value="READY">Siap Pick</option>
-          <option value="ISSUE">Bermasalah</option>
-          <option value="EMPTY">Stok Kosong</option>
-        </select>
-        <font-awesome-icon icon="fa-solid fa-cubes" class="absolute left-3 top-3 text-xs pointer-events-none"
-          :class="localValues.stockStatus !== 'ALL' ? 'text-inherit' : 'text-text/40'" />
-        <font-awesome-icon icon="fa-solid fa-chevron-down"
-          class="absolute right-3 top-3.5 text-[10px] opacity-50 pointer-events-none"
-          :class="localValues.stockStatus !== 'ALL' ? 'text-inherit' : 'text-text/40'" />
+      <div class="w-full sm:w-1/3 md:w-40">
+        <BaseSelect :model-value="localValues.stockStatus" @update:model-value="(v) => onSelectChange('stockStatus', v)"
+          :options="stockStatusOptions" label="label" track-by="id" placeholder="Status Stok" :searchable="false"
+          emit-value />
       </div>
 
-      <!-- Separator -->
-      <div class="hidden sm:block w-px h-6 bg-secondary/20 mx-1"></div>
-
       <!-- Sort -->
-      <div class="relative w-1/2 sm:w-auto flex-grow sm:flex-grow-0">
-        <select v-model="localValues.sortBy" @change="emitChange"
-          class="appearance-none w-full pl-3 pr-8 py-2 rounded-lg bg-secondary/5 border border-transparent hover:border-secondary/20 text-xs font-medium outline-none focus:border-primary cursor-pointer h-[42px] text-text/70 transition-all">
-          <option value="newest">Terbaru</option>
-          <option value="oldest">Terlama</option>
-          <option value="invoice_asc">A-Z</option>
-          <option value="invoice_desc">Z-A</option>
-        </select>
-        <font-awesome-icon icon="fa-solid fa-sort"
-          class="absolute right-3 top-3 text-text/40 text-xs pointer-events-none" />
+      <div class="w-1/2 sm:w-32 md:w-40 flex-grow sm:flex-grow-0">
+        <BaseSelect :model-value="localValues.sortBy" @update:model-value="(v) => onSelectChange('sortBy', v)"
+          :options="sortOptions" label="label" track-by="id" placeholder="Urutkan" :searchable="false" emit-value />
       </div>
 
       <!-- View Toggle (3 Modes: List, Grid, Compact) -->
       <div class="flex bg-secondary/10 rounded-lg p-1 shrink-0 h-[42px] w-auto flex-grow sm:flex-grow-0">
         <button @click="((localValues.viewMode = 'list'), emitChange())"
           class="w-9 rounded-md transition-all text-xs flex items-center justify-center" :class="localValues.viewMode === 'list'
-              ? 'bg-background text-primary shadow-sm font-bold'
-              : 'text-text/40 hover:text-text'
+            ? 'bg-background text-primary shadow-sm font-bold'
+            : 'text-text/40 hover:text-text'
             " title="Tampilan List">
           <font-awesome-icon icon="fa-solid fa-list" />
         </button>
         <button @click="((localValues.viewMode = 'grid'), emitChange())"
           class="w-9 rounded-md transition-all text-xs flex items-center justify-center" :class="localValues.viewMode === 'grid'
-              ? 'bg-background text-primary shadow-sm font-bold'
-              : 'text-text/40 hover:text-text'
+            ? 'bg-background text-primary shadow-sm font-bold'
+            : 'text-text/40 hover:text-text'
             " title="Tampilan Grid (Standard Card)">
           <font-awesome-icon icon="fa-solid fa-border-all" />
         </button>
         <button @click="((localValues.viewMode = 'compact'), emitChange())"
           class="w-9 rounded-md transition-all text-xs flex items-center justify-center" :class="localValues.viewMode === 'compact'
-              ? 'bg-background text-primary shadow-sm font-bold'
-              : 'text-text/40 hover:text-text'
+            ? 'bg-background text-primary shadow-sm font-bold'
+            : 'text-text/40 hover:text-text'
             " title="Tampilan Compact (Small Card)">
           <font-awesome-icon icon="fa-solid fa-table-cells" />
         </button>

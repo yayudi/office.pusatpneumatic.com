@@ -17,7 +17,8 @@ export const syncOrdersToDB = async (
   userId,
   originalFilename,
   onProgress = null,
-  dryRun = false
+  dryRun = false,
+  locationPurpose = "DISPLAY"
 ) => {
   const summary = { processed: 0, updatedCount: 0, errors: [] };
   const ordersToProcess = Array.from(groupedOrders.values());
@@ -36,7 +37,7 @@ export const syncOrdersToDB = async (
     });
 
     log(`📦 Mengambil referensi untuk ${allSkus.size} SKU unik...`);
-    const dbData = await validationHelper.fetchReferenceData(connection, Array.from(allSkus));
+    const dbData = await validationHelper.fetchReferenceData(connection, Array.from(allSkus), locationPurpose);
 
     await connection.beginTransaction();
 
@@ -74,6 +75,7 @@ export const syncOrdersToDB = async (
             customerName: order.customer,
             orderDate: order.orderDate,
             status: order.status,
+            locationPurpose,
           };
 
           const listId = await validationHelper.insertPickingHeader(connection, meta);

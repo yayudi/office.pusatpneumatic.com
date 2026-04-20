@@ -1,7 +1,8 @@
 <!-- frontend/src/components/wms/shared/HistoryModal.vue -->
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import Modal from '@/components/ui/Modal.vue'
+import BasePagination from '@/components/ui/BasePagination.vue'
 import { fetchStockHistory } from '@/api/helpers/stock.js'
 
 const props = defineProps({
@@ -16,6 +17,13 @@ const pagination = ref({})
 const loading = ref(false)
 const error = ref(null)
 const currentPage = ref(1)
+
+const paginationData = computed(() => ({
+  page: pagination.value.page || 1,
+  limit: pagination.value.limit || 10,
+  total: pagination.value.total || 0,
+  totalPages: Math.ceil((pagination.value.total || 0) / (pagination.value.limit || 10)) || 1
+}))
 
 async function loadHistory(page) {
   if (!props.product) return
@@ -78,28 +86,16 @@ watch(
         </tbody>
       </table>
     </div>
-    <!-- Paginasi Sederhana -->
+    <!-- Paginasi -->
     <div
       v-if="pagination.total > pagination.limit"
-      class="flex justify-between items-center mt-4 text-sm"
+      class="mt-4 border-t border-secondary/20 pt-2"
     >
-      <button
-        @click="loadHistory(currentPage - 1)"
-        :disabled="currentPage <= 1"
-        class="px-3 py-1 rounded bg-secondary/20 disabled:opacity-50"
-      >
-        Sebelumnya
-      </button>
-      <span
-        >Halaman {{ currentPage }} dari {{ Math.ceil(pagination.total / pagination.limit) }}</span
-      >
-      <button
-        @click="loadHistory(currentPage + 1)"
-        :disabled="currentPage * pagination.limit >= pagination.total"
-        class="px-3 py-1 rounded bg-secondary/20 disabled:opacity-50"
-      >
-        Berikutnya
-      </button>
+      <BasePagination 
+        :pagination="paginationData" 
+        :show-limit-picker="false" 
+        @changePage="(p) => loadHistory(p)" 
+      />
     </div>
   </Modal>
 </template>

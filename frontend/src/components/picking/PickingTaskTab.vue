@@ -150,7 +150,23 @@ async function handleCompleteSelectedItems() {
     // Refresh data untuk konsistensi penuh
     await fetchPendingItems()
   } catch (error) {
-    toast(error.message || 'Gagal menyelesaikan item.', 'error')
+    const errData = error.response?.data || error
+    const details = errData.errors || []
+
+    if (details.length > 0) {
+      // Tampilkan pesan utama
+      toast(errData.message || 'Validasi Gagal!', 'error')
+      // Tampilkan tiap detail sebagai toast terpisah (max 10)
+      const maxToasts = Math.min(details.length, 10)
+      for (let i = 0; i < maxToasts; i++) {
+        setTimeout(() => toast(details[i], 'warning'), (i + 1) * 300)
+      }
+      if (details.length > 10) {
+        setTimeout(() => toast(`...dan ${details.length - 10} error lainnya.`, 'warning'), (maxToasts + 1) * 300)
+      }
+    } else {
+      toast(errData.message || 'Gagal menyelesaikan item.', 'error')
+    }
   } finally {
     isLoadingPicking.value = false
   }
@@ -305,11 +321,6 @@ onMounted(() => {
 
       <!-- Main Content -->
       <div v-else>
-        <!--
-          Tampilan GRID & COMPACT (Masonry Layout)
-          - Grid: Pakai PickingListCard (Standard)
-          - Compact: Pakai PickingListCardCompact (Kecil)
-        -->
         <MasonryWall v-if="filterState.viewMode === 'grid' || filterState.viewMode === 'compact'"
           :items="displayedItems" :ssr-columns="1" :column-width="320" :gap="16">
           <template #default="{ item: inv }">
@@ -319,10 +330,7 @@ onMounted(() => {
           </template>
         </MasonryWall>
 
-        <!--
-          Tampilan LIST (Stack)
-          - Menggunakan PickingListRow (Flat Table-like Look)
-        -->
+        <!-- Tampilan LIST (Stack) -->
         <div v-else class="flex flex-col border border-secondary/10 rounded-xl overflow-hidden shadow-sm bg-background">
           <PickingListRow v-for="inv in displayedItems" :key="inv.id" :inv="inv" :selectedItems="selectedItems"
             :validate-stock="canSelectItem" @toggle-invoice="handleToggleInvoice" @cancel-invoice="handleCancelInvoice"

@@ -5,7 +5,7 @@ import * as jobRepo from "../repositories/jobRepository.js";
 /**
  * Membuat Entry Job Baru (Pending)
  */
-export const createJobService = async ({ userId, type, originalname, serverFilePath, notes }) => {
+export const createJobService = async ({ userId, type, originalname, serverFilePath, notes, options }) => {
   const connection = await db.getConnection();
   try {
     const jobId = await jobRepo.create(connection, {
@@ -14,6 +14,7 @@ export const createJobService = async ({ userId, type, originalname, serverFileP
       filename: originalname,
       filePath: serverFilePath,
       notes,
+      options,
     });
     return jobId;
   } finally {

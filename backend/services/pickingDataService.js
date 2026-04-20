@@ -34,7 +34,7 @@ const logger = {
  * Helper Cerdas untuk Menentukan Lokasi Stok (Re-Check & Search)
  * Menggunakan Repository sepenuhnya.
  */
-async function ensureStockLocation(connection, productId, qtyNeeded, currentLocId) {
+async function ensureStockLocation(connection, productId, qtyNeeded, currentLocId, locationPurpose = "DISPLAY") {
   // Skenario 1: Cek Lokasi Eksisting (Re-validasi)
   if (currentLocId) {
     // Menggunakan locationRepo dengan locking (true)
@@ -55,7 +55,7 @@ async function ensureStockLocation(connection, productId, qtyNeeded, currentLocI
   }
 
   // Skenario 2: Cari Lokasi Baru (JIT Lookup - Strict Display via Repo)
-  const newBestLocId = await locationRepo.findBestStock(connection, productId, qtyNeeded);
+  const newBestLocId = await locationRepo.findBestStock(connection, productId, qtyNeeded, locationPurpose);
 
   if (newBestLocId) {
     // [SAFETY CHECK] Verifikasi stok di lokasi baru
@@ -180,6 +180,8 @@ export const completePickingItemsService = async (payloadItems, userId) => {
     // --- SAFETY CHECK START (REAL-TIME INTERRUPTION) ---
     // Pastikan order belum direvisi (menjadi _REV_) saat picker sedang bekerja
     const listIds = [...new Set(payloadItems.map((i) => i.picking_list_id))];
+    const invoiceMap = new Map();
+    const purposeMap = new Map();
 
     for (const listId of listIds) {
       const header = await pickingRepo.getHeaderById(connection, listId);
@@ -192,7 +194,7 @@ export const completePickingItemsService = async (payloadItems, userId) => {
       if (header.original_invoice_id && header.original_invoice_id.includes("_REV_")) {
         throw new Error(
           `PERHATIAN: Order ${header.original_invoice_id} telah direvisi oleh Admin! ` +
-            `Data Anda usang. Mohon refresh halaman dan kerjakan revisi terbaru.`
+          `Data Anda usang. Mohon refresh halaman dan kerjakan revisi terbaru.`
         );
       }
 
@@ -200,6 +202,9 @@ export const completePickingItemsService = async (payloadItems, userId) => {
       if (header.status === "CANCELLED") {
         throw new Error(`Order #${listId} telah dibatalkan. Tidak dapat diproses.`);
       }
+
+      invoiceMap.set(listId, header.original_invoice_id);
+      purposeMap.set(listId, header.location_purpose || "DISPLAY");
     }
     // --- SAFETY CHECK END ---
 
@@ -217,21 +222,25 @@ export const completePickingItemsService = async (payloadItems, userId) => {
         quantity: qty,
         suggested_location_id: initialLocId,
         picking_list_id,
-        original_sku: sku, // Pastikan repo mengembalikan ini atau ambil ulang
+        original_sku: sku,
       } = itemData;
+
+      const locationPurpose = purposeMap.get(picking_list_id) || "DISPLAY";
 
       // Cek ketersediaan stok & lokasi
       const { locationId, isChanged, currentStock } = await ensureStockLocation(
         connection,
         prodId,
         qty,
-        initialLocId
+        initialLocId,
+        locationPurpose
       );
 
       if (!locationId) {
         // Gagal: Stok tidak ditemukan sama sekali
+        const invRef = invoiceMap.get(picking_list_id) || "UNKNOWN-INV";
         validationErrors.push(
-          `Item ID ${itemId} (Prod ${prodId}): Stok habis/tidak cukup di lokasi manapun.`
+          `INV [${invRef}] - SKU ${sku || "Prod ID " + prodId}: Stok habis/tidak cukup di lokasi manapun.`
         );
       } else {
         // Sukses: Simpan rencana eksekusi
@@ -245,10 +254,10 @@ export const completePickingItemsService = async (payloadItems, userId) => {
 
     // [BLOCKER] Jika ada error, batalkan SEMUA.
     if (validationErrors.length > 0) {
-      const errorMsg = `Validasi Gagal! ${
-        validationErrors.length
-      } item bermasalah:\n- ${validationErrors.join("\n- ")}`;
-      throw new Error(errorMsg);
+      const errorMsg = `Validasi Gagal Ditemukan ${validationErrors.length} stok bermasalah.`;
+      const error = new Error(errorMsg);
+      error.details = validationErrors;
+      throw error;
     }
 
     // --- FASE 2: EKSEKUSI AMAN ---
@@ -278,13 +287,14 @@ export const completePickingItemsService = async (payloadItems, userId) => {
       await locationRepo.deductStock(connection, prodId, finalLocationId, qty);
 
       // 4. Catat Log
+      const invoiceRef = invoiceMap.get(picking_list_id) || `List #${picking_list_id}`;
       await stockRepo.createLog(connection, {
         productId: prodId,
         quantity: qty,
         fromLocationId: finalLocationId,
         type: "SALE",
         userId: userId,
-        notes: `Sale Ref: Item #${itemId}`,
+        notes: `Sale Ref: ${invoiceRef} (Item #${itemId})`,
       });
 
       affectedListIds.add(picking_list_id);

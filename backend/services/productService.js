@@ -204,6 +204,21 @@ export const uploadProductImagesService = async (id, images, userId) => {
   }
 };
 
+export const linkMediaToProductService = async (productId, mediaIds, userId) => {
+  const connection = await db.getConnection();
+  await connection.beginTransaction();
+  try {
+    await productRepo.linkMedia(connection, productId, mediaIds);
+    await logChange(connection, productId, userId, "UPDATE", "images", "Add Media", `${mediaIds.length} Linked Media`);
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+};
+
 export const deleteProductImageService = async (imageId, userId) => {
   const connection = await db.getConnection();
   await connection.beginTransaction();

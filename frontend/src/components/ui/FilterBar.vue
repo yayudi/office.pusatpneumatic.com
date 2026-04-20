@@ -2,6 +2,7 @@
 import { reactive, watch } from 'vue'
 import FilterContainer from '@/components/ui/FilterContainer.vue'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 
 const props = defineProps({
   title: {
@@ -65,13 +66,16 @@ function emitClear() {
           <label v-if="filter.label" :for="filter.key" class="text-sm font-medium text-text/80 whitespace-nowrap">
             {{ filter.label }}:
           </label>
-          <select :id="filter.key" :multiple="filter.multiple || false"
-            class="w-full md:w-auto px-3 py-2 bg-background border border-secondary text-text rounded-lg text-sm shadow-sm focus:ring-2 focus:ring-primary/50 focus:border-primary"
-            v-model="localValues[filter.key]" @change="emitChange">
-            <option v-for="opt in filter.options" :key="opt.value" :value="opt.value">
-              {{ opt.label }}
-            </option>
-          </select>
+          <BaseSelect 
+            v-model="localValues[filter.key]" 
+            :options="filter.options" 
+            track-by="value" 
+            emit-value 
+            :multiple="filter.multiple || false" 
+            :searchable="false"
+            @update:modelValue="emitChange"
+            class="min-w-[150px]"
+          />
         </div>
       </template>
 

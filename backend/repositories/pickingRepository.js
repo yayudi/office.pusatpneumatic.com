@@ -22,6 +22,7 @@ export const getPendingItems = async (connection) => {
       pl.created_at,
       pl.customer_name,
       pl.marketplace_status,
+      pl.location_purpose,
       COALESCE(sl.quantity, 0) as available_stock
     FROM picking_list_items pli
     JOIN picking_lists pl ON pli.picking_list_id = pl.id
@@ -48,7 +49,7 @@ export const getHistoryItems = async (connection, limit = 1000) => {
   const query = `
     SELECT
       pl.id as picking_list_id, pl.original_invoice_id, pl.source, pl.status,
-      pl.marketplace_status, pl.customer_name, pl.created_at, pl.order_date,
+      pl.marketplace_status, pl.customer_name, pl.created_at, pl.order_date, pl.location_purpose,
       pli.id as item_id, pli.original_sku as sku, pli.quantity, pli.status as item_status,
       pli.return_condition, pli.return_notes,
       p.name as product_name
@@ -96,7 +97,7 @@ export const getItemsByIds = async (connection, itemIds) => {
 export const countPendingItems = async (connection, listId) => {
   const [rows] = await connection.query(
     `SELECT COUNT(*) as count FROM picking_list_items
-     WHERE picking_list_id = ? AND status NOT IN ('VALIDATED', 'CANCEL', 'COMPLETED', 'RETURNED', 'OBSOLETE', 'ERROR')`,
+      WHERE picking_list_id = ? AND status NOT IN ('VALIDATED', 'CANCEL', 'COMPLETED', 'RETURNED', 'OBSOLETE', 'ERROR')`,
     [listId]
   );
   return rows[0].count;
@@ -113,7 +114,7 @@ export const findActiveHeaderByInvoice = async (connection, invoiceId) => {
 // Required for Safety Check in pickingDataService
 export const getHeaderById = async (connection, listId) => {
   const [rows] = await connection.query(
-    "SELECT id, original_invoice_id, status, is_active, marketplace_status FROM picking_lists WHERE id = ?",
+    "SELECT id, original_invoice_id, status, is_active, marketplace_status, location_purpose FROM picking_lists WHERE id = ?",
     [listId]
   );
   return rows.length > 0 ? rows[0] : null;
@@ -273,12 +274,12 @@ export const getAllHeadersByInvoiceIds = async (connection, invoiceIds) => {
 
 export const createHeader = async (
   connection,
-  { userId, source, invoiceId, customer, orderDate, status, mpStatus, filename }
+  { userId, source, invoiceId, customer, orderDate, status, mpStatus, filename, locationPurpose }
 ) => {
   const [res] = await connection.query(
-    `INSERT INTO picking_lists (user_id, source, original_invoice_id, customer_name, order_date, status, marketplace_status, is_active, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 1, NOW())`,
-    [userId, source, invoiceId, customer, orderDate, status, mpStatus]
+    `INSERT INTO picking_lists (user_id, source, original_invoice_id, customer_name, order_date, status, marketplace_status, is_active, created_at, location_purpose)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1, NOW(), ?)`,
+    [userId, source, invoiceId, customer, orderDate, status, mpStatus, locationPurpose || "DISPLAY"]
   );
   return res.insertId;
 };

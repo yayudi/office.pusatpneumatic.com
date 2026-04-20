@@ -168,7 +168,7 @@ router.get("/:id/history", canAccess("view-prices"), productController.getProduc
  */
 router.post(
   "/",
-  canAccess("manage-products"),
+  canAccess("product.image.upload"),
   productUpload.array("images", 5),
   productController.createProduct
 );
@@ -179,7 +179,7 @@ router.post(
  */
 router.put(
   "/:id",
-  canAccess("manage-products"),
+  canAccess("product.image.upload"),
   productUpload.array("images", 5),
   productController.updateProduct
 );
@@ -188,14 +188,24 @@ router.put(
  * DELETE /api/products/:id
  * Soft delete produk (set is_active = 0, deleted_at = NOW).
  */
-router.delete("/:id", canAccess("manage-products"), productController.deleteProduct);
+router.delete("/:id", canAccess("product.image.delete"), productController.deleteProduct);
 
 // ============================================================================
 // IMAGE SPECIFIC ROUTES (GRANULAR PERMISSIONS)
 // ============================================================================
 
 /**
- * PUT /api/products/:id/image
+ * POST /api/products/:id/link-media
+ * Link existing media to product. Permission: 'product.image.upload'
+ */
+router.post(
+  "/:id/link-media",
+  canAccess("product.image.upload"),
+  productController.linkMediaToProduct
+);
+
+/**
+ * POST /api/products/:id/images
  * Upload/Ganti gambar produk. Permission: 'product.image.upload'
  */
 router.post(

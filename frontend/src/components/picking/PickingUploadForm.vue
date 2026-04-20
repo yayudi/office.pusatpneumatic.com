@@ -2,6 +2,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import Tabs from '@/components/ui/Tabs.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 import { useToast } from '@/composables/useToast.js'
 import axios from '@/api/axios.js'
 
@@ -10,16 +11,22 @@ const { toast } = useToast()
 
 const fileInputRef = ref(null)
 const selectedFiles = ref([])
-const selectedSource = ref('Tokopedia')
+const selectedSource = ref('Offline')
+const selectedPurpose = ref('DISPLAY')
 const isLoading = ref(false)
 const loadingMessage = ref('')
 const isDragging = ref(false)
 const isDryRun = ref(false)
 
 const tabs = [
-  { label: 'Tokopedia', value: 'Tokopedia' },
   { label: 'Offline', value: 'Offline' },
+  { label: 'Tokopedia', value: 'Tokopedia' },
   { label: 'Shopee', value: 'Shopee' },
+]
+
+const purposeOptions = [
+  { id: 'DISPLAY', label: 'DISPLAY (Gudang Utama)' },
+  { id: 'BRANCH', label: 'BRANCH (Cabang LTC)' },
 ]
 
 const fileAcceptString = computed(() => {
@@ -27,7 +34,7 @@ const fileAcceptString = computed(() => {
   return '.csv, .xlsx, .xls'
 })
 
-// --- FILE HANDLING ---
+// FILE HANDLING
 
 function triggerFileSelect() {
   fileInputRef.value?.click()
@@ -58,8 +65,7 @@ function resetFileInput() {
   if (fileInputRef.value) fileInputRef.value.value = ''
 }
 
-// --- UPLOAD LOGIC ---
-
+// UPLOAD LOGIC
 async function triggerUpload() {
   if (selectedFiles.value.length === 0) {
     toast('Silakan pilih minimal satu file.', 'warning')
@@ -101,7 +107,11 @@ async function triggerUpload() {
     })
     formData.append('source', selectedSource.value)
 
-    // [NEW] Kirim flag dryRun ke backend
+    if (selectedSource.value === 'Offline') {
+      formData.append('purpose', selectedPurpose.value)
+    }
+
+    // Kirim flag dryRun ke backend
     if (isDryRun.value) {
       formData.append('dryRun', 'true')
     }
@@ -136,10 +146,19 @@ async function triggerUpload() {
 
 <template>
   <div class="space-y-6">
-    <!-- 1. Source Tabs -->
+    <!-- Source Tabs -->
     <div>
       <label class="block text-[10px] font-bold uppercase text-text/40 mb-2 tracking-wider">Sumber Data</label>
-      <Tabs :tabs="tabs" v-model:model-value="selectedSource" class="w-full" />
+      <Tabs :tabs="tabs" v-model:model-value="selectedSource" class="w-full mb-2" />
+      <div v-if="selectedSource === 'Offline'" class="w-full animate-fade-in origin-left">
+        <BaseSelect
+          v-model="selectedPurpose"
+          :options="purposeOptions"
+          placeholder="Pilih Lokasi Stok"
+          track-by="id"
+          emit-value
+        />
+      </div>
     </div>
 
     <!-- File Input Area -->
@@ -185,7 +204,7 @@ async function triggerUpload() {
         </div>
       </div>
 
-      <!-- 3. File List Preview (Dismissible) -->
+      <!-- File List Preview (Dismissible) -->
       <div v-if="selectedFiles.length > 0" class="mt-3 space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
         <div v-for="(f, i) in selectedFiles" :key="i"
           class="flex items-center gap-3 p-2 bg-secondary/5 border border-secondary/10 rounded-lg text-xs group hover:bg-secondary/10 transition-colors">
@@ -206,9 +225,9 @@ async function triggerUpload() {
       </div>
     </div>
 
-    <!-- 4. Options & Actions -->
+    <!-- Options & Actions -->
     <div class="pt-2 space-y-4">
-      <!-- [NEW] Dry Run Checkbox -->
+      <!-- Dry Run Checkbox -->
       <div class="flex items-center gap-2 px-1" v-if="selectedFiles.length > 0">
         <div class="relative flex items-center">
           <input type="checkbox" id="dryRunCheck" v-model="isDryRun"

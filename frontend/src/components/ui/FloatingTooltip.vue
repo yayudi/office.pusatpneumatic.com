@@ -1,38 +1,83 @@
+<!-- frontend\src\components\ui\FloatingTooltip.vue -->
 <script setup>
-defineProps({
+import { ref, toRef } from 'vue'
+import { useFloating, offset, flip, shift, arrow, autoUpdate } from '@floating-ui/vue'
+
+const props = defineProps({
   show: Boolean,
-  x: Number,
-  y: Number,
+  referenceEl: { type: [Object, null] },
   title: String,
-  loading: Boolean
+  loading: Boolean,
+  placement: { type: String, default: 'top' },
+  showArrow: { type: Boolean, default: true },
+  interactive: { type: Boolean, default: false }
+})
+
+const floating = ref(null)
+const floatingArrow = ref(null)
+
+const {
+  floatingStyles,
+  middlewareData,
+  placement: finalPlacement
+} = useFloating(toRef(props, 'referenceEl'), floating, {
+  placement: props.placement,
+  strategy: 'fixed',
+  middleware: [
+    offset(8),
+    flip(),
+    shift({ padding: 8 }),
+    props.showArrow ? arrow({ element: floatingArrow }) : undefined
+  ].filter(Boolean),
+  whileElementsMounted: autoUpdate
 })
 </script>
 
 <template>
   <Teleport to="body">
-    <div v-if="show"
-      class="fixed z-[99999] min-w-[150px] max-w-xs bg-background text-text text-xs rounded-lg shadow-xl p-3 border border-secondary/50 backdrop-blur-md pointer-events-none"
-      :style="{
-        left: x + 'px',
-        top: y + 'px',
-        transform: 'translateX(-50%) translateY(-100%)',
-        marginTop: '-8px',
-      }">
-      <div v-if="title"
-        class="font-bold text-primary mb-2 uppercase text-[10px] tracking-wider border-b border-secondary/20 pb-1">
-        {{ title }}
-      </div>
+    <Transition name="fade">
+      <div v-if="show" ref="floating" :style="floatingStyles"
+        class="fixed z-[9999] min-w-[150px] max-w-xs bg-background text-text text-xs rounded-lg shadow-xl p-3 border border-secondary/50 backdrop-blur-md"
+        :class="!interactive ? 'pointer-events-none' : ''">
+        <div v-if="title"
+          class="font-bold text-primary mb-2 uppercase text-[10px] tracking-wider text-center border-b border-primary/50 pb-1">
+          {{ title }}
+        </div>
 
-      <div v-if="loading" class="flex justify-center items-center py-2">
-        <font-awesome-icon icon="fa-solid fa-circle-notch" spin class="text-primary text-lg" />
-      </div>
+        <div v-if="loading" class="flex justify-center items-center py-2">
+          <font-awesome-icon icon="fa-solid fa-circle-notch" spin class="text-primary text-lg" />
+        </div>
 
-      <slot v-else />
+        <slot v-else />
 
-      <!-- Arrow -->
-      <div
-        class="absolute left-1/2 -translate-x-1/2 bottom-[-5px] w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-secondary/50">
+        <!-- Arrow -->
+        <div v-if="showArrow" ref="floatingArrow"
+          class="absolute w-2.5 h-2.5 bg-background rotate-45 pointer-events-none z-[-1]" :style="{
+            left: middlewareData.arrow?.x != null ? `${middlewareData.arrow.x}px` : '',
+            top: middlewareData.arrow?.y != null ? `${middlewareData.arrow.y}px` : '',
+            right: '',
+            bottom: '',
+            [finalPlacement.split('-')[0] === 'top' ? 'bottom' : finalPlacement.split('-')[0] === 'bottom' ? 'top' : finalPlacement.split('-')[0] === 'left' ? 'right' : 'left']: '-5px',
+            borderTop: ['bottom', 'left'].includes(finalPlacement.split('-')[0]) ? 'none' : '',
+            borderLeft: ['bottom', 'right'].includes(finalPlacement.split('-')[0]) ? 'none' : '',
+            borderRight: ['top', 'left'].includes(finalPlacement.split('-')[0]) ? 'none' : '',
+            borderBottom: ['top', 'right'].includes(finalPlacement.split('-')[0]) ? 'none' : ''
+          }">
+        </div>
       </div>
-    </div>
+    </Transition>
   </Teleport>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(4px);
+}
+</style>

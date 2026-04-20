@@ -217,7 +217,7 @@ export async function handleExistingInvoices(connection, items) {
 /**
  * HELPER 2: Fetch Data Referensi
  */
-export async function fetchReferenceData(connection, skus) {
+export async function fetchReferenceData(connection, skus, locationPurpose = "DISPLAY") {
   logTrace("FETCH_DATA", `Mengambil data untuk ${skus.length} SKU unik.`);
   if (!skus.length) skus.push("");
 
@@ -234,19 +234,19 @@ export async function fetchReferenceData(connection, skus) {
       const stockSums = await locationRepo.getTotalStockByProductIds(
         connection,
         compIds,
-        "DISPLAY"
+        locationPurpose
       );
       const stockSumMap = new Map(stockSums.map((s) => [s.product_id, Number(s.qty)]));
       components = components.map((c) => ({
         ...c,
         component_stock_display: stockSumMap.get(c.component_product_id) || 0,
       }));
-      componentLocs = await locationRepo.getLocationsByProductIds(connection, compIds, "DISPLAY");
+      componentLocs = await locationRepo.getLocationsByProductIds(connection, compIds, locationPurpose);
     }
   }
   let singleLocs = [];
   if (singleIds.length > 0) {
-    singleLocs = await locationRepo.getLocationsByProductIds(connection, singleIds, "DISPLAY");
+    singleLocs = await locationRepo.getLocationsByProductIds(connection, singleIds, locationPurpose);
   }
   const groupBy = (arr, key) => {
     const map = new Map();
@@ -363,6 +363,7 @@ export async function insertPickingHeader(connection, meta) {
     status: WMS_STATUS.PENDING,
     mpStatus: meta.status || MP_STATUS.NEW,
     filename: meta.originalFilename,
+    locationPurpose: meta.locationPurpose || "DISPLAY",
   });
 }
 

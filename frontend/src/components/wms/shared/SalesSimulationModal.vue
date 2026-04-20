@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import axios from '@/api/axios.js'
 import Modal from '@/components/ui/Modal.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 import { debounce } from 'lodash'
 import { formatCurrency } from '@/utils/formatters.js'
 
@@ -30,6 +31,11 @@ const WEIGHT_UNITS = [
   { value: 'gr', label: 'Gram (gr)', divisor: 1 },
   { value: 'kg', label: 'Kilogram (kg)', divisor: 1000 },
   { value: 'ton', label: 'Ton', divisor: 1000000 },
+]
+
+const discountOptions = [
+  { value: 'percent', label: '%' },
+  { value: 'nominal', label: 'Rp' },
 ]
 
 // COMPUTED
@@ -155,12 +161,7 @@ const close = () => {
         <!-- Weight Unit Selector -->
         <div class="flex-1 min-w-[200px]">
           <label class="block text-xs font-bold text-text/70 mb-1.5 uppercase tracking-wide">Satuan Berat</label>
-          <select v-model="weightUnit"
-            class="w-full px-3 py-2 bg-background border border-secondary/30 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary transition-all cursor-pointer">
-            <option v-for="unit in WEIGHT_UNITS" :key="unit.value" :value="unit.value">
-              {{ unit.label }}
-            </option>
-          </select>
+          <BaseSelect v-model="weightUnit" :options="WEIGHT_UNITS" label="label" track-by="value" emit-value :searchable="false" />
         </div>
 
         <!-- PPN Toggle -->
@@ -204,11 +205,7 @@ const close = () => {
               </td>
               <td class="px-1 py-3">
                 <div class="flex items-center gap-1 justify-center">
-                  <select v-model="item.discount.type"
-                    class="bg-background border border-secondary/30 rounded px-1 py-1 text-xs focus:ring-primary focus:border-primary cursor-pointer w-[50px]">
-                    <option value="percent">%</option>
-                    <option value="nominal">Rp</option>
-                  </select>
+                  <BaseSelect v-model="item.discount.type" :options="discountOptions" label="label" track-by="value" emit-value :searchable="false" class="w-[60px] min-h-[30px] p-0 text-center flex items-center justify-center" />
                   <input v-model.number="item.discount.value" type="number" min="0"
                     class="w-full text-right bg-background border border-secondary/30 rounded px-1 py-1 text-xs focus:ring-primary focus:border-primary"
                     placeholder="0" />

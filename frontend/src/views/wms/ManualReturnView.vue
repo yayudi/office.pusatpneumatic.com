@@ -1,11 +1,17 @@
 <!-- frontend\src\views\ManualReturn.vue -->
 
 <script setup>
-import { ref, onMounted, toRaw } from 'vue'
+import { ref, onMounted, toRaw, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast.js'
 import api from '@/api/axios'
 import ProductSearchSelector from '@/components/transfer/ProductSearchSelector.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
+
+const conditionOptions = [
+  { id: 'GOOD', label: 'Bagus' },
+  { id: 'BAD', label: 'Rusak' },
+]
 
 const router = useRouter()
 const { toast } = useToast()
@@ -26,6 +32,10 @@ async function fetchHelpers() {
     console.error('Gagal load helpers', e)
   }
 }
+
+const locationOptions = computed(() =>
+  locations.value.map(loc => ({ id: loc.id, label: loc.code }))
+)
 
 function addItemRow() {
   form.value.items.push({
@@ -181,35 +191,27 @@ onMounted(() => {
 
               <div class="flex flex-wrap md:flex-nowrap gap-3 items-start w-full md:w-auto">
                 <div class="w-[48%] md:w-32">
-                  <div class="relative">
-                    <select v-model="item.condition"
-                      class="w-full pl-3 pr-8 py-2.5 bg-background border rounded-lg text-sm font-bold appearance-none outline-none focus:ring-1 focus:ring-primary transition-colors"
-                      :class="item.condition === 'GOOD'
-                        ? 'text-success border-success/30 bg-success/5 focus:border-success'
-                        : 'text-danger border-danger/30 bg-danger/5 focus:border-danger'
-                        ">
-                      <option value="GOOD">Bagus</option>
-                      <option value="BAD">Rusak</option>
-                    </select>
-                    <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-text/40">
-                      <font-awesome-icon icon="fa-solid fa-chevron-down" size="xs" />
-                    </div>
-                  </div>
+                  <BaseSelect
+                    v-model="item.condition"
+                    :options="conditionOptions"
+                    label="label"
+                    track-by="id"
+                    placeholder="Kondisi"
+                    :searchable="false"
+                    emit-value
+                  />
                 </div>
 
                 <div class="w-[48%] md:w-40">
-                  <div class="relative">
-                    <select v-model="item.locationId"
-                      class="w-full pl-3 pr-8 py-2.5 bg-background border border-secondary rounded-lg text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary appearance-none text-text">
-                      <option value="" disabled class="text-text/50">Pilih Lokasi...</option>
-                      <option v-for="loc in locations" :key="loc.id" :value="loc.id">
-                        {{ loc.code }}
-                      </option>
-                    </select>
-                    <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-text/40">
-                      <font-awesome-icon icon="fa-solid fa-map-marker-alt" size="xs" />
-                    </div>
-                  </div>
+                  <BaseSelect
+                    v-model="item.locationId"
+                    :options="locationOptions"
+                    label="label"
+                    track-by="id"
+                    placeholder="Pilih Lokasi..."
+                    :searchable="true"
+                    emit-value
+                  />
                 </div>
 
                 <div class="w-full md:w-24">

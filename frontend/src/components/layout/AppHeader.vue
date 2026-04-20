@@ -4,11 +4,13 @@ import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import ThemeSwitcher from '../ui/ThemeSwitcher.vue'
 import { useAuthStore } from '../../stores/auth.js'
+import { usePwaInstall } from '@/composables/usePwaInstall.js'
 
 const isDropdownOpen = ref(false)
 const isMobileMenuOpen = ref(false)
 const emit = defineEmits(['logout'])
 const auth = useAuthStore()
+const { isInstallable, installPwa } = usePwaInstall()
 
 const dropdownContainer = ref(null)
 const mobileMenuPanel = ref(null)
@@ -36,6 +38,9 @@ watch(isMobileMenuOpen, (isOpen) => {
 })
 
 function handleClickOutside(event) {
+  const teleportedDropdown = event.target.closest('.z-\\[9999\\]')
+  if (teleportedDropdown) return
+
   if (dropdownContainer.value && !dropdownContainer.value.contains(event.target)) {
     isDropdownOpen.value = false
   }
@@ -82,7 +87,7 @@ onUnmounted(() => {
             <font-awesome-icon icon="fa-solid fa-warehouse" />
             <span>WMS</span>
           </RouterLink>
-          <RouterLink to="/media" v-if="auth.user?.permissions?.includes('manage-products')"
+          <RouterLink to="/media" v-if="auth.user?.permissions?.includes('product.image.view')"
             class="border-b-2 text-text/80 hover:text-primary transition-colors flex items-center gap-2"
             active-class="!text-primary text-lg font-bold border-primary">
             <font-awesome-icon icon="fa-solid fa-images" />
@@ -127,7 +132,13 @@ onUnmounted(() => {
               <span>Bahasa</span>
             </a>
 
-            <div class="px-4 py-2 border-t border-secondary/20 mt-2">
+            <div class="px-4 py-2 border-t border-secondary/20 mt-2 flex flex-col gap-2">
+              <!-- Install PWA Button (Visible only if available) -->
+              <button v-if="isInstallable" @click="installPwa"
+                class="w-full text-left px-2 py-1.5 text-sm font-semibold text-white bg-primary rounded-md hover:bg-primary/90 flex items-center gap-3">
+                <font-awesome-icon icon="fa-solid fa-download" class="w-4" />
+                <span>Install Aplikasi</span>
+              </button>
               <ThemeSwitcher />
             </div>
 
@@ -161,7 +172,7 @@ onUnmounted(() => {
           active-class="!text-primary font-bold bg-secondary/10">WMS</RouterLink>
 
         <RouterLink to="/media" @click="isMobileMenuOpen = false"
-          v-if="auth.user?.permissions?.includes('manage-products')"
+          v-if="auth.user?.permissions?.includes('product.image.view')"
           class="block px-3 py-2 rounded-md text-base font-medium text-text/80 hover:bg-secondary/20 hover:text-primary"
           active-class="!text-primary font-bold bg-secondary/10">Media</RouterLink>
 
@@ -174,6 +185,13 @@ onUnmounted(() => {
           v-if="auth.user?.permissions?.includes('manage-users')"
           class="block px-3 py-2 rounded-md text-base font-medium text-text/80 hover:bg-secondary/20 hover:text-primary"
           active-class="!text-primary font-bold bg-secondary/10">Panel Admin</RouterLink>
+
+        <!-- Install PWA Mobile Item -->
+        <button v-if="isInstallable" @click="installPwa(); isMobileMenuOpen = false"
+          class="block w-full text-left px-3 py-2 mt-2 rounded-md text-base font-bold text-white bg-primary hover:bg-primary/90">
+          <font-awesome-icon icon="fa-solid fa-download" class="mr-2" />
+          Install Aplikasi WMS
+        </button>
       </nav>
     </div>
   </header>

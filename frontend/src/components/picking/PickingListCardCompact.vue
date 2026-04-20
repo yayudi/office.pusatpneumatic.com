@@ -4,6 +4,7 @@ import { formatDate } from '@/api/helpers/time.js'
 import { useAuthStore } from '@/stores/auth'
 import logoTokopedia from '@/assets/img/tokopedia.svg'
 import logoShopee from '@/assets/img/shopee.svg'
+import { usePickingCardState } from '@/composables/usePickingCardState'
 
 const props = defineProps({
   inv: { type: Object, required: true },
@@ -19,65 +20,14 @@ const emit = defineEmits(['toggle-invoice', 'cancel-invoice'])
 const isOpen = ref(false)
 const isLoading = ref(false)
 
-// --- COMPUTED HELPERS ---
-const totalSKU = computed(() => {
-  if (props.mode === 'history' && props.inv.items) {
-    return props.inv.items.length
-  }
-  let count = 0
-  if (props.inv.locations) {
-    Object.values(props.inv.locations).forEach((items) => {
-      count += items.length
-    })
-  }
-  return count
-})
-
-const sourceBgClass = computed(() => {
-  switch (props.inv.source) {
-    case 'Tokopedia':
-      return 'bg-success'
-    case 'Shopee':
-      return 'bg-warning'
-    case 'Offline':
-      return 'bg-primary'
-    default:
-      return 'bg-danger'
-  }
-})
-
-const hasStockIssue = computed(() => {
-  if (props.mode === 'history' || !props.inv.locations) return false
-  for (const locName in props.inv.locations) {
-    for (const item of props.inv.locations[locName]) {
-      if (!item.location_code || Number(item.available_stock || 0) < Number(item.quantity || 0))
-        return true
-    }
-  }
-  return false
-})
-
-const isInvoiceSelected = computed(() => {
-  let validItems = []
-  if (props.inv.locations) {
-    Object.values(props.inv.locations).forEach((items) => {
-      items.forEach((i) => {
-        if (i.location_code && props.validateStock(i)) {
-          validItems.push(i.id)
-        }
-      })
-    })
-  }
-
-  if (validItems.length === 0) return false
-  return validItems.every((id) => props.selectedItems.has(id))
-})
-
-const canCancel = computed(() => {
-  return (
-    props.mode === 'picking' && hasStockIssue.value && authStore.hasPermission('picking.cancel')
-  )
-})
+const {
+  totalSKU,
+  hasStockIssue,
+  isInvoiceSelected,
+  canCancel,
+  isItemInvalid,
+  getMpStatusBadge
+} = usePickingCardState(props, authStore)
 
 // --- ACTIONS ---
 function onToggleInvoice(event) {
@@ -96,26 +46,6 @@ async function onCancelInvoice() {
       isLoading.value = false
     }, 500)
   }
-}
-
-function isItemInvalid(item) {
-  if (props.mode === 'history') return false
-  if (!item.location_code) return true
-  return !props.validateStock({ ...item, quantity: Number(item.quantity) })
-}
-
-// --- STATUS BADGES ---
-function getMpStatusBadge(status) {
-  const map = {
-    SHIPPED: { class: 'bg-primary/50 text-text', label: 'Dikirim', icon: 'fa-truck-fast' },
-    COMPLETED: { class: 'bg-success/50 text-text', label: 'Selesai', icon: 'fa-check-double' },
-    NEW: { class: 'bg-accent/50 text-text', label: 'Baru', icon: 'fa-star' },
-    CANCELLED: { class: 'bg-danger/50 text-text', label: 'Batal', icon: 'fa-ban' },
-    RETURNED: { class: 'bg-warning/50 text-text', label: 'Retur', icon: 'fa-rotate-left' },
-  }
-  return (
-    map[status] || { class: 'bg-secondary text-background', label: status || '-', icon: 'fa-info' }
-  )
 }
 </script>
 
@@ -199,6 +129,14 @@ function getMpStatusBadge(status) {
           <span class="text-sm font-black text-text">{{ totalSKU }}</span>
           <span class="text-[9px] text-text/40 uppercase font-bold ml-0.5">SKU</span>
         </div>
+
+        <span
+          v-if="inv.location_purpose === 'BRANCH'"
+          class="text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm bg-accent/20 text-accent/80 flex items-center gap-1 border border-accent/20"
+        >
+          <font-awesome-icon icon="fa-solid fa-code-branch" />
+          Cabang
+        </span>
 
         <button
           v-if="canCancel"

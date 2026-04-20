@@ -88,20 +88,6 @@ const route = useRoute()
           <span>Log Aktivitas</span>
         </router-link>
       </nav>
-
-      <!-- Footer / User Info -->
-      <div class="p-4 border-t border-secondary/20 bg-secondary/5">
-        <div class="flex items-center gap-3">
-          <div
-            class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs">
-            A
-          </div>
-          <div class="text-sm">
-            <p class="font-semibold text-text">Administrator</p>
-            <p class="text-xs text-text/60">admin@dps.com</p>
-          </div>
-        </div>
-      </div>
     </aside>
 
     <!-- Main Content Wrapper -->

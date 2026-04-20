@@ -5,7 +5,9 @@ import { fetchAllUsers, fetchRoles, fetchShifts, createUser, deleteUser } from '
 import UserLocationModal from '@/components/users/locationModal.vue'
 import UserEditModal from '@/components/users/EditModal.vue'
 import Modal from '@/components/ui/Modal.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
+import { computed } from 'vue'
 
 const users = ref([])
 const allRoles = ref([])
@@ -20,6 +22,16 @@ const isEditModalOpen = ref(false)
 
 const newUser = ref({ username: '', password: '', role_id: null, shift_id: null, nickname: '' })
 const { toast } = useToast()
+
+const shiftOptions = computed(() => {
+  return [
+    { id: null, label: 'Default (Regular Office)' },
+    ...(allShifts.value || []).map(s => ({
+      id: s.id,
+      label: `${s.name} (${s.start_time?.slice(0, 5)} - ${s.end_time?.slice(0, 5)})`
+    }))
+  ]
+})
 
 async function fetchData() {
   loading.value = true
@@ -187,23 +199,11 @@ onMounted(fetchData)
         </div>
         <div>
           <label for="role" class="block text-sm font-medium text-text/80 mb-1">Role</label>
-          <select v-model="newUser.role_id" id="role" required
-            class="w-full px-3 py-2 bg-background border border-secondary/50 rounded-lg">
-            <option :value="null" disabled>Pilih sebuah peran</option>
-            <option v-for="role in allRoles" :key="role.id" :value="role.id">
-              {{ role.name }}
-            </option>
-          </select>
+          <BaseSelect v-model="newUser.role_id" :options="allRoles" track-by="id" label="name" emit-value placeholder="Pilih Role" />
         </div>
         <div>
           <label for="shift" class="block text-sm font-medium text-text/80 mb-1">Shift (Opsional)</label>
-          <select v-model="newUser.shift_id" id="shift"
-            class="w-full px-3 py-2 bg-background border border-secondary/50 rounded-lg">
-            <option :value="null">Default (Regular Office)</option>
-            <option v-for="shift in allShifts" :key="shift.id" :value="shift.id">
-              {{ shift.name }} ({{ shift.start_time.slice(0, 5) }} - {{ shift.end_time.slice(0, 5) }})
-            </option>
-          </select>
+          <BaseSelect v-model="newUser.shift_id" :options="shiftOptions" track-by="id" emit-value placeholder="Pilih Shift" />
         </div>
       </form>
       <template #footer>

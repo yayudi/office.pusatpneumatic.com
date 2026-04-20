@@ -1,6 +1,18 @@
 <script setup>
 import { computed } from 'vue'
 import FilterContainer from '@/components/ui/FilterContainer.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
+
+const statusOptions = [
+  { id: 'active', label: 'Produk Aktif' },
+  { id: 'archived', label: 'Diarsipkan (Hapus)' },
+  { id: 'all', label: 'Semua Status' },
+]
+
+const searchByOptions = [
+  { id: 'name', label: 'Nama' },
+  { id: 'sku', label: 'SKU' },
+]
 
 const props = defineProps({
   filterType: String,
@@ -71,32 +83,34 @@ const queryModel = computed({
     <div class="h-px w-full lg:h-auto lg:w-px bg-secondary/10 mx-1 hidden lg:block"></div>
 
     <!-- Filter Status -->
-    <div class="flex bg-background rounded-xl p-1 border border-secondary/10 shrink-0">
-      <select v-model="statusModel"
-        class="px-3 py-2 bg-transparent text-xs font-bold text-text focus:outline-none cursor-pointer hover:bg-secondary/5 rounded-lg appearance-none w-full"
-        title="Filter Status Produk">
-        <option value="active">Produk Aktif</option>
-        <option value="archived">Diarsipkan (Hapus)</option>
-        <option value="all">Semua Status</option>
-      </select>
-      <div class="flex items-center px-2 pointer-events-none text-text/40">
-        <font-awesome-icon icon="fa-solid fa-filter" class="text-xs" />
-      </div>
+    <div class="shrink-0 w-full sm:w-44">
+      <BaseSelect
+        :model-value="statusModel"
+        @update:model-value="(v) => statusModel = typeof v === 'object' ? v.id : v"
+        :options="statusOptions"
+        label="label"
+        track-by="id"
+        placeholder="Status"
+        :searchable="false"
+        emit-value
+      />
     </div>
 
     <div class="h-px w-full lg:h-auto lg:w-px bg-secondary/10 mx-1 hidden lg:block"></div>
 
     <!-- Search Group -->
     <div class="flex flex-col sm:flex-row flex-1 gap-2">
-      <div class="relative shrink-0 w-full sm:w-28">
-        <select v-model="searchByModel"
-          class="w-full h-full pl-3 pr-6 py-2.5 bg-background border border-transparent rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-text text-xs font-medium appearance-none cursor-pointer hover:bg-secondary/5 transition-colors">
-          <option value="name">Nama</option>
-          <option value="sku">SKU</option>
-        </select>
-        <span class="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-text/40">
-          <font-awesome-icon icon="fa-solid fa-chevron-down" class="text-[10px]" />
-        </span>
+      <div class="shrink-0 w-full sm:w-28">
+        <BaseSelect
+          :model-value="searchByModel"
+          @update:model-value="(v) => searchByModel = typeof v === 'object' ? v.id : v"
+          :options="searchByOptions"
+          label="label"
+          track-by="id"
+          placeholder="Cari"
+          :searchable="false"
+          emit-value
+        />
       </div>
 
       <div class="relative flex-1">

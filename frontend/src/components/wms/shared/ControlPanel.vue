@@ -1,7 +1,8 @@
 <!-- frontend/src/components/wms/shared/ControlPanel.vue -->
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import FilterContainer from '@/components/ui/FilterContainer.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 
 const props = defineProps({
   // Data
@@ -54,6 +55,18 @@ function clearSearch() {
   emit('search', '')
 }
 
+const typeOptions = [
+  { id: 'all', label: '- Tipe -' },
+  { id: 'unit', label: 'Satuan' },
+  { id: 'package', label: 'Paket' },
+]
+
+const stockOptions = [
+  { id: 'all', label: '- Stok -' },
+  { id: 'minus', label: 'Minus' },
+  { id: 'positive', label: 'Aman' },
+]
+
 // Column Menu State
 const isColumnMenuOpen = ref(false)
 
@@ -80,8 +93,6 @@ onMounted(() => {
   window.addEventListener('resize', updateDropdownPosition)
   window.addEventListener('scroll', updateDropdownPosition, true)
 })
-
-import { onUnmounted } from 'vue'
 
 onUnmounted(() => {
   document.removeEventListener('click', closeColumnMenu)
@@ -152,47 +163,35 @@ function updateDropdownPosition() {
         </div>
 
         <div v-if="activeView === 'gudang'" class="flex gap-2 w-full lg:w-auto animate-fade-in shrink-0">
-          <select :value="selectedBuilding" @change="emit('update:selectedBuilding', $event.target.value)"
-            class="flex-1 lg:w-32 px-3 py-1.5 bg-background border border-secondary/20 rounded-lg text-sm text-text focus:border-primary focus:outline-none h-[42px]">
-            <option v-for="opt in buildingFilterOptions" :key="opt.value" :value="opt.value">
-              {{ opt.label }}
-            </option>
-          </select>
+          <BaseSelect :model-value="selectedBuilding" @update:modelValue="emit('update:selectedBuilding', $event)"
+            :options="buildingFilterOptions" track-by="value" emit-value :searchable="false"
+            class="flex-1 lg:w-32 min-w-[120px] h-[42px]" />
 
-          <select :value="selectedFloor" @change="emit('update:selectedFloor', $event.target.value)"
-            class="flex-1 lg:w-24 px-3 py-1.5 bg-background border border-secondary/20 rounded-lg text-sm text-text focus:border-primary focus:outline-none h-[42px]">
-            <option v-for="opt in floorFilterOptions" :key="opt.value" :value="opt.value">
-              {{ opt.label }}
-            </option>
-          </select>
+          <BaseSelect :model-value="selectedFloor" @update:modelValue="emit('update:selectedFloor', $event)"
+            :options="floorFilterOptions" track-by="value" emit-value :searchable="false"
+            class="flex-1 lg:w-24 min-w-[110px] h-[42px]" />
         </div>
 
         <div class="flex gap-2 shrink-0">
           <!-- Filter Tipe Produk -->
-          <select :value="productTypeFilter" @change="emit('update:productTypeFilter', $event.target.value)"
-            class="px-3 rounded-lg text-xs font-bold border transition-all h-[42px] focus:outline-none cursor-pointer"
+          <BaseSelect :model-value="productTypeFilter" @update:modelValue="emit('update:productTypeFilter', $event)"
+            :options="typeOptions" track-by="id" emit-value :searchable="false"
+            class="min-w-[100px] h-[42px]"
             :class="[
               productTypeFilter !== 'all'
                 ? 'bg-accent/5 border-accent text-accent'
                 : 'bg-background border-secondary text-text/60 hover:text-text'
-            ]">
-            <option value="all">- Tipe -</option>
-            <option value="unit">Satuan</option>
-            <option value="package">Paket</option>
-          </select>
+            ]" />
 
           <!-- Filter Stock Status -->
-          <select :value="stockStatusFilter" @change="emit('update:stockStatusFilter', $event.target.value)"
-            class="px-3 rounded-lg text-xs font-bold border transition-all h-[42px] focus:outline-none cursor-pointer"
+          <BaseSelect :model-value="stockStatusFilter" @update:modelValue="emit('update:stockStatusFilter', $event)"
+            :options="stockOptions" track-by="id" emit-value :searchable="false"
+            class="min-w-[100px] h-[42px]"
             :class="[
               stockStatusFilter === 'minus' ? 'bg-danger/5 border-danger text-danger' :
                 stockStatusFilter === 'positive' ? 'bg-success/5 border-success text-success' :
                   'bg-background border-secondary text-text/60 hover:text-text'
-            ]">
-            <option value="all">- Stok -</option>
-            <option value="minus">Minus</option>
-            <option value="positive">Aman</option>
-          </select>
+            ]" />
 
           <!-- Column Visibility Selector -->
           <div class="relative column-selector-group">

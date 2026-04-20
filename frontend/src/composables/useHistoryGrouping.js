@@ -10,6 +10,9 @@ export function useHistoryGrouping(itemsRef, filterStateRef) {
     if (filter.source !== 'ALL') {
       filtered = filtered.filter((i) => i.source === filter.source)
     }
+    if (filter.locationPurpose && filter.locationPurpose !== 'ALL') {
+      filtered = filtered.filter((i) => (i.location_purpose || 'DISPLAY') === filter.locationPurpose)
+    }
     if (filter.search) {
       const q = filter.search.toLowerCase()
       filtered = filtered.filter(
@@ -44,6 +47,7 @@ export function useHistoryGrouping(itemsRef, filterStateRef) {
         groups.set(cleanId, {
           invoice: cleanId,
           source: item.source,
+          location_purpose: item.location_purpose,
           customer_name: item.customer_name,
           order_date: item.order_date,
           sessionsMap: new Map(),
@@ -79,6 +83,7 @@ export function useHistoryGrouping(itemsRef, filterStateRef) {
         ...latestSession,
         invoice: group.invoice,
         source: group.source,
+        location_purpose: group.location_purpose,
         customer_name: group.customer_name,
         historyLogs: historyLogs,
       }

@@ -9,6 +9,7 @@ import {
   deleteLocation,
 } from '@/api/helpers/locations.js'
 import Modal from '@/components/ui/Modal.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
 
 const { toast } = useToast()
@@ -177,11 +178,7 @@ async function handleDelete(locationId) {
       </div>
       <div>
         <label class="block text-sm font-medium text-text/80 mb-1">Purpose</label>
-        <select v-model="selectedLocation.purpose" required class="w-full input-field">
-          <option v-for="opt in purposeOptions" :key="opt" :value="opt">
-            {{ opt }}
-          </option>
-        </select>
+        <BaseSelect v-model="selectedLocation.purpose" :options="purposeOptions" emit-value :searchable="false" placeholder="Pilih Purpose" />
       </div>
       <div>
         <label class="block text-sm font-medium text-text/80 mb-1">Lantai (Opsional)</label>

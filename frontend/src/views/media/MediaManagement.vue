@@ -8,6 +8,15 @@ import MediaInfoModal from './MediaInfoModal.vue';
 import MediaLightbox from '@/components/common/MediaLightbox.vue';
 import LinkProductModal from './LinkProductModal.vue';
 import BulkEditTagsModal from './BulkEditTagsModal.vue';
+import BaseSelect from '@/components/ui/BaseSelect.vue';
+import BasePagination from '@/components/ui/BasePagination.vue';
+import FloatingTooltip from '@/components/ui/FloatingTooltip.vue';
+
+const linkStatusOptions = [
+  { id: 'all', label: 'Semua Media' },
+  { id: 'linked', label: 'Sudah Tertaut' },
+  { id: 'orphaned', label: 'Belum Tertaut' },
+]
 
 const auth = useAuthStore();
 const { toast } = useToast()
@@ -19,6 +28,22 @@ const isUploading = ref(false);
 const globalSearchStr = ref('');
 const linkStatusFilter = ref('all');
 let searchDebounceTimer = null;
+
+const isUsageTooltipVisible = ref(false)
+const usageTooltipTarget = ref(null)
+const hoveredMediaItem = ref(null)
+
+const handleTooltipOpen = (event, item) => {
+  if (item.usage_count > 0) {
+    usageTooltipTarget.value = event.currentTarget
+    hoveredMediaItem.value = item
+    isUsageTooltipVisible.value = true
+  }
+}
+
+const handleTooltipClose = () => {
+  isUsageTooltipVisible.value = false
+}
 
 // Debounce: auto-fetch 400ms setelah user berhenti mengetik
 watch(globalSearchStr, () => {
@@ -498,18 +523,14 @@ onUnmounted(() => {
         </div>
       </div>
       <div class="flex gap-2 flex-wrap">
-        <div class="relative max-w-xs border border-secondary/20 rounded-lg bg-secondary">
+        <div class="relative w-full md:w-[300px] border border-secondary/20 rounded-lg bg-secondary">
           <input type="text" v-model="globalSearchStr" placeholder="Cari nama file, SKU, atau tag..."
             class="input input-sm input-bordered w-full p-2 pr-8 text-text rounded-lg bg-background h-[42px]" />
           <font-awesome-icon icon="fa-solid fa-search"
             class="absolute right-3 top-1/2 -translate-y-1/2 text-text/40 pointer-events-none" />
         </div>
-        <select v-model="linkStatusFilter"
-          class="h-[42px] px-3 rounded-lg border border-secondary bg-background text-text text-sm focus:border-primary focus:outline-none transition-colors cursor-pointer">
-          <option value="all">Semua Media</option>
-          <option value="linked">Sudah Tertaut</option>
-          <option value="orphaned">Belum Tertaut</option>
-        </select>
+        <BaseSelect v-model="linkStatusFilter" :options="linkStatusOptions" label="label" track-by="id"
+          placeholder="Filter Media" :searchable="false" emit-value />
         <input type="file" ref="uploaderInput" class="hidden" multiple accept="image/*" @change="handleMultipleFiles" />
         <!-- Actions -->
         <button @click="fetchMedia(pagination.page)"
@@ -521,7 +542,7 @@ onUnmounted(() => {
           class="px-4 py-1.5 rounded-lg font-medium transition-colors flex items-center justify-center whitespace-nowrap"
           :class="isSelectionMode ? 'bg-secondary text-text border border-secondary hover:brightness-95' : 'bg-background border border-secondary text-text hover:border-primary'">
           <font-awesome-icon icon="fa-solid fa-check-double" class="mr-2" />
-          <span v-text="isSelectionMode ? 'Batal Pilih' : 'Mode Pilih'"></span>
+          <span v-text="isSelectionMode ? 'Batal' : 'Pilih'"></span>
         </button>
         <button @click="triggerUpload"
           class="px-4 py-1.5 rounded-lg bg-primary text-background font-medium hover:bg-accent transition-colors flex items-center justify-center whitespace-nowrap"
@@ -609,27 +630,27 @@ onUnmounted(() => {
           </div>
 
           <!-- Usage Badge -->
-          <div class="absolute bottom-2 left-2 z-50 group/tooltip">
+          <div class="absolute bottom-2 left-2 z-50">
             <span
-              class="badge text-xs shadow-sm bg-background/80 px-2 py-1 rounded-lg border border-secondary cursor-help text-secondary font-bold"
-              :class="item.usage_count > 0 ? 'bg-primary/80 text-secondary cursor-help' : 'text-text hover:bg-secondary'"
+              @mouseenter="(e) => handleTooltipOpen(e, item)"
+              @mouseleave="handleTooltipClose"
+              class="badge text-xs shadow-sm bg-background/80 px-2 py-1 rounded-lg border border-secondary cursor-help text-secondary font-bold transition-colors"
+              :class="item.usage_count > 0 ? 'bg-primary/80 text-secondary hover:bg-primary' : 'text-text hover:bg-secondary'"
               v-text="item.usage_count + ' Produk'">
             </span>
-            <!-- Manual Tailwind Tooltip -->
-            <div v-if="item.usage_count > 0"
-              class="absolute bottom-full left-0 mb-2 opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-opacity duration-200 w-max min-w-[40px] p-2 bg-text text-background rounded-lg shadow-xl z-50">
-              <ul v-if="item.linked_products" class="list-disc list-inside text-xs space-y-1">
-                <li v-for="prodName in item.linked_products.split('||')" :key="prodName"
-                  class="whitespace-normal break-words leading-tight">{{ prodName }}</li>
-              </ul>
-              <p v-else class="text-xs">...</p>
-              <!-- Tooltip Arrow -->
-              <div class="absolute -bottom-1 left-4 w-2 h-2 bg-text transform rotate-45"></div>
-            </div>
           </div>
         </figure>
       </div>
     </div>
+
+    <!-- Usage Tooltip -->
+    <FloatingTooltip :show="isUsageTooltipVisible" :reference-el="usageTooltipTarget" placement="top" :show-arrow="true">
+      <ul v-if="hoveredMediaItem?.linked_products" class="list-disc list-inside text-xs space-y-1">
+        <li v-for="prodName in hoveredMediaItem.linked_products.split('||')" :key="prodName"
+          class="whitespace-normal break-words leading-tight">{{ prodName }}</li>
+      </ul>
+      <p v-else class="text-xs">Memuat...</p>
+    </FloatingTooltip>
 
     <!-- Loading State -->
     <div v-if="isLoading" class="flex justify-center py-10">
@@ -648,23 +669,9 @@ onUnmounted(() => {
     </div>
 
     <!-- Pagination -->
-    <div class="flex justify-between items-center bg-background p-4 rounded-xl border border-secondary"
+    <div class="mt-4 border-secondary/50 border rounded-xl overflow-hidden bg-background"
       v-if="pagination.totalPages > 1">
-      <span class="text-sm font-medium opacity-70">
-        Halaman {{ pagination.page }} dari {{ pagination.totalPages }}
-      </span>
-      <div class="join flex border border-secondary rounded-lg overflow-hidden">
-        <button class="px-3 py-1.5 bg-background text-text hover:bg-secondary disabled:opacity-50 transition-colors"
-          :disabled="pagination.page === 1" @click="fetchMedia(pagination.page - 1)">
-          «
-        </button>
-        <button class="px-4 py-1.5 bg-secondary text-text border-x border-secondary font-medium">Halaman {{
-          pagination.page }}</button>
-        <button class="px-3 py-1.5 bg-background text-text hover:bg-secondary disabled:opacity-50 transition-colors"
-          :disabled="pagination.page === pagination.totalPages" @click="fetchMedia(pagination.page + 1)">
-          »
-        </button>
-      </div>
+      <BasePagination :pagination="pagination" :show-limit-picker="false" @changePage="(p) => fetchMedia(p)" />
     </div>
 
     <!-- Bulk Upload Modal -->

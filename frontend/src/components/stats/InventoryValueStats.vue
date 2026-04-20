@@ -2,7 +2,7 @@
 import { ref, watch, onMounted, computed, onUnmounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useToast } from '@/composables/useToast.js';
-import { useThemeColors } from '@/composables/useThemeColors.js';
+import { useTheme } from '@/composables/useTheme.js';
 import { getInventoryValueStatistics } from '@/api/helpers/statistics.js';
 import { fetchReportFilters } from '@/api/helpers/stats.js';
 import SearchInput from '@/components/ui/SearchInput.vue';
@@ -59,7 +59,7 @@ const chartMaxCapOptions = [
   { id: 50, label: 'Top 50 Kontributor' }
 ];
 
-const { themeColors, isDarkTheme } = useThemeColors();
+const { themeColors, isDarkTheme } = useTheme();
 
 onMounted(async () => {
   try {
@@ -152,14 +152,14 @@ const chartTopAssetsOptions = computed(() => {
   return {
     chart: { type: 'bar', background: 'transparent', toolbar: { show: false } },
     plotOptions: { bar: { horizontal: true, borderRadius: 4 } },
-    xaxis: { 
-      categories: sorted.map(i => i.sku), 
-      labels: { 
+    xaxis: {
+      categories: sorted.map(i => i.sku),
+      labels: {
         style: { colors: labelColor.value },
         formatter: function (val) {
           return "Rp " + val / 1000000 + "M"; // Simplification for ticks
         }
-      } 
+      }
     },
     yaxis: { labels: { style: { colors: labelColor.value, cssClass: 'text-[10px]' } } },
     colors: [themeColors.value.primary],
@@ -168,7 +168,7 @@ const chartTopAssetsOptions = computed(() => {
     tooltip: {
       theme: isDarkTheme.value ? 'dark' : 'light',
       y: {
-        formatter: function(val) { return formatCurrency(val); }
+        formatter: function (val) { return formatCurrency(val); }
       },
       x: {
         formatter: function (val) {
@@ -197,11 +197,13 @@ const chartTopAssetProportionOptions = computed(() => {
     stroke: { show: false },
     tooltip: {
       theme: isDarkTheme.value ? 'dark' : 'light',
-      y: { formatter: function(val) { return formatCurrency(val); } },
-      x: { formatter: function (val) {
-        const product = statisticsList.value.find(p => p.sku === val);
-        return product ? product.name : val;
-      }}
+      y: { formatter: function (val) { return formatCurrency(val); } },
+      x: {
+        formatter: function (val) {
+          const product = statisticsList.value.find(p => p.sku === val);
+          return product ? product.name : val;
+        }
+      }
     }
   };
 });
@@ -209,7 +211,8 @@ const chartTopAssetProportionOptions = computed(() => {
 
 <template>
   <div class="space-y-6 animate-fade-in">
-    <div class="mb-6 border-b border-secondary/20 pb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div
+      class="mb-6 border-b border-secondary/20 pb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
       <div>
         <h3 class="text-lg font-bold text-text">Laporan Nilai Inventaris</h3>
         <p class="text-sm text-text/50 mt-1">Data sebaran aset gudang, valuasi barang, dan top kontributor aset.</p>
@@ -224,7 +227,6 @@ const chartTopAssetProportionOptions = computed(() => {
       <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div class="flex flex-wrap gap-4 items-center flex-1 w-full">
           <div class="flex-1 w-full sm:w-auto min-w-[300px]">
-             <label class="block text-xs font-semibold text-text/60 mb-1">Pencarian Barang</label>
             <SearchInput v-model="filterValues.searchQuery" placeholder="Cari SKU atau Nama Produk..." />
           </div>
         </div>
@@ -251,42 +253,23 @@ const chartTopAssetProportionOptions = computed(() => {
         class="grid grid-cols-1 md:grid-cols-4 gap-4 border-t border-secondary/20 pt-4 mt-2 animate-fade-in">
         <div>
           <label class="block text-xs font-semibold text-text/60 mb-2">Lokasi / Gedung</label>
-          <BaseSelect
-            v-model="filterValues.building"
-            :options="reportFilters.allBuildings"
-            :multiple="true"
-            placeholder="Semua Gedung"
-          />
+          <BaseSelect v-model="filterValues.building" :options="reportFilters.allBuildings" :multiple="true"
+            placeholder="Semua Gedung" />
         </div>
 
         <div>
           <label class="block text-xs font-semibold text-text/60 mb-2">Tujuan Rak</label>
-          <BaseSelect
-            v-model="filterValues.purpose"
-            :options="purposeOptions"
-            emitValue
-            :searchable="false"
-          />
+          <BaseSelect v-model="filterValues.purpose" :options="purposeOptions" emitValue :searchable="false" />
         </div>
 
         <div>
           <label class="block text-xs font-semibold text-text/60 mb-2">Status Stok</label>
-          <BaseSelect
-            v-model="filterValues.stockStatus"
-            :options="stockStatusOptions"
-            emitValue
-            :searchable="false"
-          />
+          <BaseSelect v-model="filterValues.stockStatus" :options="stockStatusOptions" emitValue :searchable="false" />
         </div>
 
         <div>
           <label class="block text-xs font-semibold text-text/60 mb-2">Tipe Barang</label>
-          <BaseSelect
-            v-model="filterValues.isPackage"
-            :options="isPackageOptions"
-            emitValue
-            :searchable="false"
-          />
+          <BaseSelect v-model="filterValues.isPackage" :options="isPackageOptions" emitValue :searchable="false" />
         </div>
       </div>
     </div>
@@ -297,22 +280,25 @@ const chartTopAssetProportionOptions = computed(() => {
       <main class="flex-1 w-full min-w-0 bg-background border border-secondary rounded-xl overflow-hidden shadow-sm"
         v-if="viewMode === 'table'">
         <!-- Stat Summary Bars -->
-        <div class="grid grid-cols-2 md:grid-cols-4 border-b border-secondary/20 divide-x divide-y md:divide-y-0 divide-secondary/20">
-            <div class="p-4 bg-secondary/5">
-                <span class="text-xs font-bold text-text/50 uppercase block mb-1">Total SKU Tampil</span>
-                <span class="text-2xl font-black">{{ formatNumber(statisticsList.length) }}</span>
+        <div
+          class="grid grid-cols-2 md:grid-cols-4 border-b border-secondary/20 divide-x divide-y md:divide-y-0 divide-secondary/20">
+          <div class="p-4 bg-secondary/5">
+            <span class="text-xs font-bold text-text/50 uppercase block mb-1">Total SKU Tampil</span>
+            <span class="text-2xl font-black">{{ formatNumber(statisticsList.length) }}</span>
+          </div>
+          <div class="p-4 bg-secondary/5">
+            <span class="text-xs font-bold text-text/50 uppercase block mb-1">Total Unit (Pcs)</span>
+            <span class="text-2xl font-black text-warning">{{formatNumber(statisticsList.reduce((acc, curr) => acc +
+              curr.total_quantity, 0)) }}</span>
+          </div>
+          <div class="p-4 bg-primary/5 col-span-2 md:col-span-2 items-center flex justify-between">
+            <div>
+              <span class="text-xs font-bold text-primary/70 uppercase block mb-1">Total Nilai Keseluruhan</span>
+              <span class="text-2xl font-black text-text">{{formatCurrency(statisticsList.reduce((acc, curr) => acc +
+                curr.total_value, 0)) }}</span>
             </div>
-            <div class="p-4 bg-secondary/5">
-                <span class="text-xs font-bold text-text/50 uppercase block mb-1">Total Unit (Pcs)</span>
-                <span class="text-2xl font-black text-warning">{{ formatNumber(statisticsList.reduce((acc, curr) => acc + curr.total_quantity, 0)) }}</span>
-            </div>
-            <div class="p-4 bg-primary/5 col-span-2 md:col-span-2 items-center flex justify-between">
-                <div>
-                   <span class="text-xs font-bold text-primary/70 uppercase block mb-1">Total Nilai Keseluruhan</span>
-                   <span class="text-2xl font-black text-text">{{ formatCurrency(statisticsList.reduce((acc, curr) => acc + curr.total_value, 0)) }}</span>
-                </div>
-                <div class="text-4xl text-primary/20 opacity-50"><font-awesome-icon icon="fa-solid fa-vault"/></div>
-            </div>
+            <div class="text-4xl text-primary/20 opacity-50"><font-awesome-icon icon="fa-solid fa-vault" /></div>
+          </div>
         </div>
 
         <div class="overflow-auto max-h-[600px]" @scroll="handleTableScroll">
@@ -332,18 +318,18 @@ const chartTopAssetProportionOptions = computed(() => {
                 </th>
                 <th @click="sortBy('price')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 text-right">
-                  <div class="flex items-center justify-end gap-2">HPP (Modal) <font-awesome-icon :icon="getSortIcon('price')"
-                      class="text-xs opacity-50" /></div>
+                  <div class="flex items-center justify-end gap-2">HPP (Modal) <font-awesome-icon
+                      :icon="getSortIcon('price')" class="text-xs opacity-50" /></div>
                 </th>
                 <th @click="sortBy('total_quantity')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 text-center">
-                  <div class="flex items-center justify-center gap-2">Total Stok <font-awesome-icon :icon="getSortIcon('total_quantity')"
-                      class="text-xs opacity-50" /></div>
+                  <div class="flex items-center justify-center gap-2">Total Stok <font-awesome-icon
+                      :icon="getSortIcon('total_quantity')" class="text-xs opacity-50" /></div>
                 </th>
                 <th @click="sortBy('total_value')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 text-right">
-                  <div class="flex items-center justify-end gap-2">Gross Value <font-awesome-icon :icon="getSortIcon('total_value')"
-                      class="text-xs opacity-50" /></div>
+                  <div class="flex items-center justify-end gap-2">Gross Value <font-awesome-icon
+                      :icon="getSortIcon('total_value')" class="text-xs opacity-50" /></div>
                 </th>
                 <th @click="sortBy('percentage')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 text-center">
@@ -373,27 +359,32 @@ const chartTopAssetProportionOptions = computed(() => {
                 <tr v-for="item in visibleData" :key="item.sku" class="hover:bg-secondary/10 transition-colors">
                   <td class="px-4 py-3 font-medium text-text bg-background/50 border-r border-secondary/10 w-auto">{{
                     item.sku
-                    }}</td>
+                  }}</td>
                   <td class="px-4 py-3 w-full">
-                    <div class="whitespace-normal leading-tight font-medium text-text/90" :title="item.name">{{ item.name }}
+                    <div class="whitespace-normal leading-tight font-medium text-text/90" :title="item.name">{{
+                      item.name }}
                     </div>
-                    <div class="text-[10px] text-text/40 font-bold uppercase tracking-wider mt-1">{{ item.category || 'NO-CATEGORY' }}</div>
+                    <div class="text-[10px] text-text/40 font-bold uppercase tracking-wider mt-1">{{ item.category ||
+                      'NO-CATEGORY' }}</div>
                   </td>
                   <td class="px-4 py-3 font-mono text-sm text-right whitespace-nowrap opacity-80">
                     {{ formatCurrency(item.price) }}
                   </td>
-                  <td class="px-4 py-3 font-black text-center text-base" :class="item.total_quantity < 0 ? 'text-danger' : (item.total_quantity === 0 ? 'text-text/30' : 'text-primary')">
+                  <td class="px-4 py-3 font-black text-center text-base"
+                    :class="item.total_quantity < 0 ? 'text-danger' : (item.total_quantity === 0 ? 'text-text/30' : 'text-primary')">
                     {{ formatNumber(item.total_quantity) }}
                   </td>
-                  <td class="px-4 py-3 font-mono text-sm text-right whitespace-nowrap font-bold" :class="item.total_value > 10000000 ? 'text-text' : 'text-text/70'">
-                     {{ formatCurrency(item.total_value) }}
+                  <td class="px-4 py-3 font-mono text-sm text-right whitespace-nowrap font-bold"
+                    :class="item.total_value > 10000000 ? 'text-text' : 'text-text/70'">
+                    {{ formatCurrency(item.total_value) }}
                   </td>
                   <td class="px-4 py-3 font-bold whitespace-nowrap text-center text-xs">
-                     <span class="inline-block w-12 text-right">{{ item.percentage }}%</span>
-                     <!-- Mini progress bar -->
-                     <div class="w-20 h-1.5 bg-secondary/30 rounded-full inline-block ml-2 align-middle overflow-hidden">
-                        <div class="h-full bg-primary" :style="{ width: `${item.percentage}%`, minWidth: item.percentage > 0 ? '2px' : '0' }"></div>
-                     </div>
+                    <span class="inline-block w-12 text-right">{{ item.percentage }}%</span>
+                    <!-- Mini progress bar -->
+                    <div class="w-20 h-1.5 bg-secondary/30 rounded-full inline-block ml-2 align-middle overflow-hidden">
+                      <div class="h-full bg-primary"
+                        :style="{ width: `${item.percentage}%`, minWidth: item.percentage > 0 ? '2px' : '0' }"></div>
+                    </div>
                   </td>
                 </tr>
               </template>
@@ -407,12 +398,7 @@ const chartTopAssetProportionOptions = computed(() => {
         <div class="flex justify-end mb-4 animate-fade-in" v-if="statisticsList.length > 0">
           <div class="flex items-center gap-3 w-64">
             <span class="text-sm font-semibold text-text/70 whitespace-nowrap">Tampilkan Peringkat:</span>
-            <BaseSelect
-              v-model="chartMaxCap"
-              :options="chartMaxCapOptions"
-              emitValue
-              :searchable="false"
-            />
+            <BaseSelect v-model="chartMaxCap" :options="chartMaxCapOptions" emitValue :searchable="false" />
           </div>
         </div>
 
@@ -429,8 +415,10 @@ const chartTopAssetProportionOptions = computed(() => {
           </div>
 
           <!-- Card: Top Sales -->
-          <div class="bg-background border border-secondary p-5 rounded-xl shadow-sm flex flex-col min-h-[400px] md:col-span-2">
-            <h4 class="font-bold text-text text-sm mb-4">Top {{ chartMaxCap }} Penahan Nilai Modal (Aset Mengendap Tertinggi)
+          <div
+            class="bg-background border border-secondary p-5 rounded-xl shadow-sm flex flex-col min-h-[400px] md:col-span-2">
+            <h4 class="font-bold text-text text-sm mb-4">Top {{ chartMaxCap }} Penahan Nilai Modal (Aset Mengendap
+              Tertinggi)
             </h4>
             <div class="flex-1 border-b border-transparent">
               <VueApexCharts width="100%" height="500" type="bar" :options="chartTopAssetsOptions"

@@ -3,6 +3,7 @@ import { ref, watch, computed } from 'vue'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
 import axios from '@/api/axios'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -141,10 +142,7 @@ async function handleSave() {
         <!-- Status -->
         <div>
           <label class="block text-xs font-bold uppercase text-text/50 mb-1">Status Kehadiran</label>
-          <select v-model="form.status"
-            class="w-full bg-background border border-secondary/20 rounded-lg px-3 py-2 text-text focus:outline-none focus:border-primary">
-            <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-          </select>
+          <BaseSelect v-model="form.status" :options="statusOptions" track-by="value" emit-value :searchable="false" />
         </div>
 
         <!-- Times (Only if Hadir or maybe Partial) -->

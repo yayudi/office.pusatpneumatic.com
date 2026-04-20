@@ -1,10 +1,11 @@
 <!-- frontend\src\views\WMSBatchLogView.vue -->
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { fetchBatchLogs, fetchAllLocations } from '@/api/helpers/stock.js'
 import { useToast } from '@/composables/useToast.js'
 import FilterContainer from '@/components/ui/FilterContainer.vue'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 
 const { toast } = useToast()
 
@@ -23,14 +24,20 @@ const loading = ref(false)
 const hasSearched = ref(false)
 
 // Options
-const movementTypes = [
-  'TRANSFER',
-  'INBOUND',
-  'RETURN',
-  'ADJUSTMENT',
-  'OPNAME',
-  'PICKING'
+const movementTypeOptions = [
+  { id: '', label: '- Tipe -' },
+  { id: 'TRANSFER', label: 'TRANSFER' },
+  { id: 'INBOUND', label: 'INBOUND' },
+  { id: 'RETURN', label: 'RETURN' },
+  { id: 'ADJUSTMENT', label: 'ADJUSTMENT' },
+  { id: 'OPNAME', label: 'OPNAME' },
+  { id: 'PICKING', label: 'PICKING' },
 ]
+
+const locationOptions = computed(() => [
+  { id: '', label: '- Lokasi -' },
+  ...locations.value.map(loc => ({ id: loc.id, label: loc.code })),
+])
 
 onMounted(async () => {
   // Set Default Date: Hari Ini
@@ -115,31 +122,29 @@ function handleReset() {
           <!-- Movement Type -->
           <div class="space-y-1.5">
             <label class="text-xs font-bold text-text/60 uppercase tracking-wide">Tipe</label>
-            <div class="relative">
-              <select v-model="searchType"
-                class="w-full h-[42px] pl-3 pr-8 bg-background border border-secondary rounded-lg text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none appearance-none cursor-pointer transition-all">
-                <option value="">- Tipe -</option>
-                <option v-for="type in movementTypes" :key="type" :value="type">{{ type }}</option>
-              </select>
-              <font-awesome-icon icon="fa-solid fa-chevron-down"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-text/40 text-xs pointer-events-none" />
-            </div>
+            <BaseSelect
+              v-model="searchType"
+              :options="movementTypeOptions"
+              label="label"
+              track-by="id"
+              placeholder="Tipe"
+              :searchable="false"
+              emit-value
+            />
           </div>
 
           <!-- Location -->
           <div class="space-y-1.5">
             <label class="text-xs font-bold text-text/60 uppercase tracking-wide">Lokasi</label>
-            <div class="relative">
-              <select v-model="searchLocation"
-                class="w-full h-[42px] pl-3 pr-8 bg-background border border-secondary rounded-lg text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none appearance-none cursor-pointer transition-all">
-                <option value="">- Lokasi -</option>
-                <option v-for="loc in locations" :key="loc.id" :value="loc.id">
-                  {{ loc.code }}
-                </option>
-              </select>
-              <font-awesome-icon icon="fa-solid fa-chevron-down"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-text/40 text-xs pointer-events-none" />
-            </div>
+            <BaseSelect
+              v-model="searchLocation"
+              :options="locationOptions"
+              label="label"
+              track-by="id"
+              placeholder="Lokasi"
+              :searchable="true"
+              emit-value
+            />
           </div>
 
           <!-- User -->

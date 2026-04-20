@@ -243,19 +243,25 @@ export const Mappers = {
       "*nama kontak",
       "nama kontak",
       "perusahaan",
+      "retur",
+      "return"
     ],
     extract: (getter) => {
       const id = getter(["*nomor tagihan", "nomor tagihan", "no tagihan"]);
       const sku = getter(["*kode produk (sku)", "kode produk (sku)", "kode produk", "sku"]);
       const qty = parseInt(getter(["*jumlah produk", "jumlah produk", "jumlah"]) || "0", 10);
+      const returnedQty = parseInt(getter(["retur", "return", "returned quantity", "jumlah dikembalikan"]) || "0", 10);
       const customer = getter(["*nama kontak", "nama kontak", "perusahaan"]) || "Offline Customer";
       const orderDate = parseDate(getter(["*tanggal transaksi (dd/mm/yyyy)", "tanggal", "date"]));
 
       if (!id || !sku || isNaN(qty)) return null;
-      return { invoiceId: id, sku, qty, returnedQty: 0, customer, orderDate };
+      return { invoiceId: id, sku, qty, returnedQty, customer, orderDate };
     },
     getStatus: (getter) => {
       const status = getter(["status"])?.toLowerCase() || "";
+      const retur = getter(["retur", "return"]) || "0";
+
+      if (parseInt(retur, 10) > 0 || status.includes("retur") || status.includes("return")) return MP_STATUS.RETURNED;
       if (status.includes("void") || status.includes("batal")) return MP_STATUS.CANCELLED;
       return MP_STATUS.NEW;
     },

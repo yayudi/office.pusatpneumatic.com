@@ -3,13 +3,12 @@ import { ref, reactive, onMounted, watch, computed } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import axios from '@/api/axios.js'
 import { debounce } from 'lodash'
-
-// Components
 import ProductFormModal from '@/components/wms/shared/ProductFormModal.vue'
 import ConnectionStatus from '@/components/wms/shared/ConnectionStatus.vue'
 import PackageTable from '@/components/products/PackageTable.vue'
 import PackageBatchEditModal from '@/components/products/PackageBatchEditModal.vue'
 import FilterContainer from '@/components/ui/FilterContainer.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 
 const { toast } = useToast()
 
@@ -21,6 +20,12 @@ const searchBy = ref('name')
 const filterStatus = ref('active')
 const sortBy = ref('name')
 const sortOrder = ref('asc')
+
+const statusOptions = [
+  { value: 'active', label: 'Aktif' },
+  { value: 'archived', label: 'Diarsipkan' },
+  { value: 'all', label: 'Semua' },
+]
 
 // Modal State
 const showBatchEditModal = ref(false)
@@ -289,12 +294,8 @@ onMounted(() => {
             <!-- Status Filter -->
             <div class="flex items-center gap-2 w-full sm:w-auto">
               <label class="text-xs font-bold text-text/60 whitespace-nowrap">Status:</label>
-              <select v-model="filterStatus"
-                class="bg-background border border-secondary/20 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary cursor-pointer w-full sm:w-auto">
-                <option value="active">Aktif</option>
-                <option value="archived">Diarsipkan</option>
-                <option value="all">Semua</option>
-              </select>
+              <BaseSelect v-model="filterStatus" :options="statusOptions" track-by="value" emit-value
+                :searchable="false" class="w-full sm:w-[150px]" />
             </div>
           </div>
         </FilterContainer>
