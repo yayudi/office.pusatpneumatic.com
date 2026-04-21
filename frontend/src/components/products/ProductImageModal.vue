@@ -5,6 +5,8 @@ import { useToast } from '@/composables/useToast.js'
 import { useAuthStore } from '@/stores/auth.js'
 import axios from '@/api/axios.js'
 import { fetchProductById } from '@/api/helpers/products.js'
+import { resolveUrl, useBrokenImages } from '@/composables/useImageUrl'
+import { useImageActions } from '@/composables/useImageActions'
 
 const props = defineProps({
   show: Boolean,
@@ -15,6 +17,8 @@ const emit = defineEmits(['close', 'refresh'])
 
 const { toast } = useToast()
 const authStore = useAuthStore()
+const { brokenImages, onImgError } = useBrokenImages()
+const { copyLinkToClipboard: copyToClipboard, copyImageToClipboard, downloadImage } = useImageActions()
 
 const loading = ref(false)
 const fetching = ref(false)
@@ -24,9 +28,6 @@ const isCompressing = ref(false)
 
 const canUpload = computed(() => authStore.hasPermission('product.image.upload'))
 const canDelete = computed(() => authStore.hasPermission('product.image.delete'))
-
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
-const baseUrl = apiBaseUrl.replace(/\/api\/?$/, '')
 
 async function fetchImages() {
   if (!props.productData?.id) return
@@ -149,81 +150,8 @@ async function setPrimary(imageId) {
   }
 }
 
-const brokenImages = ref(new Set())
-
-function getImageUrl(path) {
-  if (!path) return null
-  const clean = path.startsWith('/') ? path.substring(1) : path
-  if (clean.startsWith('temp/') || clean.startsWith('main/') || clean.startsWith('thumb/')) {
-    return `${baseUrl}/uploads/${clean}`
-  }
-  return `${baseUrl}/uploads/${clean}`
-}
-
-const onImgError = (id) => {
-  brokenImages.value.add(id)
-}
-
-const copyToClipboard = async (url) => {
-  try {
-    await navigator.clipboard.writeText(url)
-    toast('Tautan gambar berhasil disalin!', 'success')
-  } catch (err) {
-    toast('Gagal menyalin tautan gambar', 'error')
-    console.error(err)
-  }
-}
-
-const copyImageToClipboard = async (url) => {
-  try {
-    const res = await fetch(url)
-    const blob = await res.blob()
-    const pngBlob = await convertBlobToPng(blob)
-    await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })])
-    toast('Gambar berhasil disalin ke clipboard!', 'success')
-  } catch (err) {
-    toast('Gagal menyalin gambar ke clipboard', 'error')
-    console.error(err)
-  }
-}
-
-const convertBlobToPng = (blob) => {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      canvas.width = img.naturalWidth
-      canvas.height = img.naturalHeight
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0)
-      canvas.toBlob((pngBlob) => {
-        if (pngBlob) resolve(pngBlob)
-        else reject(new Error('Canvas toBlob failed'))
-      }, 'image/png')
-    }
-    img.onerror = reject
-    img.crossOrigin = 'anonymous'
-    img.src = URL.createObjectURL(blob)
-  })
-}
-
-const downloadImage = async (url, filename) => {
-  try {
-    const res = await fetch(url)
-    const blob = await res.blob()
-    const safeName = (filename || 'image').replace(/\.[^.]+$/, '') + '.webp'
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = safeName
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(a.href)
-  } catch (err) {
-    toast('Gagal mengunduh gambar', 'error')
-    console.error(err)
-  }
-}
+// getImageUrl is now resolveUrl from useImageUrl
+const getImageUrl = resolveUrl
 </script>
 
 <template>
@@ -277,8 +205,10 @@ const downloadImage = async (url, filename) => {
                 </div>
                 <!-- Overlay Actions -->
                 <div
-                  class="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity p-2 text-center z-10 duration-300">
-                  <span class="text-xs truncate w-full block mb-2 px-2 text-text font-medium">{{ img.original_name || 'Gambar Produk' }}</span>
+                  class="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity p-2 text-center z-10 duration-300 rounded-xl">
+                  <span class="text-xs truncate w-full block mb-2 px-2 text-text font-medium">
+                    {{ img.original_name || 'Gambar Produk' }}
+                  </span>
                   <div class="flex items-center justify-center flex-wrap gap-2 mb-2">
                     <button @click.stop="copyToClipboard(getImageUrl(img.image_path))"
                       class="flex h-8 w-8 items-center justify-center rounded-full bg-success text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-lg"
@@ -295,13 +225,13 @@ const downloadImage = async (url, filename) => {
                       title="Unduh Gambar">
                       <font-awesome-icon icon="fa-solid fa-download" />
                     </button>
-                    
+
                     <button v-if="!img.is_primary && canUpload" @click.stop="setPrimary(img.id)" :disabled="loading"
                       class="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-lg"
                       title="Jadikan Utama">
                       <font-awesome-icon icon="fa-solid fa-star" />
                     </button>
-                    
+
                     <button v-if="canDelete" @click.stop="deleteImage(img.id)" :disabled="loading"
                       class="flex h-8 w-8 items-center justify-center rounded-full bg-danger text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-lg"
                       title="Hapus Gambar">

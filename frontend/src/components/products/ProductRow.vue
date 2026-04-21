@@ -2,6 +2,8 @@
 <script setup>
 import { computed } from 'vue'
 import { formatCurrency } from '@/utils/formatters.js'
+import { resolveProductImageUrl } from '@/composables/useImageUrl'
+import ProductThumbnail from '@/components/common/ProductThumbnail.vue'
 
 const props = defineProps({
   product: { type: Object, required: true },
@@ -11,17 +13,7 @@ const props = defineProps({
 const emit = defineEmits(['toggle-selection', 'edit', 'restore', 'delete'])
 
 // Helper Image URL
-const imageUrl = computed(() => {
-  const targetPath = props.product.thumbnail_path || props.product.image_path
-
-  if (!targetPath) return null
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
-  const baseUrl = apiBaseUrl.replace(/\/api\/?$/, '')
-
-  const cleanPath = targetPath.replace(/^\/+/, '')
-  const uploadPrefix = cleanPath.startsWith('uploads/') ? '' : 'uploads/'
-  return `${baseUrl}/${uploadPrefix}${cleanPath}`
-})
+const imageUrl = computed(() => resolveProductImageUrl(props.product))
 
 const formattedPrice = computed(() => {
   return formatCurrency(props.product.price)
@@ -51,17 +43,7 @@ const isArchived = computed(() => {
       class="px-4 py-4 sticky left-12 z-20 bg-background group-hover:bg-secondary/5 transition-colors border-b border-secondary/5 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
       <div class="flex items-center gap-3">
         <!-- Thumbnail -->
-        <div @click.stop="$emit('view-image', product)"
-          class="w-10 h-10 rounded-lg bg-secondary/10 border border-secondary/20 overflow-hidden shrink-0 flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all relative group/img">
-          <img v-if="imageUrl" :src="imageUrl" class="w-full h-full object-cover" loading="lazy" />
-          <font-awesome-icon v-else icon="fa-solid fa-image" class="text-text/20 text-sm" />
-
-          <!-- Hover Overlay Icon -->
-          <div
-            class="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity">
-            <font-awesome-icon icon="fa-solid fa-expand" class="text-secondary text-xs drop-shadow-md" />
-          </div>
-        </div>
+        <ProductThumbnail :image-url="imageUrl" @click="$emit('view-image', product)" />
 
         <div class="flex flex-col">
           <div class="font-bold text-text text-sm flex items-center gap-2">

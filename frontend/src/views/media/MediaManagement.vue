@@ -11,6 +11,8 @@ import BulkEditTagsModal from './BulkEditTagsModal.vue';
 import BaseSelect from '@/components/ui/BaseSelect.vue';
 import BasePagination from '@/components/ui/BasePagination.vue';
 import FloatingTooltip from '@/components/ui/FloatingTooltip.vue';
+import { resolveUrl, useBrokenImages } from '@/composables/useImageUrl';
+import { useImageActions } from '@/composables/useImageActions';
 
 const linkStatusOptions = [
   { id: 'all', label: 'Semua Media' },
@@ -20,6 +22,8 @@ const linkStatusOptions = [
 
 const auth = useAuthStore();
 const { toast } = useToast()
+const { brokenImages, onImgError } = useBrokenImages()
+const { copyLinkToClipboard: copyToClipboard, copyImageToClipboard, downloadImage } = useImageActions()
 const mediaList = ref([]);
 const pagination = ref({ page: 1, limit: 18, total: 0, totalPages: 1 });
 const isLoading = ref(false);
@@ -111,8 +115,7 @@ const openInfoModal = (item) => {
 
 let pollInterval = null;
 
-const apiBaseUrl = apiClient.defaults.baseURL || import.meta.env.VITE_API_URL || 'https://api.dpvindonesia.com';
-const backendUrl = apiBaseUrl.replace(/\/api\/?$/, '');
+// backendUrl and resolveUrl now come from useImageUrl composable
 
 const isLightboxOpen = ref(false);
 const lightboxIndex = ref(0);
@@ -298,82 +301,8 @@ const formatTags = (tagsRaw) => {
   return [];
 };
 
-const brokenImages = ref(new Set())
-
-const resolveUrl = (path) => {
-  if (!path) return null;
-  const cleanPath = path.startsWith('/') ? path.substring(1) : path;
-  if (cleanPath.startsWith('uploads/')) {
-    return `${backendUrl}/${cleanPath}`;
-  }
-  return `${backendUrl}/uploads/${cleanPath}`;
-};
-
-const onImgError = (id) => {
-  brokenImages.value.add(id);
-};
-
-const copyToClipboard = async (url) => {
-  try {
-    await navigator.clipboard.writeText(url);
-    toast('Tautan gambar berhasil disalin!', 'success');
-  } catch (err) {
-    toast('Gagal menyalin tautan gambar', 'error');
-    console.error(err);
-  }
-};
-
-const copyImageToClipboard = async (url) => {
-  try {
-    const res = await fetch(url);
-    const blob = await res.blob();
-    // ClipboardItem requires image/png for broad browser support
-    const pngBlob = await convertBlobToPng(blob);
-    await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
-    toast('Gambar berhasil disalin ke clipboard!', 'success');
-  } catch (err) {
-    toast('Gagal menyalin gambar ke clipboard', 'error');
-    console.error(err);
-  }
-};
-
-const convertBlobToPng = (blob) => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      canvas.toBlob((pngBlob) => {
-        if (pngBlob) resolve(pngBlob);
-        else reject(new Error('Canvas toBlob failed'));
-      }, 'image/png');
-    };
-    img.onerror = reject;
-    img.crossOrigin = 'anonymous';
-    img.src = URL.createObjectURL(blob);
-  });
-};
-
-const downloadImage = async (url, filename) => {
-  try {
-    const res = await fetch(url);
-    const blob = await res.blob();
-    const safeName = (filename || 'image').replace(/\.[^.]+$/, '') + '.webp';
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = safeName;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(a.href);
-  } catch (err) {
-    toast('Gagal mengunduh gambar', 'error');
-    console.error(err);
-  }
-};
+// brokenImages, onImgError, copyToClipboard, copyImageToClipboard, downloadImage
+// now come from useImageUrl and useImageActions composables
 
 // --- Bulk helpers ---
 const getSelectedItems = () => mediaList.value.filter(i => selectedMediaIds.value.has(i.id) && i.status === 'COMPLETED');
@@ -590,7 +519,9 @@ onUnmounted(() => {
           <!-- Overlay Actions -->
           <div v-if="!isSelectionMode"
             class="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity p-2 text-center z-10 duration-300">
-            <span class="text-xs truncate w-full block mb-2 px-2 text-text font-medium">{{ item.original_name }}</span>
+            <span class="text-xs truncate w-full block mb-2 px-2 text-text font-medium">
+              {{ item.original_name || 'Gambar Produk' }}
+            </span>
             <div class="flex items-center justify-center flex-wrap gap-2 mb-2">
               <button v-if="item.status === 'COMPLETED'" @click.stop="copyToClipboard(resolveUrl(item.main_path))"
                 class="flex h-8 w-8 items-center justify-center rounded-full bg-success text-background hover:backdrop-brightness-75 transition-transform hover:scale-110"
@@ -631,9 +562,7 @@ onUnmounted(() => {
 
           <!-- Usage Badge -->
           <div class="absolute bottom-2 left-2 z-50">
-            <span
-              @mouseenter="(e) => handleTooltipOpen(e, item)"
-              @mouseleave="handleTooltipClose"
+            <span @mouseenter="(e) => handleTooltipOpen(e, item)" @mouseleave="handleTooltipClose"
               class="badge text-xs shadow-sm bg-background/80 px-2 py-1 rounded-lg border border-secondary cursor-help text-secondary font-bold transition-colors"
               :class="item.usage_count > 0 ? 'bg-primary/80 text-secondary hover:bg-primary' : 'text-text hover:bg-secondary'"
               v-text="item.usage_count + ' Produk'">
@@ -644,7 +573,8 @@ onUnmounted(() => {
     </div>
 
     <!-- Usage Tooltip -->
-    <FloatingTooltip :show="isUsageTooltipVisible" :reference-el="usageTooltipTarget" placement="top" :show-arrow="true">
+    <FloatingTooltip :show="isUsageTooltipVisible" :reference-el="usageTooltipTarget" placement="top"
+      :show-arrow="true">
       <ul v-if="hoveredMediaItem?.linked_products" class="list-disc list-inside text-xs space-y-1">
         <li v-for="prodName in hoveredMediaItem.linked_products.split('||')" :key="prodName"
           class="whitespace-normal break-words leading-tight">{{ prodName }}</li>

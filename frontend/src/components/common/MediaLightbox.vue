@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch, onUnmounted } from 'vue';
-import instance from '@/api/axios';
 import { formatBytes } from '@/utils/formatBytes.js';
+import { resolveUrl } from '@/composables/useImageUrl';
 
 const props = defineProps({
   show: Boolean,
@@ -14,17 +14,7 @@ const emit = defineEmits(['close']);
 const currentIndex = ref(0);
 const imgBroken = ref(false);
 
-const resolveUrl = (path) => {
-  if (!path) return null;
-  const cleanPath = path.startsWith('/') ? path.substring(1) : path;
-
-  const apiBaseUrl = instance.defaults.baseURL || 'https://api.dpvindonesia.com'
-  const backendUrl = apiBaseUrl.replace(/\/api\/?$/, '')
-  if (cleanPath.startsWith('uploads/')) {
-    return `${backendUrl}/${cleanPath}`;
-  }
-  return `${backendUrl}/uploads/${cleanPath}`;
-};
+// resolveUrl now comes from useImageUrl composable
 
 const handleKeydown = (e) => {
   if (e.key === 'Escape') close();

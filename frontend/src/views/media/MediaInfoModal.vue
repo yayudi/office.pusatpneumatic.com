@@ -6,6 +6,7 @@ import { useToast } from '@/composables/useToast.js'
 import { useAuthStore } from '@/stores/auth.js'
 import { debounce } from 'lodash'
 import { formatBytes } from '@/utils/formatBytes.js'
+import { resolveUrl } from '@/composables/useImageUrl'
 
 const props = defineProps({
   show: Boolean,
@@ -24,17 +25,10 @@ const mediaData = ref(null)
 const canUpload = computed(() => authStore.hasPermission('product.image.upload'))
 const canDelete = computed(() => authStore.hasPermission('product.image.delete'))
 
-const apiBaseUrl = instance.defaults.baseURL || 'https://api.dpvindonesia.com'
-const baseUrl = apiBaseUrl.replace(/\/api\/?$/, '')
-
 const imgBroken = ref(false)
 
-function getImageUrl(path) {
-  if (!path) return null
-  const cleanPath = path.replace(/^\/+/, '')
-  const uploadPrefix = cleanPath.startsWith('uploads/') ? '' : 'uploads/'
-  return `${baseUrl}/${uploadPrefix}${cleanPath}`
-}
+// getImageUrl is now resolveUrl from useImageUrl
+const getImageUrl = resolveUrl
 
 async function fetchMediaDetails() {
   if (!props.mediaId) return

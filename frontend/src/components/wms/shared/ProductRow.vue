@@ -7,6 +7,8 @@ import { fetchProductById } from '@/api/helpers/products.js'
 import { formatNumber } from '@/api/helpers/format'
 import FloatingTooltip from '@/components/ui/FloatingTooltip.vue'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/vue'
+import { resolveProductImageUrl } from '@/composables/useImageUrl'
+import ProductThumbnail from '@/components/common/ProductThumbnail.vue'
 
 const PPN_RATE = 0.11
 
@@ -261,17 +263,7 @@ const displayWeight = computed(() => {
   return 0
 })
 
-const imageUrl = computed(() => {
-  const targetPath = props.product.thumbnail_path || props.product.image_path
-
-  if (!targetPath) return null
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
-  const baseUrl = apiBaseUrl.replace(/\/api\/?$/, '')
-
-  const cleanPath = targetPath.replace(/^\/+/, '')
-  const uploadPrefix = cleanPath.startsWith('uploads/') ? '' : 'uploads/'
-  return `${baseUrl}/${uploadPrefix}${cleanPath}`
-})
+const imageUrl = computed(() => resolveProductImageUrl(props.product))
 </script>
 
 <template>
@@ -284,30 +276,18 @@ const imageUrl = computed(() => {
 
     <!-- IMAGE (Sticky Left) -->
     <td
-      class="hidden md:table-cell p-0 md:px-2 md:py-2 text-center whitespace-nowrap md:border-b border-secondary/10 md:border-secondary/80 md:sticky md:left-0 z-20 group-hover:bg-secondary/5 transition-colors md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] bg-background w-16">
-      <div @click.stop="$emit('view-image', product)"
-        class="mx-auto w-10 h-10 rounded-lg bg-secondary/10 border border-secondary/20 overflow-hidden shrink-0 flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all relative group/img">
-        <img v-if="imageUrl" :src="imageUrl" class="w-full h-full object-cover" loading="lazy" />
-        <font-awesome-icon v-else icon="fa-solid fa-image" class="text-text/20 text-sm" />
-
-        <div
-          class="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity">
-          <font-awesome-icon icon="fa-solid fa-expand" class="text-secondary text-xs drop-shadow-md" />
-        </div>
-      </div>
+      class="hidden md:table-cell p-0 md:px-3 md:py-2 text-center whitespace-nowrap md:border-b border-secondary/10 md:border-secondary/80 md:sticky md:left-0 z-20 group-hover:bg-secondary/5 transition-colors md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] bg-background w-16">
+      <ProductThumbnail :image-url="imageUrl" @click="$emit('view-image', product)" />
     </td>
 
     <!-- NAME (Sticky Left next to Image) -->
     <td
-      class="md:table-cell flex items-center justify-between p-0 md:px-6 md:py-2 whitespace-nowrap md:border-b border-secondary/10 md:border-secondary/80 md:sticky md:left-16 z-20 group-hover:bg-secondary/5 transition-colors md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] bg-background"
+      class="md:table-cell flex items-center justify-between p-0 md:px-3 md:py-2 whitespace-nowrap md:border-b border-secondary/10 md:border-secondary/80 md:sticky md:left-16 z-20 group-hover:bg-secondary/5 transition-colors md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] bg-background"
       :class="mobileLayout === 'compact' ? 'col-span-1' : 'col-span-2'">
       <div class="flex items-center gap-3 w-full overflow-hidden">
         <!-- Mobile Thumbnail (Hidden on Desktop) -->
-        <div @click.stop="$emit('view-image', product)"
-          class="md:hidden w-10 h-10 rounded-lg bg-secondary/10 border border-secondary/20 overflow-hidden shrink-0 flex items-center justify-center cursor-pointer">
-          <img v-if="imageUrl" :src="imageUrl" class="w-full h-full object-cover" />
-          <font-awesome-icon v-else icon="fa-solid fa-image" class="text-text/20 text-sm" />
-        </div>
+        <ProductThumbnail v-if="mobileLayout === 'compact'" :image-url="imageUrl"
+          @click="$emit('view-image', product)" />
 
         <div class="flex flex-col w-full overflow-hidden">
           <div class="flex items-center gap-2 w-full">
@@ -337,7 +317,7 @@ const imageUrl = computed(() => {
 
     <!-- SKU -->
     <td v-if="visibleColumns.has('sku')"
-      class="md:table-cell flex justify-between items-center px-4 py-2 md:px-6 md:py-2 whitespace-nowrap border-b border-secondary/10 md:border-secondary/80"
+      class="md:table-cell flex justify-between items-center px-4 py-2 md:px-3 md:py-2 whitespace-nowrap border-b border-secondary/10 md:border-secondary/80"
       :class="{ 'hidden md:flex': mobileLayout === 'compact' }">
       <span class="md:hidden text-[10px] font-bold text-text/50 uppercase tracking-wide">SKU</span>
       <div class="text-left text-xs text-text/70 font-mono">
@@ -350,7 +330,7 @@ const imageUrl = computed(() => {
 
     <!-- WEIGHT -->
     <td v-if="visibleColumns.has('weight')"
-      class="md:table-cell flex justify-between items-center px-4 py-2 md:px-6 md:py-2 text-right whitespace-nowrap text-xs text-text/70 font-mono border-b border-secondary/10 md:border-secondary/80"
+      class="md:table-cell flex justify-between items-center px-4 py-2 md:px-3 md:py-2 text-right whitespace-nowrap text-xs text-text/70 font-mono border-b border-secondary/10 md:border-secondary/80"
       :class="{ 'hidden md:flex': mobileLayout === 'compact' }">
       <span class="md:hidden text-[10px] font-bold text-text/50 uppercase tracking-wide">Berat</span>
       <span>{{ formatNumber(displayWeight) }} gr</span>
@@ -358,7 +338,7 @@ const imageUrl = computed(() => {
 
     <!-- PRICE -->
     <td v-if="auth.canViewPrices && visibleColumns.has('price')"
-      class="md:table-cell flex justify-between items-center px-4 py-2 md:px-6 md:py-2 text-right whitespace-nowrap text-sm text-text/70 font-mono border-b border-secondary/10 md:border-secondary/80"
+      class="md:table-cell flex justify-between items-center px-4 py-2 md:px-3 md:py-2 text-right whitespace-nowrap text-sm text-text/70 font-mono border-b border-secondary/10 md:border-secondary/80"
       :class="{ 'hidden md:flex': mobileLayout === 'compact' }">
       <span class="md:hidden text-[10px] font-bold text-text/50 uppercase tracking-wide">Harga</span>
       <span ref="priceTargetRef" @click="copyToClipboard(product.price, 'Harga')" @mouseenter="handlePriceMouseEnter"
@@ -368,7 +348,7 @@ const imageUrl = computed(() => {
     </td>
 
     <td v-if="visibleColumns.has('location')" ref="locationTargetRef"
-      class="md:table-cell flex justify-between items-center px-4 py-2 md:px-6 md:py-2 text-center whitespace-nowrap location-cell relative border-b border-secondary/10 md:border-secondary/80"
+      class="md:table-cell flex justify-between items-center px-4 py-2 md:px-3 md:py-2 text-center whitespace-nowrap location-cell relative border-b border-secondary/10 md:border-secondary/80"
       :class="[{ 'cursor-pointer hover:text-primary text-primary font-bold': showTooltip }, { 'hidden md:flex': mobileLayout === 'compact' }]"
       @click="handleToggleTooltip">
       <span class="md:hidden text-[10px] font-bold text-text/50 uppercase tracking-wide">Lokasi</span>
@@ -379,7 +359,7 @@ const imageUrl = computed(() => {
 
     <!-- STOCK -->
     <td v-if="visibleColumns.has('stock')"
-      class="md:table-cell flex flex-col justify-start items-end md:justify-center md:items-center p-0 md:px-6 md:py-2 text-center whitespace-nowrap border-b-0 md:border-b border-secondary/80"
+      class="md:table-cell flex flex-col justify-start items-end md:justify-center md:items-center p-0 md:px-3 md:py-2 text-center whitespace-nowrap border-b-0 md:border-b border-secondary/80"
       :class="mobileLayout === 'compact' ? 'col-span-1' : ''">
       <div class="md:hidden flex flex-col items-end gap-0.5">
         <span v-if="mobileLayout === 'card'" class="text-[10px] font-bold text-text/50 uppercase tracking-wide">Stok
