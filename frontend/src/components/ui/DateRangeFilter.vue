@@ -4,9 +4,9 @@ import { format, subDays, startOfMonth, endOfMonth, parseISO } from 'date-fns'
 import { id } from 'date-fns/locale'
 
 const props = defineProps({
-  startDate: { type: String, default: null }, // YYYY-MM-DD
-  endDate: { type: String, default: null },   // YYYY-MM-DD
-  align: { type: String, default: 'left' }    // left, right
+  startDate: { type: String, default: null },
+  endDate: { type: String, default: null },
+  align: { type: String, default: 'left' }
 })
 
 const emit = defineEmits(['update:startDate', 'update:endDate', 'change'])
@@ -67,12 +67,9 @@ const updatePosition = () => {
 
 const toggleDropdown = async () => {
   if (!isOpen.value) {
-    // Sync local state when opening
     tempStart.value = props.startDate || ''
     tempEnd.value = props.endDate || ''
 
-    // Calculate position before showing (or right after)
-    // We update position then set isOpen
     await nextTick()
     updatePosition()
   }
@@ -98,18 +95,16 @@ const clearFilter = () => {
   applyFilter()
 }
 
-// Close logic
 const closeDropdown = () => {
   isOpen.value = false
 }
 
 const handleClickOutside = (event) => {
   if (containerRef.value && containerRef.value.contains(event.target)) return
-  if (event.target.closest('.date-range-popover')) return // Check interactions inside popover
+  if (event.target.closest('.date-range-popover')) return
   isOpen.value = false
 }
 
-// Handle scroll/resize to close dropdown (simple UX to avoid detached floating)
 const handleScrollOrResize = () => {
   if (isOpen.value) isOpen.value = false
 }
@@ -117,9 +112,8 @@ const handleScrollOrResize = () => {
 watch(isOpen, (val) => {
   if (val) {
     document.addEventListener('click', handleClickOutside)
-    window.addEventListener('scroll', handleScrollOrResize, true) // Capture to detect any scroll
+    window.addEventListener('scroll', handleScrollOrResize, true)
     window.addEventListener('resize', handleScrollOrResize)
-    // Update position again in case of layout shifts
     nextTick(updatePosition)
   } else {
     document.removeEventListener('click', handleClickOutside)

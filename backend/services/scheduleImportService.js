@@ -14,14 +14,14 @@ export const processScheduleImport = async (jobId, filePath, userId) => {
   try {
     connection = await db.getConnection();
 
-    // 1. Pre-fetch Data for Validation (Cache)
+    // Pre-fetch Data for Validation (Cache)
     const [users] = await connection.query("SELECT id, username FROM users");
     const [shifts] = await connection.query("SELECT id, name FROM shifts");
 
     const userMap = new Map(users.map(u => [u.username.toLowerCase(), u.id]));
     const shiftMap = new Map(shifts.map(s => [s.name.toLowerCase(), s.id]));
 
-    // 2. Read Excel
+    // Read Excel
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(filePath);
     const sheet = workbook.getWorksheet(1);
@@ -30,7 +30,7 @@ export const processScheduleImport = async (jobId, filePath, userId) => {
 
     const schedulesToInsert = [];
 
-    // 3. Parse Rows
+    // Parse Rows
     sheet.eachRow((row, rowNumber) => {
       if (rowNumber <= 2) return; // Skip Header (1) AND Example (2)
 
@@ -42,8 +42,6 @@ export const processScheduleImport = async (jobId, filePath, userId) => {
       // Handle Excel Date Object or String
       let dateStr = "";
       if (dateVal instanceof Date) {
-        // Fix Off-by-one error caused by toISOString() converting to UTC
-        // We want the Literal Date as seen in Excel, regardless of Timezone.
         const year = dateVal.getFullYear();
         const month = String(dateVal.getMonth() + 1).padStart(2, '0');
         const day = String(dateVal.getDate()).padStart(2, '0');
@@ -51,7 +49,6 @@ export const processScheduleImport = async (jobId, filePath, userId) => {
       } else if (typeof dateVal === 'string') {
         dateStr = dateVal.trim();
       } else if (typeof dateVal === 'object' && dateVal !== null && dateVal.text) {
-        // Hyperlink or other object type
         dateStr = dateVal.text;
       }
 
@@ -99,9 +96,7 @@ export const processScheduleImport = async (jobId, filePath, userId) => {
       return { success: false, errors: ["Tidak ada data valid."], count: 0 };
     }
 
-    // 4. Batch Upsert
-    // Loop for now as scheduleRepository.upsertSchedule is single.
-    // Can be optimized to batch insert later if needed.
+    // Batch Upsert
     await connection.beginTransaction();
     for (const schedule of schedulesToInsert) {
       await scheduleRepository.upsertSchedule(schedule);
@@ -116,6 +111,5 @@ export const processScheduleImport = async (jobId, filePath, userId) => {
     throw error;
   } finally {
     if (connection) connection.release();
-    // File cleanup handled by worker
   }
 };

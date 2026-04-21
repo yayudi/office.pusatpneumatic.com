@@ -11,8 +11,9 @@ import BulkEditTagsModal from './BulkEditTagsModal.vue';
 import BaseSelect from '@/components/ui/BaseSelect.vue';
 import BasePagination from '@/components/ui/BasePagination.vue';
 import FloatingTooltip from '@/components/ui/FloatingTooltip.vue';
-import { resolveUrl, useBrokenImages } from '@/composables/useImageUrl';
-import { useImageActions } from '@/composables/useImageActions';
+import { resolveUrl } from '@/composables/useImageUrl';
+import MediaCard from '@/components/common/MediaCard.vue';
+import MediaActionBar from '@/components/common/MediaActionBar.vue';
 
 const linkStatusOptions = [
   { id: 'all', label: 'Semua Media' },
@@ -22,8 +23,6 @@ const linkStatusOptions = [
 
 const auth = useAuthStore();
 const { toast } = useToast()
-const { brokenImages, onImgError } = useBrokenImages()
-const { copyLinkToClipboard: copyToClipboard, copyImageToClipboard, downloadImage } = useImageActions()
 const mediaList = ref([]);
 const pagination = ref({ page: 1, limit: 18, total: 0, totalPages: 1 });
 const isLoading = ref(false);
@@ -350,7 +349,6 @@ const handleDragEnter = (e) => {
 
 const handleDragLeave = (e) => {
   e.preventDefault();
-  // Ensure we only cancel dragging if leaving the root window boundaries
   if (e.clientX === 0 || e.clientY === 0) {
     isDragging.value = false;
   }
@@ -482,92 +480,62 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Grid -->
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6 relative pb-20">
       <div v-for="(item, index) in mediaList" :key="item.id"
-        class="card shadow-sm border group transition-all relative overflow-hidden"
+        class="card shadow-sm border transition-all relative overflow-hidden"
         :class="selectedMediaIds.has(item.id) ? 'border-primary ring-2 ring-primary ring-offset-2 ring-offset-background' : 'bg-background border-secondary hover:border-primary/50'">
 
         <figure class="aspect-square p-2 relative overflow-hidden cursor-pointer"
           :class="selectedMediaIds.has(item.id) ? 'bg-primary/10' : 'bg-secondary/30'"
           @click="isSelectionMode ? toggleSelection(item) : (item.status === 'COMPLETED' ? (isLightboxOpen = true, lightboxIndex = index) : null)">
 
-          <!-- Bulk Checkbox Indicator -->
-          <div v-if="isSelectionMode && item.status === 'COMPLETED'"
-            class="absolute top-2 left-2 z-20 pointer-events-none">
-            <div class="h-6 w-6 rounded border-2 flex items-center justify-center transition-colors"
-              :class="selectedMediaIds.has(item.id) ? 'bg-primary border-primary text-background' : 'bg-background/80 border-secondary text-transparent'">
-              <font-awesome-icon icon="fa-solid fa-check" class="text-sm" />
-            </div>
-          </div>
-          <img
-            v-if="item.status === 'COMPLETED' && resolveUrl(item.thumbnail_path || item.main_path) && !brokenImages.has(item.id)"
-            :src="resolveUrl(item.thumbnail_path || item.main_path)" :alt="item.original_name"
-            class="object-contain w-full h-full rounded-lg" @error="onImgError(item.id)" />
-          <div v-else-if="item.status === 'COMPLETED'"
-            class="w-full h-full flex flex-col items-center justify-center text-text/20">
-            <font-awesome-icon icon="fa-solid fa-image" class="text-4xl mb-1" />
-            <span class="text-[10px] font-medium">No Image</span>
-          </div>
-          <div v-else class="flex flex-col items-center justify-center w-full h-full opacity-60 text-text">
-            <font-awesome-icon v-if="item.status === 'PENDING' || item.status === 'PROCESSING'"
-              icon="fa-solid fa-spinner" spin class="text-primary text-2xl" />
-            <font-awesome-icon v-else icon="fa-solid fa-triangle-exclamation" class="text-danger text-2xl" />
-            <span class="text-xs font-semibold mt-2">{{ item.status }}</span>
-          </div>
+          <MediaCard
+            :image-url="resolveUrl(item.thumbnail_path || item.main_path)"
+            :image-id="item.id"
+            :display-name="item.original_name || 'Gambar'"
+            :status="item.status"
+            :selected="selectedMediaIds.has(item.id)"
+            :selectable="isSelectionMode && item.status === 'COMPLETED'"
+            :show-overlay="!isSelectionMode"
+            class="!aspect-auto w-full h-full !rounded-lg !border-0 !shadow-none">
 
-          <!-- Overlay Actions -->
-          <div v-if="!isSelectionMode"
-            class="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity p-2 text-center z-10 duration-300">
-            <span class="text-xs truncate w-full block mb-2 px-2 text-text font-medium">
-              {{ item.original_name || 'Gambar Produk' }}
-            </span>
-            <div class="flex items-center justify-center flex-wrap gap-2 mb-2">
-              <button v-if="item.status === 'COMPLETED'" @click.stop="copyToClipboard(resolveUrl(item.main_path))"
-                class="flex h-8 w-8 items-center justify-center rounded-full bg-success text-background hover:backdrop-brightness-75 transition-transform hover:scale-110"
-                title="Salin Tautan">
-                <font-awesome-icon icon="fa-solid fa-link" />
-              </button>
-              <button v-if="item.status === 'COMPLETED'" @click.stop="copyImageToClipboard(resolveUrl(item.main_path))"
-                class="flex h-8 w-8 items-center justify-center rounded-full bg-warning text-background hover:backdrop-brightness-75 transition-transform hover:scale-110"
-                title="Salin Gambar">
-                <font-awesome-icon icon="fa-solid fa-copy" />
-              </button>
-              <button v-if="item.status === 'COMPLETED'"
-                @click.stop="downloadImage(resolveUrl(item.main_path), item.original_name)"
-                class="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-background hover:backdrop-brightness-75 transition-transform hover:scale-110"
-                title="Unduh Gambar">
-                <font-awesome-icon icon="fa-solid fa-download" />
-              </button>
-              <button @click.stop="openInfoModal(item)"
-                class="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-background hover:backdrop-brightness-75 transition-transform hover:scale-110"
-                title="Info & Editor Tag">
-                <font-awesome-icon icon="fa-solid fa-tags" />
-              </button>
-              <button @click.stop="deleteMedia(item.id, item.usage_count)"
-                class="flex h-8 w-8 items-center justify-center rounded-full bg-danger text-background hover:backdrop-brightness-75 transition-transform hover:scale-110"
-                title="Hapus Media" :disabled="item.usage_count > 0">
-                <font-awesome-icon icon="fa-solid fa-trash" />
-              </button>
-            </div>
+            <template #actions>
+              <MediaActionBar
+                :image-url="item.status === 'COMPLETED' ? resolveUrl(item.main_path) : null"
+                :filename="item.original_name">
+                <button @click.stop="openInfoModal(item)"
+                  class="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-background hover:backdrop-brightness-75 transition-transform hover:scale-110"
+                  title="Info & Editor Tag">
+                  <font-awesome-icon icon="fa-solid fa-tags" />
+                </button>
+                <button @click.stop="deleteMedia(item.id, item.usage_count)"
+                  class="flex h-8 w-8 items-center justify-center rounded-full bg-danger text-background hover:backdrop-brightness-75 transition-transform hover:scale-110"
+                  title="Hapus Media" :disabled="item.usage_count > 0">
+                  <font-awesome-icon icon="fa-solid fa-trash" />
+                </button>
+              </MediaActionBar>
+            </template>
 
-            <div class="flex flex-wrap gap-1 justify-center px-1 max-h-[50px] overflow-hidden">
-              <span v-for="tag in formatTags(item.tags).slice(0, 4)" :key="tag"
-                class="border border-primary text-primary rounded-full px-2 py-0.5 text-[10px] font-semibold flex items-center justify-center h-5">
-                {{ tag }}
-              </span>
-              <span v-if="formatTags(item.tags).length > 4" class="text-[10px] opacity-70">...</span>
-            </div>
-          </div>
+            <template #footer>
+              <div class="flex flex-wrap gap-1 justify-center px-1 max-h-[50px] overflow-hidden">
+                <span v-for="tag in formatTags(item.tags).slice(0, 4)" :key="tag"
+                  class="border border-primary text-primary rounded-full px-2 py-0.5 text-[10px] font-semibold flex items-center justify-center h-5">
+                  {{ tag }}
+                </span>
+                <span v-if="formatTags(item.tags).length > 4" class="text-[10px] opacity-70">...</span>
+              </div>
+            </template>
 
-          <!-- Usage Badge -->
-          <div class="absolute bottom-2 left-2 z-50">
-            <span @mouseenter="(e) => handleTooltipOpen(e, item)" @mouseleave="handleTooltipClose"
-              class="badge text-xs shadow-sm bg-background/80 px-2 py-1 rounded-lg border border-secondary cursor-help text-secondary font-bold transition-colors"
-              :class="item.usage_count > 0 ? 'bg-primary/80 text-secondary hover:bg-primary' : 'text-text hover:bg-secondary'"
-              v-text="item.usage_count + ' Produk'">
-            </span>
-          </div>
+            <template #badges>
+              <div class="absolute bottom-2 left-2 z-50">
+                <span @mouseenter="(e) => handleTooltipOpen(e, item)" @mouseleave="handleTooltipClose"
+                  class="badge text-xs shadow-sm bg-background/80 px-2 py-1 rounded-lg border border-secondary cursor-help text-secondary font-bold transition-colors"
+                  :class="item.usage_count > 0 ? 'bg-primary/80 text-secondary hover:bg-primary' : 'text-text hover:bg-secondary'"
+                  v-text="item.usage_count + ' Produk'">
+                </span>
+              </div>
+            </template>
+          </MediaCard>
         </figure>
       </div>
     </div>
@@ -594,8 +562,9 @@ onUnmounted(() => {
         <font-awesome-icon icon="fa-solid fa-images" class="text-2xl text-text/50" />
       </div>
       <h3 class="text-lg font-bold text-text">Belum ada aset</h3>
-      <p class="text-text/60 text-sm mt-1 max-w-sm mx-auto">Upload gambar dari komputer Anda untuk mulai mengisi galeri
-        media.</p>
+      <p class="text-text/60 text-sm mt-1 max-w-sm mx-auto">
+        Upload gambar dari komputer Anda untuk mulai mengisi galeri media.
+      </p>
     </div>
 
     <!-- Pagination -->
@@ -611,8 +580,9 @@ onUnmounted(() => {
         <div class="flex justify-between items-center mb-4">
           <h3 class="font-bold text-xl font-display text-text">Unggah {{ selectedFiles.length }} Aset</h3>
           <button @click="isBulkModalOpen = false"
-            class="flex items-center justify-center w-8 h-8 rounded-full text-text hover:bg-secondary transition-colors"><font-awesome-icon
-              icon="fa-solid fa-times" /></button>
+            class="flex items-center justify-center w-8 h-8 rounded-full text-text hover:bg-secondary transition-colors">
+            <font-awesome-icon icon="fa-solid fa-times" />
+          </button>
         </div>
 
         <div

@@ -183,7 +183,8 @@ const formatTags = (tagsStr) => {
           <font-awesome-icon icon="fa-solid fa-spinner" spin class="text-primary text-3xl" />
         </div>
 
-        <img v-if="mediaData && getImageUrl(mediaData.main_path || mediaData.thumbnail_path || mediaData.temp_filepath) && !imgBroken"
+        <img
+          v-if="mediaData && getImageUrl(mediaData.main_path || mediaData.thumbnail_path || mediaData.temp_filepath) && !imgBroken"
           :src="getImageUrl(mediaData.main_path || mediaData.thumbnail_path || mediaData.temp_filepath)"
           class="w-full h-auto rounded-xl shadow-lg border border-secondary/20 object-contain max-h-full max-w-[90%]"
           @error="imgBroken = true" />
@@ -235,14 +236,17 @@ const formatTags = (tagsStr) => {
             <div v-if="mediaData.width || mediaData.size_bytes" class="mb-6">
               <span class="block text-[10px] text-text/50 font-bold uppercase mb-2">Informasi File</span>
               <div class="grid grid-cols-2 gap-3">
-                <div v-if="mediaData.width && mediaData.height" class="bg-secondary/5 rounded-lg p-3 border border-secondary/10 flex items-center gap-2">
+                <div v-if="mediaData.width && mediaData.height"
+                  class="bg-secondary/5 rounded-lg p-3 border border-secondary/10 flex items-center gap-2">
                   <font-awesome-icon icon="fa-solid fa-ruler-combined" class="text-primary/60 text-sm" />
                   <div>
                     <span class="block text-[10px] text-text/50 font-bold uppercase">Dimensi</span>
-                    <span class="text-sm font-mono text-text/80">{{ mediaData.width }} × {{ mediaData.height }} px</span>
+                    <span class="text-sm font-mono text-text/80">{{ mediaData.width }} × {{ mediaData.height }}
+                      px</span>
                   </div>
                 </div>
-                <div v-if="mediaData.size_bytes" class="bg-secondary/5 rounded-lg p-3 border border-secondary/10 flex items-center gap-2">
+                <div v-if="mediaData.size_bytes"
+                  class="bg-secondary/5 rounded-lg p-3 border border-secondary/10 flex items-center gap-2">
                   <font-awesome-icon icon="fa-solid fa-file" class="text-primary/60 text-sm" />
                   <div>
                     <span class="block text-[10px] text-text/50 font-bold uppercase">Ukuran</span>
@@ -339,7 +343,7 @@ const formatTags = (tagsStr) => {
 
               <!-- Dropdown List -->
               <div v-if="searchResults.length > 0"
-                class="absolute z-20 top-full left-0 right-0 mt-2 bg-background border border-secondary/20 shadow-xl rounded-lg max-h-48 overflow-y-auto">
+                class="absolute z-20 top-[calc(100%+0.5rem)] left-0 right-0 bg-background border border-secondary/20 shadow-xl rounded-lg max-h-48 overflow-y-auto">
                 <button v-for="res in searchResults" :key="res.id" @click="linkProduct(res)"
                   class="w-full text-left px-4 py-2 hover:bg-primary/5 border-b border-secondary/10 last:border-0 flex items-center justify-between group transition-colors">
                   <div class="flex flex-col">
@@ -358,7 +362,6 @@ const formatTags = (tagsStr) => {
               <font-awesome-icon icon="fa-solid fa-info-circle" class="text-text/40 text-lg mb-1" />
               <p class="text-[10px] font-bold text-text/50 uppercase">Tunggu Kompresi Selesai Sebelum Menautkan</p>
             </div>
-
           </template>
         </div>
       </div>

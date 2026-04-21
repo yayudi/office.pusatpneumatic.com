@@ -176,8 +176,7 @@ function updateDropdownPosition() {
           <!-- Filter Tipe Produk -->
           <BaseSelect :model-value="productTypeFilter" @update:modelValue="emit('update:productTypeFilter', $event)"
             :options="typeOptions" track-by="id" emit-value :searchable="false"
-            class="min-w-[100px] h-[42px]"
-            :class="[
+            class="min-w-[100px] h-[42px] rounded-lg" :class="[
               productTypeFilter !== 'all'
                 ? 'bg-accent/5 border-accent text-accent'
                 : 'bg-background border-secondary text-text/60 hover:text-text'
@@ -186,8 +185,7 @@ function updateDropdownPosition() {
           <!-- Filter Stock Status -->
           <BaseSelect :model-value="stockStatusFilter" @update:modelValue="emit('update:stockStatusFilter', $event)"
             :options="stockOptions" track-by="id" emit-value :searchable="false"
-            class="min-w-[100px] h-[42px]"
-            :class="[
+            class="min-w-[100px] h-[42px] rounded-lg" :class="[
               stockStatusFilter === 'minus' ? 'bg-danger/5 border-danger text-danger' :
                 stockStatusFilter === 'positive' ? 'bg-success/5 border-success text-success' :
                   'bg-background border-secondary text-text/60 hover:text-text'

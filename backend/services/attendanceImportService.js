@@ -120,10 +120,7 @@ export async function processAttendanceImport(
     }
 
     // 2.5 Prepare User Shifts Cache (Bulk Fetch)
-    // To avoid N+1 queries, fetch shifts for all users involved or just fetch all users with shifts.
-    // Since we have `connection` (transaction), let's use it.
 
-    // We need map: Username -> { start, end, tolerance, work_days }
     const userShiftMap = {};
     const defaultShiftResult = await connection.query("SELECT * FROM shifts WHERE is_default = 1 LIMIT 1");
     let defaultShift = defaultShiftResult[0][0];
@@ -134,8 +131,6 @@ export async function processAttendanceImport(
     }
 
     // Fetch all users shifts
-    // Note: We only care about users in the CSV, but fetching all active users is usually cheap enough.
-    // Or we filter by usernames in parsedData.
     const userNamesInFile = Object.values(parsedData).map(u => u.nama || `User-${u.id}`);
 
     if (userNamesInFile.length > 0) {
@@ -161,7 +156,6 @@ export async function processAttendanceImport(
     const allExampleDates = [];
     Object.values(parsedData).forEach(u => {
       Object.keys(u.days).forEach(d => {
-        // Construct roughly date
         const dayVal = parseInt(d);
         allExampleDates.push(`${year}-${String(month).padStart(2, '0')}-${String(dayVal).padStart(2, '0')}`);
       });
@@ -189,7 +183,6 @@ export async function processAttendanceImport(
 
       schedules.forEach(row => {
         if (!userScheduleMap[row.username]) userScheduleMap[row.username] = {};
-        // Date comes as object from mysql2 usually, transform to YYYY-MM-DD
         const d = new Date(row.date);
         const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         userScheduleMap[row.username][dStr] = row;
@@ -202,10 +195,10 @@ export async function processAttendanceImport(
       return h * 60 + m;
     };
 
-    // 3. Proses Database (Transactional)
+    // Proses Database (Transactional)
     await connection.beginTransaction();
     let totalProcessedDays = 0;
-    let dbInsertCount = 0; // Debug counter
+    let dbInsertCount = 0;
 
     for (const idKey in parsedData) {
       const user = parsedData[idKey];
@@ -258,8 +251,6 @@ export async function processAttendanceImport(
         // Hitung Lembur
         let overtime = 0;
         if (latestCheckOut) {
-          // Basic logic: Overtime if CheckOut > Shift End
-          // Ignore Saturday special rule for now unless Shift Table supports it
           if (latestCheckOut > shiftEndMin) {
             overtime = latestCheckOut - shiftEndMin;
           }

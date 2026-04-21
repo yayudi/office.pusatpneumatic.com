@@ -24,7 +24,7 @@ export const createProductService = async (data, userId) => {
   await connection.beginTransaction();
 
   try {
-    // 1. Business Logic: Cek Duplikasi SKU
+    // Business Logic: Cek Duplikasi SKU
     const existingId = await productRepo.getIdBySku(connection, data.sku);
     if (existingId) {
       const error = new Error("SKU sudah terdaftar.");
@@ -32,14 +32,13 @@ export const createProductService = async (data, userId) => {
       throw error;
     }
 
-    // 2. Insert Product
+    // Insert Product
     const newId = await productRepo.createProduct(connection, data);
 
-    // 3. Log Creation
+    // Log Creation
     await logChange(connection, newId, userId, "CREATE", "all", null, data.sku);
 
     // Log Image if exists
-    // Log Image logic (New Multiple Images)
     if (data.images && data.images.length > 0) {
       const imagesToInsert = data.images.map((img, idx) => ({
         filename: img.filename,
@@ -48,12 +47,10 @@ export const createProductService = async (data, userId) => {
       await productRepo.insertImages(connection, newId, imagesToInsert);
       await logChange(connection, newId, userId, "CREATE", "images", null, `${imagesToInsert.length} Images`);
     } else if (data.image_path) {
-      // Fallback old single image (for backward compatibility if needed, or migration)
-      // We process it as single primary image
       await productRepo.insertImages(connection, newId, [{ filename: data.image_path, is_primary: true }]);
     }
 
-    // 4. Handle Package Components
+    // Handle Package Components
     if (data.is_package && data.components?.length > 0) {
       await productRepo.insertComponents(connection, newId, data.components);
     }
@@ -73,7 +70,7 @@ export const updateProductService = async (id, data, userId) => {
   await connection.beginTransaction();
 
   try {
-    // 1. Ambil Data Lama untuk Audit Log
+    // Ambil Data Lama untuk Audit Log
     const oldData = await productRepo.getProductById(connection, id);
     if (!oldData) {
       const error = new Error("Produk tidak ditemukan.");
@@ -81,10 +78,10 @@ export const updateProductService = async (id, data, userId) => {
       throw error;
     }
 
-    // 2. Update Product Core Data
+    // Update Product Core Data
     await productRepo.updateProduct(connection, id, data);
 
-    // 3. Audit Log Logic (Compare fields)
+    // Audit Log Logic (Compare fields)
     const fieldsToCheck = [
       { key: "name", label: "Nama Produk" },
       { key: "category", label: "Kategori" },
@@ -110,10 +107,8 @@ export const updateProductService = async (id, data, userId) => {
       await logChange(connection, id, userId, "UPDATE", field.key, oldVal, newVal);
     }
 
-    // [NEW] Handle Appending Images
+    // Handle Appending Images
     if (data.images && data.images.length > 0) {
-      // Check if there are existing images to decide primary?
-      // For now, simplifikasi: Update/Append images always secondary unless specified
       const imagesToInsert = data.images.map(img => ({
         filename: img.filename,
         is_primary: false
@@ -122,15 +117,13 @@ export const updateProductService = async (id, data, userId) => {
       await logChange(connection, id, userId, "UPDATE", "images", "Append", `${imagesToInsert.length} New Images`);
     }
 
-    // 4. Handle Package Components (Selalu replace logic untuk konsistensi)
-    // Hapus komponen lama (baik tipe tetap paket atau berubah jadi satuan)
+    // Handle Package Components (Selalu replace logic untuk konsistensi)
     await productRepo.deleteComponents(connection, id);
 
     if (data.is_package && data.components?.length > 0) {
       await productRepo.insertComponents(connection, id, data.components);
 
       // Generic log untuk perubahan struktur komponen
-      // (Kita tidak log detail per item komponen untuk menghemat baris log)
       await logChange(
         connection,
         id,
@@ -182,16 +175,13 @@ export const restoreProductService = async (id, userId) => {
   }
 };
 
-// Wrapper untuk Read operations agar Controller tetap bisa akses via Service layer jika diinginkan
-// (Saat ini controller akan bypass langsung ke Repo untuk Read demi efisiensi)
-
 export const uploadProductImagesService = async (id, images, userId) => {
   const connection = await db.getConnection();
   await connection.beginTransaction();
   try {
     const imagesToInsert = images.map((img) => ({
       filename: img.filename,
-      is_primary: false, // Default secondary
+      is_primary: false,
     }));
     await productRepo.insertImages(connection, id, imagesToInsert);
     await logChange(connection, id, userId, "UPDATE", "images", "Add", `${images.length} Images`);
@@ -226,11 +216,9 @@ export const deleteProductImageService = async (imageId, userId) => {
     const image = await productRepo.getImageById(connection, imageId);
     if (!image) throw new Error("Gambar tidak ditemukan.");
 
-    // Hanya delete physical file jika bukan dari sistem media_assets yang baru
-    // dan legacy image_path ada
     if (image.image_path && !image.media_id) {
       try {
-        const fullPath = path.resolve("uploads/products/", "legacy_" + image.image_path); // Just in case, handled gracefully
+        const fullPath = path.resolve("uploads/products/", "legacy_" + image.image_path);
         const actualPath = path.resolve("uploads/products/", image.image_path);
         await fs.unlink(actualPath);
       } catch (err) {
@@ -238,12 +226,8 @@ export const deleteProductImageService = async (imageId, userId) => {
       }
     }
 
-    // Delete DB Record
     await productRepo.deleteImage(connection, imageId);
-
-    // Log
     await logChange(connection, image.product_id, userId, "DELETE", "image", image.image_path, "Deleted");
-
     await connection.commit();
   } catch (error) {
     await connection.rollback();
@@ -259,10 +243,7 @@ export const setPrimaryImageService = async (productId, imageId, userId) => {
   try {
     await productRepo.resetPrimaryImage(connection, productId);
     await productRepo.setPrimaryImage(connection, imageId);
-
-    // Log
     await logChange(connection, productId, userId, "UPDATE", "primary_image", "Changed", `Image ID ${imageId}`);
-
     await connection.commit();
   } catch (error) {
     await connection.rollback();
@@ -296,15 +277,14 @@ export const calculatePackageMeta = (product) => {
   let hasStockComponent = false;
 
   for (const comp of product.components) {
-    // Normalisasi properti yang mungkin beda nama dari query
     const compWeight = parseFloat(comp.weight || 0);
     const compQty = parseFloat(comp.quantity_per_package || comp.quantity || 0);
     const compStock = parseFloat(comp.stock_available || comp.total_stock || 0);
 
-    // 1. Hitung Berat (Weight * Qty)
+    // Hitung Berat (Weight * Qty)
     calculatedWeight += compWeight * compQty;
 
-    // 2. Hitung Virtual Stock (Bottle Neck Logic)
+    // Hitung Virtual Stock (Bottle Neck Logic)
     if (compQty > 0) {
       const possible = Math.floor(compStock / compQty);
       if (possible < minStock) minStock = possible;
@@ -318,7 +298,6 @@ export const calculatePackageMeta = (product) => {
   return {
     ...product,
     virtual_stock: minStock,
-    // Prioritaskan hasil hitung, jika 0 pakai berat manual produk
     total_weight: calculatedWeight > 0 ? calculatedWeight : parseFloat(product.weight || 0)
   };
 };

@@ -97,10 +97,8 @@ onUnmounted(() => {
         <img v-if="resolveUrl(images[currentIndex].main_path || images[currentIndex].thumbnail_path) && !imgBroken"
           :src="resolveUrl(images[currentIndex].main_path || images[currentIndex].thumbnail_path)"
           class="max-h-full max-w-full object-contain pointer-events-auto rounded shadow-2xl transition-transform duration-300"
-          :alt="images[currentIndex].original_name"
-          @error="imgBroken = true" />
-        <div v-else
-          class="w-64 h-64 flex flex-col items-center justify-center text-white/30 pointer-events-auto">
+          :alt="images[currentIndex].original_name" @error="imgBroken = true" />
+        <div v-else class="w-64 h-64 flex flex-col items-center justify-center text-white/30 pointer-events-auto">
           <font-awesome-icon icon="fa-solid fa-image" class="text-7xl mb-3" />
           <span class="text-sm font-medium">Gambar tidak tersedia</span>
         </div>
@@ -128,5 +126,13 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* Optional: fade transition classes if we wrap with <Transition> */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
 </style>

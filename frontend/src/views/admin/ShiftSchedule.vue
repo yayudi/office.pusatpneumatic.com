@@ -48,29 +48,22 @@ const calendarDays = computed(() => {
   const firstDayOfMonth = new Date(year, month, 1)
   const lastDayOfMonth = new Date(year, month + 1, 0)
 
-  const startOffset = firstDayOfMonth.getDay() // 0 (Sun) - 6 (Sat)
+  const startOffset = firstDayOfMonth.getDay()
   const totalDays = lastDayOfMonth.getDate()
 
   const days = []
-
-  // Previous Month Padding
   for (let i = 0; i < startOffset; i++) {
     days.push({ day: '', isPadding: true })
   }
 
-  // Current Month Days
   for (let i = 1; i <= totalDays; i++) {
     const d = new Date(year, month, i)
-    // Format YYYY-MM-DD (local) - Be careful with timezone, sticking to simple format
     const y = d.getFullYear()
     const m = String(d.getMonth() + 1).padStart(2, '0')
     const day = String(d.getDate()).padStart(2, '0')
     const dateStr = `${y}-${m}-${day}`
 
-    // Find schedule
     const schedule = (Array.isArray(schedules.value) ? schedules.value : []).find(s => {
-      // s.date comes from DB as ISO string or YYYY-MM-DD.
-      // Assume DB returns YYYY-MM-DD or we normalize on fetch.
       return s.date.startsWith(dateStr)
     })
 
@@ -86,8 +79,6 @@ const calendarDays = computed(() => {
 
   return days
 })
-
-// --- Methods ---
 
 const loadInitialData = async () => {
   loading.value = true
@@ -113,7 +104,6 @@ const loadSchedules = async () => {
 
   loading.value = true
   try {
-    // Get start/end of month
     const year = currentDate.value.getFullYear()
     const month = currentDate.value.getMonth()
     const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`
@@ -141,15 +131,10 @@ const openPopover = (event, dayObj) => {
     return
   }
 
-  // Calculate generic position first
   const rect = event.currentTarget.getBoundingClientRect()
 
-  // Basic positioning: Center slightly below the clicked cell
-  // We'll adjust this relative to viewport in a real complex app, but for now:
   let top = rect.bottom + window.scrollY + 5
-  let left = rect.left + window.scrollX - 100 + (rect.width / 2) // Center horizontally relative to popover width (approx 200px)
-
-  // Bounds checking (simple)
+  let left = rect.left + window.scrollX - 100 + (rect.width / 2)
   if (left < 10) left = 10
   if (left + 220 > window.innerWidth) left = window.innerWidth - 230
 
@@ -267,7 +252,8 @@ onMounted(loadInitialData)
           <font-awesome-icon icon="fa-solid fa-file-excel" /> Import Excel
         </button>
 
-        <BaseSelect v-model="selectedUserId" :options="userOptions" track-by="id" emit-value placeholder="Pilih Karyawan..." class="w-full md:w-[250px]" />
+        <BaseSelect v-model="selectedUserId" :options="userOptions" track-by="id" emit-value
+          placeholder="Pilih Karyawan..." class="w-full md:w-[250px]" />
       </div>
     </div>
 

@@ -64,7 +64,7 @@ export const getStockMovementStatistics = async (filters) => {
 
     // Format timeline dates nicely (e.g. YYYY-MM-DD to handle local time offsets) preserving string
     const timeline = timelineRows.map(t => ({
-      date: typeof t.date === 'string' ? t.date : window?.moment ? t.date : new Date(t.date).toISOString().split('T')[0], // ensure format
+      date: typeof t.date === 'string' ? t.date : new Date(t.date).toISOString().split('T')[0],
       total_out: Number(t.total_out),
       total_in: Number(t.total_in)
     }));

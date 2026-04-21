@@ -382,11 +382,11 @@ export const processBatchOpnameService = async ({ movements, userId, userRoleId 
       }
 
       const actualQty = mov.quantity; // Quantity passed is ACTUAL stock counted
-      
+
       const currentStock = await locationRepo.getStockAtLocation(
-        connection, 
-        product.id, 
-        mov.toLocationId, 
+        connection,
+        product.id,
+        mov.toLocationId,
         true // lock for update
       );
 
@@ -405,7 +405,7 @@ export const processBatchOpnameService = async ({ movements, userId, userRoleId 
           userId,
           notes: mov.notes || "Stock Opname Override"
         });
-        
+
         processedCount++;
       }
     }
@@ -594,10 +594,8 @@ export const getBatchLogsService = async ({ startDate, endDate, productName, mov
     }
 
     if (userId) {
-      // Find user ID by partial name match first (or join filter)
-      // Since we join 'users u', we can filter by u.username
       query += ` AND u.username LIKE ?`;
-      params.push(`%${userId}%`); // Using 'userId' param as search text for username based on frontend plan
+      params.push(`%${userId}%`);
     }
 
     query += ` ORDER BY sm.created_at DESC`;

@@ -176,13 +176,12 @@ const formatComponents = (components) => {
                 <td
                   class="px-4 py-3 sticky left-12 z-20 bg-background group-hover:bg-secondary/5 transition-colors border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
                   <div class="font-bold text-sm text-text">{{ product.name }}</div>
-                  <!-- Mobile SKU view if needed, but we have column -->
                 </td>
 
                 <!-- SKU -->
                 <td class="px-4 py-3">
                   <span class="font-mono text-xs text-text/70 bg-secondary/10 px-2 py-1 rounded">{{ product.sku
-                    }}</span>
+                  }}</span>
                 </td>
 
                 <!-- Components Summary (Toggle) -->
@@ -296,12 +295,10 @@ const formatComponents = (components) => {
     </div>
 
     <!-- PAGINATION FOOTER -->
-    <div class="shrink-0 border-t border-secondary/10 bg-secondary/5 flex flex-col sm:flex-row items-center justify-between">
-      <BasePagination 
-        :pagination="pagination" 
-        @changePage="changePage" 
-        @update:limit="(l) => emit('update:limit', l)" 
-      />
+    <div
+      class="shrink-0 border-t border-secondary/10 bg-secondary/5 flex flex-col sm:flex-row items-center justify-between">
+      <BasePagination :pagination="pagination" @changePage="changePage"
+        @update:limit="(l) => emit('update:limit', l)" />
     </div>
   </div>
 </template>

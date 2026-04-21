@@ -59,9 +59,6 @@ async function toggleExclusion(user) {
   const newValue = user.exclude_from_attendance ? 0 : 1
 
   try {
-    // Calling PUT /api/admin/users/:id using axios to update partial data
-    // Admin user PUT doesn't require all fields to be changed, we just resend existing ones
-    // plus the new exclude flag.
     const payload = {
       username: user.username,
       nickname: user.nickname,

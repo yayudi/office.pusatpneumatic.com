@@ -71,30 +71,23 @@ export const processProductImport = async (
 
         if (productExists) {
           // --- UPDATE SCENARIO ---
-          // Gabungkan data CSV dengan data DB (Partial Update)
-          // Jika di CSV kosong/undefined, pakai data lama
           const payload = {
             name: csvItem.name !== undefined ? csvItem.name : dbProduct.name,
             price: csvItem.price !== undefined ? csvItem.price : dbProduct.price,
             weight: csvItem.weight !== undefined ? csvItem.weight : dbProduct.weight,
-            is_package: 0, // Force 0, we don't allow changing is_package here
-            is_active: csvItem.is_active, // Opsional, repo akan handle jika undefined
+            is_package: 0,
+            is_active: csvItem.is_active,
           };
 
           // [PHASE 1] SAFETY GUARD: Reject Package Updates via Batch Edit
-          // Batch Edit hanya untuk Regular Product. Package butuh UI khusus (nested components).
           if (dbProduct.is_package === 1) {
             logicErrors.push({
               row,
               message: `SKU '${sku}' adalah Paket. Batch Edit ini hanya untuk Produk Biasa.`,
             });
             skippedCount++;
-            continue; // Skip update
+            continue;
           }
-
-          // Normalisasi untuk deteksi perubahan agar tidak spam log jika data sama
-          // (Repository sebenarnya sudah handle ini, tapi kita bisa skip query update jika sama persis)
-          // Disini kita biarkan repository yang handle diffing & logging.
 
           if (!isDryRun) {
             // Panggil Repository Update (Ini otomatis catat Audit Log!)
@@ -102,19 +95,17 @@ export const processProductImport = async (
               connection,
               dbProduct.id,
               payload,
-              [], // Komponen paket tidak diupdate via CSV flat ini (terlalu kompleks)
+              [],
               userId
             );
 
             // Handle status aktif/nonaktif khusus
             if (csvItem.is_active !== undefined) {
-              // Gunakan updateProductStatus (bool) alih-alih restore/softDelete
               await productRepo.updateProductStatus(connection, dbProduct.id, !!csvItem.is_active);
             }
           }
           updatedCount++;
         } else {
-          // --- CREATE SCENARIO (DISABLED FOR BATCH EDIT) ---
           logicErrors.push({
             row,
             message: `SKU '${sku}' tidak ditemukan. Batch Edit hanya untuk update produk yang sudah ada.`,

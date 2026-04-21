@@ -1,3 +1,4 @@
+// frontend/src/composables/useImageActions.js
 import { useToast } from '@/composables/useToast.js'
 
 /**

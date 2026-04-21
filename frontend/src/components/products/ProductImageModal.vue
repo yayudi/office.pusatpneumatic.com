@@ -5,8 +5,10 @@ import { useToast } from '@/composables/useToast.js'
 import { useAuthStore } from '@/stores/auth.js'
 import axios from '@/api/axios.js'
 import { fetchProductById } from '@/api/helpers/products.js'
-import { resolveUrl, useBrokenImages } from '@/composables/useImageUrl'
-import { useImageActions } from '@/composables/useImageActions'
+import { resolveUrl } from '@/composables/useImageUrl'
+import MediaCard from '@/components/common/MediaCard.vue'
+import MediaActionBar from '@/components/common/MediaActionBar.vue'
+import MediaLightbox from '@/components/common/MediaLightbox.vue'
 
 const props = defineProps({
   show: Boolean,
@@ -17,14 +19,23 @@ const emit = defineEmits(['close', 'refresh'])
 
 const { toast } = useToast()
 const authStore = useAuthStore()
-const { brokenImages, onImgError } = useBrokenImages()
-const { copyLinkToClipboard: copyToClipboard, copyImageToClipboard, downloadImage } = useImageActions()
 
 const loading = ref(false)
 const fetching = ref(false)
 const selectedImages = ref([])
 const existingImages = ref([])
 const isCompressing = ref(false)
+const isLightboxOpen = ref(false)
+const lightboxIndex = ref(0)
+
+/** Map existingImages to the shape MediaLightbox expects */
+const lightboxImages = computed(() =>
+  existingImages.value.map(img => ({
+    main_path: img.image_path,
+    thumbnail_path: img.thumbnail_path || img.image_path,
+    original_name: img.original_name || 'Gambar Produk',
+  }))
+)
 
 const canUpload = computed(() => authStore.hasPermission('product.image.upload'))
 const canDelete = computed(() => authStore.hasPermission('product.image.delete'))
@@ -190,56 +201,34 @@ const getImageUrl = resolveUrl
             </div>
 
             <div v-else class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              <div v-for="img in existingImages" :key="img.id"
-                class="group relative aspect-square bg-secondary/10 rounded-xl border border-secondary/20 overflow-hidden shadow-sm hover:shadow-md transition-all">
-                <img v-if="getImageUrl(img.image_path) && !brokenImages.has(img.id)" :src="getImageUrl(img.image_path)"
-                  class="w-full h-full object-cover" @error="onImgError(img.id)" />
-                <div v-else
-                  class="w-full h-full flex flex-col items-center justify-center bg-secondary/10 text-text/20">
-                  <font-awesome-icon icon="fa-solid fa-image" class="text-4xl mb-1" />
-                  <span class="text-[10px] font-medium">No Image</span>
-                </div>
-                <div v-if="img.is_primary"
-                  class="absolute top-2 left-2 bg-primary text-background text-[10px] font-bold px-2 py-0.5 rounded shadow-sm z-10 flex items-center gap-1">
-                  <font-awesome-icon icon="fa-solid fa-star" /> Utama
-                </div>
-                <!-- Overlay Actions -->
-                <div
-                  class="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity p-2 text-center z-10 duration-300 rounded-xl">
-                  <span class="text-xs truncate w-full block mb-2 px-2 text-text font-medium">
-                    {{ img.original_name || 'Gambar Produk' }}
-                  </span>
-                  <div class="flex items-center justify-center flex-wrap gap-2 mb-2">
-                    <button @click.stop="copyToClipboard(getImageUrl(img.image_path))"
-                      class="flex h-8 w-8 items-center justify-center rounded-full bg-success text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-lg"
-                      title="Salin Tautan">
-                      <font-awesome-icon icon="fa-solid fa-link" />
-                    </button>
-                    <button @click.stop="copyImageToClipboard(getImageUrl(img.image_path))"
-                      class="flex h-8 w-8 items-center justify-center rounded-full bg-warning text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-lg"
-                      title="Salin Gambar">
-                      <font-awesome-icon icon="fa-solid fa-copy" />
-                    </button>
-                    <button @click.stop="downloadImage(getImageUrl(img.image_path), img.original_name)"
-                      class="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-lg"
-                      title="Unduh Gambar">
-                      <font-awesome-icon icon="fa-solid fa-download" />
-                    </button>
+              <MediaCard v-for="(img, index) in existingImages" :key="img.id"
+                :image-url="getImageUrl(img.image_path)"
+                :image-id="img.id"
+                :display-name="img.original_name || 'Gambar Produk'"
+                @click="isLightboxOpen = true; lightboxIndex = index">
 
+                <template #badges>
+                  <div v-if="img.is_primary"
+                    class="absolute top-2 left-2 bg-primary text-background text-[10px] font-bold px-2 py-0.5 rounded shadow-sm z-10 flex items-center gap-1">
+                    <font-awesome-icon icon="fa-solid fa-star" /> Utama
+                  </div>
+                </template>
+
+                <template #actions>
+                  <MediaActionBar :image-url="getImageUrl(img.image_path)" :filename="img.original_name">
                     <button v-if="!img.is_primary && canUpload" @click.stop="setPrimary(img.id)" :disabled="loading"
                       class="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-lg"
                       title="Jadikan Utama">
                       <font-awesome-icon icon="fa-solid fa-star" />
                     </button>
-
                     <button v-if="canDelete" @click.stop="deleteImage(img.id)" :disabled="loading"
                       class="flex h-8 w-8 items-center justify-center rounded-full bg-danger text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-lg"
                       title="Hapus Gambar">
                       <font-awesome-icon icon="fa-solid fa-trash" />
                     </button>
-                  </div>
-                </div>
-              </div>
+                  </MediaActionBar>
+                </template>
+              </MediaCard>
             </div>
           </div>
           <div v-if="canUpload" class="border-t border-secondary/10 pt-6">
@@ -286,6 +275,8 @@ const getImageUrl = resolveUrl
       </div>
     </div>
   </div>
+  <MediaLightbox :show="isLightboxOpen" :images="lightboxImages" :initialIndex="lightboxIndex"
+    @close="isLightboxOpen = false" />
 </template>
 
 <style scoped>

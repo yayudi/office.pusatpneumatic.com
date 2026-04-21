@@ -2,7 +2,7 @@ import { jest } from "@jest/globals";
 
 // --- MOCKS SETUP ---
 
-// 1. Mock Connection Object
+// Mock Connection Object
 const mockConnection = {
   beginTransaction: jest.fn(),
   commit: jest.fn(),
@@ -12,12 +12,10 @@ const mockConnection = {
   threadId: 999,
 };
 
-// 2. NUCLEAR OPTION: Mock 'mysql2/promise' globally
-// This prevents ANY real database connection, regardless of db.js logic
+// NUCLEAR OPTION: Mock 'mysql2/promise' globally
 jest.unstable_mockModule("mysql2/promise", () => ({
   createPool: jest.fn(() => ({
     getConnection: jest.fn(() => Promise.resolve(mockConnection)),
-    // Mock other pool methods if strictly necessary
     query: jest.fn(),
     end: jest.fn(),
   })),
@@ -28,8 +26,7 @@ jest.unstable_mockModule("mysql2/promise", () => ({
   },
 }));
 
-// 3. Mock Repositories
-// We use unstable_mockModule to intercept imports of these files
+// Mock Repositories
 jest.unstable_mockModule("../repositories/pickingRepository.js", () => ({
   getHeaderById: jest.fn(),
   getItemsByIds: jest.fn(),
@@ -59,7 +56,7 @@ jest.unstable_mockModule("../repositories/stockMovementRepository.js", () => ({
   createLog: jest.fn(),
 }));
 
-// 4. Import Modules UNDER TEST (Must be dynamic import after mocks)
+// Import Modules UNDER TEST (Must be dynamic import after mocks)
 const pickingService = await import("../services/pickingDataService.js");
 const pickingRepo = await import("../repositories/pickingRepository.js");
 const locationRepo = await import("../repositories/locationRepository.js");
@@ -87,15 +84,15 @@ describe("PickingDataService - Complete Items Logic", () => {
     jest.clearAllMocks();
 
     // Reset Default Mock Behaviors
-    // 1. Header is valid
+    // Header is valid
     pickingRepo.getHeaderById.mockResolvedValue({
       id: 1,
       status: "PENDING",
       original_invoice_id: "INV/001",
     });
-    // 2. Pending items count > 0 (prevents auto-validate header logic)
+    // Pending items count > 0 (prevents auto-validate header logic)
     pickingRepo.countPendingItems.mockResolvedValue(1);
-    // 3. Update/Insert operations success default
+    // Update/Insert operations success default
     locationRepo.deductStock.mockResolvedValue({ affectedRows: 1 });
     pickingRepo.validateItem.mockResolvedValue({ affectedRows: 1 });
     stockRepo.createLog.mockResolvedValue({ insertId: 1 });
@@ -159,9 +156,9 @@ describe("PickingDataService - Complete Items Logic", () => {
     pickingRepo.getItemsByIds.mockResolvedValue([dbItem]);
 
     // Mock JIT Flow:
-    // 1. Find best stock -> Returns ID 50
+    // Find best stock -> Returns ID 50
     locationRepo.findBestStock.mockResolvedValue(50);
-    // 2. Check stock at ID 50 -> Returns 5 (Sufficient)
+    // Check stock at ID 50 -> Returns 5 (Sufficient)
     locationRepo.getStockAtLocation.mockResolvedValue(5);
 
     // EXECUTE

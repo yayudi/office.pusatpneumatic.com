@@ -63,7 +63,6 @@ const statusOptions = [
 
 const canSave = computed(() => {
   if (form.value.status === 'HADIR') {
-    // If Hadir, preferably should have times, but maybe allow partial?
     return true
   }
   return true
@@ -77,23 +76,9 @@ async function handleSave() {
 
   try {
     // Prepare payload
-    // We need username and full date YYYY-MM-DD
-    // user object from props.logData might be just string name?
-    // Wait, normalize.js returns `nama: user.username`.
-    // But we need the real `username` (which is the ID for `users` table usually? No, `username` column).
-    // In `normalize.js`: `nama: user.username`. So `props.logData.nama` is the username.
-    // Date: `logData.tanggal` is day number (1-31).
-    // We need Year and Month. They are NOT in logData row directly.
-    // Parent must pass them or we inject them into logData before passing.
-
-    // Check DetailView logic. `formattedRows` creates objects.
-    // It doesn't include year/month.
-    // We update DetailView to pass full date or Year/Month prop to Modal.
-    // Let's assume `logData` will be enriched by parent before passing.
-
     const payload = {
       username: props.logData.username,
-      date: props.logData.fullDate, // Expecting YYYY-MM-DD
+      date: props.logData.fullDate,
       status: form.value.status,
       timeIn: form.value.timeIn,
       timeOut: form.value.timeOut,

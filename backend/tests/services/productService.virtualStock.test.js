@@ -1,8 +1,6 @@
 import { jest } from "@jest/globals";
 
-// ============================================================================
-// 1. MOCK SETUP (Required to prevent real DB connections during import)
-// ============================================================================
+// MOCK SETUP (Required to prevent real DB connections during import)
 
 // Mock config/db.js
 jest.unstable_mockModule("../../config/db.js", () => ({
@@ -13,20 +11,13 @@ jest.unstable_mockModule("../../config/db.js", () => ({
 
 // Mock repositories/productRepository.js
 jest.unstable_mockModule("../../repositories/productRepository.js", () => ({
-  // Dummy mocks, we only need to bypass imports
   insertAuditLog: jest.fn(),
 }));
 
-// ============================================================================
-// 2. IMPORT MODULES UNDER TEST
-// ============================================================================
-
-// Import dinamis agar mock berlaku
+// IMPORT MODULES UNDER TEST
 const { calculatePackageMeta } = await import("../../services/productService.js");
 
-// ============================================================================
-// 3. TEST SUITE
-// ============================================================================
+// TEST SUITE
 
 describe("calculatePackageMeta Logic", () => {
   beforeEach(() => {

@@ -57,7 +57,6 @@ export const getLogs = async ({ page = 1, limit = 20, search, action, targetType
     LIMIT ? OFFSET ?
   `;
 
-  // params is reused, but we need to append limit/offset
   const [rows] = await db.query(query, [...params, limit, offset]);
 
   return { data: rows, total };
@@ -76,7 +75,6 @@ export const getLogs = async ({ page = 1, limit = 20, search, action, targetType
  * @param {string} [logData.userAgent]
  */
 export const createLog = async (connection, { userId, action, targetType, targetId, changes, ip, userAgent }) => {
-  // Safe-guard: changes must be string for DB if it's not object
   const changesStr = typeof changes === 'object' ? JSON.stringify(changes) : JSON.stringify({ note: changes });
 
   await connection.query(

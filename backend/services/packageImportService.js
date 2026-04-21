@@ -50,14 +50,14 @@ export const processPackageImport = async (filePath, jobId, updateProgress) => {
         continue;
       }
 
-      // 1. Validate Package Exists
+      // Validate Package Exists
       const packageId = await productRepo.getIdBySku(connection, packageSku);
       if (!packageId) {
         errors.push(`Row ${row.number}: Paket SKU '${packageSku}' tidak ditemukan.`);
         continue;
       }
 
-      // 2. Parse Components
+      // Parse Components
       const componentsToInsert = [];
       let colIdx = 4;
       let hasComponentError = false;
@@ -67,42 +67,38 @@ export const processPackageImport = async (filePath, jobId, updateProgress) => {
         const compQty = row.getCell(colIdx + 1).value;
 
         if (compSku) {
-            // Validate Component SKU
-            const compId = await productRepo.getIdBySku(connection, compSku);
-            if (!compId) {
-                errors.push(`Row ${row.number}: Komponen SKU '${compSku}' tidak ditemukan.`);
-                hasComponentError = true;
-                break; // Stop parsing this row
-            }
+          // Validate Component SKU
+          const compId = await productRepo.getIdBySku(connection, compSku);
+          if (!compId) {
+            errors.push(`Row ${row.number}: Komponen SKU '${compSku}' tidak ditemukan.`);
+            hasComponentError = true;
+            break; // Stop parsing this row
+          }
 
-            // Validate Qty
-            const qty = parseInt(compQty);
-            if (!qty || qty <= 0) {
-                errors.push(`Row ${row.number}: Qty untuk '${compSku}' tidak valid.`);
-                hasComponentError = true;
-                break;
-            }
+          // Validate Qty
+          const qty = parseInt(compQty);
+          if (!qty || qty <= 0) {
+            errors.push(`Row ${row.number}: Qty untuk '${compSku}' tidak valid.`);
+            hasComponentError = true;
+            break;
+          }
 
-            componentsToInsert.push({ id: compId, quantity: qty });
+          componentsToInsert.push({ id: compId, quantity: qty });
         }
         colIdx += 2; // Jump to next pair
       }
 
       if (hasComponentError) continue;
       if (componentsToInsert.length === 0) {
-          errors.push(`Row ${row.number}: Tidak ada komponen valid.`);
-          continue;
+        errors.push(`Row ${row.number}: Tidak ada komponen valid.`);
+        continue;
       }
 
-      // 3. Transaction: Replace Components
+      // Transaction: Replace Components
       try {
         await connection.beginTransaction();
         await productRepo.deleteComponents(connection, packageId);
         await productRepo.insertComponents(connection, packageId, componentsToInsert);
-
-        // Optional: Update Price/Name if provided?
-        // For now, let's stick to component update as per requirement.
-        // We could update is_active=1 if needed.
 
         await connection.commit();
         successCount++;

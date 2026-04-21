@@ -16,7 +16,6 @@ await jest.unstable_mockModule("../../config/db.js", () => ({
 }));
 
 // Mock FS
-// We use a factory to capture the stream so we can assert on it or let it finish.
 const mockStream = new PassThrough();
 const mockFs = {
   createWriteStream: jest.fn().mockReturnValue(mockStream),
@@ -40,68 +39,59 @@ const { generateProductExportStreaming } = await import("../../services/exportSe
 
 // --- 3. TESTS ---
 describe("Service: exportService", () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
-        // Reset PassThrough stream for new test?
-        // PassThrough is one-time use per instance usually.
-        // We should update the mock implementation per test or use a fresh one.
-        // But unstable_mockModule is static. We can change what createWriteStream returns if we use a variable.
-    });
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-    test("Should generate CSV export correctly and close stream", async () => {
-        // Setup Fresh Stream
-        const testStream = new PassThrough();
-        mockFs.createWriteStream.mockReturnValue(testStream);
+  test("Should generate CSV export correctly and close stream", async () => {
+    // Setup Fresh Stream
+    const testStream = new PassThrough();
+    mockFs.createWriteStream.mockReturnValue(testStream);
 
-        // Setup Data
-        const filters = { format: "csv", exportType: "PRODUCT_MASTER" };
-        const mockProducts = [
-            { sku: "SKU001", name: "Product 1", price: 10000, is_active: 1 },
-            { sku: "SKU002", name: "Product 2", price: 20000, is_active: 0 }
-        ];
-        mockProductRepo.getProductsWithFilters.mockResolvedValue({ data: mockProducts });
+    // Setup Data
+    const filters = { format: "csv", exportType: "PRODUCT_MASTER" };
+    const mockProducts = [
+      { sku: "SKU001", name: "Product 1", price: 10000, is_active: 1 },
+      { sku: "SKU002", name: "Product 2", price: 20000, is_active: 0 }
+    ];
+    mockProductRepo.getProductsWithFilters.mockResolvedValue({ data: mockProducts });
 
-        // Execute
-        // We expect this promise to resolve when the stream finishes.
-        const exportPromise = generateProductExportStreaming(filters, "/tmp/dummy.csv");
+    // Execute
+    const exportPromise = generateProductExportStreaming(filters, "/tmp/dummy.csv");
 
-        // Assertions
-        await expect(exportPromise).resolves.not.toThrow();
+    // Assertions
+    await expect(exportPromise).resolves.not.toThrow();
 
-        expect(mockDb.getConnection).toHaveBeenCalled();
-        expect(mockProductRepo.getProductsWithFilters).toHaveBeenCalled();
-        expect(mockFs.createWriteStream).toHaveBeenCalledWith("/tmp/dummy.csv");
-        expect(mockConnection.release).toHaveBeenCalled();
+    expect(mockDb.getConnection).toHaveBeenCalled();
+    expect(mockProductRepo.getProductsWithFilters).toHaveBeenCalled();
+    expect(mockFs.createWriteStream).toHaveBeenCalledWith("/tmp/dummy.csv");
+    expect(mockConnection.release).toHaveBeenCalled();
+  });
 
-        // Verify Content (Optional, but good to check if CSV was written)
-        // Since testStream is a PassThrough, we can read from it if we collected chunks,
-        // but since the function awaited 'finish', the stream is already closed.
-    });
+  test("Should generate Excel export and close stream", async () => {
+    const testStream = new PassThrough();
+    mockFs.createWriteStream.mockReturnValue(testStream);
 
-    test("Should generate Excel export and close stream", async () => {
-        const testStream = new PassThrough();
-        mockFs.createWriteStream.mockReturnValue(testStream);
+    const filters = { format: "xlsx", exportType: "PRODUCT_MASTER" };
+    const mockProducts = [
+      { sku: "SKU001", name: "Product A", price: 5000 }
+    ];
+    mockProductRepo.getProductsWithFilters.mockResolvedValue({ data: mockProducts });
 
-        const filters = { format: "xlsx", exportType: "PRODUCT_MASTER" };
-        const mockProducts = [
-            { sku: "SKU001", name: "Product A", price: 5000 }
-        ];
-        mockProductRepo.getProductsWithFilters.mockResolvedValue({ data: mockProducts });
+    await expect(generateProductExportStreaming(filters, "/tmp/dummy.xlsx")).resolves.not.toThrow();
 
-        await expect(generateProductExportStreaming(filters, "/tmp/dummy.xlsx")).resolves.not.toThrow();
+    expect(mockConnection.release).toHaveBeenCalled();
+  });
 
-        expect(mockConnection.release).toHaveBeenCalled();
-    });
+  test("Should release connection if error occurs", async () => {
+    const testStream = new PassThrough();
+    mockFs.createWriteStream.mockReturnValue(testStream);
 
-    test("Should release connection if error occurs", async () => {
-        const testStream = new PassThrough();
-        mockFs.createWriteStream.mockReturnValue(testStream);
+    mockProductRepo.getProductsWithFilters.mockRejectedValue(new Error("DB Error"));
 
-        mockProductRepo.getProductsWithFilters.mockRejectedValue(new Error("DB Error"));
+    await expect(generateProductExportStreaming({ format: "csv" }, "path"))
+      .rejects.toThrow("DB Error");
 
-        await expect(generateProductExportStreaming({ format: "csv" }, "path"))
-            .rejects.toThrow("DB Error");
-
-        expect(mockConnection.release).toHaveBeenCalled();
-    });
+    expect(mockConnection.release).toHaveBeenCalled();
+  });
 });
