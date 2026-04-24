@@ -2,7 +2,9 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import Modal from '@/components/ui/Modal.vue'
-import { fetchAllUsers } from '@/api/helpers/admin.js'
+import { useMasterDataStore } from '@/stores/masterData'
+
+const masterData = useMasterDataStore()
 import api from '@/api/axios.js'
 import { useToast } from '@/composables/useToast.js'
 
@@ -33,10 +35,7 @@ const filteredUsers = computed(() => {
 async function loadUsers() {
   loading.value = true
   try {
-    const res = await api.get('/admin/users')
-    if (res.data.success) {
-      users.value = res.data.users
-    }
+    users.value = await masterData.getUsers()
   } catch (err) {
     toast('Gagal memuat daftar pengguna.', 'error')
     console.error('Error loading users for exclusions:', err)

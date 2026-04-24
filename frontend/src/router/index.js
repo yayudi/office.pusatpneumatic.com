@@ -30,6 +30,7 @@ const routes = [
     component: () => import('../views/user/StatsView.vue'),
     meta: { requiresAuth: true },
   },
+
   {
     path: '/account',
     name: 'Account',

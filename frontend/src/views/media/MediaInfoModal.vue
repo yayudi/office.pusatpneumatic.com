@@ -1,10 +1,10 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { useMagicKeys } from '@vueuse/core'
 import instance from '@/api/axios'
-import { searchProducts } from '@/api/helpers/products.js'
+import { useProductSearch } from '@/composables/useProductSearch.js'
 import { useToast } from '@/composables/useToast.js'
 import { useAuthStore } from '@/stores/auth.js'
-import { debounce } from 'lodash'
 import { formatBytes } from '@/utils/formatBytes.js'
 import { resolveUrl } from '@/composables/useImageUrl'
 
@@ -49,8 +49,7 @@ async function fetchMediaDetails() {
 watch(() => props.show, (val) => {
   if (val) {
     mediaData.value = null
-    searchQuery.value = ''
-    searchResults.value = []
+    clearSearch()
     isEditingTags.value = false
     tagsInput.value = ''
     fetchMediaDetails()
@@ -88,30 +87,13 @@ async function saveTags() {
   }
 }
 
-// Auto-complete
-const searchQuery = ref('')
-const searchResults = ref([])
-const searching = ref(false)
-
-const handleSearch = debounce(async (q) => {
-  if (!q.trim() || q.trim().length < 2) {
-    searchResults.value = []
-    return
-  }
-  searching.value = true
-  try {
-    const res = await searchProducts(q)
-    searchResults.value = res.slice(0, 5) // Limit just to 5
-  } catch (e) {
-    console.error(e)
-  } finally {
-    searching.value = false
-  }
-}, 300)
-
-watch(searchQuery, (newVal) => {
-  handleSearch(newVal)
-})
+// Auto-complete — powered by useProductSearch composable
+const {
+  query: searchQuery,
+  results: searchResults,
+  isSearching: searching,
+  clear: clearSearch
+} = useProductSearch({ maxResults: 5 })
 
 async function linkProduct(product) {
   if (!product || !props.mediaId) return
@@ -127,8 +109,7 @@ async function linkProduct(product) {
     const { data } = await instance.post(`/products/${product.id}/images`, payload)
     if (data.success) {
       toast('Produk berhasil disematkan!', 'success')
-      searchQuery.value = ''
-      searchResults.value = []
+      clearSearch()
       await fetchMediaDetails() // Refresh within the modal to show newly linked
       emit('refresh') // Refresh the list underneath
     }
@@ -167,6 +148,15 @@ const formatTags = (tagsStr) => {
     return tagsStr.split(',').map(s => s.trim())
   }
 }
+
+// --- LOCAL HOTKEYS ---
+const { Alt_S } = useMagicKeys()
+
+watch(Alt_S, (pressed) => {
+  if (pressed && props.show && isEditingTags.value && !loadingTags.value) {
+    saveTags()
+  }
+})
 </script>
 
 <template>

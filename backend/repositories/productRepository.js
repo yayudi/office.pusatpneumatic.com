@@ -233,8 +233,8 @@ export const getProductsWithFilters = async (connection, filters) => {
         name: row.name,
         sku: row.sku,
         quantity: row.quantity,
-        weight: row.weight, // [NEW] calc total weight frontend
-        stock_available: componentStockMap[row.id] || 0, // [NEW] calc virtual stock frontend
+        weight: row.weight, // calc total weight frontend
+        stock_available: componentStockMap[row.id] || 0, // calc virtual stock frontend
       });
     });
 
@@ -355,6 +355,59 @@ export const getProductStockDetails = async (connection, id) => {
     LEFT JOIN stock_locations sl ON l.id = sl.location_id AND sl.product_id = ?
     ORDER BY l.code;`;
   const [rows] = await connection.query(query, [id]);
+  return rows;
+};
+
+export const getProductTotalStock = async (connection, id, filters = {}) => {
+  const { buildings } = filters;
+  let query = `SELECT SUM(sl.quantity) as total_stock FROM stock_locations sl`;
+  const params = [];
+
+  if (buildings && buildings.length > 0) {
+    query += ` JOIN locations l ON sl.location_id = l.id`;
+  }
+
+  query += ` WHERE sl.product_id = ?`;
+  params.push(id);
+
+  if (buildings && buildings.length > 0) {
+    query += ` AND l.building IN (?)`;
+    params.push(buildings);
+  }
+
+  const [rows] = await connection.query(query, params);
+  return rows[0]?.total_stock ? parseInt(rows[0].total_stock, 10) : 0;
+};
+
+export const getProductStockMovementsAll = async (connection, id, filters = {}) => {
+  const { buildings } = filters;
+  let query = `
+    SELECT
+      sm.id,
+      sm.quantity,
+      sm.from_location_id,
+      sm.to_location_id,
+      sm.movement_type,
+      sm.notes,
+      sm.created_at,
+      u.username as user_name,
+      l_from.building as from_building,
+      l_to.building as to_building
+    FROM stock_movements sm
+    LEFT JOIN users u ON sm.user_id = u.id
+    LEFT JOIN locations l_from ON sm.from_location_id = l_from.id
+    LEFT JOIN locations l_to ON sm.to_location_id = l_to.id
+    WHERE sm.product_id = ?
+  `;
+  const params = [id];
+
+  if (buildings && buildings.length > 0) {
+    query += ` AND (l_from.building IN (?) OR l_to.building IN (?))`;
+    params.push(buildings, buildings);
+  }
+
+  query += ` ORDER BY sm.created_at DESC`;
+  const [rows] = await connection.query(query, params);
   return rows;
 };
 

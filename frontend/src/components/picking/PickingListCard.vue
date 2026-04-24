@@ -36,7 +36,6 @@ const {
 function onToggleInvoice(event) {
   emit('toggle-invoice', { inv: props.inv, checked: event.target.checked })
 }
-
 async function onCancelInvoice() {
   if (!confirm(`Batalkan pesanan ${props.inv.invoice}?`)) return
   try {
@@ -50,6 +49,13 @@ async function onCancelInvoice() {
     }, 500)
   }
 }
+
+const sourceBgClass = computed(() => {
+  const source = props.inv.source?.toLowerCase()
+  if (source === 'tokopedia') return 'bg-success'
+  if (source === 'shopee') return 'bg-warning'
+  return 'bg-secondary'
+})
 </script>
 
 <template>
@@ -142,8 +148,8 @@ async function onCancelInvoice() {
         <div class="bg-secondary/50 px-4 py-1.5 flex items-center justify-between border-b border-secondary/5">
           <div class="flex items-center gap-2">
             <font-awesome-icon :icon="!locName || locName === 'Unknown Loc'
-                ? 'fa-solid fa-triangle-exclamation'
-                : 'fa-solid fa-location-dot'
+              ? 'fa-solid fa-triangle-exclamation'
+              : 'fa-solid fa-location-dot'
               " class="text-xs" :class="!locName || locName === 'Unknown Loc' ? 'text-danger' : 'text-primary'" />
             <span class="text-xs font-bold"
               :class="!locName || locName === 'Unknown Loc' ? 'text-danger' : 'text-primary'">

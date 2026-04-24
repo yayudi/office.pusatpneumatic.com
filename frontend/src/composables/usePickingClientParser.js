@@ -2,16 +2,11 @@
 import { ref } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 
-// Import pdfjs-dist
 // Import worker entry point correctly based on bundler setup
 // Vite/Webpack typically handle this path automatically if installed via npm
-import * as pdfjsLib from 'pdfjs-dist'
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url'
-// import pdfjsWorker from 'pdfjs-dist/?url'
 
-// Set worker source using the imported entry point
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker // <-- Wajib ada (path worker)
-pdfjsLib.GlobalWorkerOptions.maxWorkerCount = 0 // <-- Wajib ada (mematikan worker, memaksa main thread)
+let pdfjsLib = null;
 
 // --- FUNGSI PARSING REGEX ---
 function parseTokopediaPdfText(textContent) {
@@ -116,6 +111,12 @@ export function usePickingClientParser() {
       if (file.type === 'application/pdf' && fileContent instanceof ArrayBuffer) {
         parsingMessage.value = 'Mem-parsing PDF...'
         try {
+          if (!pdfjsLib) {
+            pdfjsLib = await import('pdfjs-dist');
+            pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+            pdfjsLib.GlobalWorkerOptions.maxWorkerCount = 0;
+          }
+
           const loadingTask = pdfjsLib.getDocument({
             data: new Uint8Array(fileContent), // pdf.js butuh Uint8Array
             // Opsi untuk potensi masalah

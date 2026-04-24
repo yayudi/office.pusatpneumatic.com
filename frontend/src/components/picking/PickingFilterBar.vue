@@ -1,5 +1,6 @@
 <script setup>
 import { reactive, watch, computed } from 'vue'
+import debounce from 'lodash/debounce'
 import FilterContainer from '@/components/ui/FilterContainer.vue'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
@@ -53,8 +54,6 @@ const emit = defineEmits(['update:modelValue'])
 
 // Local reactive state synced with props
 const localValues = reactive({ ...props.modelValue })
-let debounceTimer = null
-
 // Sync from parent to local
 watch(
   () => props.modelValue,
@@ -70,14 +69,11 @@ function emitChange() {
 }
 
 // Debounced Search Input Handler
-function onSearchInput(event) {
-  const val = event.target.value
-  localValues.search = val
+const debouncedEmit = debounce(() => emitChange(), 300)
 
-  clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(() => {
-    emitChange()
-  }, 300) // Delay 300ms
+function onSearchInput(event) {
+  localValues.search = event.target.value
+  debouncedEmit()
 }
 
 // Helper to detect if any filter is active

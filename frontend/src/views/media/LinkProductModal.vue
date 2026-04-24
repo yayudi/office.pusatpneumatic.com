@@ -1,5 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue';
+import debounce from 'lodash/debounce';
 import apiClient from '@/api/axios';
 
 const props = defineProps({
@@ -14,26 +15,26 @@ const searchResults = ref([]);
 const isSearching = ref(false);
 const isSubmitting = ref(false);
 const selectedProducts = ref([]);
-let searchTimeout = null;
+
+const debouncedSearch = debounce(async (query) => {
+  try {
+    const res = await apiClient.get(`/products/search?q=${encodeURIComponent(query)}`);
+    searchResults.value = res.data;
+  } catch (error) {
+    console.error('Search error', error);
+  } finally {
+    isSearching.value = false;
+  }
+}, 400);
 
 watch(searchQuery, (newVal) => {
-  if (searchTimeout) clearTimeout(searchTimeout);
   if (!newVal || newVal.length < 2) {
     searchResults.value = [];
+    debouncedSearch.cancel();
     return;
   }
-  
   isSearching.value = true;
-  searchTimeout = setTimeout(async () => {
-    try {
-      const res = await apiClient.get(`/products/search?q=${encodeURIComponent(newVal)}`);
-      searchResults.value = res.data; // assuming array of products
-    } catch (error) {
-      console.error('Search error', error);
-    } finally {
-      isSearching.value = false;
-    }
-  }, 400);
+  debouncedSearch(newVal);
 });
 
 watch(() => props.show, (newVal) => {

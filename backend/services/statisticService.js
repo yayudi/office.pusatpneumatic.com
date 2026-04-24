@@ -7,17 +7,17 @@ import db from '../config/db.js';
  * @param {string} endDate
  */
 export const getStockMovementStatistics = async (filters) => {
-  const { startDate, endDate, status: filterStatus, movement: filterMovement } = filters;
+  const { startDate, endDate, status: filterStatus, movement: filterMovement, building, searchQuery, timeResolution } = filters;
   let connection;
   try {
     connection = await db.getConnection();
-    
+
     // Fetch data paralel
     const [rows, timelineRows] = await Promise.all([
       statisticRepo.getStockMovementStats(connection, filters),
       statisticRepo.getMovementTimelineStats(connection, filters)
     ]);
-    
+
     // Calculate Days Diff to find Avg Daily Sales
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -28,15 +28,23 @@ export const getStockMovementStatistics = async (filters) => {
     let data = rows.map(row => {
       const avgDailySales = Number(row.total_sold) / days;
       const currentStock = Number(row.current_stock);
-      const daysOfInventory = avgDailySales > 0 ? (currentStock / avgDailySales) : -1; // -1 means infinite/no sales
-      
+      const daysOfInventory = avgDailySales > 0 ? (currentStock / avgDailySales) : -1;
+
       let status = 'SAFE';
-      if (daysOfInventory >= 0 && daysOfInventory <= 7) {
+
+      // Stok 0 atau minus dianggap CRITICAL
+      if (currentStock < 0) {
+        status = 'NEGATIVE';
+      } else if (currentStock === 0) {
+        status = 'EMPTY';
+      } else if (daysOfInventory >= 0 && daysOfInventory <= 7) {
         status = 'CRITICAL';
       } else if (daysOfInventory > 7 && daysOfInventory <= 14) {
         status = 'WARNING';
       } else if (daysOfInventory === -1 && currentStock > 0 && currentStock >= 100) {
-        status = 'OVERSTOCK'; // Optionally map slow-moving large stocks
+        status = 'OVERSTOCK';
+      } else {
+        status = 'SAFE';
       }
 
       return {
@@ -64,7 +72,7 @@ export const getStockMovementStatistics = async (filters) => {
 
     // Format timeline dates nicely (e.g. YYYY-MM-DD to handle local time offsets) preserving string
     const timeline = timelineRows.map(t => ({
-      date: typeof t.date === 'string' ? t.date : new Date(t.date).toISOString().split('T')[0],
+      date: t.date,
       total_out: Number(t.total_out),
       total_in: Number(t.total_in)
     }));
@@ -78,6 +86,27 @@ export const getStockMovementStatistics = async (filters) => {
   }
 };
 
+export const getStockTimelineStatistics = async (filters) => {
+  const { searchQuery, building, status, movement } = filters;
+  let connection;
+  try {
+    connection = await db.getConnection();
+    const rows = await statisticRepo.getMovementTimelineStats(connection, filters);
+
+    // Map to expected format with totals
+    const data = rows.map(row => ({
+      date: row.date,
+      totalIn: Number(row.total_in),
+      totalOut: Number(row.total_out),
+      netChange: Number(row.total_in) - Number(row.total_out)
+    }));
+
+    return data;
+  } finally {
+    if (connection) connection.release();
+  }
+};
+
 /**
  * @param {Object} filters
  */
@@ -86,7 +115,7 @@ export const getInventoryValueStatistics = async (filters) => {
   try {
     connection = await db.getConnection();
     const rows = await statisticRepo.getInventoryValueStats(connection, filters);
-    
+
     // Calculate global total
     let globalTotalValue = 0;
     rows.forEach(row => {
@@ -95,12 +124,20 @@ export const getInventoryValueStatistics = async (filters) => {
 
     const data = rows.map(row => {
       const percentage = globalTotalValue > 0 ? (Number(row.total_value) / globalTotalValue) * 100 : 0;
-      
-      let status = 'SAFE';
-      if (Number(row.total_quantity) < 0) {
-        status = 'NEGATIVE';
-      } else if (Number(row.total_quantity) === 0) {
+
+      let status;
+      if (Number(row.total_quantity) === 0) {
         status = 'EMPTY';
+      } else if (Number(row.total_quantity) < 0) {
+        status = 'NEGATIVE';
+      } else if (Number(row.total_quantity) > 100) {
+        status = 'OVERSTOCK';
+      } else if (Number(row.total_quantity) > 50 && Number(row.total_quantity) < 100) {
+        status = 'WARNING';
+      } else if (Number(row.total_quantity) > 0 && Number(row.total_quantity) < 50) {
+        status = 'CRITICAL';
+      } else {
+        status = 'SAFE';
       }
 
       return {

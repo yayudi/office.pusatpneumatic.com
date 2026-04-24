@@ -1,7 +1,8 @@
 <!-- frontend\src\views\ManualReturn.vue -->
 
 <script setup>
-import { ref, onMounted, toRaw, computed } from 'vue'
+import { ref, onMounted, toRaw, computed, watch } from 'vue'
+import { useMagicKeys } from '@vueuse/core'
 import { useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast.js'
 import api from '@/api/axios'
@@ -125,6 +126,15 @@ function goBack() {
 
 onMounted(() => {
   fetchHelpers()
+})
+
+// --- LOCAL HOTKEYS ---
+const { Alt_S } = useMagicKeys()
+
+watch(Alt_S, (pressed) => {
+  if (pressed && !isLoading.value) {
+    submitForm()
+  }
 })
 </script>
 

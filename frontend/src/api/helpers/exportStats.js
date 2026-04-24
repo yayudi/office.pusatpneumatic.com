@@ -17,3 +17,15 @@ export const requestStatisticExport = async (filters) => {
   });
   return response.data;
 };
+
+export const requestStockTimelineExport = async (filters) => {
+  const response = await apiClient.post('/statistics/stock-timeline/export', {
+    startDate: filters.startDate,
+    endDate: filters.endDate,
+    searchQuery: filters.searchQuery || null,
+    status: filters.status || 'all',
+    movement: filters.movement || 'all',
+    building: filters.building || [],
+  });
+  return response.data;
+};

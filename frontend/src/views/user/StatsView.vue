@@ -1,21 +1,26 @@
 <!-- frontend\src\views\Stats.vue -->
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, defineAsyncComponent } from 'vue'
 import {
   fetchKpiSummary,
   requestExportStock,
   getUserExportJobs,
-  fetchReportFilters,
 } from '@/api/helpers/stats.js'
+import { useMasterDataStore } from '@/stores/masterData'
 import { useToast } from '@/composables/useToast.js'
 import SearchInput from '@/components/ui/SearchInput.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import FilterContainer from '@/components/ui/FilterContainer.vue'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
-import StockMovementStats from '@/components/stats/StockMovementStats.vue'
-import InventoryValueStats from '@/components/stats/InventoryValueStats.vue'
-import TimePerformanceStats from '@/components/stats/TimePerformanceStats.vue'
 import { formatNumber, formatCurrency } from '@/utils/formatters.js'
+
+// Lazy load heavy chart components based on active tab
+const StockMovementStats = defineAsyncComponent(() => import('@/components/stats/StockMovementStats.vue'))
+const StockTimelineFull = defineAsyncComponent(() => import('@/components/stats/StockTimelineFull.vue'))
+const InventoryValueStats = defineAsyncComponent(() => import('@/components/stats/InventoryValueStats.vue'))
+const TimePerformanceStats = defineAsyncComponent(() => import('@/components/stats/TimePerformanceStats.vue'))
+
+const masterData = useMasterDataStore()
 
 const { toast } = useToast()
 const isSidebarOpen = ref(false)
@@ -42,10 +47,7 @@ const reportFilters = ref({
   buildingsByPurpose: {},
 })
 
-// State untuk navigasi laporan
 const activeReport = ref('overview')
-
-// Menu navigasi untuk sidebar (dengan ikon)
 const reportsMenu = [
   { key: 'overview', label: 'Overview', group: 'Overview', icon: 'fa-solid fa-chart-pie' },
   {
@@ -59,6 +61,12 @@ const reportsMenu = [
     label: 'Pergerakan Stok',
     group: 'Laporan Utama',
     icon: 'fa-solid fa-boxes-stacked',
+  },
+  {
+    key: 'stock-timeline',
+    label: 'Timeline Stok',
+    group: 'Laporan Utama',
+    icon: 'fa-solid fa-clock-rotate-left',
   },
   {
     key: 'dead-stock',
@@ -76,7 +84,7 @@ const reportsMenu = [
     key: 'time-performance',
     label: 'Performa Waktu',
     group: 'Laporan Utama',
-    icon: 'fa-solid fa-clock-rotate-left',
+    icon: 'fa-solid fa-chart-line',
   },
   {
     key: 'channel-performance',
@@ -84,7 +92,12 @@ const reportsMenu = [
     group: 'Laporan Utama',
     icon: 'fa-solid fa-store',
   },
-  { key: 'sku-audit', label: 'Audit SKU', group: 'Audit & Lainnya', icon: 'fa-solid fa-search' },
+  {
+    key: 'sku-audit',
+    label: 'Audit SKU',
+    group: 'Audit & Lainnya',
+    icon: 'fa-solid fa-search'
+  },
   {
     key: 'export-stock',
     label: 'Ekspor Laporan Stok',
@@ -109,7 +122,7 @@ async function loadKpiData() {
 
 async function loadReportFilters() {
   try {
-    const response = await fetchReportFilters()
+    const response = await masterData.getReportFilters()
     if (response) {
       reportFilters.value.allBuildings = response.allBuildings || []
       reportFilters.value.purposes = response.purposes || []
@@ -135,7 +148,6 @@ async function loadHistory() {
   }
 }
 
-// Muat data KPI saat komponen pertama kali dimuat
 onMounted(() => {
   if (activeReport.value === 'overview') {
     loadKpiData()
@@ -272,7 +284,7 @@ async function handleRequestExport() {
       <main class="flex-1 p-4 md:p-8 overflow-x-hidden w-full">
         <div class="w-full md:w-auto mx-auto">
           <div
-            class="bg-background rounded-xl shadow-md border border-secondary/20 p-6 min-h-[500px] relative overflow-hidden animate-fade-in">
+            class="bg-background rounded-xl shadow-md border border-secondary/20 p-6 min-h-[500px] relative overflow-visible animate-fade-in">
             <div v-if="isLoading" class="flex flex-col items-center justify-center h-80">
               <font-awesome-icon icon="fa-solid fa-circle-notch" spin class="text-primary text-4xl mb-3" />
               <span class="text-text/50 font-medium">Memuat Data...</span>
@@ -286,223 +298,222 @@ async function handleRequestExport() {
               <p class="text-sm opacity-80 mt-1">{{ errorMessage }}</p>
             </div>
 
-            <div v-else-if="activeReport === 'overview' && kpiData" class="animate-fade-in">
-              <div class="flex justify-between items-center mb-6">
-                <h3 class="text-lg font-bold text-text">Overall Summary</h3>
-                <span class="text-xs text-text/40 font-mono">{{
-                  new Date().toLocaleDateString('id-ID', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })
-                }}</span>
+            <template v-else>
+              <div v-if="activeReport === 'overview' && kpiData" class="animate-fade-in">
+                <div class="flex justify-between items-center mb-6">
+                  <h3 class="text-lg font-bold text-text">Overall Summary</h3>
+                  <span class="text-xs text-text/40 font-mono">{{
+                    new Date().toLocaleDateString('id-ID', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })
+                  }}</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div class="kpi-card">
+                    <div class="kpi-label">List Selesai</div>
+                    <div class="kpi-value text-success">
+                      {{ formatNumber(kpiData.listsCompletedToday) }}
+                    </div>
+                    <div class="kpi-icon">
+                      <font-awesome-icon icon="fa-solid fa-check-double" />
+                    </div>
+                  </div>
+
+                  <div class="kpi-card">
+                    <div class="kpi-label">Item Terambil</div>
+                    <div class="kpi-value text-primary">
+                      {{ formatNumber(kpiData.itemsPickedToday) }}
+                    </div>
+                    <div class="kpi-icon">
+                      <font-awesome-icon icon="fa-solid fa-box-open" />
+                    </div>
+                  </div>
+
+                  <div class="kpi-card">
+                    <div class="kpi-label">User Aktif</div>
+                    <div class="kpi-value text-warning">
+                      {{ formatNumber(kpiData.usersActiveToday) }}
+                    </div>
+                    <div class="kpi-icon">
+                      <font-awesome-icon icon="fa-solid fa-users" />
+                    </div>
+                  </div>
+
+                  <div class="kpi-card">
+                    <div class="kpi-label">Total Nilai Inventaris</div>
+                    <div class="kpi-value text-text text-xl md:text-2xl mt-3">
+                      {{ formatCurrency(kpiData.totalInventoryValue) }}
+                    </div>
+                    <div class="kpi-icon">
+                      <font-awesome-icon icon="fa-solid fa-vault" />
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="kpi-card">
-                  <div class="kpi-label">List Selesai</div>
-                  <div class="kpi-value text-success">
-                    {{ formatNumber(kpiData.listsCompletedToday) }}
-                  </div>
-                  <div class="kpi-icon">
-                    <font-awesome-icon icon="fa-solid fa-check-double" />
-                  </div>
+              <KeepAlive>
+                <StockMovementStats v-if="activeReport === 'stock-movement'" class="animate-fade-in" />
+                <StockTimelineFull v-else-if="activeReport === 'stock-timeline'" class="animate-fade-in" />
+                <InventoryValueStats v-else-if="activeReport === 'inventory-value'" class="animate-fade-in" />
+                <TimePerformanceStats v-else-if="activeReport === 'time-performance'" class="animate-fade-in" />
+              </KeepAlive>
+
+              <div v-if="activeReport === 'export-stock'" class="animate-fade-in">
+                <div class="mb-6 border-b border-secondary/20 pb-4">
+                  <h3 class="text-lg font-bold text-text">Ekspor Laporan Stok</h3>
+                  <p class="text-sm text-text/50 mt-1">
+                    Filter dan unduh data stok gudang dalam format Excel.
+                  </p>
                 </div>
 
-                <div class="kpi-card">
-                  <div class="kpi-label">Item Terambil</div>
-                  <div class="kpi-value text-primary">
-                    {{ formatNumber(kpiData.itemsPickedToday) }}
-                  </div>
-                  <div class="kpi-icon">
-                    <font-awesome-icon icon="fa-solid fa-box-open" />
-                  </div>
-                </div>
-
-                <div class="kpi-card">
-                  <div class="kpi-label">User Aktif</div>
-                  <div class="kpi-value text-warning">
-                    {{ formatNumber(kpiData.usersActiveToday) }}
-                  </div>
-                  <div class="kpi-icon">
-                    <font-awesome-icon icon="fa-solid fa-users" />
-                  </div>
-                </div>
-
-                <div class="kpi-card">
-                  <div class="kpi-label">Total Nilai Inventaris</div>
-                  <div class="kpi-value text-text text-xl md:text-2xl mt-3">
-                    {{ formatCurrency(kpiData.totalInventoryValue) }}
-                  </div>
-                  <div class="kpi-icon">
-                    <font-awesome-icon icon="fa-solid fa-vault" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div v-else-if="activeReport === 'stock-movement'" class="animate-fade-in">
-              <StockMovementStats />
-            </div>
-
-            <div v-else-if="activeReport === 'inventory-value'" class="animate-fade-in">
-              <InventoryValueStats />
-            </div>
-
-            <div v-else-if="activeReport === 'time-performance'" class="animate-fade-in">
-              <TimePerformanceStats />
-            </div>
-
-            <div v-else-if="activeReport === 'export-stock'" class="animate-fade-in">
-              <div class="mb-6 border-b border-secondary/20 pb-4">
-                <h3 class="text-lg font-bold text-text">Ekspor Laporan Stok</h3>
-                <p class="text-sm text-text/50 mt-1">
-                  Filter dan unduh data stok gudang dalam format Excel.
-                </p>
-              </div>
-
-              <div class="grid lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-1">
-                  <FilterContainer title="Filter Export" icon="fa-solid fa-filter">
-                    <div class="space-y-5 w-full">
-                      <div>
-                        <label class="label-input">Cari Produk</label>
-                        <SearchInput id="search-filter" v-model="selectedFilters.searchQuery"
-                          placeholder="Cari SKU atau Nama Produk..." />
-                      </div>
-
-                      <div>
-                        <label class="label-input">Gedung</label>
-                        <BaseSelect v-model="selectedFilters.building" :options="availableBuildings" :multiple="true"
-                          placeholder="Semua Gedung" />
-                      </div>
-
-                      <div>
-                        <label class="label-input">Tujuan</label>
-                        <BaseSelect v-model="selectedFilters.purpose" :options="purposeOptions" emitValue
-                          :searchable="false" />
-                      </div>
-
-                      <div class="grid grid-cols-2 gap-3">
+                <div class="grid lg:grid-cols-3 gap-8">
+                  <div class="lg:col-span-1">
+                    <FilterContainer title="Filter Export" icon="fa-solid fa-filter">
+                      <div class="space-y-5 w-full">
                         <div>
-                          <label class="label-input">Tipe</label>
-                          <BaseSelect v-model="selectedFilters.isPackage" :options="typeOptions" emitValue
+                          <label class="label-input">Cari Produk</label>
+                          <SearchInput id="search-filter" v-model="selectedFilters.searchQuery"
+                            placeholder="Cari SKU atau Nama Produk..." />
+                        </div>
+
+                        <div>
+                          <label class="label-input">Gedung</label>
+                          <BaseSelect v-model="selectedFilters.building" :options="availableBuildings" :multiple="true"
+                            placeholder="Semua Gedung" />
+                        </div>
+
+                        <div>
+                          <label class="label-input">Tujuan</label>
+                          <BaseSelect v-model="selectedFilters.purpose" :options="purposeOptions" emitValue
                             :searchable="false" />
                         </div>
-                        <div>
-                          <label class="label-input">Status Stok</label>
-                          <BaseSelect v-model="selectedFilters.stockStatus" :options="stockStatusOptions" emitValue
-                            :searchable="false" />
-                        </div>
-                      </div>
 
-                      <button @click="handleRequestExport" :disabled="isRequesting"
-                        class="w-full py-3 bg-primary text-secondary rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]">
-                        <font-awesome-icon v-if="isRequesting" icon="fa-solid fa-circle-notch" spin />
-                        <font-awesome-icon v-else icon="fa-solid fa-file-export" />
-                        <span>{{ isRequesting ? 'Memproses...' : 'Generate Laporan' }}</span>
+                        <div class="grid grid-cols-2 gap-3">
+                          <div>
+                            <label class="label-input">Tipe</label>
+                            <BaseSelect v-model="selectedFilters.isPackage" :options="typeOptions" emitValue
+                              :searchable="false" />
+                          </div>
+                          <div>
+                            <label class="label-input">Status Stok</label>
+                            <BaseSelect v-model="selectedFilters.stockStatus" :options="stockStatusOptions" emitValue
+                              :searchable="false" />
+                          </div>
+                        </div>
+
+                        <button @click="handleRequestExport" :disabled="isRequesting"
+                          class="w-full py-3 bg-primary text-secondary rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]">
+                          <font-awesome-icon v-if="isRequesting" icon="fa-solid fa-circle-notch" spin />
+                          <font-awesome-icon v-else icon="fa-solid fa-file-export" />
+                          <span>{{ isRequesting ? 'Memproses...' : 'Generate Laporan' }}</span>
+                        </button>
+                      </div>
+                    </FilterContainer>
+                  </div>
+
+                  <div class="lg:col-span-2">
+                    <div class="flex justify-between items-center mb-4">
+                      <h4 class="text-sm font-bold text-text/70 uppercase tracking-wide">
+                        Riwayat Generate
+                      </h4>
+                      <button @click="loadHistory" :disabled="isHistoryLoading"
+                        class="text-xs text-primary font-bold hover:text-primary/80 disabled:opacity-50 flex items-center gap-1.5 transition-colors">
+                        <font-awesome-icon icon="fa-solid fa-rotate" :class="{ 'animate-spin': isHistoryLoading }" />
+                        Refresh
                       </button>
                     </div>
-                  </FilterContainer>
-                </div>
 
-                <div class="lg:col-span-2">
-                  <div class="flex justify-between items-center mb-4">
-                    <h4 class="text-sm font-bold text-text/70 uppercase tracking-wide">
-                      Riwayat Generate
-                    </h4>
-                    <button @click="loadHistory" :disabled="isHistoryLoading"
-                      class="text-xs text-primary font-bold hover:text-primary/80 disabled:opacity-50 flex items-center gap-1.5 transition-colors">
-                      <font-awesome-icon icon="fa-solid fa-rotate" :class="{ 'animate-spin': isHistoryLoading }" />
-                      Refresh
-                    </button>
-                  </div>
+                    <div
+                      class="bg-background border border-secondary/20 rounded-xl overflow-hidden shadow-md overflow-x-auto overflow-y-auto relative custom-scrollbar max-h-[400px]">
+                      <table class="w-full text-left text-sm min-w-[500px] border-collapse">
+                        <thead
+                          class="sticky top-0 z-10 bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5">
+                          <tr>
+                            <th
+                              class="px-6 py-3 font-bold text-xs text-text/60 uppercase sticky left-0 z-10 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                              Waktu</th>
+                            <th class="px-6 py-3 font-bold text-xs text-text/60 uppercase border-b border-secondary/10">
+                              Status</th>
+                            <th
+                              class="px-6 py-3 font-bold text-xs text-text/60 uppercase text-right border-b border-secondary/10 sticky right-0 z-30 bg-background/95 backdrop-blur-md shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                              Aksi
+                            </th>
+                          </tr>
+                        </thead>
+                        <TransitionGroup tag="tbody" name="list" class="divide-y divide-secondary/5 relative">
+                          <template v-if="isHistoryLoading && jobHistory.length === 0">
+                            <TableSkeleton v-for="n in 3" :key="`skeleton-${n}`" />
+                          </template>
 
-                  <div
-                    class="bg-background border border-secondary/20 rounded-xl overflow-hidden shadow-md overflow-x-auto overflow-y-auto relative custom-scrollbar max-h-[400px]">
-                    <table class="w-full text-left text-sm min-w-[500px] border-collapse">
-                      <thead
-                        class="sticky top-0 z-10 bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5">
-                        <tr>
-                          <th
-                            class="px-6 py-3 font-bold text-xs text-text/60 uppercase sticky left-0 z-10 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                            Waktu</th>
-                          <th class="px-6 py-3 font-bold text-xs text-text/60 uppercase border-b border-secondary/10">
-                            Status</th>
-                          <th
-                            class="px-6 py-3 font-bold text-xs text-text/60 uppercase text-right border-b border-secondary/10 sticky right-0 z-30 bg-background/95 backdrop-blur-md shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                            Aksi
-                          </th>
-                        </tr>
-                      </thead>
-                      <TransitionGroup tag="tbody" name="list" class="divide-y divide-secondary/5 relative">
-                        <template v-if="isHistoryLoading && jobHistory.length === 0">
-                          <TableSkeleton v-for="n in 3" :key="`skeleton-${n}`" />
-                        </template>
+                          <tr v-else-if="jobHistory.length === 0" key="empty">
+                            <td colspan="3" class="px-6 py-12 text-sm text-text/40 text-center italic">
+                              <font-awesome-icon icon="fa-solid fa-clock-rotate-left"
+                                class="mb-3 text-3xl opacity-20 block mx-auto" />
+                              Belum ada riwayat permintaan.
+                            </td>
+                          </tr>
 
-                        <tr v-else-if="jobHistory.length === 0" key="empty">
-                          <td colspan="3" class="px-6 py-12 text-sm text-text/40 text-center italic">
-                            <font-awesome-icon icon="fa-solid fa-clock-rotate-left"
-                              class="mb-3 text-3xl opacity-20 block mx-auto" />
-                            Belum ada riwayat permintaan.
-                          </td>
-                        </tr>
-
-                        <tr v-else v-for="job in jobHistory" :key="job.id"
-                          class="hover:bg-secondary/5 transition-colors group relative">
-                          <td
-                            class="px-6 py-4 text-text text-xs sticky left-0 z-10 bg-background group-hover:bg-secondary/5 transition-colors shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                            <div class="flex flex-col">
-                              <span class="font-bold text-sm">{{ new Date(job.created_at).toLocaleDateString('id-ID')
-                              }}</span>
-                              <span class="text-text/40 text-[10px]">{{ new
-                                Date(job.created_at).toLocaleTimeString('id-ID') }}</span>
-                            </div>
-                          </td>
-                          <td class="px-6 py-4">
-                            <span v-if="job.status === 'COMPLETED'"
-                              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-success/10 text-success border border-success/20">
-                              <font-awesome-icon icon="fa-solid fa-check" /> Selesai
-                            </span>
-                            <span v-else-if="job.status === 'FAILED'"
-                              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-danger/10 text-danger border border-danger/20"
-                              :title="job.error_message">
-                              <font-awesome-icon icon="fa-solid fa-xmark" /> Gagal
-                            </span>
-                            <span v-else
-                              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-warning/10 text-warning border border-warning/20">
-                              <span class="w-1.5 h-1.5 rounded-full bg-current animate-ping"></span>
-                              Proses
-                            </span>
-                          </td>
-                          <td
-                            class="px-6 py-4 text-right sticky right-0 z-10 bg-background group-hover:bg-secondary/5 transition-colors shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                            <a v-if="job.status === 'COMPLETED'" :href="job.download_url" download
-                              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary hover:text-secondary transition-all shadow-sm">
-                              <font-awesome-icon icon="fa-solid fa-download" /> Unduh
-                            </a>
-                            <span v-else-if="job.status === 'FAILED'"
-                              class="text-xs text-danger/60 italic cursor-help underline decoration-dotted"
-                              :title="job.error_message">
-                              Lihat Error
-                            </span>
-                            <span v-else class="text-xs text-text/30 italic"> Menunggu... </span>
-                          </td>
-                        </tr>
-                      </TransitionGroup>
-                    </table>
+                          <tr v-else v-for="job in jobHistory" :key="job.id"
+                            class="hover:bg-secondary/5 transition-colors group relative">
+                            <td
+                              class="px-6 py-4 text-text text-xs sticky left-0 z-10 bg-background group-hover:bg-secondary/5 transition-colors shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                              <div class="flex flex-col">
+                                <span class="font-bold text-sm">{{ new Date(job.created_at).toLocaleDateString('id-ID')
+                                }}</span>
+                                <span class="text-text/40 text-[10px]">{{ new
+                                  Date(job.created_at).toLocaleTimeString('id-ID') }}</span>
+                              </div>
+                            </td>
+                            <td class="px-6 py-4">
+                              <span v-if="job.status === 'COMPLETED'"
+                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-success/10 text-success border border-success/20">
+                                <font-awesome-icon icon="fa-solid fa-check" /> Selesai
+                              </span>
+                              <span v-else-if="job.status === 'FAILED'"
+                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-danger/10 text-danger border border-danger/20"
+                                :title="job.error_message">
+                                <font-awesome-icon icon="fa-solid fa-xmark" /> Gagal
+                              </span>
+                              <span v-else
+                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-warning/10 text-warning border border-warning/20">
+                                <span class="w-1.5 h-1.5 rounded-full bg-current animate-ping"></span>
+                                Proses
+                              </span>
+                            </td>
+                            <td
+                              class="px-6 py-4 text-right sticky right-0 z-10 bg-background group-hover:bg-secondary/5 transition-colors shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                              <a v-if="job.status === 'COMPLETED'" :href="job.download_url" download
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary hover:text-secondary transition-all shadow-sm">
+                                <font-awesome-icon icon="fa-solid fa-download" /> Unduh
+                              </a>
+                              <span v-else-if="job.status === 'FAILED'"
+                                class="text-xs text-danger/60 italic cursor-help underline decoration-dotted"
+                                :title="job.error_message">
+                                Lihat Error
+                              </span>
+                              <span v-else class="text-xs text-text/30 italic"> Menunggu... </span>
+                            </td>
+                          </tr>
+                        </TransitionGroup>
+                      </table>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- [NEW] Attendance Stats Section -->
-            <div v-else class="flex flex-col items-center justify-center h-80 text-text/30">
-              <font-awesome-icon icon="fa-solid fa-screwdriver-wrench" class="text-4xl mb-3 opacity-20" />
-              <h3 class="text-lg font-medium italic">Laporan ini sedang dalam pengembangan.</h3>
-              <p class="text-sm">Silakan kembali lagi nanti.</p>
-            </div>
+              <!-- Attendance Stats Section -->
+              <div
+                v-if="!['overview', 'stock-movement', 'stock-timeline', 'inventory-value', 'time-performance', 'export-stock'].includes(activeReport)"
+                class="flex flex-col items-center justify-center h-80 text-text/30">
+                <font-awesome-icon icon="fa-solid fa-screwdriver-wrench" class="text-4xl mb-3 opacity-20" />
+                <h3 class="text-lg font-medium italic">Laporan ini sedang dalam pengembangan.</h3>
+                <p class="text-sm">Silakan kembali lagi nanti.</p>
+              </div>
+            </template>
           </div>
         </div>
       </main>

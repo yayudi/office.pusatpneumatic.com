@@ -3,6 +3,7 @@
 import { ref } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { searchProducts, fetchStockSampleForLocation } from '@/api/helpers/products.js'
+import debounce from 'lodash/debounce'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 
 const props = defineProps({
@@ -20,34 +21,30 @@ const isSearching = ref(false)
 const selectedProduct = ref(null)
 const quantityToAdd = ref(1)
 
-let searchDebounceTimer = null
+const debouncedSearch = debounce(async (query) => {
+  try {
+    const results = await searchProducts(query, props.searchLocationId)
+    searchResults.value = results
+
+    // Jika hasil pencarian kosong, lihat apa yang ada di lokasi itu
+    if (results.length === 0 && props.searchLocationId) {
+      await fetchStockSampleForLocation(props.searchLocationId)
+    }
+  } catch (error) {
+    toast('Gagal mencari produk.', 'error')
+  } finally {
+    isSearching.value = false
+  }
+}, 500)
 
 function onSearchChange(query) {
-  clearTimeout(searchDebounceTimer)
   if (query.length < 2) {
     searchResults.value = []
+    debouncedSearch.cancel()
     return
   }
   isSearching.value = true
-  searchDebounceTimer = setTimeout(async () => {
-    try {
-      // Jalankan pencarian Anda (yang kita tahu akan mengembalikan [])
-      const results = await searchProducts(query, props.searchLocationId)
-      searchResults.value = results
-
-      // Jika hasil pencarian kosong, mari kita lihat apa yang SEBENARNYA ada di lokasi itu
-      // Pastikan blok 'if' ini ada di kode Anda
-      if (results.length === 0 && props.searchLocationId) {
-        // Panggil helper baru kita
-        const stockSample = await fetchStockSampleForLocation(props.searchLocationId)
-      }
-      // --- AKHIR LOG INVESTIGASI BARU ---
-    } catch (error) {
-      toast('Gagal mencari produk.', 'error')
-    } finally {
-      isSearching.value = false
-    }
-  }, 500)
+  debouncedSearch(query)
 }
 
 function onAddClick() {

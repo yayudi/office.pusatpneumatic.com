@@ -6,14 +6,35 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 import { visualizer } from 'rollup-plugin-visualizer'
 import { VitePWA } from 'vite-plugin-pwa'
 
+/**
+ * Inline Vite plugin: swap favicon to favicon-dev.ico in dev mode
+ * so browser tabs clearly show which instance is DEV vs PROD.
+ * @param {{ command: string }} env
+ * @returns {import('vite').Plugin}
+ */
+const faviconPlugin = ({ command }) => ({
+  name: 'favicon-env',
+  transformIndexHtml: (html) => {
+    if (command === 'serve') {
+      // Replace any <link rel="icon" ...> with the dev favicon
+      return html.replace(
+        /(<link[^>]+rel=["'](?:shortcut )?icon["'][^>]*href=["'])[^"']+?(["'][^>]*>)/gi,
+        '$1/favicon-dev.ico$2',
+      )
+    }
+    return html
+  },
+})
+
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   base: '/',
 
   plugins: [
     vue(),
     vueDevTools(),
     visualizer({ filename: 'bundle-stats.html' }),
+    faviconPlugin({ command }),
     VitePWA({
       // devOptions: {
       //   enabled: true,
@@ -117,4 +138,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))

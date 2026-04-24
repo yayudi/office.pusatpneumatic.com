@@ -1,11 +1,14 @@
+<!-- frontend/src/views/admin/ShiftSchedule.vue -->
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
-import { useToast } from '@/composables/useToast.js'
-import { fetchAllUsers, fetchShifts } from '@/api/helpers/admin.js'
-import { fetchSchedules, createSchedule, deleteSchedule } from '@/api/helpers/schedule.js'
 import axios from '@/api/axios'
+import { useToast } from '@/composables/useToast.js'
+import { fetchShifts } from '@/api/helpers/admin.js'
+import { useMasterDataStore } from '@/stores/masterData'
+import { fetchSchedules, createSchedule, deleteSchedule } from '@/api/helpers/schedule.js'
 import BatchScheduleImportModal from '@/components/shifts/BatchScheduleImportModal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+const masterData = useMasterDataStore()
 
 // State
 const users = ref([])
@@ -84,7 +87,7 @@ const loadInitialData = async () => {
   loading.value = true
   try {
     const [usersData, shiftsData] = await Promise.all([
-      fetchAllUsers(),
+      masterData.getUsers(true),
       fetchShifts()
     ])
     users.value = usersData

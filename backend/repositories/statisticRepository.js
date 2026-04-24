@@ -7,15 +7,15 @@
  */
 export const getStockMovementStats = async (connection, filters) => {
   const { startDate, endDate, searchQuery, buildings } = filters;
-  
+
   let queryParams = [];
-  
-  // Stock Locations Subquery
+
+  // Stock Locations Subquery (Filtered by Building)
   let locSubquery = `
     SELECT product_id, SUM(quantity) as current_stock
     FROM stock_locations
   `;
-  
+
   if (buildings && Array.isArray(buildings) && buildings.length > 0) {
     locSubquery = `
       SELECT sl.product_id, SUM(sl.quantity) as current_stock
@@ -29,9 +29,23 @@ export const getStockMovementStats = async (connection, filters) => {
     locSubquery += ` GROUP BY product_id`;
   }
 
+  // Stock Movements Subquery (Filtered by Building)
+  let movFilter = "";
+  let movParams = [startDate, endDate];
+  if (buildings && Array.isArray(buildings) && buildings.length > 0) {
+    movFilter = `
+      AND (
+        (sm.movement_type = 'INBOUND' AND tl.building IN (?))
+        OR
+        (sm.movement_type IN ('SALE', 'OUT') AND fl.building IN (?))
+      )
+    `;
+    movParams.push(buildings, buildings);
+  }
+
   // Main Query
   let query = `
-    SELECT 
+    SELECT
       p.id as product_id,
       p.sku,
       p.name,
@@ -44,18 +58,21 @@ export const getStockMovementStats = async (connection, filters) => {
       ${locSubquery}
     ) s_loc ON p.id = s_loc.product_id
     LEFT JOIN (
-      SELECT 
-        product_id,
-        SUM(CASE WHEN movement_type IN ('SALE', 'OUT') THEN quantity ELSE 0 END) AS total_sold,
-        SUM(CASE WHEN movement_type = 'INBOUND' THEN quantity ELSE 0 END) AS total_inbound
-      FROM stock_movements
-      WHERE DATE(created_at) >= ? AND DATE(created_at) <= ?
-      GROUP BY product_id
+      SELECT
+        sm.product_id,
+        SUM(CASE WHEN sm.movement_type IN ('SALE', 'OUT') THEN sm.quantity ELSE 0 END) AS total_sold,
+        SUM(CASE WHEN sm.movement_type = 'INBOUND' THEN sm.quantity ELSE 0 END) AS total_inbound
+      FROM stock_movements sm
+      LEFT JOIN locations fl ON sm.from_location_id = fl.id
+      LEFT JOIN locations tl ON sm.to_location_id = tl.id
+      WHERE DATE(sm.created_at) >= ? AND DATE(sm.created_at) <= ?
+      ${movFilter}
+      GROUP BY sm.product_id
     ) s_mov ON p.id = s_mov.product_id
     WHERE p.is_package = 0
   `;
 
-  queryParams.push(startDate, endDate);
+  queryParams.push(...movParams);
 
   // Search Filter
   if (searchQuery) {
@@ -76,7 +93,7 @@ export const getStockMovementStats = async (connection, filters) => {
  */
 export const getInventoryValueStats = async (connection, filters) => {
   const { searchQuery, building, purpose, isPackage, stockStatus } = filters;
-  
+
   let whereClauses = ["p.is_active = 1"];
   const queryParams = [];
 
@@ -112,7 +129,7 @@ export const getInventoryValueStats = async (connection, filters) => {
   }
 
   const query = `
-    SELECT 
+    SELECT
       p.id as product_id,
       p.sku,
       p.name,
@@ -138,18 +155,22 @@ export const getInventoryValueStats = async (connection, filters) => {
  */
 export const getMovementTimelineStats = async (connection, filters) => {
   const { startDate, endDate, searchQuery, buildings, timeResolution } = filters;
-  
+
   const queryParams = [startDate, endDate];
-  
-  let buildingJoin = "";
+
   let buildingFilter = "";
-  
   if (buildings && Array.isArray(buildings) && buildings.length > 0) {
-    buildingJoin = "JOIN locations l ON sm.location_id = l.id";
-    buildingFilter = "AND l.building IN (?)";
-    queryParams.push(buildings);
+    // In timeline, we check if either source or destination matches the building
+    buildingFilter = `
+      AND (
+        (sm.movement_type = 'INBOUND' AND tl.building IN (?))
+        OR
+        (sm.movement_type IN ('SALE', 'OUT') AND fl.building IN (?))
+      )
+    `;
+    queryParams.push(buildings, buildings);
   }
-  
+
   let searchJoin = "";
   let searchFilter = "";
   if (searchQuery) {
@@ -159,7 +180,7 @@ export const getMovementTimelineStats = async (connection, filters) => {
     queryParams.push(likeTerm, likeTerm);
   }
 
-  let dateSelect = "DATE(sm.created_at)";
+  let dateSelect = "DATE_FORMAT(sm.created_at, '%Y-%m-%d')";
   if (timeResolution === 'monthly') {
     dateSelect = "DATE_FORMAT(sm.created_at, '%Y-%m')";
   } else if (timeResolution === 'annual') {
@@ -167,12 +188,13 @@ export const getMovementTimelineStats = async (connection, filters) => {
   }
 
   const query = `
-    SELECT 
+    SELECT
       ${dateSelect} as date,
       SUM(CASE WHEN sm.movement_type IN ('SALE', 'OUT') THEN sm.quantity ELSE 0 END) AS total_out,
       SUM(CASE WHEN sm.movement_type = 'INBOUND' THEN sm.quantity ELSE 0 END) AS total_in
     FROM stock_movements sm
-    ${buildingJoin}
+    LEFT JOIN locations fl ON sm.from_location_id = fl.id
+    LEFT JOIN locations tl ON sm.to_location_id = tl.id
     ${searchJoin}
     WHERE DATE(sm.created_at) >= ? AND DATE(sm.created_at) <= ?
     ${buildingFilter}

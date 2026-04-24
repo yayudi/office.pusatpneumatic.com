@@ -24,25 +24,23 @@ const { brokenImages, onImgError } = useBrokenImages()
 </script>
 
 <template>
-  <div class="group relative aspect-square bg-secondary/10 rounded-xl border overflow-hidden shadow-sm hover:shadow-md transition-all"
+  <div
+    class="group relative aspect-square bg-secondary/10 rounded-xl border overflow-hidden shadow-sm hover:shadow-md transition-all"
     :class="selected
       ? 'border-primary ring-2 ring-primary ring-offset-2 ring-offset-background'
-      : 'border-secondary/20'"
-    @click="$emit('click')">
+      : 'border-secondary/20'" @click="$emit('click')">
 
     <!-- Bulk Checkbox Indicator -->
     <div v-if="selectable" class="absolute top-2 left-2 z-20 pointer-events-none">
-      <div class="h-6 w-6 rounded border-2 flex items-center justify-center transition-colors"
-        :class="selected
-          ? 'bg-primary border-primary text-background'
-          : 'bg-background/80 border-secondary text-transparent'">
+      <div class="h-6 w-6 rounded border-2 flex items-center justify-center transition-colors" :class="selected
+        ? 'bg-primary border-primary text-background'
+        : 'bg-background/80 border-secondary text-transparent'">
         <font-awesome-icon icon="fa-solid fa-check" class="text-sm" />
       </div>
     </div>
 
     <!-- Image / Fallback / Processing -->
-    <img v-if="status === 'COMPLETED' && imageUrl && !brokenImages.has(imageId)"
-      :src="imageUrl" :alt="displayName"
+    <img v-if="status === 'COMPLETED' && imageUrl && !brokenImages.has(imageId)" :src="imageUrl" :alt="displayName"
       class="w-full h-full object-cover" @error="onImgError(imageId)" />
 
     <div v-else-if="status === 'COMPLETED'"
@@ -52,8 +50,8 @@ const { brokenImages, onImgError } = useBrokenImages()
     </div>
 
     <div v-else class="flex flex-col items-center justify-center w-full h-full opacity-60 text-text">
-      <font-awesome-icon v-if="status === 'PENDING' || status === 'PROCESSING'"
-        icon="fa-solid fa-spinner" spin class="text-primary text-2xl" />
+      <font-awesome-icon v-if="status === 'PENDING' || status === 'PROCESSING'" icon="fa-solid fa-spinner" spin
+        class="text-primary text-2xl" />
       <font-awesome-icon v-else icon="fa-solid fa-triangle-exclamation" class="text-danger text-2xl" />
       <span class="text-xs font-semibold mt-2">{{ status }}</span>
     </div>
@@ -63,7 +61,7 @@ const { brokenImages, onImgError } = useBrokenImages()
 
     <!-- Hover Overlay with Actions -->
     <div v-if="showOverlay"
-      class="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity p-2 text-center z-10 duration-300 rounded-xl">
+      class="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity p-2 text-center z-10 duration-300">
       <span class="text-xs truncate w-full block mb-2 px-2 text-text font-medium">
         {{ displayName }}
       </span>

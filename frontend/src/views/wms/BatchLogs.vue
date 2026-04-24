@@ -1,7 +1,10 @@
 <!-- frontend\src\views\WMSBatchLogView.vue -->
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { fetchBatchLogs, fetchAllLocations } from '@/api/helpers/stock.js'
+import { fetchBatchLogs } from '@/api/helpers/stock.js'
+import { useMasterDataStore } from '@/stores/masterData'
+
+const masterData = useMasterDataStore()
 import { useToast } from '@/composables/useToast.js'
 import FilterContainer from '@/components/ui/FilterContainer.vue'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
@@ -47,7 +50,7 @@ onMounted(async () => {
 
   // Load Locations untuk Dropdown
   try {
-    locations.value = await fetchAllLocations()
+    allLocations.value = await masterData.getLocations()
   } catch (e) {
     console.error("Gagal load lokasi", e)
   }

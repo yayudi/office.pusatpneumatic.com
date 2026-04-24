@@ -1,16 +1,19 @@
 <!-- frontend\src\views\admin\LocationManagement.vue -->
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import {
-  fetchAllLocations,
   createLocation,
   updateLocation,
   deleteLocation,
 } from '@/api/helpers/locations.js'
+import { useMasterDataStore } from '@/stores/masterData'
 import Modal from '@/components/ui/Modal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
+
+const masterData = useMasterDataStore()
 
 const { toast } = useToast()
 
@@ -32,7 +35,7 @@ const selectedLocation = ref({
 async function loadLocations() {
   loading.value = true
   try {
-    allLocations.value = await fetchAllLocations()
+    allLocations.value = await masterData.getLocations(true)
   } catch (error) {
     toast('Gagal memuat data lokasi.', 'error')
   } finally {
@@ -93,6 +96,21 @@ async function handleDelete(locationId) {
     }
   }
 }
+
+// --- LOCAL HOTKEYS ---
+const { Alt_N, Alt_S } = useMagicKeys()
+
+watch(Alt_N, (pressed) => {
+  if (pressed && !isModalOpen.value) {
+    openCreateModal()
+  }
+})
+
+watch(Alt_S, (pressed) => {
+  if (pressed && isModalOpen.value) {
+    handleSave()
+  }
+})
 </script>
 
 <template>

@@ -17,7 +17,7 @@ const isExpanded = ref(false)
 
 <template>
   <div
-    class="flex flex-col bg-secondary/5 rounded-2xl border border-secondary/20 overflow-hidden transition-all duration-300 hover:border-secondary/30"
+    class="flex flex-col bg-secondary/5 rounded-2xl border border-secondary/20 transition-all duration-300 hover:border-secondary/30"
   >
     <!-- Mobile Header / Toggle -->
     <div

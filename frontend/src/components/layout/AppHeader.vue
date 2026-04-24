@@ -5,16 +5,19 @@ import { RouterLink } from 'vue-router'
 import ThemeSwitcher from '../ui/ThemeSwitcher.vue'
 import { useAuthStore } from '../../stores/auth.js'
 import { usePwaInstall } from '@/composables/usePwaInstall.js'
-
+import { useAppHotkeys } from '@/composables/useAppHotkeys.js'
+import HotkeyCheatSheet from '../ui/HotkeyCheatSheet.vue'
+const dropdownContainer = ref(null)
+const mobileMenuPanel = ref(null)
+const hamburgerButton = ref(null)
 const isDropdownOpen = ref(false)
 const isMobileMenuOpen = ref(false)
 const emit = defineEmits(['logout'])
 const auth = useAuthStore()
 const { isInstallable, installPwa } = usePwaInstall()
 
-const dropdownContainer = ref(null)
-const mobileMenuPanel = ref(null)
-const hamburgerButton = ref(null)
+useAppHotkeys(handleLogout)
+
 
 const displayName = computed(() => {
   if (auth.user && auth.user.nickname) {
@@ -75,12 +78,6 @@ onUnmounted(() => {
         </RouterLink>
 
         <div class="hidden md:flex items-center gap-6 text-sm font-medium">
-          <RouterLink to="/absensi"
-            class="border-b-2 text-text/80 hover:text-primary transition-colors flex items-center gap-2"
-            active-class="!text-primary text-lg font-bold border-primary">
-            <font-awesome-icon icon="fa-solid fa-clock" />
-            <span>Absensi</span>
-          </RouterLink>
           <RouterLink to="/wms"
             class="border-b-2 text-text/80 hover:text-primary transition-colors flex items-center gap-2"
             active-class="!text-primary text-lg font-bold border-primary">
@@ -92,6 +89,12 @@ onUnmounted(() => {
             active-class="!text-primary text-lg font-bold border-primary">
             <font-awesome-icon icon="fa-solid fa-images" />
             <span>Media</span>
+          </RouterLink>
+          <RouterLink to="/absensi"
+            class="border-b-2 text-text/80 hover:text-primary transition-colors flex items-center gap-2"
+            active-class="!text-primary text-lg font-bold border-primary">
+            <font-awesome-icon icon="fa-solid fa-clock" />
+            <span>Absensi</span>
           </RouterLink>
           <RouterLink to="/stats" v-if="auth.user?.permissions?.includes('view-reports')"
             class="border-b-2 text-text/80 hover:text-primary transition-colors flex items-center gap-2"
@@ -194,5 +197,8 @@ onUnmounted(() => {
         </button>
       </nav>
     </div>
+
+    <!-- Hotkey Cheat Sheet Modal -->
+    <HotkeyCheatSheet />
   </header>
 </template>

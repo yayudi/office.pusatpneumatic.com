@@ -1,9 +1,10 @@
 <!-- frontend/src/views/admin/ProductManagement.vue -->
 <script setup>
 import { ref, reactive, onMounted, watch, computed } from 'vue'
+import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import axios from '@/api/axios.js'
-import { debounce } from 'lodash'
+import debounce from 'lodash/debounce'
 
 // Components
 import BatchEditModal from '@/components/products/BatchEditModal.vue'
@@ -260,6 +261,36 @@ const handleImageSaved = () => {
 // Init
 onMounted(() => {
   fetchProducts()
+})
+
+// --- LOCAL HOTKEYS ---
+const { Alt_N, Alt_A, Alt_R, Slash } = useMagicKeys()
+
+watch(Alt_N, (pressed) => {
+  if (pressed && !showProductForm.value && !showImageModal.value && !showBatchEditModal.value) {
+    openAddModal()
+  }
+})
+
+watch(Alt_A, (pressed) => {
+  if (pressed && !showProductForm.value && !showImageModal.value && !showBatchEditModal.value) {
+    toggleSelectAll()
+  }
+})
+
+watch(Alt_R, (pressed) => {
+  if (pressed && !showProductForm.value && !showImageModal.value && !showBatchEditModal.value) {
+    fetchProducts()
+  }
+})
+
+watch(Slash, (pressed) => {
+  if (pressed && !showProductForm.value && !showImageModal.value && !showBatchEditModal.value) {
+    setTimeout(() => {
+      const el = document.getElementById('global-search-input')
+      if (el) el.focus()
+    }, 10)
+  }
 })
 </script>
 

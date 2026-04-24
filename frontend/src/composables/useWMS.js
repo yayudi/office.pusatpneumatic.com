@@ -1,8 +1,9 @@
 // frontend/src/composables/useWMS.js
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import debounce from 'lodash/debounce'
 import { useAuthStore } from '@/stores/auth'
 import { fetchProducts as fetchProductsFromApi } from '@/api/helpers/wms.js'
-import { fetchAllLocations } from '@/api/helpers/stock.js'
+import { useMasterDataStore } from '@/stores/masterData'
 
 const AVAILABLE_COLUMNS = [
   { id: 'sku', label: 'SKU' },
@@ -44,6 +45,17 @@ export function useWms() {
 
   // Initialize from LocalStorage
   const savedColumns = localStorage.getItem('wms-visible-columns')
+  const masterData = useMasterDataStore()
+
+  // Ambil data lokasi sekali saja saat composable digunakan
+  onMounted(async () => {
+    try {
+      allLocations.value = await masterData.getLocations()
+    } catch (error) {
+      console.error('Failed to fetch locations in useWMS', error)
+    }
+  })
+
   if (savedColumns) {
     try {
       visibleColumns.value = new Set(JSON.parse(savedColumns))
@@ -64,7 +76,6 @@ export function useWms() {
     }
   }
   let observer = null
-  let debounceTimer = null
 
   function toggleAutoRefetch() {
     isAutoRefetching.value = !isAutoRefetching.value
@@ -137,7 +148,7 @@ export function useWms() {
   async function fetchInitialData() {
     await Promise.all([
       fetchProducts('init'),
-      fetchAllLocations().then((data) => {
+      masterData.getLocations().then((data) => {
         allLocations.value = data
       }),
     ])
@@ -322,12 +333,9 @@ export function useWms() {
     })
   }
 
-  function handleSearchInput(value) {
-    clearTimeout(debounceTimer)
-    debounceTimer = setTimeout(() => {
-      searchTerm.value = value
-    }, 300)
-  }
+  const handleSearchInput = debounce((value) => {
+    searchTerm.value = value
+  }, 300)
 
   function handleSort(column) {
     if (sortBy.value === column) {

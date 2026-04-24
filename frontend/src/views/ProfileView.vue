@@ -1,5 +1,6 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { useMagicKeys } from '@vueuse/core'
 import api from '@/api/axios.js'
 import { useToast } from '@/composables/useToast.js'
 import { useAuthStore } from '@/stores/auth.js'
@@ -65,6 +66,15 @@ async function handleUpdate() {
     loading.value = false
   }
 }
+
+// --- LOCAL HOTKEYS ---
+const { Alt_S } = useMagicKeys()
+
+watch(Alt_S, (pressed) => {
+  if (pressed && !loading.value) {
+    handleUpdate()
+  }
+})
 </script>
 
 <template>

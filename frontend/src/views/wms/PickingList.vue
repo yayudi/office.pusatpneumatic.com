@@ -47,18 +47,7 @@ async function handleSwitchTab(targetTab) {
   }
 }
 
-// --- COMPUTED ---
-// Mengambil jumlah item pending dari child component untuk badge di tab
 const pendingCount = computed(() => taskTabRef.value?.pendingCount || 0)
-console.group('WMSPickingListView State')
-console.log('Pending Count:', pendingCount.value)
-console.log('Active Tab:', activeTab.value)
-console.log('Task Tab Ref:', taskTabRef.value)
-console.log('Task Tab Ref Length:', taskTabRef.length)
-console.log('History Tab Ref:', historyTabRef.value)
-console.log('Show Job Error Modal:', showJobErrorModal.value)
-console.log('Selected Job:', selectedJob.value)
-console.groupEnd()
 </script>
 
 <template>
@@ -94,8 +83,8 @@ console.groupEnd()
       ]" :key="tab.id" @click="activeTab = tab.id"
         class="flex-1 py-2.5 px-4 rounded-md text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2"
         :class="activeTab === tab.id
-            ? 'bg-primary text-secondary shadow-lg scale-[1.02]'
-            : 'text-text/60 hover:text-text hover:bg-secondary/20'
+          ? 'bg-primary text-secondary shadow-lg scale-[1.02]'
+          : 'text-text/60 hover:text-text hover:bg-secondary/20'
           ">
         <font-awesome-icon :icon="`fa-solid ${tab.icon}`" />
         {{ tab.label }}

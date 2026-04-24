@@ -4,12 +4,18 @@ import { useAuthStore } from '@/stores/auth';
 import { useToast } from '@/composables/useToast.js';
 import { useTheme } from '@/composables/useTheme.js';
 import { getInventoryValueStatistics } from '@/api/helpers/statistics.js';
-import { fetchReportFilters } from '@/api/helpers/stats.js';
 import SearchInput from '@/components/ui/SearchInput.vue';
+import { useMasterDataStore } from '@/stores/masterData';
+
+const masterData = useMasterDataStore();
 import BaseSelect from '@/components/ui/BaseSelect.vue';
 import Tabs from '@/components/ui/Tabs.vue';
 import VueApexCharts from 'vue3-apexcharts';
 import { formatCurrency, formatNumber } from '@/utils/formatters.js';
+
+import { useStatsTable } from '@/composables/useStatsTable.js';
+import StatsChartCard from './shared/StatsChartCard.vue';
+import StatsFilterBar from './shared/StatsFilterBar.vue';
 
 const authStore = useAuthStore();
 const { toast } = useToast();
@@ -17,10 +23,30 @@ const { toast } = useToast();
 const isDataLoading = ref(false);
 const showAdvancedFilters = ref(false);
 const statisticsList = ref([]);
-const sortKey = ref('total_value');
-const sortDesc = ref(true);
 const viewMode = ref('table');
 const chartMaxCap = ref(10);
+
+const {
+  sortKey,
+  sortDesc,
+  displayedData,
+  visibleData,
+  sortBy,
+  getSortIcon,
+  handleTableScroll
+} = useStatsTable(statisticsList, { initialSortKey: 'total_value' });
+
+const fetchStatistics = async () => {
+  isDataLoading.value = true;
+  try {
+    const data = await getInventoryValueStatistics(filterValues.value);
+    statisticsList.value = data.data || [];
+  } catch (error) {
+    toast(error.message || 'Gagal mengambil data statistik', 'error');
+  } finally {
+    isDataLoading.value = false;
+  }
+};
 
 const filterValues = ref({
   searchQuery: '',
@@ -63,7 +89,7 @@ const { themeColors, isDarkTheme } = useTheme();
 
 onMounted(async () => {
   try {
-    const res = await fetchReportFilters();
+    const res = await masterData.getReportFilters();
     if (res) {
       reportFilters.value.allBuildings = res.allBuildings || [];
       reportFilters.value.purposes = res.purposes || [];
@@ -74,70 +100,6 @@ onMounted(async () => {
 
   fetchStatistics();
 });
-
-const displayedData = computed(() => {
-  return [...statisticsList.value].sort((a, b) => {
-    let valA = a[sortKey.value];
-    let valB = b[sortKey.value];
-    if (typeof valA === 'string') valA = valA.toLowerCase();
-    if (typeof valB === 'string') valB = valB.toLowerCase();
-
-    if (valA < valB) return sortDesc.value ? 1 : -1;
-    if (valA > valB) return sortDesc.value ? -1 : 1;
-    return 0;
-  });
-});
-
-const fetchStatistics = async () => {
-  isDataLoading.value = true;
-  try {
-    const data = await getInventoryValueStatistics(filterValues.value);
-    statisticsList.value = data.data || [];
-  } catch (error) {
-    toast(error.message || 'Gagal mengambil data statistik', 'error');
-  } finally {
-    isDataLoading.value = false;
-  }
-};
-
-const sortBy = (key) => {
-  if (sortKey.value === key) {
-    sortDesc.value = !sortDesc.value;
-  } else {
-    sortKey.value = key;
-    sortDesc.value = true;
-  }
-  visibleCount.value = 50;
-};
-
-const getSortIcon = (key) => {
-  if (sortKey.value !== key) return 'fa-solid fa-sort';
-  return sortDesc.value ? 'fa-solid fa-sort-down' : 'fa-solid fa-sort-up';
-};
-
-const visibleCount = ref(50);
-
-const loadMore = () => {
-  if (visibleCount.value < displayedData.value.length) {
-    visibleCount.value += 50;
-  }
-};
-
-const handleTableScroll = (e) => {
-  const { scrollTop, scrollHeight, clientHeight } = e.target;
-  if (scrollTop + clientHeight >= scrollHeight - 50) {
-    loadMore();
-  }
-};
-
-const visibleData = computed(() => {
-  return displayedData.value.slice(0, visibleCount.value);
-});
-
-const applyFilters = () => {
-  visibleCount.value = 50;
-  fetchStatistics();
-};
 
 // Formatters removed (using utility)
 
@@ -223,34 +185,18 @@ const chartTopAssetProportionOptions = computed(() => {
     </div>
 
     <!-- Filter Controls -->
-    <div class="bg-background border border-secondary p-4 rounded-xl flex flex-col gap-4 shadow-sm mb-6">
-      <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-        <div class="flex flex-wrap gap-4 items-center flex-1 w-full">
-          <div class="flex-1 w-full sm:w-auto min-w-[300px]">
-            <SearchInput v-model="filterValues.searchQuery" placeholder="Cari SKU atau Nama Produk..." />
-          </div>
+    <StatsFilterBar
+      :loading="isDataLoading"
+      @apply="applyFilters"
+      :hasActiveAdvancedFilters="!!filterValues.building.length || filterValues.stockStatus !== 'all' || filterValues.purpose"
+    >
+      <template #main>
+        <div class="flex-1 w-full sm:w-auto min-w-[300px]">
+          <SearchInput v-model="filterValues.searchQuery" placeholder="Cari SKU atau Nama Produk..." />
         </div>
+      </template>
 
-        <div class="flex flex-wrap gap-2 w-full lg:w-auto align-bottom">
-          <button @click="showAdvancedFilters = !showAdvancedFilters"
-            class="h-[42px] px-4 flex items-center justify-center gap-2 border rounded-lg text-sm font-semibold transition-colors bg-background flex-1 lg:flex-none mt-auto"
-            :class="showAdvancedFilters || filterValues.building.length || filterValues.stockStatus !== 'all' || filterValues.purpose ? 'border-primary text-primary bg-primary/5' : 'border-secondary text-text/70 hover:bg-secondary/10'">
-            <font-awesome-icon icon="fa-solid fa-sliders" />
-            <span>Filter Lanjutan</span>
-            <font-awesome-icon :icon="showAdvancedFilters ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'"
-              class="text-[10px] ml-1 opacity-50" />
-          </button>
-
-          <button @click="applyFilters" :disabled="isDataLoading"
-            class="h-[42px] px-6 bg-primary text-secondary font-bold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex-1 lg:flex-none flex justify-center items-center mt-auto">
-            <font-awesome-icon v-if="isDataLoading" icon="fa-solid fa-spinner" spin class="mr-2" />
-            Terapkan
-          </button>
-        </div>
-      </div>
-
-      <div v-show="showAdvancedFilters"
-        class="grid grid-cols-1 md:grid-cols-4 gap-4 border-t border-secondary/20 pt-4 mt-2 animate-fade-in">
+      <template #advanced>
         <div>
           <label class="block text-xs font-semibold text-text/60 mb-2">Lokasi / Gedung</label>
           <BaseSelect v-model="filterValues.building" :options="reportFilters.allBuildings" :multiple="true"
@@ -271,8 +217,8 @@ const chartTopAssetProportionOptions = computed(() => {
           <label class="block text-xs font-semibold text-text/60 mb-2">Tipe Barang</label>
           <BaseSelect v-model="filterValues.isPackage" :options="isPackageOptions" emitValue :searchable="false" />
         </div>
-      </div>
-    </div>
+      </template>
+    </StatsFilterBar>
 
     <!-- Main Content Layout -->
     <div class="flex flex-col lg:flex-row gap-6 items-start">
@@ -406,26 +352,21 @@ const chartTopAssetProportionOptions = computed(() => {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in md:pb-12" v-if="statisticsList.length > 0">
 
           <!-- Card: Top Assets Proportion -->
-          <div class="bg-background border border-secondary p-5 rounded-xl shadow-sm flex flex-col min-h-[400px]">
-            <h4 class="font-bold text-text text-sm mb-4">Porsi Kekayaan Top 5 Produk vs Lainnya</h4>
+          <StatsChartCard title="Porsi Kekayaan Top 5 Produk vs Lainnya">
             <div class="flex-1 flex items-center justify-center -ml-4">
               <VueApexCharts width="110%" height="320" type="donut" :options="chartTopAssetProportionOptions"
                 :series="chartTopAssetProportionSeries" />
             </div>
-          </div>
+          </StatsChartCard>
 
-          <!-- Card: Top Sales -->
-          <div
-            class="bg-background border border-secondary p-5 rounded-xl shadow-sm flex flex-col min-h-[400px] md:col-span-2">
-            <h4 class="font-bold text-text text-sm mb-4">Top {{ chartMaxCap }} Penahan Nilai Modal (Aset Mengendap
-              Tertinggi)
-            </h4>
-            <div class="flex-1 border-b border-transparent">
-              <VueApexCharts width="100%" height="500" type="bar" :options="chartTopAssetsOptions"
+          <!-- Card: Top Assets -->
+          <StatsChartCard 
+            :title="`Top ${chartMaxCap} Penahan Nilai Modal (Aset Mengendap Tertinggi)`"
+            class="md:col-span-2"
+          >
+            <VueApexCharts width="100%" height="500" type="bar" :options="chartTopAssetsOptions"
                 :series="chartTopAssetsSeries" />
-            </div>
-          </div>
-
+          </StatsChartCard>
         </div>
 
         <div v-else

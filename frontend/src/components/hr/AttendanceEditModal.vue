@@ -1,5 +1,6 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
+import { useMagicKeys } from '@vueuse/core'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
 import axios from '@/api/axios'
@@ -7,7 +8,7 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 
 const props = defineProps({
   isOpen: Boolean,
-  logData: Object // { tanggal, jamMasuk, jamKeluar, status, notes, user, dateVal, etc }
+  logData: Object
 })
 
 const emit = defineEmits(['close', 'update'])
@@ -98,6 +99,15 @@ async function handleSave() {
     isLoading.value = false
   }
 }
+
+// --- LOCAL HOTKEYS ---
+const { Alt_S } = useMagicKeys()
+
+watch(Alt_S, (pressed) => {
+  if (pressed && props.isOpen && !isLoading.value && canSave.value) {
+    handleSave()
+  }
+})
 </script>
 
 <template>

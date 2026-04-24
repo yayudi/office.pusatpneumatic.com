@@ -1,7 +1,7 @@
 <!-- frontend\src\components\transfer\ProductSearchSelector.vue -->
 <script setup>
-import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { searchProducts } from '@/api/helpers/products.js'
+import { ref, watch, onMounted, onUnmounted, nextTick, toRef } from 'vue'
+import { useProductSearch } from '@/composables/useProductSearch.js'
 
 const props = defineProps({
   modelValue: { type: Object, default: null },
@@ -11,15 +11,20 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-// State
+// Search logic from composable (imperative mode via performSearch)
+const {
+  results: searchResults,
+  isSearching: isLoading,
+  performSearch,
+  clear: clearSearch
+} = useProductSearch({ locationId: toRef(props, 'locationId') })
+
+// Local UI state (dropdown, query synced with v-model)
 const searchQuery = ref('')
-const searchResults = ref([])
-const isLoading = ref(false)
 const showDropdown = ref(false)
 const inputRef = ref(null)
 const dropdownRef = ref(null)
 const dropdownPos = ref({})
-let debounceTimer = null
 
 // --- LOGIC ---
 watch(
@@ -45,32 +50,21 @@ const updateDropdownPosition = () => {
   }
 }
 
-function handleInput() {
+async function handleInput() {
   const query = searchQuery.value
   if (!query) {
     emit('update:modelValue', null)
-    searchResults.value = []
+    clearSearch()
     showDropdown.value = false
     return
   }
+  if (query.length < 2) return
   updateDropdownPosition()
-  clearTimeout(debounceTimer)
-  isLoading.value = true
-  debounceTimer = setTimeout(async () => {
-    try {
-      if (query.length < 2) return
-      const results = await searchProducts(query, props.locationId)
-      searchResults.value = Array.isArray(results) ? results : []
-      if (searchResults.value.length > 0) {
-        showDropdown.value = true
-        nextTick(() => updateDropdownPosition())
-      }
-    } catch (e) {
-      console.error(e)
-    } finally {
-      isLoading.value = false
-    }
-  }, 300)
+  await performSearch(query)
+  if (searchResults.value.length > 0) {
+    showDropdown.value = true
+    nextTick(() => updateDropdownPosition())
+  }
 }
 
 function selectItem(item) {

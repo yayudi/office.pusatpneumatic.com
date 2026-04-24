@@ -1,6 +1,7 @@
 <!-- frontend/src/views/media/MediaManagement.vue -->
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
+import debounce from 'lodash/debounce';
 import { useAuthStore } from '@/stores/auth';
 import { useToast } from '@/composables/useToast.js'
 import apiClient from '@/api/axios';
@@ -30,8 +31,6 @@ const uploaderInput = ref(null);
 const isUploading = ref(false);
 const globalSearchStr = ref('');
 const linkStatusFilter = ref('all');
-let searchDebounceTimer = null;
-
 const isUsageTooltipVisible = ref(false)
 const usageTooltipTarget = ref(null)
 const hoveredMediaItem = ref(null)
@@ -49,10 +48,8 @@ const handleTooltipClose = () => {
 }
 
 // Debounce: auto-fetch 400ms setelah user berhenti mengetik
-watch(globalSearchStr, () => {
-  if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
-  searchDebounceTimer = setTimeout(() => fetchMedia(1), 400);
-});
+const debouncedFetchMedia = debounce(() => fetchMedia(1), 400)
+watch(globalSearchStr, () => debouncedFetchMedia());
 
 // Instant fetch saat dropdown filter berubah
 watch(linkStatusFilter, () => fetchMedia(1));
@@ -67,26 +64,25 @@ const bulkProductSearchQuery = ref('');
 const bulkProductSearchResults = ref([]);
 const isBulkProductSearching = ref(false);
 const bulkSelectedProducts = ref([]);
-let bulkProductSearchTimeout = null;
+const debouncedBulkSearch = debounce(async (query) => {
+  try {
+    const res = await apiClient.get(`/products/search?q=${encodeURIComponent(query)}`);
+    bulkProductSearchResults.value = res.data;
+  } catch (error) {
+    toast('Search error', error);
+  } finally {
+    isBulkProductSearching.value = false;
+  }
+}, 400);
 
 watch(bulkProductSearchQuery, (newVal) => {
-  if (bulkProductSearchTimeout) clearTimeout(bulkProductSearchTimeout);
   if (!newVal || newVal.length < 2) {
     bulkProductSearchResults.value = [];
+    debouncedBulkSearch.cancel();
     return;
   }
-
   isBulkProductSearching.value = true;
-  bulkProductSearchTimeout = setTimeout(async () => {
-    try {
-      const res = await apiClient.get(`/products/search?q=${encodeURIComponent(newVal)}`);
-      bulkProductSearchResults.value = res.data;
-    } catch (error) {
-      toast('Search error', error);
-    } finally {
-      isBulkProductSearching.value = false;
-    }
-  }, 400);
+  debouncedBulkSearch(newVal);
 });
 
 const selectBulkProduct = (prod) => {

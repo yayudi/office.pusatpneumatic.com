@@ -253,6 +253,71 @@ export const setPrimaryImageService = async (productId, imageId, userId) => {
   }
 };
 
+export const getHistoricalStockTimelineService = async (productId, page = 1, limit = 100, filters = {}) => {
+  const connection = await db.getConnection();
+  try {
+    const currentStock = await productRepo.getProductTotalStock(connection, productId, filters);
+    const movements = await productRepo.getProductStockMovementsAll(connection, productId, filters);
+
+    let currentBalance = currentStock;
+    const timeline = movements.map((mov) => {
+      const balanceAtThisPoint = currentBalance;
+
+      let netChange = 0;
+      const hasBuildingFilter = filters.buildings && filters.buildings.length > 0;
+
+      if (hasBuildingFilter) {
+        const fromInFilter = filters.buildings.includes(mov.from_building);
+        const toInFilter = filters.buildings.includes(mov.to_building);
+
+        if (toInFilter && !fromInFilter) {
+          netChange = mov.quantity; // INBOUND to filtered building
+        } else if (fromInFilter && !toInFilter) {
+          netChange = -mov.quantity; // OUTBOUND from filtered building
+        }
+        // If both in filter or both not in filter, netChange = 0 for this scope
+      } else {
+        if (!mov.from_location_id && mov.to_location_id) {
+          netChange = mov.quantity; // Global INBOUND
+        } else if (mov.from_location_id && !mov.to_location_id) {
+          netChange = -mov.quantity; // Global OUTBOUND
+        }
+        // if both are NOT NULL, it's an internal transfer (netChange = 0 globally)
+      }
+
+      // Revert balance for the NEXT older movement
+      currentBalance -= netChange;
+
+      return {
+        id: mov.id,
+        created_at: mov.created_at,
+        movement_type: mov.movement_type,
+        quantity: mov.quantity,
+        from_location_id: mov.from_location_id,
+        to_location_id: mov.to_location_id,
+        notes: mov.notes,
+        user_name: mov.user_name,
+        balance_after: balanceAtThisPoint,
+        net_change: netChange
+      };
+    });
+
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedData = timeline.slice(startIndex, endIndex);
+
+    return {
+      data: paginatedData,
+      total: timeline.length,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages: Math.ceil(timeline.length / limit)
+    };
+  } finally {
+    connection.release();
+  }
+};
+
 // ============================================================================
 // HELPER: CALCULATION UTILS (Exported for Testing)
 // ============================================================================

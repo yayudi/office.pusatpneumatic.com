@@ -1,24 +1,29 @@
 <!-- frontend\src\views\hr\AttendanceView.vue -->
 <script setup>
-import { ref, watch, onMounted, computed } from 'vue'
+import { ref, watch, onMounted, computed, defineAsyncComponent } from 'vue'
 import { startOfMonth, endOfMonth, format } from 'date-fns'
 import { useAuthStore } from '@/stores/auth'
 import Tabs from '@/components/ui/Tabs.vue'
 import FilterBar from '@/components/ui/FilterBar.vue'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
-import SummaryView from '@/components/hr/SummaryView.vue'
-import DetailView from '@/components/hr/DetailView.vue'
-import AttendanceStats from '@/components/stats/AttendanceStats.vue'
 import Modal from '@/components/ui/Modal.vue'
-import UploadForm from '@/components/ui/UploadForm.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
-import AttendanceExclusionsModal from '@/components/hr/AttendanceExclusionsModal.vue'
+
+// Lazy load tab components
+const SummaryView = defineAsyncComponent(() => import('@/components/hr/SummaryView.vue'))
+const DetailView = defineAsyncComponent(() => import('@/components/hr/DetailView.vue'))
+const AttendanceStats = defineAsyncComponent(() => import('@/components/stats/AttendanceStats.vue'))
+
+// Lazy load heavy modal components
+const UploadForm = defineAsyncComponent(() => import('@/components/ui/UploadForm.vue'))
+const AttendanceExclusionsModal = defineAsyncComponent(() => import('@/components/hr/AttendanceExclusionsModal.vue'))
 import { useToast } from '@/composables/useToast.js'
 import { getAbsensiRange, uploadAbsensiFile } from '@/api/helpers/attendance.js'
-import { fetchAllUsers } from '@/api/helpers/admin.js'
+import { useMasterDataStore } from '@/stores/masterData'
 
 // --- STATE ---
 const authStore = useAuthStore()
+const masterData = useMasterDataStore()
 const { toast } = useToast()
 const isUploadModalOpen = ref(false)
 const isExclusionsModalOpen = ref(false)
@@ -114,7 +119,7 @@ watch(
       if (canViewAll.value) {
         isLoadingUsers.value = true
         try {
-          const usersList = await fetchAllUsers()
+          const usersList = await masterData.getUsers()
           allUsersForFilter.value = usersList.map((u) => ({
             label: u.nickname || u.username,
             value: u.id,
@@ -253,44 +258,46 @@ async function handleUpload(formData) {
 
     <main class="mt-6">
       <div class="bg-secondary/20 rounded-xl shadow-md border border-secondary/20 p-6 space-y-6">
-        <div v-if="activeTab === 'summary'">
-          <p v-if="dataNotFoundForCurrentUser" class="text-center text-text/60 py-10">
-            Data absensi Anda untuk periode ini tidak ditemukan.
-          </p>
-          <SummaryView v-else-if="displayedUsers.length > 0 || isDataLoading" :users="displayedUsers"
-            :start-date="filterValues.startDate" :end-date="filterValues.endDate" :year="currentYear"
-            :month="currentMonth" :global-info="summary" :loading="isDataLoading" :mobile-layout="mobileLayout" />
-          <p v-else class="text-center text-text/60 py-10">
-            Pilih tanggal untuk menampilkan data, atau tidak ada data yang cocok dengan filter.
-          </p>
-        </div>
+        <KeepAlive>
+          <div v-if="activeTab === 'summary'" key="summary">
+            <p v-if="dataNotFoundForCurrentUser" class="text-center text-text/60 py-10">
+              Data absensi Anda untuk periode ini tidak ditemukan.
+            </p>
+            <SummaryView v-else-if="displayedUsers.length > 0 || isDataLoading" :users="displayedUsers"
+              :start-date="filterValues.startDate" :end-date="filterValues.endDate" :year="currentYear"
+              :month="currentMonth" :global-info="summary" :loading="isDataLoading" :mobile-layout="mobileLayout" />
+            <p v-else class="text-center text-text/60 py-10">
+              Pilih tanggal untuk menampilkan data, atau tidak ada data yang cocok dengan filter.
+            </p>
+          </div>
 
-        <div v-else-if="activeTab === 'statistik'">
-          <AttendanceStats :users="displayedUsers" :summary-info="summary || {}" :start-date="filterValues.startDate"
-            :end-date="filterValues.endDate" :year="currentYear" :month="currentMonth" :loading="isDataLoading"
-            :mobile-layout="mobileLayout" />
-        </div>
+          <div v-else-if="activeTab === 'statistik'" key="statistik">
+            <AttendanceStats :users="displayedUsers" :summary-info="summary || {}" :start-date="filterValues.startDate"
+              :end-date="filterValues.endDate" :year="currentYear" :month="currentMonth" :loading="isDataLoading"
+              :mobile-layout="mobileLayout" />
+          </div>
 
-        <div v-else>
-          <p v-if="dataNotFoundForCurrentUser" class="text-center text-text/60 py-10">
-            Data absensi Anda untuk periode ini tidak ditemukan.
-          </p>
-          <DetailView v-else-if="displayedUsers.length > 0" :user="filterValues.name.length === 1
-            ? displayedUsers[0]
-            : !canViewAll
+          <div v-else-if="activeTab === 'detail'" key="detail">
+            <p v-if="dataNotFoundForCurrentUser" class="text-center text-text/60 py-10">
+              Data absensi Anda untuk periode ini tidak ditemukan.
+            </p>
+            <DetailView v-else-if="displayedUsers.length > 0" :user="filterValues.name.length === 1
               ? displayedUsers[0]
-              : null
-            " :users="filterValues.name.length > 1
-              ? displayedUsers
-              : canViewAll && filterValues.name.length === 0
-                ? users
-                : !canViewAll
-                  ? displayedUsers
-                  : null
-              " :start-date="filterValues.startDate" :end-date="filterValues.endDate" :year="currentYear"
-            :month="currentMonth" :loading="isDataLoading" @refresh="handleRefresh" :mobile-layout="mobileLayout" />
-          <p v-else class="text-center text-text/60 py-10">Belum ada log detail.</p>
-        </div>
+              : !canViewAll
+                ? displayedUsers[0]
+                : null
+              " :users="filterValues.name.length > 1
+                ? displayedUsers
+                : canViewAll && filterValues.name.length === 0
+                  ? users
+                  : !canViewAll
+                    ? displayedUsers
+                    : null
+                " :start-date="filterValues.startDate" :end-date="filterValues.endDate" :year="currentYear"
+              :month="currentMonth" :loading="isDataLoading" @refresh="handleRefresh" :mobile-layout="mobileLayout" />
+            <p v-else class="text-center text-text/60 py-10">Belum ada log detail.</p>
+          </div>
+        </KeepAlive>
       </div>
     </main>
 

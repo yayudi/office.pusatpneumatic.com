@@ -109,6 +109,29 @@ export const getProductHistory = async (req, res) => {
   }
 };
 
+// GET /:id/stock-timeline
+export const getProductStockTimeline = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { page, limit, building } = req.query;
+
+    let buildingsArray = [];
+    if (building) {
+      buildingsArray = Array.isArray(building) ? building : building.split(',');
+    }
+
+    const filters = {
+      buildings: buildingsArray,
+    };
+
+    const timeline = await productService.getHistoricalStockTimelineService(id, page, limit, filters);
+    res.json({ success: true, data: timeline });
+  } catch (error) {
+    console.error("Error fetching stock timeline:", error);
+    res.status(500).json({ success: false, message: "Gagal mengambil timeline stok." });
+  }
+};
+
 // ============================================================================
 // WRITE OPERATIONS (Via Service Layer)
 // ============================================================================
@@ -237,7 +260,7 @@ export const linkMediaToProduct = async (req, res) => {
 
   try {
     await productService.linkMediaToProductService(id, mediaIds, userId);
-    cache.flushAll(); 
+    cache.flushAll();
     return res.json({
       success: true,
       message: "Media berhasil disematkan.",

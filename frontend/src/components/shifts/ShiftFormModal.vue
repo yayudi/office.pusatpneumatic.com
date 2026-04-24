@@ -1,5 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue'
+import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import Modal from '@/components/ui/Modal.vue'
 import axios from '@/api/axios'
@@ -85,6 +86,15 @@ async function handleSave() {
     isLoading.value = false
   }
 }
+
+// --- LOCAL HOTKEYS ---
+const { Alt_S } = useMagicKeys()
+
+watch(Alt_S, (pressed) => {
+  if (pressed && props.show && !isLoading.value) {
+    handleSave()
+  }
+})
 </script>
 
 <template>

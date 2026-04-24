@@ -40,7 +40,7 @@ export const requestStockMovementsExport = async (req, res) => {
   try {
     const userId = req.user.id;
     const { startDate, endDate, searchQuery, status, movement, building } = req.body;
-    
+
     if (!startDate || !endDate) {
       return res.status(400).json({ success: false, message: 'startDate dan endDate diperlukan.' });
     }
@@ -69,6 +69,67 @@ export const requestStockMovementsExport = async (req, res) => {
   } catch (error) {
     console.error("Error at requestStockMovementsExport:", error);
     res.status(500).json({ success: false, message: "Gagal membuat permintaan ekspor." });
+  }
+};
+
+export const getStockTimeline = async (req, res) => {
+  try {
+    const { searchQuery, building, status, movement } = req.query;
+
+    let buildingsArray = [];
+    if (building) {
+      buildingsArray = Array.isArray(building) ? building : building.split(',');
+    }
+
+    const filters = {
+      searchQuery,
+      status,
+      movement,
+      buildings: buildingsArray,
+    };
+
+    const data = await statisticService.getStockTimelineStatistics(filters);
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error('Error getStockTimeline:', error);
+    res.status(500).json({ success: false, message: 'Gagal memuat statistik timeline stok.' });
+  }
+};
+
+export const requestStockTimelineExport = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { searchQuery, building, status, movement } = req.body;
+
+    if (!searchQuery) {
+      return res.status(400).json({ success: false, message: 'searchQuery diperlukan.' });
+    }
+
+    const filters = {
+      searchQuery,
+      status: status || 'all',
+      movement: movement || 'all',
+      buildings: building || [],
+      exportType: 'STATISTICS_STOCK_TIMELINE',
+    };
+
+    const jobId = await jobRepo.createExportJob(db, {
+      userId,
+      filters,
+      jobType: 'STATISTICS_STOCK_TIMELINE',
+    });
+
+    res.status(202).json({
+      success: true,
+      message: 'Permintaan ekspor statistik timeline stok diterima. File sedang diproses.',
+      jobId,
+    });
+  } catch (error) {
+    console.error('Error requestStockTimelineExport:', error);
+    res.status(500).json({ success: false, message: 'Gagal membuat permintaan ekspor.' });
   }
 };
 

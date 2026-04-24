@@ -1,6 +1,9 @@
 <!-- frontend\src\components\Modal.vue -->
 <script setup>
-defineProps({
+import { watch } from 'vue'
+import { useMagicKeys } from '@vueuse/core'
+
+const props = defineProps({
   show: {
     type: Boolean,
     default: false,
@@ -12,6 +15,13 @@ defineProps({
 })
 
 const emit = defineEmits(['close'])
+
+const { Escape } = useMagicKeys()
+watch(Escape, (pressed) => {
+  if (props.show && pressed) {
+    emit('close')
+  }
+})
 </script>
 
 <template>

@@ -1,8 +1,10 @@
 <!-- frontend\src\views\wms\Dashboard.vue -->
 <script setup>
-import { ref } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { useWms } from '@/composables/useWms.js'
+import { useAuthStore } from '@/stores/auth.js'
+import { useMagicKeys } from '@vueuse/core'
 import { transferStock, adjustStock } from '@/api/helpers/stock.js'
 import axios from '@/api/axios.js'
 import WmsProductTable from '@/components/wms/shared/ProductTable.vue'
@@ -13,7 +15,6 @@ import WmsHistoryModal from '@/components/wms/shared/HistoryModal.vue'
 import WmsProductFormModal from '@/components/wms/shared/ProductFormModal.vue'
 import SalesSimulationModal from '@/components/wms/shared/SalesSimulationModal.vue'
 import ProductImageModal from '@/components/products/ProductImageModal.vue'
-import { useAuthStore } from '@/stores/auth.js'
 
 const {
   activeView,
@@ -128,9 +129,6 @@ function openHistoryModal(product) {
 }
 
 // Master Data Functions
-// openCreateProductModal removed - replaced by Simulation Modal
-
-
 function openEditProductModal(product) {
   productFormMode.value = 'edit'
   selectedProduct.value = product
@@ -198,6 +196,34 @@ async function handleAdjustConfirm(payload) {
     closeModal()
   }
 }
+
+
+const { Slash, Escape } = useMagicKeys()
+
+const anyModalOpen = computed(() => {
+  return isHistoryModalOpen.value ||
+         isTransferModalOpen.value ||
+         isUploadModalOpen.value ||
+         isAdjustModalOpen.value ||
+         isProductFormOpen.value ||
+         isSimulationModalOpen.value ||
+         isImageModalOpen.value
+})
+
+watch(Slash, (pressed) => {
+  if (pressed && !anyModalOpen.value) {
+    setTimeout(() => {
+      const el = document.getElementById('global-search-input')
+      if (el) el.focus()
+    }, 10)
+  }
+})
+
+watch(Escape, (pressed) => {
+  if (pressed) {
+    closeModal()
+  }
+})
 </script>
 
 <template>

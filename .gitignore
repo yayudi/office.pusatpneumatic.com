@@ -12,6 +12,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+*.md
 
 # ===================================================================
 # DEPENDENCIES
@@ -22,6 +23,7 @@ node_modules/
 .npm
 .pnp
 .pnp.js
+.antigravityignore
 
 # ===================================================================
 # BUILD & COVERAGE

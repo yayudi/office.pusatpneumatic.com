@@ -4,7 +4,7 @@ import { useToast } from '@/composables/useToast.js'
 import axios from '@/api/axios.js'
 import Modal from '@/components/ui/Modal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
-import { debounce } from 'lodash'
+import debounce from 'lodash/debounce'
 import { formatCurrency } from '@/utils/formatters.js'
 
 const props = defineProps({

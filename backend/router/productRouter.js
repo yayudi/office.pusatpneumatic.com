@@ -158,6 +158,12 @@ router.get("/:id/stock-details", productController.getProductStockDetails);
  */
 router.get("/:id/history", canAccess("view-prices"), productController.getProductHistory);
 
+/**
+ * GET /api/products/:id/stock-timeline
+ * Mengambil riwayat mutasi dan saldo stok secara berurutan mundur.
+ */
+router.get("/:id/stock-timeline", productController.getProductStockTimeline);
+
 // ============================================================================
 // WRITE OPERATIONS
 // ============================================================================

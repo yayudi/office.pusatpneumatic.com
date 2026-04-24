@@ -1,7 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
 import VueApexCharts from 'vue3-apexcharts'
-import * as XLSX from 'xlsx'
 import { calculateSummaryForUser } from '@/api/helpers/summary.js'
 import { useAuthStore } from '@/stores/auth.js'
 import { formatJamMenit } from '@/api/helpers/time.js'
@@ -278,8 +277,9 @@ const filteredUserSummaries = computed(() => {
 })
 
 // 6. Export Logic
-const handleExportExcel = () => {
+const handleExportExcel = async () => {
   if (!userSummaries.value.length) return
+  const XLSX = await import('xlsx')
 
   const data = userSummaries.value.map(u => ({
     'ID Karyawan': u.id,
@@ -453,7 +453,7 @@ const userOvertimeChartOptions = computed(() => ({
             </div>
           </div>
 
-          <!-- Top Absen [NEW] -->
+          <!-- Top Absen -->
           <div class="bg-background border border-secondary/20 rounded-xl p-6 shadow-sm">
             <h4 class="text-sm font-bold text-text/70 uppercase mb-4 flex items-center gap-2">
               <font-awesome-icon icon="fa-solid fa-user-xmark" class="text-danger" />
@@ -546,7 +546,7 @@ const userOvertimeChartOptions = computed(() => ({
                   class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center">
                   <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Cepat</span>
                   <div v-if="u.stats.earlyOutHours !== '0j 0m'" class="text-danger font-bold">{{ u.stats.earlyOutHours
-                  }}
+                    }}
                   </div>
                   <div v-else class="text-text/30">
                     <span class="md:block hidden">-</span>

@@ -2,8 +2,10 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useToast } from '@/composables/useToast.js'
-import { fetchAllLocations } from '@/api/helpers/stock.js'
 import { fetchMyLocations } from '@/api/helpers/user.js'
+import { useMasterDataStore } from '@/stores/masterData'
+
+const masterData = useMasterDataStore()
 import { processBatchMovement } from '@/api/helpers/stock.js'
 
 // Impor komponen anak
@@ -32,7 +34,7 @@ const notes = ref('')
 onMounted(async () => {
   isLoading.value = true
   try {
-    const [myLocs, allLocs] = await Promise.all([fetchMyLocations(), fetchAllLocations()])
+    const [myLocs, allLocs] = await Promise.all([fetchMyLocations(), masterData.getLocations(true)])
     myLocations.value = myLocs
     allLocations.value = allLocs
   } catch (error) {

@@ -217,7 +217,7 @@ const currentLocation = computed(() => {
   return '-'
 })
 
-// [NEW] Virtual Stock Logic
+// Virtual Stock Logic
 const virtualStock = computed(() => {
   if (props.product.is_package && props.product.components && props.product.components.length > 0) {
     const possiblePackages = props.product.components.map(c => {
@@ -241,7 +241,7 @@ const currentStock = computed(() => {
   return (physicalStock !== 0 && physicalStock !== null) ? physicalStock : virtualStock.value
 })
 
-// [NEW] Calculated Weight Logic
+// Calculated Weight Logic
 const displayWeight = computed(() => {
   // Jika berat manual sudah diisi (> 0), pakai itu
   if (props.product.weight && props.product.weight > 0) {

@@ -25,7 +25,7 @@ function selectTab(value) {
       class="flex-1 md:w-auto px-4 py-1.5 text-sm font-semibold rounded-md transition-all whitespace-nowrap" :class="[
         modelValue === tab.value
           ? 'bg-primary text-secondary shadow' // Active state
-          : 'text-text/70 hover:bg-primary/50', // Inactive state
+          : 'text-text/70 hover:bg-secondary/80 hover:text-primary', // Inactive state
       ]">
       {{ tab.label }}
     </button>

@@ -6,25 +6,40 @@ import { useToast } from '@/composables/useToast.js';
 import { useTheme } from '@/composables/useTheme.js';
 import FilterBar from '@/components/ui/FilterBar.vue';
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue';
-import { getStockMovementStatistics } from '@/api/helpers/statistics.js';
+import StockTimelineModal from '@/components/stats/StockTimelineModal.vue';
+import { getStockMovementStatistics, getStockTimelineStatistics, requestStockTimelineExport } from '@/api/helpers/statistics.js';
 import { requestStatisticExport } from '@/api/helpers/exportStats.js';
-import { fetchReportFilters } from '@/api/helpers/stats.js';
+import { useMasterDataStore } from '@/stores/masterData';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import Tabs from '@/components/ui/Tabs.vue';
 import BaseSelect from '@/components/ui/BaseSelect.vue';
 import VueApexCharts from 'vue3-apexcharts';
+import { useStatsTable } from '@/composables/useStatsTable.js';
+import StatsChartCard from './shared/StatsChartCard.vue';
+import StatsFilterBar from './shared/StatsFilterBar.vue';
 
 const authStore = useAuthStore();
+const masterData = useMasterDataStore();
 const { toast } = useToast();
 
 const isDataLoading = ref(false);
 const isExporting = ref(false);
+const showTimelineModal = ref(false);
+const selectedProductId = ref(null);
 const showAdvancedFilters = ref(false);
 const statisticsList = ref([]);
-const sortKey = ref('total_sold');
-const sortDesc = ref(true);
 const viewMode = ref('table');
 const chartMaxCap = ref(10);
+
+const {
+  sortKey,
+  sortDesc,
+  displayedData,
+  visibleData,
+  sortBy,
+  getSortIcon,
+  handleTableScroll
+} = useStatsTable(statisticsList, { initialSortKey: 'total_sold' });
 
 const filterValues = ref({
   startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
@@ -44,7 +59,9 @@ const stockStatusOptions = [
   { id: 'safe', label: 'Aman' },
   { id: 'warning', label: 'Warning' },
   { id: 'critical', label: 'Kritis (Restock)' },
-  { id: 'overstock', label: 'Overstock' }
+  { id: 'overstock', label: 'Overstock' },
+  { id: 'empty', label: 'Stok Kosong' },
+  { id: 'negative', label: 'Stok Minus' }
 ];
 
 const movementOptions = [
@@ -64,7 +81,7 @@ const { themeColors, isDarkTheme } = useTheme();
 
 onMounted(async () => {
   try {
-    const res = await fetchReportFilters();
+    const res = await masterData.getReportFilters();
     if (res && res.allBuildings) {
       reportFilters.value.allBuildings = res.allBuildings;
     }
@@ -78,18 +95,10 @@ onMounted(async () => {
 const canView = computed(() => authStore.user?.permissions?.includes('statistic.stock.view') || authStore.user?.permissions?.includes('manage-all'));
 const canExport = computed(() => authStore.user?.permissions?.includes('statistic.stock.export') || authStore.user?.permissions?.includes('manage-all'));
 
-const displayedData = computed(() => {
-  return [...statisticsList.value].sort((a, b) => {
-    let valA = a[sortKey.value];
-    let valB = b[sortKey.value];
-    if (typeof valA === 'string') valA = valA.toLowerCase();
-    if (typeof valB === 'string') valB = valB.toLowerCase();
-
-    if (valA < valB) return sortDesc.value ? 1 : -1;
-    if (valA > valB) return sortDesc.value ? -1 : 1;
-    return 0;
-  });
-});
+const openTimelineInvestigation = (productId) => {
+  selectedProductId.value = productId;
+  showTimelineModal.value = true;
+};
 
 const fetchStatistics = async () => {
   if (!filterValues.value.startDate || !filterValues.value.endDate) return;
@@ -97,7 +106,7 @@ const fetchStatistics = async () => {
   try {
     const response = await getStockMovementStatistics(filterValues.value);
     const payload = response?.data || response; // Ambil properti data asli dari Controller
-    
+
     if (payload && !Array.isArray(payload) && payload.summary) {
       statisticsList.value = payload.summary || [];
     } else {
@@ -125,73 +134,61 @@ const handleExport = async () => {
   }
 };
 
-const sortBy = (key) => {
-  if (sortKey.value === key) {
-    sortDesc.value = !sortDesc.value;
-  } else {
-    sortKey.value = key;
-    sortDesc.value = true;
-  }
-  // Reset lazy load table agar pengguna kembali melihat data teratas dari hasil sorting
-  visibleCount.value = 50;
-};
-
-const getSortIcon = (key) => {
-  if (sortKey.value !== key) return 'fa-solid fa-sort';
-  return sortDesc.value ? 'fa-solid fa-sort-down' : 'fa-solid fa-sort-up';
-};
-
 const getStatusClass = (status) => {
   switch (status) {
-    case 'CRITICAL': return 'bg-danger/50 border-danger';
-    case 'WARNING': return 'bg-warning/50 border-warning';
-    case 'SAFE': return 'bg-success/50 border-success';
-    case 'OVERSTOCK': return 'bg-info/50 border-info';
-    default: return 'bg-secondary/50 border-secondary';
+    case 'NEGATIVE':
+      return 'bg-accent/10 border-accent/20 text-accent';
+    case 'EMPTY':
+      return 'bg-text/10 border-text/20 text-text';
+    case 'CRITICAL':
+      return 'bg-danger/10 border-danger/20 text-danger';
+    case 'WARNING':
+      return 'bg-warning/10 border-warning/20 text-warning';
+    case 'SAFE':
+      return 'bg-success/10 border-success/20 text-success';
+    case 'OVERSTOCK':
+      return 'bg-primary/10 border-primary/20 text-primary';
+    default:
+      return 'bg-secondary/10 border-secondary/20 text-text/40';
   }
 };
 
-const visibleCount = ref(50);
-
-const loadMore = () => {
-  if (visibleCount.value < displayedData.value.length) {
-    visibleCount.value += 50;
+const getStatusLabel = (status) => {
+  switch (status) {
+    case 'CRITICAL': return 'Kritis';
+    case 'WARNING': return 'Warning';
+    case 'SAFE': return 'Aman';
+    case 'OVERSTOCK': return 'Overstock';
+    case 'EMPTY': return 'Kosong';
+    case 'NEGATIVE': return 'Minus';
+    default: return status;
   }
 };
-
-const handleTableScroll = (e) => {
-  const { scrollTop, scrollHeight, clientHeight } = e.target;
-  if (scrollTop + clientHeight >= scrollHeight - 50) {
-    loadMore();
-  }
-};
-
-const visibleData = computed(() => {
-  return displayedData.value.slice(0, visibleCount.value);
-});
 
 const applyFilters = () => {
-  visibleCount.value = 50;
   fetchStatistics();
 };
 
 const chartStatusSeries = computed(() => {
-  let safe = 0, warning = 0, critical = 0, overstock = 0;
+  let safe = 0, warning = 0, critical = 0, overstock = 0, empty = 0, negative = 0;
   statisticsList.value.forEach(item => {
     if (item.status === 'SAFE') safe++;
     else if (item.status === 'WARNING') warning++;
     else if (item.status === 'CRITICAL') critical++;
     else if (item.status === 'OVERSTOCK') overstock++;
+    else if (item.status === 'EMPTY') empty++;
+    else if (item.status === 'NEGATIVE') negative++;
+    else safe++; // fallback to safe if status is not recognized
   });
-  return [safe, warning, critical, overstock];
+  return [safe, warning, critical, overstock, empty, negative];
 });
 
 const labelColor = computed(() => themeColors.value.text);
 
 const chartStatusOptions = computed(() => ({
   chart: { type: 'donut', background: 'transparent' },
-  labels: ['Aman', 'Warning', 'Kritis', 'Overstock'],
-  colors: [themeColors.value.success, themeColors.value.warning, themeColors.value.danger, themeColors.value.primary],
+  labels: ['Aman', 'Warning', 'Kritis', 'Overstock', 'Kosong', 'Minus'],
+  colors: [themeColors.value.success, themeColors.value.warning, themeColors.value.danger, themeColors.value.primary, themeColors.value.text, themeColors.value.accent],
   theme: { mode: isDarkTheme.value ? 'dark' : 'light' },
   plotOptions: { pie: { donut: { size: '70%' }, expandOnClick: false } },
   dataLabels: { enabled: false },
@@ -305,7 +302,7 @@ const chartFastMovingOptions = computed(() => {
     tooltip: {
       theme: isDarkTheme.value ? 'dark' : 'light',
       x: {
-        formatter: function(val) {
+        formatter: function (val) {
           const product = statisticsList.value.find(p => p.sku === val);
           return product ? product.name : val;
         }
@@ -333,7 +330,7 @@ const chartUrgentRestockOptions = computed(() => {
     tooltip: {
       theme: isDarkTheme.value ? 'dark' : 'light',
       x: {
-        formatter: function(val) {
+        formatter: function (val) {
           const product = statisticsList.value.find(p => p.sku === val);
           return product ? product.name : val;
         }
@@ -367,6 +364,8 @@ const chartScatterSeries = computed(() => {
   const warningData = [];
   const criticalData = [];
   const overstockData = [];
+  const emptyData = [];
+  const negativeData = [];
 
   const source = statisticsList.value.slice(0, chartMaxCap.value > 25 ? chartMaxCap.value : 50);
 
@@ -376,24 +375,28 @@ const chartScatterSeries = computed(() => {
     else if (item.status === 'WARNING') warningData.push(point);
     else if (item.status === 'CRITICAL') criticalData.push(point);
     else if (item.status === 'OVERSTOCK') overstockData.push(point);
+    else if (item.status === 'EMPTY') emptyData.push(point);
+    else if (item.status === 'NEGATIVE') negativeData.push(point);
   });
 
   return [
     { name: 'Kritis', data: criticalData },
     { name: 'Aman', data: safeData },
     { name: 'Warning', data: warningData },
-    { name: 'Overstock', data: overstockData }
+    { name: 'Overstock', data: overstockData },
+    { name: 'Kosong', data: emptyData },
+    { name: 'Minus', data: negativeData }
   ];
 });
 
 const chartScatterOptions = computed(() => ({
   chart: { type: 'scatter', background: 'transparent', toolbar: { show: false }, zoom: { type: 'xy' } },
-  colors: [themeColors.value.danger, themeColors.value.success, themeColors.value.warning, themeColors.value.primary],
-  xaxis: { 
+  colors: [themeColors.value.danger, themeColors.value.success, themeColors.value.warning, themeColors.value.primary, themeColors.value.text, themeColors.value.accent],
+  xaxis: {
     title: { text: 'Sisa Stok Faktual (Pcs)', style: { color: labelColor.value, fontSize: '12px' } },
     labels: { style: { colors: labelColor.value } }
   },
-  yaxis: { 
+  yaxis: {
     title: { text: 'Rata-Rata Keluar per Hari', style: { color: labelColor.value, fontSize: '12px' } },
     labels: { style: { colors: labelColor.value } }
   },
@@ -401,16 +404,16 @@ const chartScatterOptions = computed(() => ({
   legend: { position: 'top', labels: { colors: labelColor.value } },
   tooltip: {
     theme: isDarkTheme.value ? 'dark' : 'light',
-    custom: function({series, seriesIndex, dataPointIndex, w}) {
+    custom: function ({ series, seriesIndex, dataPointIndex, w }) {
       const data = w.globals.initialSeries[seriesIndex].data[dataPointIndex];
       return `<div class="p-3 bg-background border border-secondary text-text text-xs rounded shadow-lg min-w-[200px]">
         <strong class="text-sm border-b border-secondary pb-1 mb-2 block">${data.sku}</strong>
         <span class="text-text/70 mb-2 block whitespace-normal leading-tight">${data.name}</span>
         <div class="flex justify-between items-center bg-secondary/20 p-1.5 rounded">
-           <span>Sisa Stok Fisik:</span> <b>${data.x}</b>
+          <span>Sisa Stok Fisik:</span> <b>${data.x}</b>
         </div>
         <div class="flex justify-between items-center bg-primary/10 p-1.5 mt-1 rounded">
-           <span class="text-primary">Laju Keluar Harian:</span> <b class="text-primary">${data.y}</b>
+          <span class="text-primary">Laju Keluar Harian:</span> <b class="text-primary">${data.y}</b>
         </div>
       </div>`;
     }
@@ -432,81 +435,45 @@ const chartScatterOptions = computed(() => ({
         :tabs="[{ label: 'Tabel Data', value: 'table' }, { label: 'Grafik & Insight', value: 'chart' }]" />
     </div>
     <!-- Filter Controls -->
-    <div class="bg-background border border-secondary p-4 rounded-xl flex flex-col gap-4 shadow-sm mb-6">
-      <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-
-        <div class="flex flex-wrap gap-4 items-center flex-1 w-full">
-          <div class="w-full sm:w-auto">
-            <DateRangeFilter v-model:startDate="filterValues.startDate" v-model:endDate="filterValues.endDate"
-              align="left" />
-          </div>
-
-          <div class="flex-1 w-full sm:w-auto min-w-[200px]">
-            <SearchInput v-model="filterValues.searchQuery" placeholder="Cari SKU atau Nama Produk..." />
-          </div>
+    <StatsFilterBar :loading="isDataLoading" @apply="applyFilters"
+      :hasActiveAdvancedFilters="!!filterValues.building.length || filterValues.status !== 'all' || filterValues.movement !== 'all'">
+      <template #main>
+        <div class="flex-1 w-full sm:w-auto min-w-[200px]">
+          <DateRangeFilter v-model:startDate="filterValues.startDate" v-model:endDate="filterValues.endDate"
+            align="left" />
         </div>
-
-        <div class="flex flex-wrap gap-2 w-full lg:w-auto align-middle">
-          <button @click="showAdvancedFilters = !showAdvancedFilters"
-            class="h-[42px] px-4 flex items-center justify-center gap-2 border rounded-lg text-sm font-semibold transition-colors bg-background flex-1 sm:flex-none whitespace-nowrap"
-            :class="showAdvancedFilters || filterValues.building.length || filterValues.status !== 'all' || filterValues.movement !== 'all' ? 'border-primary text-primary bg-primary/5' : 'border-secondary text-text/70 hover:bg-secondary/10'">
-            <font-awesome-icon icon="fa-solid fa-sliders" />
-            <span class="hidden sm:inline">Filter Lanjutan</span>
-            <font-awesome-icon :icon="showAdvancedFilters ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'"
-              class="text-[10px] ml-1 opacity-50" />
-          </button>
-
-          <button v-if="canExport" @click="handleExport" :disabled="isExporting || isDataLoading"
-            class="h-[42px] px-4 bg-accent text-secondary border border-accent rounded-lg text-sm font-semibold hover:bg-accent/90 transition-colors flex items-center justify-center gap-2 flex-1 sm:flex-none disabled:opacity-50 whitespace-nowrap">
-            <font-awesome-icon v-if="isExporting" icon="fa-solid fa-spinner" spin />
-            <font-awesome-icon v-else icon="fa-solid fa-file-excel" />
-            <span class="hidden sm:inline">Export Excel</span>
-          </button>
-
-          <button @click="applyFilters" :disabled="isDataLoading"
-            class="h-[42px] px-6 bg-primary text-secondary font-bold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex-1 sm:flex-none flex justify-center items-center whitespace-nowrap">
-            <font-awesome-icon v-if="isDataLoading" icon="fa-solid fa-spinner" spin class="mr-2" />
-            Terapkan
-          </button>
+        <div class="flex-1 w-full sm:w-auto min-w-[300px]">
+          <SearchInput v-model="filterValues.searchQuery" placeholder="Cari SKU atau Nama Produk..." />
         </div>
-      </div>
+      </template>
 
-      <div v-show="showAdvancedFilters"
-        class="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-secondary/20 pt-4 mt-2 animate-fade-in">
-        <!-- Gedung -->
+      <template #actions>
+        <button v-if="canExport" @click="handleExport" :disabled="isExporting"
+          class="h-[42px] px-4 flex items-center justify-center gap-2 border border-secondary rounded-lg text-sm font-semibold text-text/70 hover:bg-secondary/10 transition-colors bg-background flex-1 lg:flex-none">
+          <font-awesome-icon v-if="isExporting" icon="fa-solid fa-circle-notch" spin />
+          <font-awesome-icon v-else icon="fa-solid fa-file-export" />
+          <span>Export</span>
+        </button>
+      </template>
+
+      <template #advanced>
         <div>
           <label class="block text-xs font-semibold text-text/60 mb-2">Lokasi / Gedung</label>
-          <BaseSelect
-            v-model="filterValues.building"
-            :options="reportFilters.allBuildings"
-            :multiple="true"
-            placeholder="Semua Gedung"
-          />
+          <BaseSelect v-model="filterValues.building" :options="reportFilters.allBuildings" :multiple="true"
+            placeholder="Semua Gedung" />
         </div>
 
-        <!-- Status -->
         <div>
           <label class="block text-xs font-semibold text-text/60 mb-2">Status Stok</label>
-          <BaseSelect
-            v-model="filterValues.status"
-            :options="stockStatusOptions"
-            emitValue
-            :searchable="false"
-          />
+          <BaseSelect v-model="filterValues.status" :options="stockStatusOptions" emitValue :searchable="false" />
         </div>
 
-        <!-- Aktivitas -->
         <div>
           <label class="block text-xs font-semibold text-text/60 mb-2">Aktivitas Transaksi</label>
-          <BaseSelect
-            v-model="filterValues.movement"
-            :options="movementOptions"
-            emitValue
-            :searchable="false"
-          />
+          <BaseSelect v-model="filterValues.movement" :options="movementOptions" emitValue :searchable="false" />
         </div>
-      </div>
-    </div>
+      </template>
+    </StatsFilterBar>
 
     <!-- Main Content Layout -->
     <div class="flex flex-col lg:flex-row gap-6 items-start">
@@ -520,50 +487,69 @@ const chartScatterOptions = computed(() => ({
               <tr>
                 <th @click="sortBy('sku')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 relative">
-                  <div class="flex items-center gap-2">SKU <font-awesome-icon :icon="getSortIcon('sku')"
-                      class="text-xs opacity-50" /></div>
+                  <div class="flex items-center gap-2">
+                    SKU
+                    <font-awesome-icon :icon="getSortIcon('sku')" class="text-xs opacity-50" />
+                  </div>
                 </th>
                 <th @click="sortBy('name')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 w-full min-w-[250px]">
-                  <div class="flex items-center gap-2">Nama Produk <font-awesome-icon :icon="getSortIcon('name')"
-                      class="text-xs opacity-50" /></div>
+                  <div class="flex items-center gap-2">
+                    Nama Produk
+                    <font-awesome-icon :icon="getSortIcon('name')" class="text-xs opacity-50" />
+                  </div>
                 </th>
                 <th @click="sortBy('total_sold')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40">
-                  <div class="flex items-center gap-2">Out <font-awesome-icon :icon="getSortIcon('total_sold')"
-                      class="text-xs opacity-50" /></div>
+                  <div class="flex items-center gap-2">
+                    Out
+                    <font-awesome-icon :icon="getSortIcon('total_sold')" class="text-xs opacity-50" />
+                  </div>
                 </th>
                 <th @click="sortBy('total_inbound')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40">
-                  <div class="flex items-center gap-2">Inbound <font-awesome-icon :icon="getSortIcon('total_inbound')"
-                      class="text-xs opacity-50" /></div>
+                  <div class="flex items-center gap-2">
+                    Inbound
+                    <font-awesome-icon :icon="getSortIcon('total_inbound')" class="text-xs opacity-50" />
+                  </div>
                 </th>
                 <th @click="sortBy('current_stock')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40">
-                  <div class="flex items-center gap-2">Sisa Stok <font-awesome-icon :icon="getSortIcon('current_stock')"
-                      class="text-xs opacity-50" /></div>
+                  <div class="flex items-center gap-2">
+                    Sisa Stok
+                    <font-awesome-icon :icon="getSortIcon('current_stock')" class="text-xs opacity-50" />
+                  </div>
                 </th>
                 <th @click="sortBy('avg_daily_sales')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40">
-                  <div class="flex items-center gap-2">Avg. Out <font-awesome-icon
-                      :icon="getSortIcon('avg_daily_sales')" class="text-xs opacity-50" /></div>
+                  <div class="flex items-center gap-2">
+                    Avg. Out
+                    <font-awesome-icon :icon="getSortIcon('avg_daily_sales')" class="text-xs opacity-50" />
+                  </div>
                 </th>
                 <th @click="sortBy('days_of_inventory')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40">
-                  <div class="flex items-center gap-2">Ketahanan <font-awesome-icon
-                      :icon="getSortIcon('days_of_inventory')" class="text-xs opacity-50" /></div>
+                  <div class="flex items-center gap-2">
+                    Ketahanan
+                    <font-awesome-icon :icon="getSortIcon('days_of_inventory')" class="text-xs opacity-50" />
+                  </div>
                 </th>
                 <th @click="sortBy('status')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 text-center">
-                  <div class="flex justify-center items-center gap-2">Stat <font-awesome-icon
-                      :icon="getSortIcon('status')" class="text-xs opacity-50" /></div>
+                  <div class="flex justify-center items-center gap-2">
+                    Stat
+                    <font-awesome-icon :icon="getSortIcon('status')" class="text-xs opacity-50" />
+                  </div>
+                </th>
+                <th class="px-4 py-4 font-semibold text-text/80 text-center">
+                  Aksi
                 </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-secondary/20">
               <template v-if="isDataLoading">
                 <tr>
-                  <td colspan="8" class="text-center py-16 text-text/60">
+                  <td colspan="9" class="text-center py-16 text-text/60">
                     <font-awesome-icon icon="fa-solid fa-circle-notch" spin class="text-3xl mb-4 text-primary" />
                     <p class="font-medium">Memuat data statistik...</p>
                   </td>
@@ -571,7 +557,7 @@ const chartScatterOptions = computed(() => ({
               </template>
               <template v-else-if="displayedData.length === 0">
                 <tr>
-                  <td colspan="8" class="text-center py-16 text-text/60">
+                  <td colspan="9" class="text-center py-16 text-text/60">
                     <font-awesome-icon icon="fa-solid fa-folder-open" class="text-3xl mb-4 opacity-50" />
                     <p class="font-medium">Tidak ada data untuk saringan ini.</p>
                   </td>
@@ -597,17 +583,25 @@ const chartScatterOptions = computed(() => ({
                     {{ item.current_stock }}
                   </td>
                   <td class="px-4 py-2 text-text/80 font-medium tracking-wide whitespace-nowrap">{{ item.avg_daily_sales
-                  }} /hr</td>
+                  }}</td>
                   <td class="px-4 py-2 font-medium whitespace-nowrap">
                     <span v-if="item.days_of_inventory === null || item.days_of_inventory < 0"
                       class="text-text/30 font-bold tracking-widest">---</span>
-                    <span v-else>{{ item.days_of_inventory }} Hari</span>
+                    <span v-else>{{ item.days_of_inventory }}</span>
                   </td>
                   <td class="px-4 py-2 text-center min-w-[120px]">
                     <span
                       class="px-3 py-1.5 rounded-full text-[10px] font-bold border block text-center uppercase tracking-wider"
                       :class="getStatusClass(item.status)">
+                      {{ getStatusLabel(item.status) }}
                     </span>
+                  </td>
+                  <td class="px-4 py-2 text-center">
+                    <button @click="openTimelineInvestigation(item.product_id)"
+                      class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-secondary/20 hover:bg-primary/10 hover:border-primary/30 hover:text-primary text-text/50 transition-all"
+                      title="Investigasi Timeline Stok">
+                      <font-awesome-icon icon="fa-solid fa-clock-rotate-left" />
+                    </button>
                   </td>
                 </tr>
               </template>
@@ -621,12 +615,7 @@ const chartScatterOptions = computed(() => ({
         <div class="flex justify-end mb-4 animate-fade-in" v-if="statisticsList.length > 0">
           <div class="flex items-center gap-3 w-48">
             <span class="text-sm font-semibold text-text/70 whitespace-nowrap">Data Teratas:</span>
-            <BaseSelect
-              v-model="chartMaxCap"
-              :options="chartMaxCapOptions"
-              emitValue
-              :searchable="false"
-            />
+            <BaseSelect v-model="chartMaxCap" :options="chartMaxCapOptions" emitValue :searchable="false" />
           </div>
         </div>
 
@@ -634,80 +623,57 @@ const chartScatterOptions = computed(() => ({
         <div class="grid grid-cols-1 gap-6 animate-fade-in md:pb-12" v-if="statisticsList.length > 0">
 
           <!-- Card: Status Distribusi -->
-          <div class="bg-background border border-secondary p-5 rounded-xl shadow-sm flex flex-col min-h-[400px]">
-            <h4 class="font-bold text-text text-sm mb-4">Distribusi Status Stok</h4>
-            <div class="flex-1 flex items-center justify-center">
-              <VueApexCharts width="100%" height="300" type="donut" :options="chartStatusOptions"
-                :series="chartStatusSeries" />
-            </div>
-          </div>
+          <StatsChartCard title="Distribusi Status Stok">
+            <VueApexCharts width="100%" height="300" type="donut" :options="chartStatusOptions"
+              :series="chartStatusSeries" />
+          </StatsChartCard>
 
           <!-- Card: Top Sales -->
-          <div class="bg-background border border-secondary p-5 rounded-xl shadow-sm flex flex-col min-h-[400px]">
-            <h4 class="font-bold text-text text-sm mb-4">Top {{ chartMaxCap }} Barang Paling Sering Keluar (Mutasi Out)
-            </h4>
-            <div class="flex-1">
-              <VueApexCharts width="100%" height="300" type="bar" :options="chartTopSalesOptions"
-                :series="chartTopSalesSeries" />
-            </div>
-          </div>
+          <StatsChartCard :title="`Top ${chartMaxCap} Barang Paling Sering Keluar (Mutasi Out)`">
+            <VueApexCharts width="100%" height="300" type="bar" :options="chartTopSalesOptions"
+              :series="chartTopSalesSeries" />
+          </StatsChartCard>
 
           <!-- Card: Aktivitas Tertinggi -->
-          <div class="bg-background border border-secondary p-5 rounded-xl shadow-sm flex flex-col min-h-[400px]">
-            <h4 class="font-bold text-text text-sm mb-4">Volume Aktivitas: Masuk VS Keluar (Top {{ chartMaxCap }})</h4>
-            <div class="flex-1 border-b border-transparent">
-              <VueApexCharts width="100%" height="300" type="area" :options="chartActivityOptions"
-                :series="chartActivitySeries" />
-            </div>
-          </div>
+          <StatsChartCard title="Volume Aktivitas: Masuk VS Keluar (Top {{ chartMaxCap }})">
+            <VueApexCharts width="100%" height="300" type="area" :options="chartActivityOptions"
+              :series="chartActivitySeries" />
+          </StatsChartCard>
 
           <!-- Card: Dead / Slow Stock -->
-          <div class="bg-background border border-secondary p-5 rounded-xl shadow-sm flex flex-col min-h-[400px]">
-            <h4 class="font-bold text-text text-sm mb-4">Top {{ chartMaxCap }} Sisa Stok Menumpuk Terbanyak (Overstock /
-              Slow)
-            </h4>
-            <div class="flex-1">
-              <VueApexCharts width="100%" height="300" type="bar" :options="chartSlowMovingOptions"
-                :series="chartSlowMovingSeries" />
-            </div>
-          </div>
+          <StatsChartCard :title="`Top ${chartMaxCap} Sisa Stok Menumpuk Terbanyak (Overstock / Slow)`">
+            <VueApexCharts width="100%" height="300" type="bar" :options="chartSlowMovingOptions"
+              :series="chartSlowMovingSeries" />
+          </StatsChartCard>
 
           <!-- Card: Fast Moving -->
-          <div class="bg-background border border-secondary p-5 rounded-xl shadow-sm flex flex-col min-h-[400px]">
-            <h4 class="font-bold text-text text-sm mb-4">Top {{ chartMaxCap }} Laju Penjualan Terkencang (Fast-Moving)</h4>
-            <p class="text-xs text-text/50 mb-2">Mengurutkan barang berdasarkan rata-rata mutasi keluar harian tertinggi.</p>
-            <div class="flex-1">
-              <VueApexCharts width="100%" height="300" type="bar" :options="chartFastMovingOptions" :series="chartFastMovingSeries" />
-            </div>
-          </div>
+          <StatsChartCard :title="`Top ${chartMaxCap} Laju Penjualan Terkencang (Fast-Moving)`"
+            subtitle="Mengurutkan barang berdasarkan rata-rata mutasi keluar harian tertinggi.">
+            <VueApexCharts width="100%" height="300" type="bar" :options="chartFastMovingOptions"
+              :series="chartFastMovingSeries" />
+          </StatsChartCard>
 
           <!-- Card: Urgent Restock -->
-          <div class="bg-background border border-secondary p-5 rounded-xl shadow-sm flex flex-col min-h-[400px]">
-            <h4 class="font-bold text-danger text-sm mb-4">Top {{ chartMaxCap }} Prioritas Restock Darurat (Kritis)</h4>
-            <p class="text-xs text-text/50 mb-2">Mengurutkan barang berdasarkan sisa "hari" stok terpendek sebelum habis sepenuhnya.</p>
-            <div class="flex-1">
-              <VueApexCharts width="100%" height="300" type="bar" :options="chartUrgentRestockOptions" :series="chartUrgentRestockSeries" />
-            </div>
-          </div>
+          <StatsChartCard :title="`Top ${chartMaxCap} Prioritas Restock Darurat (Kritis)`"
+            subtitle='Mengurutkan barang berdasarkan sisa "hari" stok terpendek sebelum habis sepenuhnya.'>
+            <VueApexCharts width="100%" height="300" type="bar" :options="chartUrgentRestockOptions"
+              :series="chartUrgentRestockSeries" />
+          </StatsChartCard>
 
           <!-- Card: Flow Balance -->
-          <div class="bg-background border border-secondary p-5 rounded-xl shadow-sm flex flex-col min-h-[400px]">
-            <h4 class="font-bold text-text text-sm mb-4">Rasio Volume Mutasi Gudang Total (In vs Out)</h4>
-            <p class="text-xs text-text/50 mb-2 text-center">Menjumlahkan seluruh kuantitas Inbound vs Pengeluaran dalam periode filter ini.</p>
-            <div class="flex-1 flex items-center justify-center">
-              <VueApexCharts width="100%" height="300" type="donut" :options="chartFlowBalanceOptions" :series="chartFlowBalanceSeries" />
-            </div>
-          </div>
+          <StatsChartCard title="Rasio Volume Mutasi Gudang Total (In vs Out)"
+            subtitle="Menjumlahkan seluruh kuantitas Inbound vs Pengeluaran dalam periode filter ini.">
+            <VueApexCharts width="100%" height="300" type="donut" :options="chartFlowBalanceOptions"
+              :series="chartFlowBalanceSeries" />
+          </StatsChartCard>
 
-          <!-- Card: Scatter Plot -->
-          <div class="bg-background border border-secondary p-5 rounded-xl shadow-sm flex flex-col min-h-[500px]">
-            <h4 class="font-bold text-text text-sm mb-4">Kuadran Analisis Gudang (Sisa Stok vs Laju Penjualan)</h4>
-            <p class="text-xs text-text/50 mb-2">Titik di kanan bawah berarti Kritis (Stok sedikit, keluar sangat kencang). Titik di kiri atas berarti Dead Stock (Terlalu banyak stok, tidak bergerak).</p>
-            <div class="flex-1 items-stretch">
-              <VueApexCharts width="100%" height="400" type="scatter" :options="chartScatterOptions" :series="chartScatterSeries" />
-            </div>
-          </div>
-
+          <!-- Card: Scatter Analysis -->
+          <StatsChartCard title="Kuadran Analisis Gudang (Sisa Stok vs Laju Penjualan)"
+            subtitle="Titik di kanan bawah berarti Kritis (Stok sedikit, keluar sangat kencang). Titik di kiri atas berarti Dead Stock (Terlalu banyak stok, tidak bergerak)."
+            minHeight="500px">
+            <VueApexCharts width="100%" height="400" type="scatter" :options="chartScatterOptions"
+              :series="chartScatterSeries" />
+          </StatsChartCard>
         </div>
 
         <div v-else
@@ -720,5 +686,11 @@ const chartScatterOptions = computed(() => ({
         </div>
       </main>
     </div>
+    
+    <StockTimelineModal 
+      :show="showTimelineModal" 
+      :productId="selectedProductId" 
+      @close="showTimelineModal = false" 
+    />
   </div>
 </template>

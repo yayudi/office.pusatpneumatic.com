@@ -255,7 +255,7 @@ export const getActiveHeadersByInvoiceIds = async (connection, invoiceIds) => {
   return rows;
 };
 
-// [NEW] Bulk Check Existing Invoices (ALL - Active & Inactive/Cancelled)
+// Bulk Check Existing Invoices (ALL - Active & Inactive/Cancelled)
 // Ini diperlukan untuk mendeteksi duplicate entry pada order yang sudah dicancel
 export const getAllHeadersByInvoiceIds = async (connection, invoiceIds) => {
   if (invoiceIds.length === 0) return [];

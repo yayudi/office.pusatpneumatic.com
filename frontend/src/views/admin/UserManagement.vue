@@ -1,13 +1,17 @@
+<!-- frontend/src/views/admin/UserManagement.vue -->
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
+import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
-import { fetchAllUsers, fetchRoles, fetchShifts, createUser, deleteUser } from '@/api/helpers/admin.js'
+import { fetchRoles, fetchShifts, createUser, deleteUser } from '@/api/helpers/admin.js'
+import { useMasterDataStore } from '@/stores/masterData'
+
+const masterData = useMasterDataStore()
 import UserLocationModal from '@/components/users/locationModal.vue'
 import UserEditModal from '@/components/users/EditModal.vue'
 import Modal from '@/components/ui/Modal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
-import { computed } from 'vue'
 
 const users = ref([])
 const allRoles = ref([])
@@ -37,7 +41,7 @@ async function fetchData() {
   loading.value = true
   try {
     // Gunakan helper API untuk mengambil data
-    const [usersData, rolesData, shiftsData] = await Promise.all([fetchAllUsers(), fetchRoles(), fetchShifts()])
+    const [usersData, rolesData, shiftsData] = await Promise.all([masterData.getUsers(true), fetchRoles(), fetchShifts()])
     users.value = usersData
     allRoles.value = rolesData
     allShifts.value = shiftsData
@@ -86,6 +90,24 @@ function openEditModal(user) {
   selectedUser.value = user
   isEditModalOpen.value = true
 }
+
+// --- LOCAL HOTKEYS ---
+const { Alt_N, Alt_S, Alt_R } = useMagicKeys()
+watch(Alt_N, (pressed) => {
+  if (pressed && !isCreateModalOpen.value && !isEditModalOpen.value && !isLocationModalOpen.value) {
+    isCreateModalOpen.value = true
+  }
+})
+watch(Alt_S, (pressed) => {
+  if (pressed && isCreateModalOpen.value) {
+    handleCreateUser()
+  }
+})
+watch(Alt_R, (pressed) => {
+  if (pressed && !isCreateModalOpen.value && !isEditModalOpen.value && !isLocationModalOpen.value) {
+    fetchData()
+  }
+})
 
 onMounted(fetchData)
 </script>
@@ -199,11 +221,13 @@ onMounted(fetchData)
         </div>
         <div>
           <label for="role" class="block text-sm font-medium text-text/80 mb-1">Role</label>
-          <BaseSelect v-model="newUser.role_id" :options="allRoles" track-by="id" label="name" emit-value placeholder="Pilih Role" />
+          <BaseSelect v-model="newUser.role_id" :options="allRoles" track-by="id" label="name" emit-value
+            placeholder="Pilih Role" />
         </div>
         <div>
           <label for="shift" class="block text-sm font-medium text-text/80 mb-1">Shift (Opsional)</label>
-          <BaseSelect v-model="newUser.shift_id" :options="shiftOptions" track-by="id" emit-value placeholder="Pilih Shift" />
+          <BaseSelect v-model="newUser.shift_id" :options="shiftOptions" track-by="id" emit-value
+            placeholder="Pilih Shift" />
         </div>
       </form>
       <template #footer>

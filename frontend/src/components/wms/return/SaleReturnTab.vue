@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useMagicKeys } from '@vueuse/core'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import Modal from '@/components/ui/Modal.vue'
 import Tabs from '@/components/ui/Tabs.vue'
@@ -108,6 +109,27 @@ const getSourceClass = (source) => {
 onMounted(() => {
   fetchData()
 })
+
+// --- LOCAL HOTKEYS ---
+const { Alt_S, Slash } = useMagicKeys()
+const searchInputRef = ref(null)
+
+watch(Alt_S, (pressed) => {
+  if (pressed && showProcessModal.value) {
+    if (!isOverLimit.value && !isLoading.value && (processForm.value.good.qty > 0 || processForm.value.bad.qty > 0)) {
+      submitProcess()
+    }
+  }
+})
+
+watch(Slash, (pressed) => {
+  if (pressed) {
+    const active = document.activeElement?.tagName
+    if (active !== 'INPUT' && active !== 'TEXTAREA') {
+      searchInputRef.value?.focus()
+    }
+  }
+})
 </script>
 
 <template>
@@ -132,7 +154,7 @@ onMounted(() => {
         <div class="md:col-span-5 relative">
           <font-awesome-icon icon="fa-solid fa-search"
             class="absolute left-3 top-1/2 -translate-y-1/2 text-text/30 text-xs" />
-          <input v-model="searchQuery" type="text" placeholder="Cari Invoice, SKU, atau Produk..."
+          <input ref="searchInputRef" v-model="searchQuery" type="text" placeholder="Cari Invoice, SKU... (Tekan / )"
             class="input-filter pl-9" />
         </div>
 

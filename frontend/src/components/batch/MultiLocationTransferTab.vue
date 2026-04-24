@@ -4,6 +4,7 @@ import { ref, computed } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { fetchProductStockDetails, searchProducts } from '@/api/helpers/products.js'
 import { processBatchMovement } from '@/api/helpers/stock.js'
+import debounce from 'lodash/debounce'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 
 const props = defineProps({
@@ -30,28 +31,28 @@ const fromLocation = ref(null)
 const toLocation = ref(null)
 const quantity = ref(1)
 
-let searchDebounceTimer = null
-
 // --- FUNGSI FORM PENAMBAHAN ---
 
+const debouncedSearch = debounce(async (query) => {
+  try {
+    searchResults.value = await searchProducts(query, null)
+  } catch (error) {
+    toast('Gagal mencari produk.', 'error')
+  } finally {
+    isSearching.value = false
+  }
+}, 500)
+
 function onSearchChange(query) {
-  clearTimeout(searchDebounceTimer)
   stockDetails.value = [] // Kosongkan detail stok saat mencari produk baru
   fromLocation.value = null
   if (query.length < 2) {
     searchResults.value = []
+    debouncedSearch.cancel()
     return
   }
   isSearching.value = true
-  searchDebounceTimer = setTimeout(async () => {
-    try {
-      searchResults.value = await searchProducts(query, null)
-    } catch (error) {
-      toast('Gagal mencari produk.', 'error')
-    } finally {
-      isSearching.value = false
-    }
-  }, 500)
+  debouncedSearch(query)
 }
 
 async function onProductSelect(product) {

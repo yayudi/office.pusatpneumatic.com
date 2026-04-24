@@ -1,8 +1,9 @@
 <script setup>
 import { ref, reactive, onMounted, watch, computed } from 'vue'
+import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import axios from '@/api/axios.js'
-import { debounce } from 'lodash'
+import debounce from 'lodash/debounce'
 import ProductFormModal from '@/components/wms/shared/ProductFormModal.vue'
 import ConnectionStatus from '@/components/wms/shared/ConnectionStatus.vue'
 import PackageTable from '@/components/products/PackageTable.vue'
@@ -247,6 +248,36 @@ const handleProductSaved = () => {
 onMounted(() => {
   fetchProducts()
 })
+
+// --- LOCAL HOTKEYS ---
+const { Alt_N, Alt_A, Alt_R, Slash } = useMagicKeys()
+
+watch(Alt_N, (pressed) => {
+  if (pressed && !showProductForm.value && !showBatchEditModal.value) {
+    openAddModal()
+  }
+})
+
+watch(Alt_A, (pressed) => {
+  if (pressed && !showProductForm.value && !showBatchEditModal.value) {
+    toggleSelectAll()
+  }
+})
+
+watch(Alt_R, (pressed) => {
+  if (pressed && !showProductForm.value && !showBatchEditModal.value) {
+    fetchProducts()
+  }
+})
+
+watch(Slash, (pressed) => {
+  if (pressed && !showProductForm.value && !showBatchEditModal.value) {
+    setTimeout(() => {
+      const el = document.getElementById('global-search-input')
+      if (el) el.focus()
+    }, 10)
+  }
+})
 </script>
 
 <template>
@@ -287,7 +318,7 @@ onMounted(() => {
           <div class="flex flex-col sm:flex-row gap-4 items-center flex-grow">
             <!-- Search -->
             <div class="relative flex-1 w-full">
-              <input v-model="searchQuery" type="text" placeholder="Cari nama paket atau SKU..."
+              <input id="global-search-input" v-model="searchQuery" type="text" placeholder="Cari nama paket atau SKU..."
                 class="w-full pl-10 pr-4 py-2 bg-background border border-secondary/20 rounded-lg focus:outline-none focus:border-primary text-sm shadow-sm" />
               <font-awesome-icon icon="fa-solid fa-search" class="absolute left-3 top-2.5 text-text/40" />
             </div>

@@ -1,9 +1,12 @@
 <script setup>
 import { ref, watch } from 'vue'
+import { useMagicKeys } from '@vueuse/core'
 import Modal from '@/components/ui/Modal.vue'
-import { fetchAllLocations } from '@/api/helpers/stock.js'
 import { fetchUserLocationIds, updateUserLocations } from '@/api/helpers/admin.js'
+import { useMasterDataStore } from '@/stores/masterData'
 import { useToast } from '@/composables/useToast.js'
+
+const masterData = useMasterDataStore()
 
 const props = defineProps({
   show: Boolean,
@@ -25,7 +28,7 @@ watch(
       try {
         // Ambil semua data yang dibutuhkan secara paralel untuk efisiensi
         const [allLocs, userLocIds] = await Promise.all([
-          fetchAllLocations(),
+          masterData.getLocations(),
           fetchUserLocationIds(newUser.id),
         ])
         allLocations.value = allLocs
@@ -55,6 +58,15 @@ async function handleSave() {
     isLoading.value = false
   }
 }
+
+// --- LOCAL HOTKEYS ---
+const { Alt_S } = useMagicKeys()
+
+watch(Alt_S, (pressed) => {
+  if (pressed && props.show && !isLoading.value) {
+    handleSave()
+  }
+})
 </script>
 
 <template>

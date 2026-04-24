@@ -6,8 +6,10 @@ import { useTheme } from '@/composables/useTheme.js';
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import BaseSelect from '@/components/ui/BaseSelect.vue';
-import { fetchReportFilters } from '@/api/helpers/stats.js';
-import { getStockMovementStatistics } from '@/api/helpers/statistics.js';
+import { getStockMovementStatistics, getStockTimelineStatistics } from '@/api/helpers/statistics.js';
+import { useMasterDataStore } from '@/stores/masterData';
+
+const masterData = useMasterDataStore();
 import VueApexCharts from 'vue3-apexcharts';
 
 const { toast } = useToast();
@@ -32,7 +34,7 @@ const { themeColors, isDarkTheme } = useTheme();
 
 onMounted(async () => {
   try {
-    const res = await fetchReportFilters();
+    const res = await masterData.getReportFilters();
     if (res && res.allBuildings) {
       reportFilters.value.allBuildings = res.allBuildings;
     }
@@ -102,14 +104,14 @@ const getApiPayload = () => {
 const fetchStatistics = async () => {
   const payloadReq = getApiPayload();
   if (!payloadReq.startDate || !payloadReq.endDate) return;
-  
+
   isDataLoading.value = true;
   activeResolution.value = payloadReq.timeResolution;
-  
+
   try {
     const response = await getStockMovementStatistics(payloadReq);
     const payload = response?.data || response;
-    
+
     if (payload && !Array.isArray(payload) && payload.timeline) {
       timelineList.value = payload.timeline || [];
     } else {
@@ -139,7 +141,7 @@ const chartTimelineOptions = computed(() => ({
   chart: { type: 'bar', stacked: true, background: 'transparent', toolbar: { show: false } },
   colors: [themeColors.value.success, themeColors.value.danger],
   plotOptions: { bar: { borderRadius: 4, columnWidth: '40%' } },
-  xaxis: { 
+  xaxis: {
     categories: timelineList.value.map(t => t.date),
     labels: {
       style: { colors: labelColor.value, cssClass: 'text-xs' },
@@ -150,14 +152,14 @@ const chartTimelineOptions = computed(() => ({
           // Format YYYY-MM
           const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
           const m = parseInt(parts[1], 10);
-          return `${monthNames[m-1]}`;
+          return `${monthNames[m - 1]}`;
         }
         return parts.length >= 3 ? `${parts[2]}/${parts[1]}` : val;
       }
     }
   },
   yaxis: {
-    labels: { 
+    labels: {
       style: { colors: labelColor.value },
       formatter: (val) => Math.abs(Math.round(val))
     }
@@ -194,7 +196,8 @@ const toggleSort = () => {
     <div class="mb-6 border-b border-secondary/20 pb-4">
       <h3 class="text-lg font-bold text-text">Performa Waktu</h3>
       <p class="text-sm text-text/50 mt-1">
-        Grafik volume mutasi aktivitas gudang harian secara kumulatif di rentang waktu yang direpresentasikan ke garis masa.
+        Grafik volume mutasi aktivitas gudang harian secara kumulatif di rentang waktu yang direpresentasikan ke garis
+        masa.
       </p>
     </div>
 
@@ -204,47 +207,27 @@ const toggleSort = () => {
         <!-- Tipe Laporan -->
         <div>
           <label class="block text-xs font-semibold text-text/60 mb-2">Tipe Laporan</label>
-          <BaseSelect
-            v-model="filterValues.reportType"
-            :options="reportTypeOptions"
-            emitValue
-            :searchable="false"
-          />
+          <BaseSelect v-model="filterValues.reportType" :options="reportTypeOptions" emitValue :searchable="false" />
         </div>
 
         <!-- Rentang Tanggal / Bulan / Tahun -->
         <div>
           <label class="block text-xs font-semibold text-text/60 mb-2">Waktu Spesifik</label>
-          
+
           <div v-if="filterValues.reportType === 'annual'">
-            <BaseSelect
-              v-model="filterValues.year"
-              :options="availableYears"
-              emitValue
-              :searchable="false"
-            />
+            <BaseSelect v-model="filterValues.year" :options="availableYears" emitValue :searchable="false" />
           </div>
-          
+
           <div v-else-if="filterValues.reportType === 'monthly'" class="flex gap-2">
-            <BaseSelect
-              v-model="filterValues.selectedMonth"
-              :options="availableMonths"
-              track-by="value"
-              emitValue
-              :searchable="false"
-              class="w-1/2"
-            />
-            <BaseSelect
-              v-model="filterValues.year"
-              :options="availableYears"
-              emitValue
-              :searchable="false"
-              class="w-1/2"
-            />
+            <BaseSelect v-model="filterValues.selectedMonth" :options="availableMonths" track-by="value" emitValue
+              :searchable="false" class="w-1/2" />
+            <BaseSelect v-model="filterValues.year" :options="availableYears" emitValue :searchable="false"
+              class="w-1/2" />
           </div>
 
           <div v-else>
-            <DateRangeFilter v-model:startDate="filterValues.startDate" v-model:endDate="filterValues.endDate" align="left" />
+            <DateRangeFilter v-model:startDate="filterValues.startDate" v-model:endDate="filterValues.endDate"
+              align="left" />
           </div>
         </div>
 
@@ -261,12 +244,8 @@ const toggleSort = () => {
         <!-- Gedung -->
         <div>
           <label class="block text-xs font-semibold text-text/60 mb-2">Lokasi / Gedung Khusus</label>
-          <BaseSelect
-            v-model="filterValues.buildings"
-            :options="reportFilters.allBuildings"
-            :multiple="true"
-            placeholder="Semua Gedung"
-          />
+          <BaseSelect v-model="filterValues.buildings" :options="reportFilters.allBuildings" :multiple="true"
+            placeholder="Semua Gedung" />
         </div>
 
         <div class="flex items-start pt-6">
@@ -280,7 +259,8 @@ const toggleSort = () => {
     </div>
 
     <!-- Main Chart Section -->
-    <main v-if="isDataLoading" class="bg-background border border-secondary rounded-xl p-16 flex flex-col items-center justify-center text-center shadow-sm">
+    <main v-if="isDataLoading"
+      class="bg-background border border-secondary rounded-xl p-16 flex flex-col items-center justify-center text-center shadow-sm">
       <font-awesome-icon icon="fa-solid fa-circle-notch" spin class="text-4xl mb-4 text-primary" />
       <p class="font-medium text-text/60">Memuat data garis waktu...</p>
     </main>
@@ -288,10 +268,12 @@ const toggleSort = () => {
     <template v-else-if="timelineList.length > 0">
       <div class="bg-background border border-secondary p-5 md:p-8 rounded-xl shadow-sm animate-fade-in w-full">
         <h4 class="font-bold text-text text-lg mb-2">Visualisasi Transaksi (Masuk & Keluar)</h4>
-        <p class="text-xs md:text-sm text-text/50 mb-6">Puncak batang tinggi mengindikasikan lonjakan aktivitas massal di hari terkait.</p>
-        
+        <p class="text-xs md:text-sm text-text/50 mb-6">Puncak batang tinggi mengindikasikan lonjakan aktivitas massal
+          di hari terkait.</p>
+
         <div class="w-full block">
-          <VueApexCharts width="100%" height="450" type="bar" :options="chartTimelineOptions" :series="chartTimelineSeries" />
+          <VueApexCharts width="100%" height="450" type="bar" :options="chartTimelineOptions"
+            :series="chartTimelineSeries" />
         </div>
       </div>
 
@@ -304,8 +286,11 @@ const toggleSort = () => {
           <table class="w-full text-left text-sm whitespace-nowrap">
             <thead class="bg-background border-b border-secondary sticky top-0 z-10">
               <tr>
-                <th @click="toggleSort" class="px-6 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 w-[200px]">
-                  <div class="flex items-center gap-2">Periode Waktu <font-awesome-icon :icon="sortDesc ? 'fa-solid fa-sort-down' : 'fa-solid fa-sort-up'" class="text-xs opacity-50" /></div>
+                <th @click="toggleSort"
+                  class="px-6 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 w-[200px]">
+                  <div class="flex items-center gap-2">Periode Waktu <font-awesome-icon
+                      :icon="sortDesc ? 'fa-solid fa-sort-down' : 'fa-solid fa-sort-up'" class="text-xs opacity-50" />
+                  </div>
                 </th>
                 <th class="px-6 py-4 font-semibold text-text/80 text-center">Total Inbound</th>
                 <th class="px-6 py-4 font-semibold text-text/80 text-center">Total Outbound</th>
@@ -315,9 +300,10 @@ const toggleSort = () => {
             <tbody class="divide-y divide-secondary/20">
               <tr v-for="item in displayedData" :key="item.date" class="hover:bg-secondary/10 transition-colors">
                 <td class="px-6 py-3 font-medium text-text font-mono border-r border-secondary/10">
-                  {{ filterValues.reportType === 'annual' && item.date.length >= 7 
-                     ? (['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'][parseInt(item.date.split('-')[1])-1] + ' ' + filterValues.year)
-                     : item.date }}
+                  {{ filterValues.reportType === 'annual' && item.date.length >= 7
+                    ? (['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov',
+                      'Des'][parseInt(item.date.split('-')[1]) - 1] + ' ' + filterValues.year)
+                    : item.date }}
                 </td>
                 <td class="px-6 py-3 text-success font-medium text-center bg-success/5">
                   <span v-if="item.total_in > 0">+ {{ item.total_in }}</span>
@@ -327,7 +313,8 @@ const toggleSort = () => {
                   <span v-if="item.total_out > 0">{{ item.total_out }}</span>
                   <span v-else class="text-text/30">-</span>
                 </td>
-                <td class="px-6 py-3 text-right font-bold" :class="(item.total_in - item.total_out) > 0 ? 'text-success' : ((item.total_in - item.total_out) < 0 ? 'text-danger' : 'text-text/50')">
+                <td class="px-6 py-3 text-right font-bold"
+                  :class="(item.total_in - item.total_out) > 0 ? 'text-success' : ((item.total_in - item.total_out) < 0 ? 'text-danger' : 'text-text/50')">
                   {{ (item.total_in - item.total_out) > 0 ? '+' : '' }}{{ item.total_in - item.total_out }}
                 </td>
               </tr>
@@ -336,11 +323,14 @@ const toggleSort = () => {
         </div>
       </div>
     </template>
-    
-    <main v-else class="bg-background border border-secondary rounded-xl p-16 flex flex-col items-center justify-center text-center shadow-sm">
+
+    <main v-else
+      class="bg-background border border-secondary rounded-xl p-16 flex flex-col items-center justify-center text-center shadow-sm">
       <font-awesome-icon icon="fa-solid fa-calendar-xmark" class="text-4xl mb-4 text-text/30" />
       <h4 class="font-bold text-text text-lg">Tidak ada aktivitas stok</h4>
-      <p class="text-text/60 mt-2 text-sm max-w-sm">Pada rentang tanggal ini, tidak tercetak pergerakan riil mutasi satupun barang.</p>
+      <p class="text-text/60 mt-2 text-sm max-w-sm">Pada rentang tanggal ini, tidak tercetak pergerakan riil mutasi
+        satupun
+        barang.</p>
     </main>
   </div>
 </template>
@@ -351,7 +341,14 @@ const toggleSort = () => {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

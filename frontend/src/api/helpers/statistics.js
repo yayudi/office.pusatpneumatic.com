@@ -20,6 +20,34 @@ export const getStockMovementStatistics = async (filters) => {
   }
 };
 
+export const getStockTimelineStatistics = async (filters) => {
+  try {
+    const { data } = await api.get('/statistics/stock-timeline', {
+      params: filters
+    });
+    return data;
+  } catch (error) {
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+    throw error;
+  }
+};
+
+export const requestStockTimelineExport = async (filters) => {
+  try {
+    const { data } = await api.get('/statistics/stock-timeline/export', {
+      params: filters
+    });
+    return data;
+  } catch (error) {
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+    throw error;
+  }
+};
+
 /**
  * Fetch inventory value statistics
  * @param {Object} filters Filter params
@@ -29,6 +57,31 @@ export const getInventoryValueStatistics = async (filters) => {
   try {
     const { data } = await api.get('/statistics/inventory-value', {
       params: filters
+    });
+    return data;
+  } catch (error) {
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+    throw error;
+  }
+};
+
+/**
+ * Fetch product stock timeline for investigation
+ * @param {string} productId
+ * @param {number} page
+ * @param {number} limit
+ * @param {string[]} buildings
+ */
+export const getProductStockTimeline = async (productId, page, limit, buildings = []) => {
+  try {
+    const params = { page, limit };
+    if (buildings && buildings.length > 0) {
+      params.building = buildings.join(',');
+    }
+    const { data } = await api.get(`/products/${productId}/stock-timeline`, {
+      params
     });
     return data;
   } catch (error) {

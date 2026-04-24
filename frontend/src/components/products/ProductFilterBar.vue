@@ -117,7 +117,7 @@ const queryModel = computed({
         <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-text/40">
           <font-awesome-icon icon="fa-solid fa-search" />
         </span>
-        <input v-model="queryModel" type="text" :placeholder="`Cari ${searchBy === 'sku' ? 'SKU' : 'Nama'}...`"
+        <input id="global-search-input" v-model="queryModel" type="text" :placeholder="`Cari ${searchBy === 'sku' ? 'SKU' : 'Nama'}...`"
           class="w-full pl-9 pr-4 py-2.5 bg-background border border-transparent rounded-xl focus:outline-none focus:border-primary text-text text-sm placeholder-text/30 transition-all shadow-sm" />
       </div>
     </div>

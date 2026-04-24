@@ -1,6 +1,8 @@
 <!-- frontend/src/components/wms/shared/ProductFormModal.vue -->
 <script setup>
 import { ref, watch } from 'vue'
+import { useMagicKeys } from '@vueuse/core'
+import debounce from 'lodash/debounce'
 import axios from '@/api/axios.js'
 import { useToast } from '@/composables/useToast.js'
 import { formatCurrency } from '@/utils/formatters.js'
@@ -36,10 +38,33 @@ const duplicateStatus = ref({
   sku: { checking: false, exists: false },
   name: { checking: false, exists: false },
 })
-let checkTimeout = { sku: null, name: null }
+const debouncedDuplicateCheck = {
+  sku: debounce(async (value) => {
+    await _executeDuplicateCheck('sku', value)
+  }, 500),
+  name: debounce(async (value) => {
+    await _executeDuplicateCheck('name', value)
+  }, 500),
+}
+
+async function _executeDuplicateCheck(field, value) {
+  try {
+    const { data } = await axios.get('/products', {
+      params: { search: value, searchBy: field, limit: 20 }
+    })
+    const isDuplicate = data.data.some(p => {
+      if (props.mode === 'edit' && p.id === props.productData.id) return false
+      return p[field].toString().toLowerCase() === value.toString().toLowerCase()
+    })
+    duplicateStatus.value[field] = { checking: false, exists: isDuplicate }
+  } catch (error) {
+    console.error(error)
+    duplicateStatus.value[field].checking = false
+  }
+}
 
 function checkDuplicate(field, value) {
-  clearTimeout(checkTimeout[field])
+  debouncedDuplicateCheck[field].cancel()
 
   // SKU di mode edit disabled, jadi tidak perlu cek
   if (field === 'sku' && props.mode === 'edit') return
@@ -51,26 +76,7 @@ function checkDuplicate(field, value) {
   // Set checking state
   duplicateStatus.value[field].checking = true
   duplicateStatus.value[field].exists = false // Reset dulu
-
-  checkTimeout[field] = setTimeout(async () => {
-    try {
-      const { data } = await axios.get('/products', {
-        params: { search: value, searchBy: field, limit: 20 }
-      })
-
-      // Strict Check (Backend pakai LIKE)
-      const isDuplicate = data.data.some(p => {
-        // Exclude current product if edit mode
-        if (props.mode === 'edit' && p.id === props.productData.id) return false
-        return p[field].toString().toLowerCase() === value.toString().toLowerCase()
-      })
-
-      duplicateStatus.value[field] = { checking: false, exists: isDuplicate }
-    } catch (error) {
-      console.error(error)
-      duplicateStatus.value[field].checking = false
-    }
-  }, 500)
+  debouncedDuplicateCheck[field](value)
 }
 
 // Watchers untuk auto-check
@@ -156,32 +162,33 @@ watch(
 )
 
 // Logika Pencarian Komponen Paket
-let debounceTimeout
+const debouncedComponentSearch = debounce(async (query) => {
+  try {
+    const { data } = await axios.get(`/products/search?q=${query}`)
+    // Filter: Jangan tampilkan produk yang sudah dipilih atau produk itu sendiri (jika edit)
+    searchResults.value = data.filter(
+      (p) =>
+        !components.value.some((c) => c.id === p.id) &&
+        (props.mode === 'create' || p.id !== props.productData.id),
+    )
+  } catch (err) {
+    console.error(err)
+  } finally {
+    isSearching.value = false
+  }
+}, 300)
+
 function handleSearch(e) {
   const query = e.target.value
-  clearTimeout(debounceTimeout)
 
   if (!query || query.length < 2) {
     searchResults.value = []
+    debouncedComponentSearch.cancel()
     return
   }
 
   isSearching.value = true
-  debounceTimeout = setTimeout(async () => {
-    try {
-      const { data } = await axios.get(`/products/search?q=${query}`)
-      // Filter: Jangan tampilkan produk yang sudah dipilih atau produk itu sendiri (jika edit)
-      searchResults.value = data.filter(
-        (p) =>
-          !components.value.some((c) => c.id === p.id) &&
-          (props.mode === 'create' || p.id !== props.productData.id),
-      )
-    } catch (err) {
-      console.error(err)
-    } finally {
-      isSearching.value = false
-    }
-  }, 300)
+  debouncedComponentSearch(query)
 }
 
 function addComponent(product) {
@@ -281,6 +288,15 @@ async function handleSubmit() {
     loading.value = false
   }
 }
+
+// --- LOCAL HOTKEYS ---
+const { Alt_S } = useMagicKeys()
+
+watch(Alt_S, (pressed) => {
+  if (pressed && props.show && !loading.value && !fetchLoading.value && !duplicateStatus.value.sku.exists && !duplicateStatus.value.name.exists) {
+    handleSubmit()
+  }
+})
 </script>
 
 <template>

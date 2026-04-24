@@ -1,6 +1,7 @@
 <!-- frontend\src\views\WMSBatchAdjustment.vue -->
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
+import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import { fetchMyLocations } from '@/api/helpers/user.js'
 import {
@@ -197,6 +198,24 @@ async function submitBatch() {
     isLoading.value = false
   }
 }
+
+// --- LOCAL HOTKEYS ---
+const { Alt_S } = useMagicKeys()
+
+watch(Alt_S, (pressed) => {
+  if (pressed) {
+    // Prevent default browser behavior if needed
+    if (inputMode.value === 'manual') {
+      if (isBatchLocationSelected.value && batchList.value.length > 0 && !isLoading.value) {
+        submitBatch()
+      }
+    } else if (inputMode.value === 'upload') {
+      if (selectedFile.value && notes.value.trim() && !isUploading.value) {
+        handleUploadAdjustment()
+      }
+    }
+  }
+})
 </script>
 
 <template>

@@ -1,11 +1,11 @@
 <!-- frontend\src\components\UserEditModal.vue -->
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
+import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import { updateUser } from '@/api/helpers/admin.js'
 import Modal from '@/components/ui/Modal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
-import { computed } from 'vue'
 
 const props = defineProps({
   show: Boolean,
@@ -60,6 +60,15 @@ async function handleSave() {
     isLoading.value = false
   }
 }
+
+// --- LOCAL HOTKEYS ---
+const { Alt_S } = useMagicKeys()
+
+watch(Alt_S, (pressed) => {
+  if (pressed && props.show && !isLoading.value) {
+    handleSave()
+  }
+})
 </script>
 
 <template>
@@ -80,11 +89,13 @@ async function handleSave() {
       </div>
       <div>
         <label class="block text-sm font-medium text-text/80 mb-1">Role</label>
-        <BaseSelect v-model="editableUser.role_id" :options="roles" track-by="id" label="name" emit-value placeholder="Pilih Role" />
+        <BaseSelect v-model="editableUser.role_id" :options="roles" track-by="id" label="name" emit-value
+          placeholder="Pilih Role" />
       </div>
       <div>
         <label class="block text-sm font-medium text-text/80 mb-1">Shift</label>
-        <BaseSelect v-model="editableUser.shift_id" :options="shiftOptions" track-by="id" emit-value placeholder="Pilih Shift" />
+        <BaseSelect v-model="editableUser.shift_id" :options="shiftOptions" track-by="id" emit-value
+          placeholder="Pilih Shift" />
       </div>
     </div>
     <template #footer>

@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, watch, nextTick } from 'vue'
+import { useMagicKeys } from '@vueuse/core'
 // FIX: Impor 'useToast'
 import { useToast } from '@/composables/useToast.js'
 import {
@@ -215,6 +216,25 @@ function toggleGroup(groupName, value) {
   }
   selectedPermissionIds.value = [...currentPermissionSet]
 }
+
+// --- LOCAL HOTKEYS ---
+const { Alt_N, Alt_S } = useMagicKeys()
+
+watch(Alt_N, (pressed) => {
+  if (pressed && !isRoleModalOpen.value) {
+    openCreateRoleModal()
+  }
+})
+
+watch(Alt_S, (pressed) => {
+  if (pressed) {
+    if (isRoleModalOpen.value && roleForm.value.name && roleForm.value.description && !isSaving.value) {
+      handleSaveRole()
+    } else if (!isRoleModalOpen.value && selectedRole.value && isDirty.value && !isSaving.value) {
+      handleSavePermissions()
+    }
+  }
+})
 </script>
 
 <template>

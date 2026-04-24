@@ -1,5 +1,6 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import { fetchShifts } from '@/api/helpers/admin.js'
 import ShiftFormModal from '@/components/shifts/ShiftFormModal.vue'
@@ -57,6 +58,14 @@ const getWorkDaysLabel = (daysStr) => {
 
 onMounted(getShifts)
 
+// --- LOCAL HOTKEYS ---
+const { Alt_N } = useMagicKeys()
+
+watch(Alt_N, (pressed) => {
+  if (pressed && !isModalOpen.value) {
+    openCreate()
+  }
+})
 </script>
 
 <template>
