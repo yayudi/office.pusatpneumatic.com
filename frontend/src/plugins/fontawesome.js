@@ -1,7 +1,7 @@
 // src/plugins/fontawesome.js
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { faChrome } from '@fortawesome/free-brands-svg-icons'
+import { faChrome, faApple } from '@fortawesome/free-brands-svg-icons'
 import {
   faAngleLeft,
   faAngleRight,
@@ -118,6 +118,7 @@ import {
   faMobileScreen,
   faMoon,
   faNoteSticky,
+  faPalette,
   faPaperPlane,
   faPencil,
   faPen,
@@ -185,6 +186,7 @@ library.add(
   faAngleRight,
   faAnglesLeft,
   faAnglesRight,
+  faApple,
   faArrowLeft,
   faArrowRight,
   faArrowTrendDown,
@@ -297,6 +299,7 @@ library.add(
   faMobileScreen,
   faMoon,
   faNoteSticky,
+  faPalette,
   faPaperPlane,
   faPencil,
   faPen,

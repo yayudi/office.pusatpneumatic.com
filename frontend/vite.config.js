@@ -36,10 +36,10 @@ export default defineConfig(({ command }) => ({
     visualizer({ filename: 'bundle-stats.html' }),
     faviconPlugin({ command }),
     VitePWA({
-      // devOptions: {
-      //   enabled: true,
-      //   type: 'module'
-      // },
+      devOptions: {
+        enabled: true,
+        type: 'module'
+      },
       registerType: 'prompt',
       includeAssets: ['favicon-prod.ico', 'favicon-16x16.png', 'favicon-32x32.png', 'apple-touch-icon.png', 'android-chrome-192x192.png', 'android-chrome-512x512.png'],
       manifest: {
