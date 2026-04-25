@@ -8,9 +8,10 @@ const globalHotkeys = [
   { keys: ['Alt', '3'], desc: 'Buka Modul Absensi' },
   { keys: ['Alt', '4'], desc: 'Buka Modul Stats' },
   { keys: ['Alt', '5'], desc: 'Buka Panel Admin' },
-  { keys: ['Alt', 'T'], desc: 'Ganti Tema (Cycle)' },
-  { keys: ['Alt', '/'], desc: 'Tampilkan Bantuan Shortcut' },
+  { keys: ['Alt', 'H'], desc: 'Buka Modul Guide' },
+  { keys: ['Alt', 'T'], desc: 'Ganti Tema' },
   { keys: ['Alt', 'Shift', 'L'], desc: 'Logout' },
+  { keys: ['Alt', '/'], desc: 'Tampilkan Bantuan Shortcut' },
 ]
 
 const localHotkeys = [

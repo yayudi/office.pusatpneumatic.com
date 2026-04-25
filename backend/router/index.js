@@ -22,6 +22,7 @@ import shiftRoutes from "./shiftRouter.js";
 import scheduleRoutes from "./scheduleRouter.js";
 import mediaRoutes from "./mediaRouter.js";
 import statisticRoutes from "./statistics.js";
+import changelogRoutes from "./changelogRouter.js";
 // import cronRouter from "./cronRouter.js";
 
 // Impor middleware yang diperlukan
@@ -55,6 +56,7 @@ apiRouter.use("/shifts", authenticateToken, shiftRoutes);
 apiRouter.use("/schedules", authenticateToken, scheduleRoutes);
 apiRouter.use("/media", authenticateToken, mediaRoutes);
 apiRouter.use("/statistics", statisticRoutes);
+apiRouter.use("/changelogs", authenticateToken, changelogRoutes);
 // apiRouter.use("/cron", authenticateToken, cronRouter);
 
 // Rute tes "canary"

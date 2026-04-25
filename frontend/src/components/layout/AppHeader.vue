@@ -129,11 +129,11 @@ onUnmounted(() => {
               <span>Akun Saya</span>
             </RouterLink>
 
-            <a href="#"
+            <RouterLink to="/guide" @click="isDropdownOpen = false"
               class="w-full text-left px-4 py-2 text-sm text-text/90 hover:bg-secondary/20 flex items-center gap-3">
-              <font-awesome-icon icon="fa-solid fa-language" class="w-4" />
-              <span>Bahasa</span>
-            </a>
+              <font-awesome-icon icon="fa-solid fa-book" class="w-4" />
+              <span>Fitur & Panduan</span>
+            </RouterLink>
 
             <div class="px-4 py-2 border-t border-secondary/20 mt-2 flex flex-col gap-2">
               <!-- Install PWA Button (Visible only if available) -->

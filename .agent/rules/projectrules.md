@@ -174,3 +174,15 @@ The project uses **Native ESM** with Jest. Standard CommonJS mocking (`jest.mock
 
 ### B. Verification First
 * **Proof of Awareness:** Before suggesting a new library, the Agent must prove it has read `package.json` to verify the library doesn't already exist or a similar one isn't available.
+
+---
+
+## 9. CHANGELOG & TIMELINE DISCIPLINE (CRITICAL)
+**Context:** The application maintains a dynamic "Fitur Baru" timeline in the UI. To keep it up to date, all new features or significant modifications MUST be logged into the database.
+
+* **Rule:** Every time you (the Agent) complete a new feature, a bug fix, or a UI enhancement, you **MUST** provide an SQL `INSERT INTO system_changelogs` script.
+* **Procedure:**
+    1.  At the end of a successful implementation session, formulate an `INSERT` statement for the `system_changelogs` table.
+    2.  Provide this SQL snippet to the user in a Markdown code block, reminding them to execute it in their database client.
+    3.  Format: `INSERT INTO system_changelogs (version, title, description, type, release_date) VALUES ('vX.Y.Z', 'Feature Name', 'Short desc', 'FEATURE', CURDATE());`
+    4.  Never skip this step if a tangible change has been made to the system.

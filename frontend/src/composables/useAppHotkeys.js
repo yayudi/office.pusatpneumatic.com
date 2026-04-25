@@ -10,7 +10,12 @@ export function useAppHotkeys(emitLogout) {
   const router = useRouter()
   const auth = useAuthStore()
   const { themes, currentTheme, applyTheme } = useTheme()
-  const { Escape, Alt_1, Alt_2, Alt_3, Alt_4, Alt_5, Alt_T, Alt_Slash, Alt_Shift_L } = useMagicKeys()
+  const { Escape, Alt_1, Alt_2, Alt_3, Alt_4, Alt_5, Alt_H, Alt_T, Alt_Slash, Alt_Shift_L } = useMagicKeys()
+
+  // Navigation
+  watch(Alt_H, (pressed) => {
+    if (pressed) router.push('/guide')
+  })
 
   // Cycle Theme
   watch(Alt_T, (pressed) => {

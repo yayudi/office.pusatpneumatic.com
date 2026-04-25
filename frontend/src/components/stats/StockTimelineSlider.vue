@@ -122,12 +122,12 @@ const handleKeydown = (e) => {
 const sparklinePoints = computed(() => {
   const data = reversedData.value;
   if (data.length < 2) return '';
-  
+
   const balances = data.map(d => d.balance_after);
   const min = Math.min(...balances);
   const max = Math.max(...balances);
   const range = max - min || 1; // Hindari division by zero
-  
+
   const height = 40; // Relative height untuk SVG viewBox
   return data.map((d, i) => {
     const x = (i / (data.length - 1)) * 100;
@@ -144,18 +144,18 @@ const currentSparklineX = computed(() => {
 const anomalies = computed(() => {
   const data = reversedData.value;
   if (data.length < 2) return [];
-  
+
   const balances = data.map(d => d.balance_after);
   const min = Math.min(...balances);
   const max = Math.max(...balances);
-  const range = max - min || 1; 
+  const range = max - min || 1;
   const height = 40;
-  
+
   return data.map((d, i) => {
     // Definisi anomali: perubahan > 25% dari rentang balance dan nilainya > 5
     const isAnomaly = Math.abs(d.net_change) > (range * 0.25) && Math.abs(d.net_change) > 5;
     if (!isAnomaly) return null;
-    
+
     const x = (i / (data.length - 1)) * 100;
     const y = height - ((d.balance_after - min) / range) * height;
     return { x, y, type: d.net_change > 0 ? 'up' : 'down' };
@@ -166,23 +166,23 @@ const parsedNotes = computed(() => {
   if (!currentPoint.value || !currentPoint.value.notes) {
     return { text: 'Tidak ada catatan spesifik untuk transaksi ini.', ref: null };
   }
-  
+
   const notes = currentPoint.value.notes;
   // Cari pola referensi seperti INV/..., SO-..., PO-...
   const refMatch = notes.match(/(?:Ref:|Invoice:|PO:)?\s*(INV\/[A-Za-z0-9/\-_]+|[A-Z]{2,3}-\d+)/i);
-  
+
   if (refMatch) {
     const fullMatch = refMatch[0];
     const refCode = refMatch[1] || fullMatch.replace(/(?:Ref:|Invoice:|PO:)\s*/i, '');
     let cleanText = notes.replace(fullMatch, '').replace(/[\(\)]/g, '').trim();
     if (cleanText.toLowerCase() === 'sale') cleanText = 'Penjualan';
-    
+
     return {
       text: cleanText || 'Transaksi Sistem',
       ref: refCode.trim()
     };
   }
-  
+
   return { text: notes, ref: null };
 });
 
@@ -199,29 +199,29 @@ const toggleCompare = () => {
 
 const compareStats = computed(() => {
   if (compareIndex.value === null || reversedData.value.length === 0) return null;
-  
+
   const startIdx = Math.min(compareIndex.value, sliderIndex.value);
   const endIdx = Math.max(compareIndex.value, sliderIndex.value);
-  
+
   if (startIdx === endIdx) return { net: 0, in: 0, out: 0, adjust: 0 };
-  
+
   let totalIn = 0;
   let totalOut = 0;
   let totalAdjust = 0;
-  
+
   for (let i = startIdx + 1; i <= endIdx; i++) {
     const mov = reversedData.value[i];
     if (mov.movement_type === 'ADJUSTMENT' || mov.movement_type === 'STOCK_OPNAME') {
-       totalAdjust += mov.net_change;
+      totalAdjust += mov.net_change;
     } else if (mov.net_change > 0) {
-       totalIn += mov.net_change;
+      totalIn += mov.net_change;
     } else if (mov.net_change < 0) {
-       totalOut += Math.abs(mov.net_change);
+      totalOut += Math.abs(mov.net_change);
     }
   }
-  
+
   const netDelta = reversedData.value[endIdx].balance_after - reversedData.value[startIdx].balance_after;
-  
+
   return { net: netDelta, in: totalIn, out: totalOut, adjust: totalAdjust };
 });
 
@@ -273,7 +273,8 @@ const compareSparklineX = computed(() => {
           </div>
 
           <!-- Delta Compare Panel -->
-          <div v-if="compareStats" class="relative z-10 mt-5 bg-warning/10 border border-warning/20 rounded-xl p-4 w-full max-w-md text-left">
+          <div v-if="compareStats"
+            class="relative z-10 mt-5 bg-warning/10 border border-warning/20 rounded-xl p-4 w-full max-w-md text-left">
             <div class="text-xs font-bold text-warning/80 uppercase mb-2 flex items-center justify-between">
               <span>Hasil Perbandingan Data</span>
               <font-awesome-icon icon="fa-solid fa-code-compare" />
@@ -289,24 +290,29 @@ const compareSparklineX = computed(() => {
               </div>
               <div class="flex flex-col text-right">
                 <span class="text-text/40 text-[10px] uppercase">Selisih Bersih</span>
-                <span class="font-bold" :class="compareStats.net > 0 ? 'text-success' : (compareStats.net < 0 ? 'text-danger' : 'text-text/60')">
+                <span class="font-bold"
+                  :class="compareStats.net > 0 ? 'text-success' : (compareStats.net < 0 ? 'text-danger' : 'text-text/60')">
                   {{ compareStats.net > 0 ? '+' : '' }}{{ compareStats.net }}
                 </span>
               </div>
             </div>
           </div>
 
-          <button @click="toggleCompare" class="relative z-10 mt-5 px-4 py-2 rounded-lg text-xs font-bold transition-colors border shadow-sm"
+          <button @click="toggleCompare"
+            class="relative z-10 mt-5 px-4 py-2 rounded-lg text-xs font-bold transition-colors border shadow-sm"
             :class="compareIndex !== null ? 'bg-danger/10 text-danger border-danger/20 hover:bg-danger/20' : 'bg-background text-text/60 border-secondary/20 hover:bg-secondary/10'">
-            <font-awesome-icon :icon="compareIndex !== null ? 'fa-solid fa-times' : 'fa-solid fa-crosshairs'" class="mr-1" />
+            <font-awesome-icon :icon="compareIndex !== null ? 'fa-solid fa-times' : 'fa-solid fa-crosshairs'"
+              class="mr-1" />
             {{ compareIndex !== null ? 'Batalkan Perbandingan' : 'Bandingkan dari Titik Ini' }}
           </button>
 
           <div class="relative z-10 mt-6 pt-5 border-t border-secondary/10 w-full max-w-md">
             <p class="text-sm text-text/80 font-medium mb-2">Catatan Transaksi:</p>
-            
+
             <div v-if="parsedNotes.ref" class="mb-3 flex justify-center">
-              <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-lg text-xs font-bold cursor-pointer hover:bg-primary/20 transition-colors" title="Klik untuk melihat dokumen (Fitur Mendatang)">
+              <span
+                class="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-lg text-xs font-bold cursor-pointer hover:bg-primary/20 transition-colors"
+                title="Klik untuk melihat dokumen (Fitur Mendatang)">
                 <font-awesome-icon icon="fa-solid fa-file-invoice" />
                 {{ parsedNotes.ref }}
                 <font-awesome-icon icon="fa-solid fa-arrow-up-right-from-square" class="ml-1 opacity-50" />
@@ -325,17 +331,17 @@ const compareSparklineX = computed(() => {
 
         <!-- Timeline Slider Control -->
         <div class="bg-background rounded-2xl p-8 border border-secondary/20 shadow-sm">
-          
+
           <!-- Movement Type Filter -->
-          <div v-if="availableMovementTypes.length > 1" class="flex flex-wrap items-center gap-2 mb-8 pb-6 border-b border-secondary/10">
+          <div v-if="availableMovementTypes.length > 1"
+            class="flex flex-wrap items-center gap-2 mb-8 pb-6 border-b border-secondary/10">
             <span class="text-xs font-bold text-text/40 uppercase tracking-wider mr-2">Filter Jenis Transaksi:</span>
-            <button 
-              v-for="type in availableMovementTypes" :key="type"
-              @click="toggleMovementTypeFilter(type)"
+            <button v-for="type in availableMovementTypes" :key="type" @click="toggleMovementTypeFilter(type)"
               class="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all border shadow-sm"
-              :class="!hiddenMovementTypes.has(type) ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20' : 'bg-transparent text-text/40 border-secondary/20 hover:bg-secondary/10'"
-            >
-              <font-awesome-icon :icon="!hiddenMovementTypes.has(type) ? 'fa-solid fa-check-square' : 'fa-regular fa-square'" class="mr-1.5 opacity-70" />
+              :class="!hiddenMovementTypes.has(type) ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20' : 'bg-transparent text-text/40 border-secondary/20 hover:bg-secondary/10'">
+              <font-awesome-icon
+                :icon="!hiddenMovementTypes.has(type) ? 'fa-solid fa-check-square' : 'fa-solid fa-square'"
+                class="mr-1.5 opacity-70" />
               {{ type.replace('_', ' ') }}
             </button>
           </div>
@@ -349,66 +355,57 @@ const compareSparklineX = computed(() => {
 
               <div class="flex flex-col items-end">
                 <span class="text-xs font-bold text-text/40 uppercase tracking-wider mb-1">Riwayat Baru</span>
-                <span class="text-[10px] text-text/30 font-mono">{{ formatDate(reversedData[reversedData.length - 1]?.created_at) }}</span>
+                <span class="text-[10px] text-text/30 font-mono">{{ formatDate(reversedData[reversedData.length -
+                  1]?.created_at) }}</span>
               </div>
             </div>
 
-          <div class="relative pt-2 pb-6">
-            <!-- Mini Sparkline Background -->
-            <div class="w-full h-12 mb-2 relative pointer-events-none opacity-40">
-              <svg viewBox="0 0 100 40" class="w-full h-full overflow-visible" preserveAspectRatio="none">
-                <polyline
-                  v-if="sparklinePoints"
-                  :points="sparklinePoints"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  class="text-primary/50"
-                  vector-effect="non-scaling-stroke"
-                />
-                <!-- Anomaly Highlights -->
-                <circle
-                  v-for="(point, idx) in anomalies" :key="'ano-'+idx"
-                  :cx="point.x" :cy="point.y" r="2.5"
-                  :class="point.type === 'up' ? 'fill-success' : 'fill-danger'"
-                  vector-effect="non-scaling-stroke"
-                />
-              </svg>
-              <!-- Compare Point Indicator Line -->
-              <div 
-                v-if="compareSparklineX !== null"
-                class="absolute top-0 bottom-0 w-[2px] bg-warning/80 transition-all duration-100 z-0"
-                :style="`left: ${compareSparklineX}%`"
-              ></div>
-              <!-- Current Point Indicator Line -->
-              <div 
-                v-if="reversedData.length > 0"
-                class="absolute top-0 bottom-0 w-[2px] bg-primary/80 transition-all duration-100 z-10"
-                :style="`left: ${currentSparklineX}%`"
-              ></div>
-            </div>
+            <div class="relative pt-2 pb-6">
+              <!-- Mini Sparkline Background -->
+              <div class="w-full h-12 mb-2 relative pointer-events-none opacity-40">
+                <svg viewBox="0 0 100 40" class="w-full h-full overflow-visible" preserveAspectRatio="none">
+                  <polyline v-if="sparklinePoints" :points="sparklinePoints" fill="none" stroke="currentColor"
+                    stroke-width="2" class="text-primary/50" vector-effect="non-scaling-stroke" />
+                  <!-- Anomaly Highlights -->
+                  <circle v-for="(point, idx) in anomalies" :key="'ano-' + idx" :cx="point.x" :cy="point.y" r="2.5"
+                    :class="point.type === 'up' ? 'fill-success' : 'fill-danger'" vector-effect="non-scaling-stroke" />
+                </svg>
+                <!-- Compare Point Indicator Line -->
+                <div v-if="compareSparklineX !== null"
+                  class="absolute top-0 bottom-0 w-[2px] bg-warning/80 transition-all duration-100 z-0"
+                  :style="`left: ${compareSparklineX}%`"></div>
+                <!-- Current Point Indicator Line -->
+                <div v-if="reversedData.length > 0"
+                  class="absolute top-0 bottom-0 w-[2px] bg-primary/80 transition-all duration-100 z-10"
+                  :style="`left: ${currentSparklineX}%`"></div>
+              </div>
 
-            <input type="range" :min="0" :max="reversedData.length - 1" v-model="sliderIndex"
-              class="relative z-20 w-full h-3 bg-secondary/10 rounded-full appearance-none cursor-ew-resize accent-primary hover:bg-secondary/20 transition-colors" />
-            <div
-              class="absolute -bottom-2 left-1/2 -translate-x-1/2 text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full pointer-events-none flex items-center gap-2">
-              <font-awesome-icon icon="fa-solid fa-arrows-left-right" class="text-[10px] opacity-60" />
-              Geser Slider (←/→)
-            </div>
+              <input type="range" :min="0" :max="reversedData.length - 1" v-model="sliderIndex"
+                class="relative z-20 w-full h-3 bg-secondary/10 rounded-full appearance-none cursor-ew-resize accent-primary hover:bg-secondary/20 transition-colors" />
+              <div
+                class="absolute -bottom-2 left-1/2 -translate-x-1/2 text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full pointer-events-none flex items-center gap-2">
+                <font-awesome-icon icon="fa-solid fa-arrows-left-right" class="text-[10px] opacity-60" />
+                Geser Slider (←/→)
+              </div>
 
-            <!-- Quick Jump Controls -->
-            <div class="flex items-center justify-between mt-5 px-2">
-              <button @click="sliderIndex = 0" class="text-[10px] uppercase font-bold text-text/40 hover:text-primary transition-colors flex items-center gap-1 group">
-                <font-awesome-icon icon="fa-solid fa-backward-step" class="group-hover:-translate-x-1 transition-transform" /> Awal Halaman
-              </button>
-              <button @click="sliderIndex = reversedData.length - 1" class="text-[10px] uppercase font-bold text-text/40 hover:text-primary transition-colors flex items-center gap-1 group">
-                Akhir Halaman <font-awesome-icon icon="fa-solid fa-forward-step" class="group-hover:translate-x-1 transition-transform" />
-              </button>
+              <!-- Quick Jump Controls -->
+              <div class="flex items-center justify-between mt-5 px-2">
+                <button @click="sliderIndex = 0"
+                  class="text-[10px] uppercase font-bold text-text/40 hover:text-primary transition-colors flex items-center gap-1 group">
+                  <font-awesome-icon icon="fa-solid fa-backward-step"
+                    class="group-hover:-translate-x-1 transition-transform" /> Awal Halaman
+                </button>
+                <button @click="sliderIndex = reversedData.length - 1"
+                  class="text-[10px] uppercase font-bold text-text/40 hover:text-primary transition-colors flex items-center gap-1 group">
+                  Akhir Halaman <font-awesome-icon icon="fa-solid fa-forward-step"
+                    class="group-hover:translate-x-1 transition-transform" />
+                </button>
+              </div>
             </div>
-          </div>
           </div> <!-- Close v-if="reversedData.length > 0" -->
-          
-          <div v-else class="py-10 text-center text-sm font-bold text-text/40 bg-secondary/5 rounded-xl border border-secondary/10 border-dashed">
+
+          <div v-else
+            class="py-10 text-center text-sm font-bold text-text/40 bg-secondary/5 rounded-xl border border-secondary/10 border-dashed">
             Semua data pada halaman ini disembunyikan oleh filter.
           </div>
 

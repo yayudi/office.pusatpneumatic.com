@@ -27,6 +27,7 @@ function selectTab(value) {
           ? 'bg-primary text-secondary shadow' // Active state
           : 'text-text/70 hover:bg-secondary/80 hover:text-primary', // Inactive state
       ]">
+      <font-awesome-icon v-if="tab.icon" :icon="tab.icon" class="mr-2" />
       {{ tab.label }}
     </button>
   </div>

@@ -37,6 +37,12 @@ const routes = [
     component: () => import('../views/ProfileView.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    path: '/guide',
+    name: 'Guide',
+    component: () => import('../views/GuideView.vue'),
+    meta: { requiresAuth: true },
+  },
 
   // --- WMS ROUTES ---
   {
