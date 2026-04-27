@@ -579,8 +579,8 @@ export const getBatchLogsService = async ({ startDate, endDate, productName, mov
     const params = [startDate, `${endDate} 23:59:59`];
 
     if (productName) {
-      query += ` AND p.name LIKE ?`;
-      params.push(`%${productName}%`);
+      query += ` AND (p.name LIKE ? OR p.sku LIKE ?)`;
+      params.push(`%${productName}%`, `%${productName}%`);
     }
 
     if (movementType) {

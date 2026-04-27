@@ -3,8 +3,6 @@
 import { ref, onMounted, computed } from 'vue'
 import { fetchBatchLogs } from '@/api/helpers/stock.js'
 import { useMasterDataStore } from '@/stores/masterData'
-
-const masterData = useMasterDataStore()
 import { useToast } from '@/composables/useToast.js'
 import FilterContainer from '@/components/ui/FilterContainer.vue'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
@@ -12,8 +10,8 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 import { useMobile } from '@/composables/useMobile.js'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
+const masterData = useMasterDataStore()
 const { isMobile } = useMobile()
-
 const { toast } = useToast()
 
 // State Filter
@@ -54,7 +52,7 @@ onMounted(async () => {
 
   // Load Locations untuk Dropdown
   try {
-    allLocations.value = await masterData.getLocations()
+    locations.value = await masterData.getLocations()
   } catch (e) {
     console.error("Gagal load lokasi", e)
   }
