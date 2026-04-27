@@ -15,13 +15,15 @@ import WmsHistoryModal from '@/components/wms/shared/HistoryModal.vue'
 import WmsProductFormModal from '@/components/wms/shared/ProductFormModal.vue'
 import SalesSimulationModal from '@/components/wms/shared/SalesSimulationModal.vue'
 import ProductImageModal from '@/components/products/ProductImageModal.vue'
+import { useMobile } from '@/composables/useMobile.js'
 
+const { isMobile } = useMobile()
 const {
   activeView,
   displayedProducts,
   loading,
-  isLoadingMore, // Jika ingin dipakai untuk loader bawah
-  isBackgroundLoading, // State untuk indikator update halus
+  isLoadingMore,
+  isBackgroundLoading,
   error,
   loader,
   searchBy,
@@ -59,7 +61,11 @@ const searchTerm = ref('')
 const isProductFormOpen = ref(false)
 const productFormMode = ref('edit') // Default to edit since create is removed from here
 const isSimulationModalOpen = ref(false)
-const mobileLayoutMode = ref('card')
+const mobileLayout = ref(isMobile.value ? 'card' : 'compact')
+
+watch(isMobile, (mobile) => {
+  mobileLayout.value = mobile ? 'card' : 'compact'
+})
 
 // Image Modal State
 const isImageModalOpen = ref(false)
@@ -202,12 +208,12 @@ const { Slash, Escape } = useMagicKeys()
 
 const anyModalOpen = computed(() => {
   return isHistoryModalOpen.value ||
-         isTransferModalOpen.value ||
-         isUploadModalOpen.value ||
-         isAdjustModalOpen.value ||
-         isProductFormOpen.value ||
-         isSimulationModalOpen.value ||
-         isImageModalOpen.value
+    isTransferModalOpen.value ||
+    isUploadModalOpen.value ||
+    isAdjustModalOpen.value ||
+    isProductFormOpen.value ||
+    isSimulationModalOpen.value ||
+    isImageModalOpen.value
 })
 
 watch(Slash, (pressed) => {
@@ -228,7 +234,7 @@ watch(Escape, (pressed) => {
 
 <template>
   <div class="h-min-screen p-4 sm:p-6">
-    <div class="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div class="mb-2 lg:mb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
       <div>
         <h2 class="text-2xl font-bold text-text flex items-center gap-3">
           <font-awesome-icon icon="fa-solid fa-warehouse" class="text-primary" />
@@ -238,39 +244,32 @@ watch(Escape, (pressed) => {
 
       <!-- ACTION BUTTON GROUP -->
       <div
-        class="bg-secondary/35 p-1.5 rounded-xl border border-secondary/20 shadow-sm flex gap-2 overflow-x-auto max-w-full items-center">
+        class="bg-secondary/35 p-1.5 rounded-xl border border-secondary/20 shadow-sm flex gap-2 overflow-x-auto max-w-full items-center"
+        :class="isMobile ? 'grid grid-cols-2 justify-center text-center w-full' : ''">
         <!-- Tombol 1: Perpindahan -->
         <router-link v-if="auth.hasPermission('perform-batch-movement')" to="/wms/actions/batch-movement"
-          class="px-4 py-2 text-sm font-bold text-accent hover:bg-accent/10 rounded-lg transition-all flex items-center gap-2 whitespace-nowrap"
+          class="px-4 py-2 text-sm font-bold text-accent hover:bg-accent/10 rounded-lg transition-all flex items-center gap-2 justify-center whitespace-nowrap"
           title="Pindah Stok Antar Lokasi">
           <font-awesome-icon icon="fa-solid fa-boxes-stacked" />
           <span>Pindah</span>
         </router-link>
-
-        <div class="w-px h-6 bg-primary"></div>
-
-        <!-- Tombol 2: Penyesuaian -->
+        <div v-if="!isMobile" class="w-px h-6 bg-primary"></div>
         <router-link v-if="auth.hasPermission('manage-stock-adjustment')" to="/wms/actions/batch-adjustment"
-          class="px-4 py-2 text-sm font-bold text-warning hover:bg-warning/10 rounded-lg transition-all flex items-center gap-2 whitespace-nowrap"
+          class="px-4 py-2 text-sm font-bold text-warning hover:bg-warning/10 rounded-lg transition-all flex items-center gap-2 justify-center whitespace-nowrap"
           title="Stock Opname / Penyesuaian">
           <font-awesome-icon icon="fa-solid fa-calculator" />
           <span>Opname</span>
         </router-link>
-
-        <div class="w-px h-6 bg-primary"></div>
-
-        <!-- Tombol 3: Retur -->
+        <div v-if="!isMobile" class="w-px h-6 bg-primary"></div>
         <router-link v-if="auth.hasPermission('manage-stock-adjustment')" to="/wms/actions/return"
-          class="px-4 py-2 text-sm font-bold text-danger hover:bg-danger/10 rounded-lg transition-all flex items-center gap-2 whitespace-nowrap"
+          class="px-4 py-2 text-sm font-bold text-danger hover:bg-danger/10 rounded-lg transition-all flex items-center gap-2 justify-center whitespace-nowrap"
           title="Validasi Barang Retur">
           <font-awesome-icon icon="fa-solid fa-rotate-left" />
           <span>Retur</span>
         </router-link>
-
-        <!-- Tombol 4: Simulasi Penjualan -->
-        <div class="w-px h-6 bg-primary"></div>
+        <div v-if="!isMobile" class="w-px h-6 bg-primary"></div>
         <button @click="isSimulationModalOpen = true"
-          class="px-4 py-2 text-sm font-bold text-success hover:bg-success/10 rounded-lg transition-all flex items-center gap-2 whitespace-nowrap"
+          class="px-4 py-2 text-sm font-bold text-success hover:bg-success/10 rounded-lg transition-all flex items-center gap-2 justify-center whitespace-nowrap"
           title="Simulasi Harga & Berat">
           <font-awesome-icon icon="fa-solid fa-calculator" />
           <span>Simulasi</span>
@@ -279,15 +278,15 @@ watch(Escape, (pressed) => {
     </div>
 
     <!-- Panel Kontrol Utama -->
-    <div class="bg-secondary/35 rounded-xl shadow-lg border border-secondary/20 p-6 pt-0 space-y-2">
-      <div class="sticky top-14 z-20 rounded-t-xl -mx-6 px-6 pt-4">
+    <div class="bg-secondary/35 rounded-xl shadow-lg border border-secondary/20 p-3 lg:p-6 space-y-2 w-full">
+      <div class="sticky top-14 z-20 rounded-t-xl">
         <WmsControlPanel :search-placeholder="searchPlaceholder" :search-tabs="searchTabs"
           :warehouse-views="warehouseViews" :building-filter-options="buildingFilterOptions"
           :floor-filter-options="floorFilterOptions" :is-auto-refetching="isAutoRefetching" @search="handleSearchInput"
           @toggle-refetch="toggleAutoRefetch" v-model:search-by="searchBy" v-model:searchValue="searchTerm"
           v-model:active-view="activeView" v-model:stock-status-filter="stockStatusFilter"
           v-model:product-type-filter="productTypeFilter" v-model:selected-building="selectedBuilding"
-          v-model:selected-floor="selectedFloor" v-model:mobileLayout="mobileLayoutMode"
+          v-model:selected-floor="selectedFloor" v-model:mobileLayout="mobileLayout"
           :available-columns="availableColumns" :visible-columns="visibleColumns" @toggle-column="toggleColumn" />
       </div>
 
@@ -304,7 +303,7 @@ watch(Escape, (pressed) => {
 
       <div v-else class="overflow-x-auto">
         <WmsProductTable :products="displayedProducts" :active-view="activeView" :sort-by="sortBy"
-          :sort-order="sortOrder" :loading="loading" :mobile-layout="mobileLayoutMode" @copy="copyToClipboard"
+          :sort-order="sortOrder" :loading="loading" :mobile-layout="mobileLayout" @copy="copyToClipboard"
           @openTransfer="openTransferModal" @openAdjust="openAdjustModal" @openHistory="openHistoryModal"
           @openEdit="openEditProductModal" @delete="handleDeleteProduct" @sort="handleSort"
           :visible-columns="visibleColumns" @view-image="openImageModal">

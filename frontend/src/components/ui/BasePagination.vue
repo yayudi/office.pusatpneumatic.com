@@ -1,6 +1,9 @@
 <script setup>
 import { computed } from 'vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import { useMobile } from '@/composables/useMobile.js'
+
+const { isMobile } = useMobile()
 
 const props = defineProps({
   pagination: {
@@ -102,7 +105,7 @@ const handleJumpPage = (e) => {
         <font-awesome-icon icon="fa-solid fa-angle-left" />
       </button>
 
-      <div class="flex items-center gap-1 mx-1">
+      <div class="flex items-center gap-1 mx-1" v-if="!isMobile">
         <template v-for="(p, i) in visiblePages" :key="i">
           <div v-if="p === '...'" class="relative w-8 h-8 group">
             <input type="number"
@@ -118,6 +121,15 @@ const handleJumpPage = (e) => {
             {{ p }}
           </button>
         </template>
+      </div>
+      
+      <div class="flex items-center gap-2 mx-1" v-else>
+        <div class="relative w-12 h-8 group">
+          <input type="number"
+            class="w-full h-full text-center text-xs font-bold bg-transparent border border-secondary/20 rounded-lg focus:border-primary outline-none remove-arrow transition-all"
+            :value="pagination.page" @keydown.enter="handleJumpPage" @blur="handleJumpPage" />
+        </div>
+        <span class="text-xs text-text/50 font-bold">/ {{ pagination.totalPages }}</span>
       </div>
 
       <button @click="changePage(pagination.page + 1)" :disabled="pagination.page === pagination.totalPages"

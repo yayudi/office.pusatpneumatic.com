@@ -69,8 +69,8 @@ async function runTest() {
 </script>
 
 <template>
-  <div class="flex h-screen flex-col items-center justify-center bg-secondary/20 p-4">
-    <div class="w-full max-w-sm bg-background p-6 rounded-xl shadow-lg border border-secondary/20">
+  <div class="flex h-screen flex-col items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-secondary/20 p-6 rounded-xl shadow-2xl">
       <div class="text-center mb-6">
         <font-awesome-icon icon="fa-solid fa-user-lock" class="text-primary text-4xl mb-3" />
         <h2 class="text-2xl font-bold text-text">Selamat Datang</h2>

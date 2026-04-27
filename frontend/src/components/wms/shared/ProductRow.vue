@@ -9,6 +9,9 @@ import FloatingTooltip from '@/components/ui/FloatingTooltip.vue'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/vue'
 import { resolveProductImageUrl } from '@/composables/useImageUrl'
 import ProductThumbnail from '@/components/common/ProductThumbnail.vue'
+import { useMobile } from '@/composables/useMobile'
+
+const { isMobile } = useMobile()
 
 const PPN_RATE = 0.11
 
@@ -286,8 +289,7 @@ const imageUrl = computed(() => resolveProductImageUrl(props.product))
       :class="mobileLayout === 'compact' ? 'col-span-1' : 'col-span-2'">
       <div class="flex items-center gap-3 w-full overflow-hidden">
         <!-- Mobile Thumbnail (Hidden on Desktop) -->
-        <ProductThumbnail v-if="mobileLayout === 'compact'" :image-url="imageUrl"
-          @click="$emit('view-image', product)" />
+        <ProductThumbnail v-if="isMobile" :image-url="imageUrl" @click="$emit('view-image', product)" />
 
         <div class="flex flex-col w-full overflow-hidden">
           <div class="flex items-center gap-2 w-full">

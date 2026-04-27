@@ -7,6 +7,9 @@ import { useAuthStore } from '../../stores/auth.js'
 import { usePwaInstall } from '@/composables/usePwaInstall.js'
 import { useAppHotkeys } from '@/composables/useAppHotkeys.js'
 import HotkeyCheatSheet from '../ui/HotkeyCheatSheet.vue'
+import { useMobile } from '@/composables/useMobile.js'
+
+const { isMobile } = useMobile()
 const dropdownContainer = ref(null)
 const mobileMenuPanel = ref(null)
 const hamburgerButton = ref(null)
@@ -38,6 +41,10 @@ watch(isDropdownOpen, (isOpen) => {
 })
 watch(isMobileMenuOpen, (isOpen) => {
   if (isOpen) isDropdownOpen.value = false
+})
+
+watch(isMobile, (mobile) => {
+  if (!mobile) isMobileMenuOpen.value = false
 })
 
 function handleClickOutside(event) {

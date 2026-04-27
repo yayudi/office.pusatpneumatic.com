@@ -4,6 +4,9 @@ import ProductRow from './ProductRow.vue'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import { formatCurrency } from '@/utils/formatters.js'
+import { useMobile } from '@/composables/useMobile.js'
+
+const { isMobile } = useMobile()
 
 const props = defineProps({
   products: { type: Array, required: true, default: () => [] },
@@ -74,9 +77,9 @@ const formatComponents = (components) => {
     class="flex-1 bg-background rounded-2xl shadow-sm border border-secondary/20 overflow-hidden flex flex-col relative h-full">
     <!-- Table Scroll Area -->
     <div class="flex-1 overflow-x-auto overflow-y-auto relative custom-scrollbar">
-      <table class="w-full text-left border-collapse min-w-[1000px]">
+      <table class="w-full text-left border-collapse" :class="isMobile ? 'block' : 'min-w-[1000px]'">
         <!-- HEADER (Sticky) -->
-        <thead class="sticky top-0 z-30 bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5">
+        <thead class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5" :class="isMobile ? 'hidden' : 'sticky top-0 z-30'">
           <tr class="text-text/60 text-xs font-bold uppercase tracking-wider">
             <!-- CHECKBOX ALL (Sticky Left) -->
             <th
@@ -133,7 +136,7 @@ const formatComponents = (components) => {
         </thead>
 
         <!-- BODY (Animated) -->
-        <TransitionGroup tag="tbody" name="list" class="divide-y divide-secondary/5 relative">
+        <TransitionGroup tag="tbody" name="list" class="relative" :class="isMobile ? 'block' : 'divide-y divide-secondary/5'">
           <!-- Loading State -->
           <template v-if="loading">
             <TableSkeleton v-for="n in 5" :key="`skeleton-${n}`" />
@@ -161,11 +164,14 @@ const formatComponents = (components) => {
           <template v-else>
             <template v-for="product in products" :key="product.id">
               <!-- Main Row -->
-              <tr class="hover:bg-secondary/5 transition-colors group border-b border-secondary/10 last:border-0"
-                :class="{ 'bg-secondary/5': expandedRows.has(product.id) }">
+              <tr class="transition-colors group relative"
+                :class="[
+                  isMobile ? 'block mb-4 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4' : 'hover:bg-secondary/5 border-b border-secondary/10 last:border-0',
+                  { 'bg-secondary/5': expandedRows.has(product.id) }
+                ]">
                 <!-- Checkbox (Sticky Left) -->
                 <td
-                  class="px-4 py-3 text-center sticky left-0 z-20 bg-background group-hover:bg-secondary/5 transition-colors border-b border-secondary/10">
+                  class="bg-background group-hover:bg-secondary/5 transition-colors" :class="isMobile ? 'absolute top-4 right-4 z-10 border-0' : 'px-4 py-3 text-center sticky left-0 z-20 border-b border-secondary/10'">
                   <input type="checkbox"
                     class="w-4 h-4 rounded border-secondary/30 text-primary focus:ring-primary bg-background cursor-pointer"
                     :checked="selectedIds && selectedIds.has(product.id)"
@@ -174,20 +180,22 @@ const formatComponents = (components) => {
 
                 <!-- Name (Sticky Left) -->
                 <td
-                  class="px-4 py-3 sticky left-12 z-20 bg-background group-hover:bg-secondary/5 transition-colors border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                  <div class="font-bold text-sm text-text">{{ product.name }}</div>
+                  class="bg-background group-hover:bg-secondary/5 transition-colors" :class="isMobile ? 'block pb-4 mb-2 border-b border-secondary/10' : 'px-4 py-3 sticky left-12 z-20 border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]'">
+                  <div class="font-bold text-text" :class="isMobile ? 'text-base max-w-[200px]' : 'text-sm'">{{ product.name }}</div>
                 </td>
 
                 <!-- SKU -->
-                <td class="px-4 py-3">
+                <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-4 py-3'">
+                  <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">SKU</span>
                   <span class="font-mono text-xs text-text/70 bg-secondary/10 px-2 py-1 rounded">{{ product.sku
                   }}</span>
                 </td>
 
                 <!-- Components Summary (Toggle) -->
-                <td class="px-4 py-3">
+                <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-4 py-3'">
+                  <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Komponen</span>
                   <button @click="toggleExpand(product.id)"
-                    class="flex items-center gap-2 text-xs font-medium px-2 py-1.5 rounded transition-colors hover:bg-secondary/10 w-full md:w-auto"
+                    class="flex items-center justify-end gap-2 text-xs font-medium px-2 py-1.5 rounded transition-colors hover:bg-secondary/10 md:w-auto"
                     :class="product.components?.length ? 'text-primary' : 'text-text/40 italic cursor-default'"
                     :disabled="!product.components?.length">
                     <font-awesome-icon v-if="product.components?.length"
@@ -201,12 +209,14 @@ const formatComponents = (components) => {
                 </td>
 
                 <!-- Price -->
-                <td class="px-4 py-3 text-right font-mono text-sm">
-                  {{ formatCurrency(product.price) }}
+                <td class="font-mono text-sm" :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-4 py-3 text-right'">
+                  <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold font-sans">Harga</span>
+                  <span>{{ formatCurrency(product.price) }}</span>
                 </td>
 
                 <!-- Status -->
-                <td class="px-4 py-3 text-center">
+                <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-4 py-3 text-center'">
+                  <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Status</span>
                   <span class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border"
                     :class="product.is_active ? 'bg-success/10 text-success border-success/20' : 'bg-secondary/20 text-text/50 border-secondary/30'">
                     {{ product.is_active ? 'Aktif' : 'Arsip' }}
@@ -215,32 +225,38 @@ const formatComponents = (components) => {
 
                 <!-- Actions (Sticky Right) -->
                 <td
-                  class="px-4 py-3 text-center sticky right-0 z-20 bg-background group-hover:bg-secondary/5 transition-colors border-b border-secondary/10 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                  class="bg-background group-hover:bg-secondary/5 transition-colors" :class="isMobile ? 'flex justify-end items-center pt-4' : 'px-4 py-3 text-center sticky right-0 z-20 border-b border-secondary/10 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]'">
                   <div
-                    class="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    class="flex items-center justify-center gap-2 transition-opacity" :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'">
                     <button @click="emit('edit', product)"
-                      class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-primary/10 text-primary transition-colors"
+                      class="flex items-center justify-center rounded-lg hover:bg-primary/10 text-primary transition-colors"
+                      :class="isMobile ? 'px-3 py-1.5 bg-primary/10 font-semibold text-xs gap-2' : 'w-8 h-8'"
                       title="Edit Paket">
                       <font-awesome-icon icon="fa-solid fa-pen-to-square" />
+                      <span v-if="isMobile">Edit</span>
                     </button>
                     <button v-if="product.is_active" @click="emit('delete', product)"
-                      class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-danger/10 text-danger transition-colors"
+                      class="flex items-center justify-center rounded-lg hover:bg-danger/10 text-danger transition-colors"
+                      :class="isMobile ? 'px-3 py-1.5 bg-danger/10 font-semibold text-xs gap-2' : 'w-8 h-8'"
                       title="Arsipkan">
                       <font-awesome-icon icon="fa-solid fa-box-archive" />
+                      <span v-if="isMobile">Arsip</span>
                     </button>
                     <button v-else @click="emit('restore', product)"
-                      class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-success/10 text-success transition-colors"
+                      class="flex items-center justify-center rounded-lg hover:bg-success/10 text-success transition-colors"
+                      :class="isMobile ? 'px-3 py-1.5 bg-success/10 font-semibold text-xs gap-2' : 'w-8 h-8'"
                       title="Pulihkan">
                       <font-awesome-icon icon="fa-solid fa-rotate-left" />
+                      <span v-if="isMobile">Pulihkan</span>
                     </button>
                   </div>
                 </td>
               </tr>
 
               <!-- Detail Row (Expanded) -->
-              <tr v-if="expandedRows.has(product.id)" class="bg-secondary/5 border-b border-secondary/10">
+              <tr v-if="expandedRows.has(product.id)" class="bg-secondary/5 border-b border-secondary/10" :class="isMobile ? 'block mx-4 mb-4 rounded-xl overflow-hidden' : ''">
                 <td colspan="7" class="p-0">
-                  <div class="px-12 py-4 flex flex-col md:flex-row gap-6">
+                  <div class="py-4 flex flex-col md:flex-row gap-6" :class="isMobile ? 'px-4' : 'px-12'">
                     <!-- Component List -->
                     <div class="flex-1 max-w-2xl">
                       <p class="text-xs font-bold text-text/50 uppercase mb-3 flex items-center gap-2">

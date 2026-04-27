@@ -4,6 +4,9 @@ import { useToast } from '@/composables/useToast.js'
 import { fetchProductStockDetails } from '@/api/helpers/products.js'
 import { processSingleTransfer } from '@/api/helpers/stock.js'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import { useMobile } from '@/composables/useMobile.js'
+
+const { isMobile } = useMobile()
 
 const props = defineProps({
   product: { type: Object, required: true },
@@ -97,22 +100,23 @@ async function submitTransfer() {
 
     <!-- Tabel Detail Stok -->
     <div class="max-h-64 overflow-y-auto border border-secondary/20 rounded-lg">
-      <table class="min-w-full text-sm">
-        <thead class="bg-secondary/10">
+      <table class="text-sm" :class="isMobile ? 'w-full block' : 'min-w-full'">
+        <thead :class="isMobile ? 'hidden' : 'bg-secondary/10'">
           <tr>
             <th class="p-2 text-left">Lokasi</th>
             <th class="p-2 text-center">Stok</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-secondary/20">
+        <tbody :class="isMobile ? 'block' : 'divide-y divide-secondary/20'">
           <tr v-if="stockDetails.length === 0">
             <td colspan="2" class="p-4 text-center text-text/60">
               Tidak ada stok untuk produk ini di lokasi manapun.
             </td>
           </tr>
-          <tr v-for="stock in stockDetails" :key="stock.location_id">
+          <tr v-for="stock in stockDetails" :key="stock.location_id"
+            :class="isMobile ? 'flex justify-between items-center p-3 border-b border-secondary/10' : ''">
             <td class="p-2 font-mono">{{ stock.location_code }}</td>
-            <td class="p-2 font-bold text-center">{{ stock.quantity }}</td>
+            <td class="p-2 font-bold" :class="isMobile ? '' : 'text-center'">{{ stock.quantity }}</td>
           </tr>
         </tbody>
       </table>

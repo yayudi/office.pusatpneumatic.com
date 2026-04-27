@@ -20,6 +20,7 @@ const AttendanceExclusionsModal = defineAsyncComponent(() => import('@/component
 import { useToast } from '@/composables/useToast.js'
 import { getAbsensiRange, uploadAbsensiFile } from '@/api/helpers/attendance.js'
 import { useMasterDataStore } from '@/stores/masterData'
+import { useMobile } from '@/composables/useMobile.js'
 
 // --- STATE ---
 const authStore = useAuthStore()
@@ -44,7 +45,12 @@ const dataNotFoundForCurrentUser = ref(false)
 // const isLoadingIndexes = ref(true) // Deprecated
 const isLoadingUsers = ref(false)
 const isDataLoading = ref(false)
-const mobileLayout = ref('card') // 'card' | 'compact'
+const { isMobile } = useMobile()
+const mobileLayout = ref(isMobile.value ? 'card' : 'compact') // 'card' | 'compact'
+
+watch(isMobile, (mobile) => {
+  mobileLayout.value = mobile ? 'card' : 'compact'
+})
 const canViewAll = computed(() => authStore.user?.permissions?.includes('view-other-attendance'))
 
 const displayedUsers = computed(() => {
@@ -192,36 +198,49 @@ async function handleUpload(formData) {
         leave-from-class="transform translate-y-0 opacity-100 max-h-[500px]"
         leave-to-class="transform -translate-y-4 opacity-0 max-h-0">
         <div v-show="isHeaderExpanded" class="overflow-hidden">
-          <div class="flex flex-row gap-2 w-full md:w-auto shrink-0">
-            <button v-if="canViewAll" @click="isExclusionsModalOpen = true"
-              class="bg-accent/10 border border-accent/30 text-accent hover:bg-accent/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap flex-1 md:flex-none">
-              <font-awesome-icon icon="fa-solid fa-user-shield" />
-              <span class="hidden sm:inline">Pengecualian Absen</span>
-              <span class="sm:hidden">Pengecualian</span>
-            </button>
+          <div class="py-3 px-4 md:px-6 flex flex-col gap-4">
+            <!-- Row 1: Tabs & Top Actions -->
+            <div class="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
+              <Tabs :tabs="[
+                { label: 'Statistik', value: 'statistik' },
+                { label: 'Ringkasan', value: 'summary' },
+                { label: 'Detail Log', value: 'detail' },
+              ]" v-model="activeTab" class="w-full md:w-auto overflow-x-auto shrink-0" />
 
-            <button v-if="canViewAll" @click="isUploadModalOpen = true"
-              class="bg-primary/10 border border-primary/30 text-primary hover:bg-primary/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap flex-1 md:flex-none">
-              <font-awesome-icon icon="fa-solid fa-file-import" />
-              <span>Import Data</span>
-            </button>
-          </div>
-          <div class="py-3 px-4 md:px-6 flex flex-col md:flex-row items-stretch md:items-center gap-4">
-            <Tabs :tabs="[
-              { label: 'Statistik', value: 'statistik' },
-              { label: 'Ringkasan', value: 'summary' },
-              { label: 'Detail Log', value: 'detail' },
-            ]" v-model="activeTab" class="w-full xl:w-auto overflow-x-auto shrink-0" />
+              <div class="flex flex-row gap-2 shrink-0">
+                <button v-if="canViewAll" @click="isExclusionsModalOpen = true"
+                  class="bg-accent/10 border border-accent/30 text-accent hover:bg-accent/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap flex-1 md:flex-none">
+                  <font-awesome-icon icon="fa-solid fa-user-shield" />
+                  <span class="hidden sm:inline">Pengecualian Absen</span>
+                  <span class="sm:hidden">Pengecualian</span>
+                </button>
 
-            <div class="flex flex-row flex-wrap gap-4 flex-1 items-center justify-end w-full">
+                <button v-if="canViewAll" @click="isUploadModalOpen = true"
+                  class="bg-primary/10 border border-primary/30 text-primary hover:bg-primary/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap flex-1 md:flex-none">
+                  <font-awesome-icon icon="fa-solid fa-file-import" />
+                  <span>Import Data</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Row 2: Filters -->
+            <div class="w-full">
               <FilterBar :filters="[]" v-model="filterValues" @clear="clearFilters"
-                class="w-full md:w-auto !mb-0 shrink-0">
+                class="w-full !mb-0 shrink-0">
                 <template #prepend>
-                  <DateRangeFilter v-model:startDate="filterValues.startDate" v-model:endDate="filterValues.endDate"
-                    align="left" />
+                  <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+                    <DateRangeFilter v-model:startDate="filterValues.startDate" v-model:endDate="filterValues.endDate"
+                      align="left" class="w-full sm:w-auto" />
+                    
+                    <div v-if="canViewAll" class="w-full sm:w-[250px] lg:w-[350px] shrink-0">
+                      <BaseSelect v-model="filterValues.name" :options="allUsersForFilter" :multiple="true"
+                        :loading="isLoadingUsers" :disabled="isLoadingUsers" label="label" track-by="value"
+                        placeholder="Cari nama karyawan..." class="w-full" />
+                    </div>
+                  </div>
                 </template>
                 <template #actions>
-                  <div class="flex items-center bg-secondary/20 rounded-lg p-1 border border-secondary/20 lg:hidden">
+                  <div class="flex items-center bg-secondary/20 rounded-lg p-1 border border-secondary/20 lg:hidden ml-auto md:ml-0">
                     <button @click="mobileLayout = 'card'"
                       class="p-2 rounded-md transition-all duration-200 flex items-center justify-center w-8 h-8"
                       :class="mobileLayout === 'card' ? 'bg-primary text-secondary shadow-sm' : 'text-text/60 hover:text-primary'"
@@ -234,12 +253,6 @@ async function handleUpload(formData) {
                       title="Tampilan Compact">
                       <font-awesome-icon icon="fa-solid fa-list" />
                     </button>
-                  </div>
-
-                  <div v-if="canViewAll" class="w-full md:flex-1 min-w-[200px] shrink-0">
-                    <BaseSelect v-model="filterValues.name" :options="allUsersForFilter" :multiple="true"
-                      :loading="isLoadingUsers" :disabled="isLoadingUsers" label="label" track-by="value"
-                      placeholder="Pilih satu atau beberapa nama..." class="w-full" />
                   </div>
                 </template>
               </FilterBar>

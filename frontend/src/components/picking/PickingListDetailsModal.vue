@@ -4,6 +4,9 @@ import { ref, watch } from 'vue'
 import Modal from '@/components/ui/Modal.vue'
 import { useToast } from '@/composables/useToast.js'
 import { fetchPickingDetails } from '@/api/helpers/picking.js' // Helper baru
+import { useMobile } from '@/composables/useMobile.js'
+
+const { isMobile } = useMobile()
 
 const props = defineProps({
   show: Boolean,
@@ -91,20 +94,30 @@ function handleVoid() {
         <div v-else-if="!items || items.length === 0" class="text-center p-8 text-text/60 italic">
           Tidak ada detail item.
         </div>
-        <table v-else class="min-w-full text-xs">
-          <thead class="bg-secondary/10 uppercase text-text/70 sticky top-0 z-10">
+        <table v-else class="text-xs" :class="isMobile ? 'w-full block' : 'min-w-full'">
+          <thead class="bg-secondary/10 uppercase text-text/70 z-10" :class="isMobile ? 'hidden' : 'sticky top-0'">
             <tr>
               <th class="p-2 text-left">SKU</th>
               <th class="p-2 text-left">Nama Produk</th>
               <th class="p-2 text-center">Jumlah</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-secondary/20">
+          <tbody :class="isMobile ? 'block' : 'divide-y divide-secondary/20'">
             <!-- Loop 'itemDetail' agar tidak konflik nama dengan prop 'item' -->
-            <tr v-for="itemDetail in items" :key="itemDetail.sku">
-              <td class="p-2 font-mono">{{ itemDetail.sku }}</td>
-              <td class="p-2">{{ itemDetail.name }}</td>
-              <td class="p-2 text-center font-bold">{{ itemDetail.qty }}</td>
+            <tr v-for="itemDetail in items" :key="itemDetail.sku" class="transition-colors"
+              :class="isMobile ? 'block mb-3 p-3 bg-background/50 rounded-xl border border-secondary/20 shadow-sm' : ''">
+              <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">SKU</span>
+                <span class="font-mono">{{ itemDetail.sku }}</span>
+              </td>
+              <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Produk</span>
+                <span>{{ itemDetail.name }}</span>
+              </td>
+              <td :class="isMobile ? 'flex justify-between items-center py-1.5' : 'p-2 text-center font-bold'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Jumlah</span>
+                <span class="font-bold">{{ itemDetail.qty }}</span>
+              </td>
             </tr>
           </tbody>
         </table>

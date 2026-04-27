@@ -80,7 +80,7 @@ const dismissHotkeyBanner = () => {
   <!-- Hotkey Notification Banner -->
   <Transition name="pwa-install-slide">
     <div v-if="!isHotkeyBannerDismissed && (!isInstallable || isBannerDismissed)" id="hotkey-info-banner"
-      class="fixed bottom-20 sm:bottom-4 left-1/2 -translate-x-1/2 z-40 w-[90%] max-w-md bg-secondary border border-primary/20 rounded-xl shadow-2xl px-5 py-4 flex items-start gap-4">
+      class="fixed bottom-20 sm:bottom-4 left-1/2 -translate-x-1/2 z-40 w-[90%] max-w-sm bg-secondary border border-primary/20 rounded-xl shadow-2xl px-5 py-4 flex items-start gap-4">
       <div class="flex-shrink-0 bg-background/50 p-2 rounded-lg mt-4">
         <font-awesome-icon icon="fa-solid fa-keyboard" class="text-primary text-xl" />
       </div>

@@ -9,6 +9,9 @@ import TableSkeleton from '@/components/ui/TableSkeleton.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import { computed } from 'vue'
+import { useMobile } from '@/composables/useMobile.js'
+
+const { isMobile } = useMobile()
 
 const logs = ref([])
 const total = ref(0)
@@ -139,8 +142,8 @@ onMounted(() => {
     <div class="bg-background shadow-md rounded-xl border border-secondary/20 flex flex-col h-[calc(100vh-250px)]">
       <!-- Scrollable Table -->
       <div class="overflow-x-auto overflow-y-auto custom-scrollbar flex-1 relative rounded-t-xl">
-        <table class="w-full text-sm text-left text-text border-collapse">
-          <thead class="sticky top-0 z-30 bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5">
+        <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : ''">
+          <thead class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5" :class="isMobile ? 'hidden' : 'sticky top-0 z-30'">
             <tr class="text-xs text-text/80 uppercase">
               <th
                 class="px-6 py-3 sticky left-0 z-30 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] w-[180px]">
@@ -151,7 +154,7 @@ onMounted(() => {
               <th class="px-6 py-3 border-b border-secondary/10">Perubahan</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-secondary/5 relative">
+          <tbody class="relative" :class="isMobile ? 'block' : 'divide-y divide-secondary/5'">
             <template v-if="isLoading">
               <TableSkeleton v-for="n in 5" :key="`skeleton-${n}`" />
             </template>
@@ -161,21 +164,24 @@ onMounted(() => {
             </tr>
 
             <tr v-else v-for="log in logs" :key="log.id"
-              class="border-b border-secondary/20 hover:bg-secondary/5 transition-colors group relative">
+              class="transition-colors group relative" :class="isMobile ? 'block mb-4 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4' : 'border-b border-secondary/20 hover:bg-secondary/5'">
               <td
-                class="px-6 py-4 whitespace-nowrap sticky left-0 z-20 bg-background group-hover:bg-secondary/5 transition-colors shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                <div class="flex flex-col">
+                class="whitespace-nowrap bg-background group-hover:bg-secondary/5 transition-colors" :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4 sticky left-0 z-20 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Waktu</span>
+                <div class="flex flex-col" :class="isMobile ? 'items-end' : ''">
                   <span class="font-bold text-sm text-text">{{ formatDate(log.created_at) }}</span>
                   <span class="text-[10px] text-text/40">{{ log.ip_address || '-' }}</span>
                 </div>
               </td>
-              <td class="px-6 py-4">
-                <div class="flex flex-col">
+              <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">User</span>
+                <div class="flex flex-col" :class="isMobile ? 'items-end' : ''">
                   <span class="font-bold text-sm">{{ log.nickname || log.username || 'System' }}</span>
                   <span class="text-xs text-text/50">{{ log.role || 'N/A' }}</span>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Aksi</span>
                 <span class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide border" :class="{
                   'bg-success/10 text-success border-success/20': log.action === 'CREATE',
                   'bg-warning/10 text-warning border-warning/20': log.action === 'UPDATE',
@@ -186,21 +192,23 @@ onMounted(() => {
                   {{ log.action }}
                 </span>
               </td>
-              <td class="px-6 py-4">
-                <div class="flex flex-col">
+              <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Target</span>
+                <div class="flex flex-col" :class="isMobile ? 'items-end' : ''">
                   <span class="font-bold text-xs text-primary bg-primary/5 px-2 py-0.5 rounded w-fit mb-1">{{
                     log.target_type
                     }}</span>
-                  <span class="text-xs text-text/60 font-mono tracking-tight text-ellipsis overflow-hidden">{{
+                  <span class="text-xs text-text/60 font-mono tracking-tight text-ellipsis overflow-hidden max-w-[200px]">{{
                     log.target_id
                     }}</span>
                 </div>
               </td>
-              <td class="px-6 py-4 text-sm">
+              <td class="text-sm" :class="isMobile ? 'flex flex-col gap-2 pt-4' : 'px-6 py-4'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold block mb-2 border-b border-secondary/10 pb-2">Perubahan</span>
                 <div v-if="log.changes" class="space-y-1">
                   <div v-for="(val, key) in formatChanges(log.changes)" :key="key"
-                    class="grid grid-cols-[100px_1fr] gap-2 text-xs">
-                    <span class="font-mono text-text/50 text-right truncate" :title="key">{{ key }}:</span>
+                    class="grid gap-2 text-xs" :class="isMobile ? 'grid-cols-1' : 'grid-cols-[100px_1fr]'">
+                    <span class="font-mono text-text/50 truncate" :class="isMobile ? 'text-left font-semibold text-primary' : 'text-right'" :title="key">{{ key }}:</span>
                     <div v-if="val && typeof val === 'object'" class="font-mono flex items-center gap-2 flex-wrap">
                       <span
                         class="bg-danger/5 text-danger px-1.5 py-0.5 rounded decoration-auto line-through opacity-70 break-all">{{
@@ -212,8 +220,7 @@ onMounted(() => {
                         'NULL'
                       }}</span>
                     </div>
-
-                    <!-- Handle if val is a primitive (e.g. note: "User Logged in") -->
+                    <!-- Handle if val is a primitive -->
                     <div v-else class="font-mono flex items-center gap-2 flex-wrap">
                       <span class="text-text/80 break-all">{{ val !== null && val !== undefined ? val : 'NULL' }}</span>
                     </div>

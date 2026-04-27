@@ -12,6 +12,9 @@ import { useMasterDataStore } from '@/stores/masterData'
 import Modal from '@/components/ui/Modal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
+import { useMobile } from '@/composables/useMobile.js'
+
+const { isMobile } = useMobile()
 
 const masterData = useMasterDataStore()
 
@@ -126,8 +129,8 @@ watch(Alt_S, (pressed) => {
 
     <div
       class="bg-background shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(100vh-200px)]">
-      <table class="w-full text-sm text-left text-text border-collapse">
-        <thead class="sticky top-0 z-30 bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5">
+      <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : 'min-w-[600px]'">
+        <thead class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5" :class="isMobile ? 'hidden' : 'sticky top-0 z-30'">
           <tr class="text-xs text-text/80 uppercase">
             <th
               class="px-6 py-3 sticky left-0 z-30 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
@@ -141,7 +144,7 @@ watch(Alt_S, (pressed) => {
               Aksi</th>
           </tr>
         </thead>
-        <TransitionGroup tag="tbody" name="list" class="divide-y divide-secondary/5 relative">
+        <TransitionGroup tag="tbody" name="list" class="relative" :class="isMobile ? 'block' : 'divide-y divide-secondary/5'">
           <!-- Loading State -->
           <template v-if="loading">
             <TableSkeleton v-for="n in 5" :key="`skeleton-${n}`" />
@@ -154,16 +157,30 @@ watch(Alt_S, (pressed) => {
           </tr>
 
           <tr v-else v-for="loc in allLocations" :key="loc.id"
-            class="border-b border-secondary/20 hover:bg-secondary/5 transition-colors group relative">
+            class="transition-colors group relative" :class="isMobile ? 'block mb-4 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4' : 'border-b border-secondary/20 hover:bg-secondary/5'">
             <td
-              class="px-6 py-4 font-mono font-semibold sticky left-0 z-20 bg-background group-hover:bg-secondary/5 transition-colors shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-              {{ loc.code }}</td>
-            <td class="px-6 py-4">{{ loc.building }}</td>
-            <td class="px-6 py-4">{{ loc.floor || '-' }}</td>
-            <td class="px-6 py-4 text-text/80">{{ loc.name || '-' }}</td>
-            <td class="px-6 py-4 font-mono text-xs">{{ loc.purpose || '-' }}</td>
+              class="font-mono font-semibold bg-background group-hover:bg-secondary/5 transition-colors" :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4 sticky left-0 z-20 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]'">
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-sans">Kode</span>
+              <span>{{ loc.code }}</span>
+            </td>
+            <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Gedung</span>
+              <span>{{ loc.building }}</span>
+            </td>
+            <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Lantai</span>
+              <span>{{ loc.floor || '-' }}</span>
+            </td>
+            <td class="text-text/80" :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Nama</span>
+              <span>{{ loc.name || '-' }}</span>
+            </td>
+            <td class="font-mono text-xs" :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-sans font-semibold">Purpose</span>
+              <span>{{ loc.purpose || '-' }}</span>
+            </td>
             <td
-              class="px-6 py-4 text-center space-x-4 sticky right-0 z-20 bg-background group-hover:bg-secondary/5 transition-colors shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+              class="space-x-4 bg-background group-hover:bg-secondary/5 transition-colors" :class="isMobile ? 'flex justify-end items-center pt-4' : 'px-6 py-4 text-center sticky right-0 z-20 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]'">
               <button @click="openEditModal(loc)"
                 class="text-primary hover:text-primary/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105">
                 <font-awesome-icon icon="fa-solid fa-edit" />

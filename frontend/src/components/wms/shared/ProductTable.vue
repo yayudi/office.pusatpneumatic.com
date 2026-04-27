@@ -55,67 +55,47 @@ function sortIcon(column) {
     <table class="min-w-full md:min-w-[1000px] w-full bg-background text-sm text-text border-collapse">
       <!-- STATIC HEADER -->
       <thead
-        class="hidden md:table-header-group sticky top-0 z-30 bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5">
+        class="hidden md:table-header-group sticky top-0 z-50 bg-background shadow-sm uppercase text-xs font-bold text-text/60">
         <tr>
-          <!-- Name Column (Sticky) -->
-          <!-- Image Column (Sticky Left) -->
-          <th
-            class="px-4 py-3 w-16 text-center border-b border-secondary/10 md:sticky md:left-0 z-30 bg-background/95 backdrop-blur-md md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] uppercase text-xs font-bold text-text/60">
+          <th class="px-4 py-3 w-16 text-center md:sticky md:left-0 z-30 md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
             Foto
           </th>
-
-          <!-- Name Column (Sticky on Desktop only) -->
           <th
-            class="px-6 py-3 border-b border-secondary/10 md:sticky md:left-16 z-30 bg-background/95 backdrop-blur-md md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] text-left uppercase text-xs font-bold text-text/60 cursor-pointer hover:text-primary transition-colors min-w-[250px] md:w-[350px]"
+            class="px-6 py-3 md:sticky md:left-16 md:border-r md:border-secondary/50 z-30 md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] text-left cursor-pointer hover:text-primary transition-colors min-w-[250px] md:w-[350px]"
             @click="handleSort('name')">
             <div class="flex items-center gap-2">
               Produk <font-awesome-icon :icon="sortIcon('name')" />
             </div>
           </th>
-
-          <!-- SKU -->
           <th v-if="visibleColumns.has('sku')"
-            class="px-6 py-3 border-b border-secondary/10 text-left uppercase text-xs font-bold text-text/60 cursor-pointer hover:text-primary transition-colors"
+            class="px-6 py-3 text-left md:border-r md:border-secondary/50 cursor-pointer hover:text-primary transition-colors"
             @click="handleSort('sku')">
             <div class="flex items-center gap-2">
               SKU <font-awesome-icon :icon="sortIcon('sku')" />
             </div>
           </th>
-
-          <!-- WEIGHT -->
           <th v-if="visibleColumns.has('weight')"
-            class="px-6 py-3 border-b border-secondary/10 text-right uppercase text-xs font-bold text-text/60 cursor-pointer hover:text-primary transition-colors"
+            class="px-6 py-3 text-right md:border-r md:border-secondary/50 cursor-pointer hover:text-primary transition-colors"
             @click="handleSort('weight')">
             <div class="flex items-center justify-end gap-2">
               Berat <font-awesome-icon :icon="sortIcon('weight')" />
             </div>
           </th>
-
-          <!-- PRICE (Conditional) -->
           <th v-if="auth.canViewPrices && visibleColumns.has('price')"
-            class="px-6 py-3 border-b border-secondary/10 text-right uppercase text-xs font-bold text-text/60 cursor-pointer hover:text-primary transition-colors"
+            class="px-6 py-3 text-right md:border-r md:border-secondary/50 cursor-pointer hover:text-primary transition-colors"
             @click="handleSort('price')">
             <div class="flex items-center justify-end gap-2">
               Harga <font-awesome-icon :icon="sortIcon('price')" />
             </div>
           </th>
-
-          <!-- LOCATION -->
-          <th v-if="visibleColumns.has('location')"
-            class="px-6 py-3 border-b border-secondary/10 text-center uppercase text-xs font-bold text-text/60">
+          <th v-if="visibleColumns.has('location')" class="px-6 py-3 text-center md:border-r md:border-secondary/50">
             Lokasi
           </th>
-
-          <!-- STOCK -->
-          <th v-if="visibleColumns.has('stock')"
-            class="px-6 py-3 border-b border-secondary/10 text-center uppercase text-xs font-bold text-text/60">
+          <th v-if="visibleColumns.has('stock')" class="px-6 py-3 text-center md:border-r md:border-secondary/50">
             Stok
           </th>
-
-          <!-- ACTIONS (Sticky Right) -->
-          <!-- ACTIONS (Sticky Right) -->
           <th
-            class="px-6 py-3 border-b border-secondary/10 md:sticky md:right-0 z-30 bg-background/95 backdrop-blur-md md:shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)] text-center uppercase text-xs font-bold text-text/60 min-w-[80px]">
+            class="px-6 py-3 md:sticky md:right-0 z-30 md:border-r md:border-secondary/50 md:shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)] text-center min-w-[80px]">
             Aksi
           </th>
         </tr>

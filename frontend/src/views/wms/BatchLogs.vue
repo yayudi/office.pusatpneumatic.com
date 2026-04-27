@@ -9,6 +9,10 @@ import { useToast } from '@/composables/useToast.js'
 import FilterContainer from '@/components/ui/FilterContainer.vue'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import { useMobile } from '@/composables/useMobile.js'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+
+const { isMobile } = useMobile()
 
 const { toast } = useToast()
 
@@ -125,29 +129,15 @@ function handleReset() {
           <!-- Movement Type -->
           <div class="space-y-1.5">
             <label class="text-xs font-bold text-text/60 uppercase tracking-wide">Tipe</label>
-            <BaseSelect
-              v-model="searchType"
-              :options="movementTypeOptions"
-              label="label"
-              track-by="id"
-              placeholder="Tipe"
-              :searchable="false"
-              emit-value
-            />
+            <BaseSelect v-model="searchType" :options="movementTypeOptions" label="label" track-by="id"
+              placeholder="Tipe" :searchable="false" emit-value />
           </div>
 
           <!-- Location -->
           <div class="space-y-1.5">
             <label class="text-xs font-bold text-text/60 uppercase tracking-wide">Lokasi</label>
-            <BaseSelect
-              v-model="searchLocation"
-              :options="locationOptions"
-              label="label"
-              track-by="id"
-              placeholder="Lokasi"
-              :searchable="true"
-              emit-value
-            />
+            <BaseSelect v-model="searchLocation" :options="locationOptions" label="label" track-by="id"
+              placeholder="Lokasi" :searchable="true" emit-value />
           </div>
 
           <!-- User -->
@@ -172,7 +162,7 @@ function handleReset() {
           <div class="flex gap-2">
             <button @click="handleReset"
               class="h-[42px] px-4 bg-secondary/10 text-text/70 ring-1 ring-danger/20 hover:text-danger hover:bg-danger/10 rounded-lg text-sm font-bold transition-all flex-1 xl:flex-none">
-              Reset
+              <font-awesome-icon icon="fa-solid fa-rotate-right" />
             </button>
             <button @click="handleSearch" :disabled="loading"
               class="h-[42px] px-6 bg-primary text-secondary rounded-lg text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 transition-all flex items-center justify-center gap-2 flex-[2] xl:flex-1">
@@ -200,8 +190,9 @@ function handleReset() {
           <p class="text-text/50 text-sm">Coba sesuaikan filter pencarian.</p>
         </div>
 
-        <table v-else class="min-w-full text-xs">
-          <thead class="bg-secondary uppercase text-text/70 sticky top-0 backdrop-blur-sm z-10">
+        <table v-else class="text-xs" :class="isMobile ? 'w-full block' : 'min-w-full'">
+          <thead class="bg-secondary uppercase text-text/70 backdrop-blur-sm z-10"
+            :class="isMobile ? 'hidden' : 'sticky top-0'">
             <tr>
               <th class="p-3 text-left font-bold border-b border-secondary/20">Waktu</th>
               <th class="p-3 text-left font-bold border-b border-secondary/20">Produk</th>
@@ -212,27 +203,40 @@ function handleReset() {
               <th class="p-3 text-left font-bold border-b border-secondary/20">Notes</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-secondary/10">
-            <tr v-for="log in logs" :key="log.id" class="hover:bg-primary/5 transition-colors">
-              <td class="p-3 whitespace-nowrap align-top text-text/80">
-                <div class="font-medium">
-                  {{ new Date(log.created_at).toLocaleDateString('id-ID') }}
-                </div>
-                <div class="text-[10px] opacity-60">
-                  {{ new Date(log.created_at).toLocaleTimeString('id-ID') }}
+          <tbody :class="isMobile ? 'block' : 'divide-y divide-secondary/10'">
+            <tr v-for="log in logs" :key="log.id" class="transition-colors"
+              :class="isMobile ? 'block mb-4 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4' : 'hover:bg-primary/5'">
+              <td
+                :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'p-3 whitespace-nowrap align-top text-text/80'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Waktu</span>
+                <div class="flex flex-col" :class="isMobile ? 'items-end' : ''">
+                  <div class="font-medium">
+                    {{ new Date(log.created_at).toLocaleDateString('id-ID') }}
+                  </div>
+                  <div class="text-[10px] opacity-60">
+                    {{ new Date(log.created_at).toLocaleTimeString('id-ID') }}
+                  </div>
                 </div>
               </td>
-              <td class="p-3 align-top">
-                <div class="font-bold text-primary">{{ log.product_name }}</div>
-                <div class="font-mono text-[10px] text-text/50 bg-secondary/10 inline-block px-1 rounded">{{ log.sku }}
+              <td
+                :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'p-3 align-top'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Produk</span>
+                <div :class="isMobile ? 'text-right' : ''">
+                  <div class="font-bold text-primary">{{ log.product_name }}</div>
+                  <div class="font-mono text-[10px] text-text/50 bg-secondary/10 inline-block px-1 rounded">{{ log.sku
+                    }}</div>
                 </div>
               </td>
-              <td class="p-3 text-center align-top">
+              <td
+                :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'p-3 text-center align-top'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Qty</span>
                 <span class="font-bold text-sm" :class="log.quantity > 0 ? 'text-text' : 'text-accent'">
                   {{ log.quantity }}
                 </span>
               </td>
-              <td class="p-3 align-top">
+              <td
+                :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'p-3 align-top'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Tipe</span>
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider" :class="{
                   'bg-primary/10 text-primary': log.movement_type === 'TRANSFER',
                   'bg-success/10 text-success': log.movement_type === 'INBOUND' || log.movement_type === 'RETURN',
@@ -241,19 +245,32 @@ function handleReset() {
                   {{ log.movement_type }}
                 </span>
               </td>
-              <td class="p-3 align-top text-text/80">
-                <div v-if="log.from_location" class="flex items-center gap-1 text-[10px]">
-                  <span class="text-text/50 w-8">Dari:</span>
-                  <span class="font-mono font-bold">{{ log.from_location }}</span>
-                </div>
-                <div v-if="log.to_location" class="flex items-center gap-1 text-[10px]">
-                  <span class="text-text/50 w-8">Ke:</span>
-                  <span class="font-mono font-bold">{{ log.to_location }}</span>
+              <td
+                :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10 text-text/80' : 'p-3 align-top text-text/80'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Route</span>
+                <div :class="isMobile ? 'text-right' : ''">
+                  <div v-if="log.from_location" class="flex items-center gap-1 text-[10px]"
+                    :class="isMobile ? 'justify-end' : ''">
+                    <span class="text-text/50">Dari:</span>
+                    <span class="font-mono font-bold">{{ log.from_location }}</span>
+                  </div>
+                  <div v-if="log.to_location" class="flex items-center gap-1 text-[10px]"
+                    :class="isMobile ? 'justify-end' : ''">
+                    <span class="text-text/50">Ke:</span>
+                    <span class="font-mono font-bold">{{ log.to_location }}</span>
+                  </div>
                 </div>
               </td>
-              <td class="p-3 align-top text-text/80">{{ log.user }}</td>
-              <td class="p-3 align-top text-text/60 italic max-w-[200px] truncate" :title="log.notes">
-                {{ log.notes || '-' }}
+              <td
+                :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'p-3 align-top text-text/80'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">User</span>
+                <span class="text-text/80">{{ log.user }}</span>
+              </td>
+              <td
+                :class="isMobile ? 'flex justify-between items-center py-2' : 'p-3 align-top text-text/60 italic max-w-[200px] truncate'"
+                :title="log.notes">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Notes</span>
+                <span class="text-text/60 italic">{{ log.notes || '-' }}</span>
               </td>
             </tr>
           </tbody>

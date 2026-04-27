@@ -126,7 +126,8 @@ function updateDropdownPosition() {
           <font-awesome-icon icon="fa-solid fa-search" />
         </span>
 
-        <input id="global-search-input" :value="searchValue" @input="onSearchInput" type="text" :placeholder="searchPlaceholder"
+        <input id="global-search-input" :value="searchValue" @input="onSearchInput" type="text"
+          :placeholder="searchPlaceholder"
           class="w-full pl-10 pr-10 py-2 bg-background border border-primary/20 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 text-text transition-all placeholder-text/30 h-[42px]" />
 
         <button v-if="searchValue" @click="clearSearch"

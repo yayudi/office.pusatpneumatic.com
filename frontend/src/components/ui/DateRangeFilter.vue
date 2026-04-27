@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { format, subDays, startOfMonth, endOfMonth, parseISO } from 'date-fns'
 import { id } from 'date-fns/locale'
+import { useMobile } from '@/composables/useMobile'
 
 const props = defineProps({
   startDate: { type: String, default: null },
@@ -14,6 +15,7 @@ const emit = defineEmits(['update:startDate', 'update:endDate', 'change'])
 const isOpen = ref(false)
 const containerRef = ref(null)
 const popoverStyle = ref({})
+const { isMobile } = useMobile()
 
 // Local state for the picker
 const tempStart = ref('')
@@ -51,14 +53,43 @@ const updatePosition = () => {
   const rect = containerRef.value.getBoundingClientRect()
 
   const style = {
-    top: `${rect.bottom + 8}px`, // +8px for margin (mt-2)
+    top: `${rect.bottom + 8}px`,
   }
 
-  if (props.align === 'right') {
-    style.right = `${window.innerWidth - rect.right}px`
+  // Get popover width if rendered, otherwise use safe estimate
+  let popoverWidth = 460
+  const popoverEl = document.querySelector('.date-range-popover')
+  if (popoverEl) {
+    popoverWidth = popoverEl.getBoundingClientRect().width
+  }
+
+  // Collision logic
+  let useRight = props.align === 'right'
+
+  if (!useRight && (rect.left + popoverWidth > window.innerWidth - 16)) {
+    // If left-aligned but overflows right edge
+    useRight = true
+  }
+
+  if (useRight && (rect.right - popoverWidth < 16)) {
+    // If right-aligned but overflows left edge
+    useRight = false
+  }
+
+  // Apply final position with safe margins
+  if (useRight) {
+    let rightPos = window.innerWidth - rect.right
+    // Prevent cut off on the right
+    if (rightPos < 16) rightPos = 16
+
+    style.right = `${rightPos}px`
     style.left = 'auto'
   } else {
-    style.left = `${rect.left}px`
+    let leftPos = rect.left
+    // Prevent cut off on the left
+    if (leftPos < 16) leftPos = 16
+
+    style.left = `${leftPos}px`
     style.right = 'auto'
   }
 
@@ -69,11 +100,12 @@ const toggleDropdown = async () => {
   if (!isOpen.value) {
     tempStart.value = props.startDate || ''
     tempEnd.value = props.endDate || ''
-
+    isOpen.value = true
     await nextTick()
     updatePosition()
+  } else {
+    isOpen.value = false
   }
-  isOpen.value = !isOpen.value
 }
 
 const selectPreset = (preset) => {
@@ -106,26 +138,31 @@ const handleClickOutside = (event) => {
 }
 
 const handleScrollOrResize = () => {
-  if (isOpen.value) isOpen.value = false
+  if (isOpen.value && !isMobile.value) isOpen.value = false
+  if (isOpen.value && isMobile.value) updatePosition()
+}
+
+const handleWindowResize = () => {
+  if (isOpen.value) updatePosition()
 }
 
 watch(isOpen, (val) => {
   if (val) {
     document.addEventListener('click', handleClickOutside)
     window.addEventListener('scroll', handleScrollOrResize, true)
-    window.addEventListener('resize', handleScrollOrResize)
+    window.addEventListener('resize', handleWindowResize)
     nextTick(updatePosition)
   } else {
     document.removeEventListener('click', handleClickOutside)
     window.removeEventListener('scroll', handleScrollOrResize, true)
-    window.removeEventListener('resize', handleScrollOrResize)
+    window.removeEventListener('resize', handleWindowResize)
   }
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
   window.removeEventListener('scroll', handleScrollOrResize, true)
-  window.removeEventListener('resize', handleScrollOrResize)
+  window.removeEventListener('resize', handleWindowResize)
 })
 </script>
 
@@ -133,10 +170,10 @@ onUnmounted(() => {
   <div class="relative inline-block" ref="containerRef">
     <!-- Trigger Button -->
     <button @click.stop="toggleDropdown"
-      class="flex items-center gap-2 px-4 py-2 bg-background border border-secondary/30 rounded-lg hover:border-primary/50 hover:bg-secondary/5 transition-all text-sm font-medium text-text group"
+      class="w-full flex items-center gap-2 px-4 py-2 bg-background border border-secondary/30 rounded-lg hover:border-primary/50 hover:bg-secondary/5 transition-all text-sm font-medium text-text group whitespace-nowrap"
       :class="{ 'border-primary ring-1 ring-primary/20': isOpen || startDate }">
       <font-awesome-icon icon="fa-solid fa-calendar" class="text-text/50 group-hover:text-primary transition-colors" />
-      <span>{{ displayLabel }}</span>
+      <span class="whitespace-nowrap">{{ displayLabel }}</span>
       <font-awesome-icon icon="fa-solid fa-chevron-down" class="text-xs text-text/30 ml-1 transition-transform"
         :class="{ 'rotate-180': isOpen }" />
     </button>
@@ -144,12 +181,12 @@ onUnmounted(() => {
     <!-- Popover via Teleport -->
     <Teleport to="body">
       <div v-if="isOpen"
-        class="date-range-popover fixed z-[9999] w-auto min-w-[320px] max-w-[600px] bg-background border border-secondary/20 shadow-xl rounded-xl overflow-hidden flex flex-col md:flex-row"
+        class="date-range-popover fixed z-50 w-auto min-w-[320px] max-w-[calc(100vw-32px)] md:max-w-[600px] bg-background border border-secondary/20 shadow-xl rounded-xl overflow-hidden flex flex-col md:flex-row ml-[-5vw] md:m-0"
         :style="popoverStyle">
 
         <!-- Sidebar / Presets -->
         <div
-          class="bg-secondary/5 border-b md:border-b-0 md:border-r border-secondary/20 p-2 flex flex-row md:flex-col gap-1 w-full md:w-[140px] overflow-x-auto md:overflow-visible">
+          class="bg-secondary/5 border-b md:border-b-0 md:border-r border-secondary/20 p-2 grid grid-cols-2 gap-4 md:flex md:justify-start md:flex-col md:gap-1 w-full md:w-[140px] overflow-x-auto md:overflow-visible">
           <button v-for="(preset, idx) in presets" :key="idx" @click="selectPreset(preset)"
             class="px-3 py-2 text-left text-primary text-xs font-medium rounded hover:bg-primary/10 hover:text-primary transition-colors whitespace-nowrap">
             {{ preset.label }}

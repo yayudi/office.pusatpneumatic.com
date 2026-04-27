@@ -3,6 +3,9 @@ import { computed } from 'vue'
 import ProductRow from './ProductRow.vue'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
+import { useMobile } from '@/composables/useMobile.js'
+
+const { isMobile } = useMobile()
 
 const props = defineProps({
   products: { type: Array, required: true, default: () => [] },
@@ -56,9 +59,9 @@ function getSortIcon(field) {
     class="flex-1 bg-background rounded-2xl shadow-sm border border-secondary/20 overflow-hidden flex flex-col relative h-full">
     <!-- Table Scroll Area -->
     <div class="flex-1 overflow-auto relative custom-scrollbar">
-      <table class="w-full min-w-[1000px] text-left border-collapse">
+      <table class="w-full text-left border-collapse" :class="isMobile ? 'block' : 'min-w-[1000px]'">
         <!-- HEADER (Sticky) -->
-        <thead class="sticky top-0 z-30 bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5">
+        <thead class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5" :class="isMobile ? 'hidden' : 'sticky top-0 z-30'">
           <tr class="text-text/60 text-xs font-bold uppercase tracking-wider">
             <!-- CHECKBOX ALL (Sticky Left) -->
             <th
@@ -120,7 +123,7 @@ function getSortIcon(field) {
         </thead>
 
         <!-- BODY (Animated) -->
-        <TransitionGroup tag="tbody" name="list" class="divide-y divide-secondary/5 relative">
+        <TransitionGroup tag="tbody" name="list" class="relative" :class="isMobile ? 'block' : 'divide-y divide-secondary/5'">
           <!-- Loading State -->
           <template v-if="loading">
             <TableSkeleton v-for="n in 5" :key="n" />

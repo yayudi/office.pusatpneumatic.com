@@ -11,6 +11,7 @@ import {
 } from '@/api/helpers/stock.js'
 import { useAuthStore } from '@/stores/auth.js'
 import api from '@/api/axios.js'
+import { useMobile } from '@/composables/useMobile.js'
 
 // Impor komponen anak
 import BatchAdjustmentHeader from '@/components/batch/BatchAdjustmentHeader.vue'
@@ -19,6 +20,7 @@ import BatchItemList from '@/components/batch/BatchItemList.vue'
 
 const { toast } = useToast()
 const auth = useAuthStore()
+const { isMobile } = useMobile()
 
 // --- STATE UTAMA ---
 const myLocations = ref([])
@@ -328,8 +330,8 @@ watch(Alt_S, (pressed) => {
             </button>
           </div>
           <div class="overflow-hidden border border-secondary/20 rounded-xl shadow-sm">
-            <table class="min-w-full divide-y divide-secondary/10">
-              <thead class="bg-secondary/10">
+            <table class="divide-y divide-secondary/10" :class="isMobile ? 'w-full block' : 'min-w-full'">
+              <thead :class="isMobile ? 'hidden' : 'bg-secondary/10'">
                 <tr>
                   <th class="px-4 py-3 text-left text-xs font-bold text-text/60 uppercase">
                     Tanggal
@@ -341,7 +343,7 @@ watch(Alt_S, (pressed) => {
                   <th class="px-4 py-3 text-left text-xs font-bold text-text/60 uppercase">Log</th>
                 </tr>
               </thead>
-              <tbody class="bg-background divide-y divide-secondary/10">
+              <tbody class="bg-background" :class="isMobile ? 'block' : 'divide-y divide-secondary/10'">
                 <tr v-if="importJobHistory.length === 0 && !isImportHistoryLoading">
                   <td colspan="4" class="px-4 py-8 text-sm text-text/40 text-center italic">
                     <font-awesome-icon icon="fa-solid fa-clock-rotate-left"
@@ -355,19 +357,25 @@ watch(Alt_S, (pressed) => {
                     Memuat data...
                   </td>
                 </tr>
-                <tr v-for="job in importJobHistory" :key="job.id" class="hover:bg-secondary/5 transition-colors">
-                  <td class="px-4 py-3 text-xs text-text">
-                    <div class="font-medium">
-                      {{ new Date(job.created_at).toLocaleDateString('id-ID') }}
-                    </div>
-                    <div class="text-text/40">
-                      {{ new Date(job.created_at).toLocaleTimeString('id-ID') }}
+                <tr v-for="job in importJobHistory" :key="job.id" class="transition-colors"
+                  :class="isMobile ? 'block mb-4 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4' : 'hover:bg-secondary/5'">
+                  <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-4 py-3 text-xs text-text'">
+                    <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Tanggal</span>
+                    <div class="flex flex-col" :class="isMobile ? 'items-end' : ''">
+                      <div class="font-medium">
+                        {{ new Date(job.created_at).toLocaleDateString('id-ID') }}
+                      </div>
+                      <div class="text-text/40">
+                        {{ new Date(job.created_at).toLocaleTimeString('id-ID') }}
+                      </div>
                     </div>
                   </td>
-                  <td class="px-4 py-3 text-xs text-text/80 font-mono">
-                    {{ job.original_filename }}
+                  <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-4 py-3 text-xs text-text/80 font-mono'">
+                    <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">File</span>
+                    <span class="font-mono text-xs">{{ job.original_filename }}</span>
                   </td>
-                  <td class="px-4 py-3 text-xs">
+                  <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-4 py-3 text-xs'">
+                    <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Status</span>
                     <span v-if="job.status === 'COMPLETED'"
                       class="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold bg-success/10 text-success border border-success/20">
                       <font-awesome-icon icon="fa-solid fa-check" /> Selesai
@@ -381,8 +389,9 @@ watch(Alt_S, (pressed) => {
                       <font-awesome-icon icon="fa-solid fa-spinner" spin /> {{ job.status }}
                     </span>
                   </td>
-                  <td class="px-4 py-3 text-xs text-text/60 max-w-[200px] truncate" :title="job.log_summary">
-                    {{ job.log_summary || '-' }}
+                  <td :class="isMobile ? 'flex justify-between items-center py-2' : 'px-4 py-3 text-xs text-text/60 max-w-[200px] truncate'" :title="job.log_summary">
+                    <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Log</span>
+                    <span class="text-text/60 text-xs">{{ job.log_summary || '-' }}</span>
                   </td>
                 </tr>
               </tbody>

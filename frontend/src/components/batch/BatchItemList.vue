@@ -6,6 +6,9 @@ defineProps({
 
 const emit = defineEmits(['remove-item'])
 
+import { useMobile } from '@/composables/useMobile.js'
+const { isMobile } = useMobile()
+
 function emitRemove(sku) {
   emit('remove-item', sku)
 }
@@ -21,8 +24,8 @@ function emitRemove(sku) {
       Belum ada item yang ditambahkan.
     </div>
     <div v-else class="max-h-96 overflow-y-auto">
-      <table class="min-w-full text-sm">
-        <thead class="bg-secondary/10">
+      <table class="text-sm" :class="isMobile ? 'w-full block' : 'min-w-full'">
+        <thead :class="isMobile ? 'hidden' : 'bg-secondary/10'">
           <tr>
             <th class="p-2 text-left">SKU</th>
             <th class="p-2 text-left">Nama Produk</th>
@@ -36,23 +39,31 @@ function emitRemove(sku) {
             <th class="p-2 text-center">Aksi</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-secondary/20">
-          <tr v-for="item in items" :key="item.sku" class="hover:bg-primary/5">
-            <td class="p-2 font-mono">{{ item.sku }}</td>
-            <td class="p-2">{{ item.name }}</td>
+        <tbody :class="isMobile ? 'block' : 'divide-y divide-secondary/20'">
+          <tr v-for="item in items" :key="item.sku" class="transition-colors relative"
+            :class="isMobile ? 'block mb-3 p-3 bg-background/50 rounded-xl border border-secondary/20 shadow-sm' : 'hover:bg-primary/5'">
+            <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'">
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">SKU</span>
+              <span class="font-mono">{{ item.sku }}</span>
+            </td>
+            <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2'">
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Produk</span>
+              <span>{{ item.name }}</span>
+            </td>
             <td
-              class="p-2 text-center"
+              :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 text-center'"
               v-if="activeTab === 'TRANSFER' || activeTab === 'ADJUSTMENT'"
             >
-              {{ item.current_stock }}
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Stok</span>
+              <span>{{ item.current_stock }}</span>
             </td>
             <td
-              class="p-2 text-center font-bold"
-              :class="{ 'text-success': item.quantity > 0, 'text-danger': item.quantity < 0 }"
+              :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 text-center font-bold'"
             >
-              {{ item.quantity }}
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Jumlah</span>
+              <span class="font-bold" :class="{ 'text-success': item.quantity > 0, 'text-danger': item.quantity < 0 }">{{ item.quantity }}</span>
             </td>
-            <td class="p-2 text-center">
+            <td :class="isMobile ? 'absolute top-3 right-3' : 'p-2 text-center'">
               <button @click="emitRemove(item.sku)" class="text-danger hover:text-danger/80">
                 <font-awesome-icon icon="fa-solid fa-trash" />
               </button>

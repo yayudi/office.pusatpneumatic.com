@@ -6,6 +6,9 @@ import Modal from '@/components/ui/Modal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import debounce from 'lodash/debounce'
 import { formatCurrency } from '@/utils/formatters.js'
+import { useMobile } from '@/composables/useMobile.js'
+
+const { isMobile } = useMobile()
 
 const props = defineProps({
   show: Boolean,
@@ -182,8 +185,8 @@ const close = () => {
 
       <!-- Items Table -->
       <div v-if="items.length > 0" class="border border-secondary/20 rounded-xl overflow-hidden">
-        <table class="w-full text-sm text-left">
-          <thead class="bg-secondary/5 text-text/70 uppercase text-xs font-bold">
+        <table class="w-full text-sm text-left" :class="isMobile ? 'block' : ''">
+          <thead class="bg-secondary/5 text-text/70 uppercase text-xs font-bold" :class="isMobile ? 'hidden' : ''">
             <tr>
               <th class="px-2 py-3 text-left">Produk</th>
               <th class="px-1 py-3 text-center w-20">Qty</th>
@@ -193,28 +196,35 @@ const close = () => {
               <th class="px-1 py-3 text-center w-10"></th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-secondary/10">
-            <tr v-for="(item, index) in items" :key="index" class="hover:bg-secondary/5">
-              <td class="px-2 py-3">
+          <tbody :class="isMobile ? 'block' : 'divide-y divide-secondary/10'">
+            <tr v-for="(item, index) in items" :key="index" class="transition-colors"
+              :class="isMobile ? 'block mb-4 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-2 mt-2 relative' : 'hover:bg-secondary/5'">
+              <td :class="isMobile ? 'block pb-2 mb-2 border-b border-secondary/10' : 'px-2 py-3'">
                 <div class="font-medium">{{ item.product.name }}</div>
                 <div class="text-xs text-text/50">{{ item.product.sku }}</div>
               </td>
-              <td class="px-1 py-3">
+              <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-1 py-3'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Qty</span>
                 <input v-model.number="item.quantity" type="number" min="1"
-                  class="w-full text-center bg-background border border-secondary/30 rounded px-1 py-1 focus:ring-primary focus:border-primary" />
+                  class="text-center bg-background border border-secondary/30 rounded px-1 py-1 focus:ring-primary focus:border-primary"
+                  :class="isMobile ? 'w-20' : 'w-full'" />
               </td>
-              <td class="px-1 py-3">
+              <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-1 py-3'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Diskon</span>
                 <div class="flex items-center gap-1 justify-center">
                   <BaseSelect v-model="item.discount.type" :options="discountOptions" label="label" track-by="value" emit-value :searchable="false" class="w-[60px] min-h-[30px] p-0 text-center flex items-center justify-center" />
                   <input v-model.number="item.discount.value" type="number" min="0"
-                    class="w-full text-right bg-background border border-secondary/30 rounded px-1 py-1 text-xs focus:ring-primary focus:border-primary"
+                    class="text-right bg-background border border-secondary/30 rounded px-1 py-1 text-xs focus:ring-primary focus:border-primary"
+                    :class="isMobile ? 'w-20' : 'w-full'"
                     placeholder="0" />
                 </div>
               </td>
-              <td class="px-1 py-3 text-right text-text/70">
-                {{ formatWeight(item.weight * item.quantity) }} {{ weightUnit }}
+              <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-1 py-3 text-right text-text/70'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Berat</span>
+                <span>{{ formatWeight(item.weight * item.quantity) }} {{ weightUnit }}</span>
               </td>
-              <td class="px-1 py-3 text-right font-medium">
+              <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-1 py-3 text-right font-medium'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Total</span>
                 <div v-if="item.discount.value > 0" class="flex flex-col items-end">
                   <span class="text-[10px] text-text/40 line-through decoration-danger">
                     {{ formatCurrency(item.price * item.quantity) }}
@@ -225,7 +235,7 @@ const close = () => {
                   {{ formatCurrency(item.price * item.quantity) }}
                 </div>
               </td>
-              <td class="px-1 py-3 text-center">
+              <td :class="isMobile ? 'absolute top-3 right-3' : 'px-1 py-3 text-center'">
                 <button @click="removeItem(index)" class="text-danger hover:text-danger-dark transition-colors">
                   <font-awesome-icon icon="fa-solid fa-times" />
                 </button>

@@ -5,6 +5,9 @@ import axios from '@/api/axios.js'
 import { useToast } from '@/composables/useToast.js'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
 import dayjs from 'dayjs'
+import { useMobile } from '@/composables/useMobile.js'
+
+const { isMobile } = useMobile()
 
 const { toast } = useToast()
 
@@ -135,9 +138,9 @@ onUnmounted(() => {
     <div
       class="bg-background rounded-xl shadow-lg border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(100vh-250px)]">
 
-      <table class="w-full min-w-[800px] text-left border-collapse">
+      <table class="w-full text-left border-collapse" :class="isMobile ? 'block' : 'min-w-[800px]'">
         <thead
-          class="sticky top-0 z-30 bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5 text-xs uppercase font-bold text-text/60">
+          class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5 text-xs uppercase font-bold text-text/60" :class="isMobile ? 'hidden' : 'sticky top-0 z-30'">
           <tr>
             <th
               class="p-4 w-16 text-center sticky left-0 z-30 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
@@ -151,7 +154,7 @@ onUnmounted(() => {
               Aksi</th>
           </tr>
         </thead>
-        <TransitionGroup tag="tbody" name="list" class="divide-y divide-secondary/10 relative">
+        <TransitionGroup tag="tbody" name="list" class="relative" :class="isMobile ? 'block' : 'divide-y divide-secondary/10'">
           <!-- Loading State -->
           <template v-if="loading && jobs.length === 0">
             <TableSkeleton v-for="n in 5" :key="`skeleton-${n}`" />
@@ -166,26 +169,34 @@ onUnmounted(() => {
           </tr>
 
           <tr v-else v-for="(job, index) in jobs" :key="job.id"
-            class="hover:bg-secondary/5 transition-colors group relative">
+            class="transition-colors group relative" :class="isMobile ? 'block mb-4 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4' : 'hover:bg-secondary/5'">
             <td
-              class="p-4 text-center font-mono opacity-50 sticky left-0 z-20 bg-background group-hover:bg-secondary/5 transition-colors shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-              {{ index + 1 }}</td>
-            <td class="p-4">
+              class="font-mono opacity-50 bg-background group-hover:bg-secondary/5 transition-colors" :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'p-4 text-center sticky left-0 z-20 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]'">
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">#</span>
+              <span>{{ index + 1 }}</span>
+            </td>
+            <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'p-4'">
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Tipe</span>
               <span class="font-bold text-xs uppercase tracking-wider px-2 py-1 rounded border"
                 :class="getJobTypeClass(job.type)">
                 {{ getJobTypeLabel(job.type) }}
               </span>
             </td>
-            <td class="p-4">
-              <div class="font-bold text-sm">{{ job.file_path || 'Menunggu Proses...' }}</div>
-              <div v-if="job.error_message" class="text-xs text-danger mt-1">
-                Error: {{ job.error_message }}
+            <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'p-4'">
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">File</span>
+              <div class="flex flex-col" :class="isMobile ? 'items-end' : ''">
+                <div class="font-bold text-sm">{{ job.file_path || 'Menunggu Proses...' }}</div>
+                <div v-if="job.error_message" class="text-xs text-danger mt-1">
+                  Error: {{ job.error_message }}
+                </div>
               </div>
             </td>
-            <td class="p-4 text-sm whitespace-nowrap opacity-80">
-              {{ formatDate(job.created_at) }}
+            <td class="text-sm whitespace-nowrap opacity-80" :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'p-4'">
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Waktu</span>
+              <span>{{ formatDate(job.created_at) }}</span>
             </td>
-            <td class="p-4">
+            <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'p-4'">
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Status</span>
               <span class="px-2.5 py-1 rounded-full text-xs font-bold border inline-flex items-center gap-1.5"
                 :class="getStatusClass(job.status)">
                 <span v-if="job.status === 'PROCESSING'"
@@ -194,7 +205,7 @@ onUnmounted(() => {
               </span>
             </td>
             <td
-              class="p-4 text-right sticky right-0 z-20 bg-background group-hover:bg-secondary/5 transition-colors shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+              class="bg-background group-hover:bg-secondary/5 transition-colors" :class="isMobile ? 'flex justify-end items-center pt-4' : 'p-4 text-right sticky right-0 z-20 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]'">
               <button v-if="job.status === 'COMPLETED' && job.download_url"
                 @click="handleDownload(job.download_url, job.file_path)"
                 class="px-3 py-1.5 bg-primary text-secondary rounded-lg text-sm font-bold shadow-md hover:scale-105 active:scale-95 transition-all inline-flex items-center gap-2">

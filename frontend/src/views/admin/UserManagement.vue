@@ -12,6 +12,9 @@ import UserEditModal from '@/components/users/EditModal.vue'
 import Modal from '@/components/ui/Modal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
+import { useMobile } from '@/composables/useMobile.js'
+
+const { isMobile } = useMobile()
 
 const users = ref([])
 const allRoles = ref([])
@@ -128,8 +131,8 @@ onMounted(fetchData)
 
     <div
       class="bg-background shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(100vh-200px)]">
-      <table class="w-full min-w-[600px] text-sm text-left text-text border-collapse">
-        <thead class="sticky top-0 z-30 bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5">
+      <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : 'min-w-[600px]'">
+        <thead class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5" :class="isMobile ? 'hidden' : 'sticky top-0 z-30'">
           <tr class="text-xs text-text/80 uppercase">
             <th
               class="px-6 py-3 sticky left-0 z-30 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
@@ -142,7 +145,7 @@ onMounted(fetchData)
               Aksi</th>
           </tr>
         </thead>
-        <TransitionGroup tag="tbody" name="list" class="divide-y divide-secondary/5 relative">
+        <TransitionGroup tag="tbody" name="list" class="relative" :class="isMobile ? 'block' : 'divide-y divide-secondary/5'">
           <!-- Loading State -->
           <template v-if="loading">
             <TableSkeleton v-for="n in 5" :key="`skeleton-${n}`" />
@@ -155,17 +158,24 @@ onMounted(fetchData)
           </tr>
 
           <tr v-else v-for="user in users" :key="user.id"
-            class="border-b border-secondary/20 hover:bg-secondary/5 transition-colors group relative">
+            class="transition-colors group relative" :class="isMobile ? 'block mb-4 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4' : 'border-b border-secondary/20 hover:bg-secondary/5'">
             <td
-              class="px-6 py-4 font-medium sticky left-0 z-20 bg-background group-hover:bg-secondary/5 transition-colors shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-              {{ user.username }}</td>
-            <td class="px-6 py-4 text-text/80">{{ user.nickname || '-' }}</td>
-            <td class="px-6 py-4">
+              class="font-medium bg-background group-hover:bg-secondary/5 transition-colors" :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4 sticky left-0 z-20 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]'">
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Username</span>
+              <span>{{ user.username }}</span>
+            </td>
+            <td class="text-text/80" :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Nickname</span>
+              <span>{{ user.nickname || '-' }}</span>
+            </td>
+            <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Role</span>
               <span class="px-2 py-1 rounded text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
                 {{ user.role_name }}
               </span>
             </td>
-            <td class="px-6 py-4 text-text/80 text-sm">
+            <td class="text-text/80 text-sm" :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Shift</span>
               <span v-if="user.shift_name" class="flex items-center gap-1.5">
                 <font-awesome-icon icon="fa-solid fa-clock" class="text-text/40 text-xs" />
                 {{ user.shift_name }}
@@ -173,7 +183,7 @@ onMounted(fetchData)
               <span v-else class="text-text/40 italic">Default</span>
             </td>
             <td
-              class="px-6 py-4 text-center space-x-2 sticky right-0 z-20 bg-background group-hover:bg-secondary/5 transition-colors shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+              class="space-x-2 bg-background group-hover:bg-secondary/5 transition-colors" :class="isMobile ? 'flex justify-end items-center pt-4' : 'text-center px-6 py-4 sticky right-0 z-20 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]'">
               <button @click="openEditModal(user)"
                 class="text-primary hover:text-primary/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105">
                 <font-awesome-icon icon="fa-solid fa-edit" />

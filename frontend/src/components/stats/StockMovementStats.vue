@@ -438,11 +438,11 @@ const chartScatterOptions = computed(() => ({
     <StatsFilterBar :loading="isDataLoading" @apply="applyFilters"
       :hasActiveAdvancedFilters="!!filterValues.building.length || filterValues.status !== 'all' || filterValues.movement !== 'all'">
       <template #main>
-        <div class="flex-1 w-full sm:w-auto min-w-[200px]">
+        <div class="w-full sm:w-auto shrink-0">
           <DateRangeFilter v-model:startDate="filterValues.startDate" v-model:endDate="filterValues.endDate"
-            align="left" />
+            align="left" class="w-full sm:w-auto" />
         </div>
-        <div class="flex-1 w-full sm:w-auto min-w-[300px]">
+        <div class="flex-1 w-full sm:w-auto min-w-[200px]">
           <SearchInput v-model="filterValues.searchQuery" placeholder="Cari SKU atau Nama Produk..." />
         </div>
       </template>

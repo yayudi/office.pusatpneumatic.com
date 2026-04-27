@@ -2,6 +2,9 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { formatDate } from '@/api/helpers/time.js'
+import { useMobile } from '@/composables/useMobile.js'
+
+const { isMobile } = useMobile()
 
 const props = defineProps({
   historyItems: {
@@ -122,9 +125,10 @@ function viewDetails(item) {
       class="bg-background border border-secondary/20 rounded-xl shadow-sm overflow-hidden"
     >
       <div class="overflow-x-auto">
-        <table class="w-full text-sm text-left">
+        <table class="w-full text-sm text-left" :class="isMobile ? 'block' : ''">
           <thead
             class="bg-secondary/20 text-text/60 border-b border-secondary/20 uppercase text-xs tracking-wider font-bold"
+            :class="isMobile ? 'hidden' : ''"
           >
             <tr>
               <th class="p-4 w-40">Tanggal</th>
@@ -134,17 +138,19 @@ function viewDetails(item) {
               <th class="p-4 w-40 text-center">Aksi</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-secondary/10 text-text">
+          <tbody class="text-text" :class="isMobile ? 'block relative' : 'divide-y divide-secondary/10'">
             <template v-for="item in historyItems" :key="item.id">
               <!-- Main Row -->
               <tr
-                class="transition-colors group border-b border-secondary/10 hover:bg-primary/5 cursor-pointer"
+                class="transition-colors group cursor-pointer"
+                :class="isMobile ? 'block mb-4 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4' : 'border-b border-secondary/10 hover:bg-primary/5'"
                 @click="viewDetails(item)"
               >
                 <!-- TANGGAL -->
-                <td class="p-4 whitespace-nowrap text-text/70">
-                  <div class="flex flex-col">
-                    <span class="font-mono text-xs font-bold">
+                <td class="whitespace-nowrap" :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'p-4 text-text/70'">
+                  <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Tanggal</span>
+                  <div class="flex flex-col" :class="isMobile ? 'items-end' : ''">
+                    <span class="font-mono text-xs font-bold" :class="isMobile ? 'text-text' : ''">
                       {{ formatDate(item.created_at, false, false) }}
                     </span>
                     <span class="text-[10px] text-text/40 mt-0.5">
@@ -160,8 +166,9 @@ function viewDetails(item) {
                 </td>
 
                 <!-- INVOICE & EXPAND BUTTON -->
-                <td class="p-4">
-                  <div class="flex flex-col">
+                <td :class="isMobile ? 'flex flex-col gap-2 py-2 border-b border-secondary/10' : 'p-4'">
+                  <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Invoice / File</span>
+                  <div class="flex flex-col" :class="isMobile ? 'items-end' : ''">
                     <div class="flex items-center gap-2">
                       <span
                         class="font-bold transition-colors text-base text-text group-hover:text-primary"
@@ -193,12 +200,14 @@ function viewDetails(item) {
                 </td>
 
                 <!-- SUMBER -->
-                <td class="p-4">
+                <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'p-4'">
+                  <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Sumber</span>
                   <span class="font-bold text-xs">{{ item.source }}</span>
                 </td>
 
                 <!-- STATUS -->
-                <td class="p-4 text-center">
+                <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'p-4 text-center'">
+                  <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Status</span>
                   <span
                     class="px-2 py-1 rounded text-xs font-bold border inline-block"
                     :class="getStatusClass(item.status)"
@@ -208,15 +217,15 @@ function viewDetails(item) {
                 </td>
 
                 <!-- AKSI -->
-                <td class="p-4 text-center">
-                  <button class="text-xs text-primary font-bold hover:underline">Detail</button>
+                <td :class="isMobile ? 'flex justify-end items-center pt-4' : 'p-4 text-center'">
+                  <button class="font-bold hover:underline" :class="isMobile ? 'px-4 py-2 bg-primary/10 text-primary rounded-lg text-xs' : 'text-xs text-primary'">Detail</button>
                 </td>
               </tr>
 
               <!-- Expanded History Row (Child) -->
-              <tr v-if="expandedRows.has(item.id)" class="bg-secondary/5 shadow-inner">
+              <tr v-if="expandedRows.has(item.id)" class="bg-secondary/5 shadow-inner" :class="isMobile ? 'block mx-4 mb-4 rounded-xl overflow-hidden' : ''">
                 <td colspan="5" class="p-0">
-                  <div class="p-4 pl-12">
+                  <div class="py-4" :class="isMobile ? 'px-4' : 'pl-12'">
                     <!-- Container Grup Revisi -->
                     <div
                       class="bg-background border border-secondary/20 rounded-lg overflow-hidden shadow-sm max-w-2xl"
