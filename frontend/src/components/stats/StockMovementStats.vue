@@ -47,11 +47,13 @@ const filterValues = ref({
   searchQuery: '',
   status: 'all',
   movement: 'all',
-  building: []
+  building: [],
+  categoryId: 'all'
 });
 
 const reportFilters = ref({
-  allBuildings: []
+  allBuildings: [],
+  allCategories: []
 });
 
 const stockStatusOptions = [
@@ -85,8 +87,14 @@ onMounted(async () => {
     if (res && res.allBuildings) {
       reportFilters.value.allBuildings = res.allBuildings;
     }
+
+    const categories = await masterData.getCategories();
+    reportFilters.value.allCategories = [
+      { id: 'all', label: 'Semua Kategori' },
+      ...categories.map(c => ({ id: c.id, label: c.name }))
+    ];
   } catch (error) {
-    console.error("Gagal memuat filter laporan lokasi", error);
+    console.error("Gagal memuat filter laporan", error);
   }
 
   fetchStatistics();
@@ -471,6 +479,11 @@ const chartScatterOptions = computed(() => ({
         <div>
           <label class="block text-xs font-semibold text-text/60 mb-2">Aktivitas Transaksi</label>
           <BaseSelect v-model="filterValues.movement" :options="movementOptions" emitValue :searchable="false" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-text/60 mb-2">Kategori Produk</label>
+          <BaseSelect v-model="filterValues.categoryId" :options="reportFilters.allCategories" emitValue :searchable="true" />
         </div>
       </template>
     </StatsFilterBar>

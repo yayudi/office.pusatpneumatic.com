@@ -84,7 +84,7 @@ export const updateProductService = async (id, data, userId) => {
     // Audit Log Logic (Compare fields)
     const fieldsToCheck = [
       { key: "name", label: "Nama Produk" },
-      { key: "category", label: "Kategori" },
+      { key: "category_id", label: "Kategori", type: "number" },
       { key: "price", label: "Harga", type: "number" },
       { key: "weight", label: "Berat", type: "number" },
       { key: "is_package", label: "Tipe Paket", type: "bool" },

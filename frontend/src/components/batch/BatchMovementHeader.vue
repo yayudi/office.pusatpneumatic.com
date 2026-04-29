@@ -27,9 +27,6 @@ const tabs = [
   <div>
     <!-- Tabs navigation -->
     <Tabs :tabs="tabs" v-model:model-value="activeTab" />
-
-    <!-- Header Kontekstual Berdasarkan Tab -->
-    <!-- Wrapped in FilterContainer for mobile collapsibility -->
     <FilterContainer v-if="activeTab !== 'DETAILED_TRANSFER'" title="Form Perpindahan" class="mt-4">
       <div class="grid grid-cols-1 md:grid-cols-12 gap-6 w-full">
         <!-- TRANSFER (BATCH) -->

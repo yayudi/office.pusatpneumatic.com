@@ -30,7 +30,7 @@ const hasSearched = ref(false)
 
 // Options
 const movementTypeOptions = [
-  { id: '', label: '- Tipe -' },
+  { id: '', label: 'Tipe' },
   { id: 'TRANSFER', label: 'TRANSFER' },
   { id: 'INBOUND', label: 'INBOUND' },
   { id: 'RETURN', label: 'RETURN' },
@@ -40,7 +40,7 @@ const movementTypeOptions = [
 ]
 
 const locationOptions = computed(() => [
-  { id: '', label: '- Lokasi -' },
+  { id: '', label: 'Lokasi' },
   ...locations.value.map(loc => ({ id: loc.id, label: loc.code })),
 ])
 

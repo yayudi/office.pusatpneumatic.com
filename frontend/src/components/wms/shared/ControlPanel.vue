@@ -11,6 +11,7 @@ const props = defineProps({
   warehouseViews: { type: Array, default: () => [] },
   buildingFilterOptions: { type: Array, default: () => [] },
   floorFilterOptions: { type: Array, default: () => [] },
+  categoryFilterOptions: { type: Array, default: () => [] },
 
   // Status
   isAutoRefetching: Boolean,
@@ -23,6 +24,7 @@ const props = defineProps({
   stockStatusFilter: { type: String, default: 'all' },
   selectedBuilding: String,
   selectedFloor: String,
+  selectedCategory: String,
   mobileLayout: { type: String, default: 'card' },
   availableColumns: { type: Array, default: () => [] },
   visibleColumns: { type: Object, default: () => new Set() },
@@ -36,6 +38,8 @@ const emit = defineEmits([
   'update:productTypeFilter',
   'update:selectedBuilding',
   'update:selectedFloor',
+  'update:selectedCategory',
+  'update:categoryFilterOptions',
   'update:mobileLayout',
   'search',
   'update:mobileLayout',
@@ -56,13 +60,13 @@ function clearSearch() {
 }
 
 const typeOptions = [
-  { id: 'all', label: '- Tipe -' },
+  { id: 'all', label: 'Tipe' },
   { id: 'unit', label: 'Satuan' },
   { id: 'package', label: 'Paket' },
 ]
 
 const stockOptions = [
-  { id: 'all', label: '- Stok -' },
+  { id: 'all', label: 'Stok' },
   { id: 'minus', label: 'Minus' },
   { id: 'positive', label: 'Aman' },
 ]
@@ -167,12 +171,19 @@ function updateDropdownPosition() {
           <BaseSelect :model-value="selectedBuilding" @update:modelValue="emit('update:selectedBuilding', $event)"
             :options="buildingFilterOptions" track-by="value" emit-value :searchable="false"
             class="flex-1 lg:w-32 min-w-[120px] h-[42px]" />
-
           <BaseSelect :model-value="selectedFloor" @update:modelValue="emit('update:selectedFloor', $event)"
             :options="floorFilterOptions" track-by="value" emit-value :searchable="false"
             class="flex-1 lg:w-24 min-w-[110px] h-[42px]" />
         </div>
-
+        <div class="flex gap-2 shrink-0">
+          <BaseSelect :model-value="selectedCategory" @update:modelValue="emit('update:selectedCategory', $event)"
+            :options="categoryFilterOptions" track-by="id" emit-value :searchable="true"
+            class="min-w-[120px] h-[42px] rounded-lg" :class="[
+              selectedCategory !== 'all'
+                ? 'bg-accent/5 border-accent text-accent'
+                : 'bg-background border-secondary text-text/60 hover:text-text'
+            ]" />
+        </div>
         <div class="flex gap-2 shrink-0">
           <!-- Filter Tipe Produk -->
           <BaseSelect :model-value="productTypeFilter" @update:modelValue="emit('update:productTypeFilter', $event)"

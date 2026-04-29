@@ -57,12 +57,14 @@ const filterValues = ref({
   stockStatus: 'all',
   building: [],
   purpose: '',
-  isPackage: ''
+  isPackage: '',
+  categoryId: 'all'
 });
 
 const reportFilters = ref({
   allBuildings: [],
-  purposes: []
+  purposes: [],
+  allCategories: []
 });
 
 const purposeOptions = computed(() => [
@@ -98,8 +100,14 @@ onMounted(async () => {
       reportFilters.value.allBuildings = res.allBuildings || [];
       reportFilters.value.purposes = res.purposes || [];
     }
+
+    const categories = await masterData.getCategories();
+    reportFilters.value.allCategories = [
+      { id: 'all', label: 'Semua Kategori' },
+      ...categories.map(c => ({ id: c.id, label: c.name }))
+    ];
   } catch (error) {
-    console.error("Gagal memuat filter laporan lokasi", error);
+    console.error("Gagal memuat filter laporan", error);
   }
 
   fetchStatistics();
@@ -217,6 +225,11 @@ const chartTopAssetProportionOptions = computed(() => {
         <div>
           <label class="block text-xs font-semibold text-text/60 mb-2">Tipe Barang</label>
           <BaseSelect v-model="filterValues.isPackage" :options="isPackageOptions" emitValue :searchable="false" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-text/60 mb-2">Kategori Produk</label>
+          <BaseSelect v-model="filterValues.categoryId" :options="reportFilters.allCategories" emitValue :searchable="true" />
         </div>
       </template>
     </StatsFilterBar>

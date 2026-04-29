@@ -330,6 +330,14 @@ const imageUrl = computed(() => resolveProductImageUrl(props.product))
       </div>
     </td>
 
+    <!-- CATEGORY -->
+    <td v-if="visibleColumns.has('category')"
+      class="md:table-cell flex justify-between items-center px-4 py-2 md:px-3 md:py-2 whitespace-nowrap border-b border-secondary/10 md:border-secondary/80"
+      :class="{ 'hidden md:flex': mobileLayout === 'compact' }">
+      <span class="md:hidden text-[10px] font-bold text-text/50 uppercase tracking-wide">Kategori</span>
+      <span class="text-xs text-text/60 font-medium">{{ product.category_name || '-' }}</span>
+    </td>
+
     <!-- WEIGHT -->
     <td v-if="visibleColumns.has('weight')"
       class="md:table-cell flex justify-between items-center px-4 py-2 md:px-3 md:py-2 text-right whitespace-nowrap text-xs text-text/70 font-mono border-b border-secondary/10 md:border-secondary/80"

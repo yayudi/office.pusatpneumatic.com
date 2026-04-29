@@ -46,6 +46,12 @@ export const getProductsWithFilters = async (connection, filters) => {
     whereClauses.push("p.is_package = 1");
   }
 
+  // Filter Kategori
+  if (filters.categoryId && filters.categoryId !== "all") {
+    whereClauses.push("p.category_id = ?");
+    queryParams.push(filters.categoryId);
+  }
+
   // Filter Lokasi (Subquery EXISTS)
   let purpose = "";
   if (location === "gudang") purpose = "WAREHOUSE";
@@ -133,10 +139,11 @@ export const getProductsWithFilters = async (connection, filters) => {
   const [totalRows] = await connection.query(countQuery, queryParams);
   const totalProducts = totalRows[0]?.total || 0;
   const productsQuery = `
-      SELECT p.id, p.sku, p.name, p.category_id, p.price, p.weight, p.is_package, p.is_active, p.deleted_at,
+      SELECT p.id, p.sku, p.name, p.category_id, c.name as category_name, p.price, p.weight, p.is_package, p.is_active, p.deleted_at,
       (SELECT ma.main_path FROM product_images pi JOIN media_assets ma ON pi.media_id = ma.id WHERE pi.product_id = p.id AND pi.is_primary = 1 LIMIT 1) as image_path,
       (SELECT ma.thumbnail_path FROM product_images pi JOIN media_assets ma ON pi.media_id = ma.id WHERE pi.product_id = p.id AND pi.is_primary = 1 LIMIT 1) as thumbnail_path
       FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
       ${whereSql}
       GROUP BY p.id
       ORDER BY ${safeSortBy} ${sortOrder}
@@ -250,7 +257,10 @@ export const getProductsWithFilters = async (connection, filters) => {
 };
 
 export const getProductDetailWithStock = async (connection, id) => {
-  const [rows] = await connection.query("SELECT * FROM products WHERE id = ?", [id]);
+  const [rows] = await connection.query(
+    "SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?",
+    [id]
+  );
   if (rows.length === 0) return null;
   const product = rows[0];
   const [images] = await connection.query(
@@ -306,7 +316,10 @@ export const getProductDetailWithStock = async (connection, id) => {
 // ============================================================================
 
 export const getProductById = async (connection, id) => {
-  const [rows] = await connection.query("SELECT * FROM products WHERE id = ?", [id]);
+  const [rows] = await connection.query(
+    "SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?",
+    [id]
+  );
   return rows.length > 0 ? rows[0] : null;
 };
 
@@ -326,7 +339,7 @@ export const getProductsBySkus = async (connection, skuList) => {
 
 export const getAllActiveProducts = async (connection) => {
   const [rows] = await connection.query(
-    "SELECT id, sku, name, price, is_package, is_active FROM products WHERE is_active = 1 ORDER BY name ASC"
+    "SELECT p.id, p.sku, p.name, p.category_id, c.name as category_name, p.price, p.is_package, p.is_active FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.is_active = 1 ORDER BY p.name ASC"
   );
   return rows;
 };
@@ -340,8 +353,8 @@ export const searchProducts = async (connection, searchTerm, locationId) => {
               AND sl.quantity != 0 LIMIT 10`;
     queryParams = [locationId, searchTerm, searchTerm];
   } else {
-    query = `SELECT id, sku, name, price, weight FROM products
-              WHERE (LOWER(name) LIKE ? OR LOWER(sku) LIKE ?) AND is_active = 1 LIMIT 10`;
+    query = `SELECT p.id, p.sku, p.name, p.price, p.weight FROM products p
+              WHERE (LOWER(p.name) LIKE ? OR LOWER(p.sku) LIKE ?) AND p.is_active = 1 LIMIT 10`;
     queryParams = [searchTerm, searchTerm];
   }
   const [results] = await connection.query(query, queryParams);
@@ -506,17 +519,17 @@ export const getAllPackagesWithComponents = async (connection) => {
 // WRITE OPERATIONS (ATOMIC SQL ONLY)
 // ============================================================================
 
-export const createProduct = async (connection, { sku, name, category, price, weight, is_package }) => {
+export const createProduct = async (connection, { sku, name, category_id, price, weight, is_package }) => {
   const [result] = await connection.query(
-    "INSERT INTO products (sku, name, category, price, weight, is_package, is_active) VALUES (?, ?, ?, ?, ?, ?, 1)",
-    [sku, name, category, parseFloat(price || 0), parseFloat(weight || 0), is_package ? 1 : 0]
+    "INSERT INTO products (sku, name, category_id, price, weight, is_package, is_active) VALUES (?, ?, ?, ?, ?, ?, 1)",
+    [sku, name, category_id || null, parseFloat(price || 0), parseFloat(weight || 0), is_package ? 1 : 0]
   );
   return result.insertId;
 };
 
-export const updateProduct = async (connection, id, { name, category, price, weight, is_package }) => {
-  let sql = "UPDATE products SET name = ?, category = ?, price = ?, weight = ?, is_package = ?";
-  const params = [name, category, parseFloat(price || 0), parseFloat(weight || 0), is_package ? 1 : 0];
+export const updateProduct = async (connection, id, { name, category_id, price, weight, is_package }) => {
+  let sql = "UPDATE products SET name = ?, category_id = ?, price = ?, weight = ?, is_package = ?";
+  const params = [name, category_id || null, parseFloat(price || 0), parseFloat(weight || 0), is_package ? 1 : 0];
 
   sql += " WHERE id = ?";
   params.push(id);
@@ -624,7 +637,7 @@ export const updateProductTransaction = async (
 
   // Cek setiap field
   if (updates.name !== undefined) processField("name", updates.name, "string");
-  if (updates.category !== undefined) processField("category", updates.category, "string");
+  if (updates.category_id !== undefined) processField("category_id", updates.category_id, "number");
   if (updates.price !== undefined) processField("price", updates.price, "number");
   if (updates.weight !== undefined) processField("weight", updates.weight, "number");
   if (updates.price !== undefined) processField("price", updates.price, "number");

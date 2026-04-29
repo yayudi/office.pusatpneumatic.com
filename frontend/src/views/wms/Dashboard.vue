@@ -1,12 +1,14 @@
 <!-- frontend\src\views\wms\Dashboard.vue -->
 <script setup>
+import axios from '@/api/axios.js'
 import { ref, watch, computed } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { useWms } from '@/composables/useWms.js'
 import { useAuthStore } from '@/stores/auth.js'
 import { useMagicKeys } from '@vueuse/core'
 import { transferStock, adjustStock } from '@/api/helpers/stock.js'
-import axios from '@/api/axios.js'
+import { useMasterDataStore } from '@/stores/masterData.js'
+import { useMobile } from '@/composables/useMobile.js'
 import WmsProductTable from '@/components/wms/shared/ProductTable.vue'
 import WmsControlPanel from '@/components/wms/shared/ControlPanel.vue'
 import WmsAdjustModal from '@/components/wms/shared/AdjustModal.vue'
@@ -15,7 +17,6 @@ import WmsHistoryModal from '@/components/wms/shared/HistoryModal.vue'
 import WmsProductFormModal from '@/components/wms/shared/ProductFormModal.vue'
 import SalesSimulationModal from '@/components/wms/shared/SalesSimulationModal.vue'
 import ProductImageModal from '@/components/products/ProductImageModal.vue'
-import { useMobile } from '@/composables/useMobile.js'
 
 const { isMobile } = useMobile()
 const {
@@ -34,6 +35,7 @@ const {
   handleSearchInput,
   selectedBuilding,
   selectedFloor,
+  selectedCategory,
   sortBy,
   sortOrder,
   handleSort,
@@ -59,12 +61,32 @@ const adjustAmount = ref(0)
 const adjustReason = ref('')
 const searchTerm = ref('')
 const isProductFormOpen = ref(false)
-const productFormMode = ref('edit') // Default to edit since create is removed from here
+const productFormMode = ref('edit')
 const isSimulationModalOpen = ref(false)
 const mobileLayout = ref(isMobile.value ? 'card' : 'compact')
+const categoryOptions = ref([{ id: 'all', label: 'Kategori' }])
+const masterData = useMasterDataStore()
+
+async function loadCategories() {
+  try {
+    const categories = await masterData.getCategories()
+    categoryOptions.value = [
+      { id: 'all', label: 'Kategori' },
+      ...categories.map(c => ({ id: c.id, label: c.name }))
+    ]
+  } catch (error) {
+    console.error('Failed to load categories', error)
+  }
+}
 
 watch(isMobile, (mobile) => {
   mobileLayout.value = mobile ? 'card' : 'compact'
+})
+
+// Panggil saat load
+import { onMounted } from 'vue'
+onMounted(() => {
+  loadCategories()
 })
 
 // Image Modal State
@@ -85,7 +107,7 @@ const searchTabs = [
 ]
 
 const buildingFilterOptions = [
-  { label: '- Gedung -', value: 'all' },
+  { label: 'Gedung', value: 'all' },
   { label: 'A19', value: 'A19' },
   { label: 'A20', value: 'A20' },
   { label: 'B16', value: 'B16' },
@@ -93,7 +115,7 @@ const buildingFilterOptions = [
 ]
 
 const floorFilterOptions = [
-  { label: '- Lantai -', value: 'all' },
+  { label: 'Lantai', value: 'all' },
   { label: '1', value: '1' },
   { label: '2', value: '2' },
   { label: '3', value: '3' },
@@ -277,12 +299,13 @@ watch(Escape, (pressed) => {
     <div class="sticky top-14 z-20 rounded-t-xl">
       <WmsControlPanel :search-placeholder="searchPlaceholder" :search-tabs="searchTabs"
         :warehouse-views="warehouseViews" :building-filter-options="buildingFilterOptions"
-        :floor-filter-options="floorFilterOptions" :is-auto-refetching="isAutoRefetching" @search="handleSearchInput"
-        @toggle-refetch="toggleAutoRefetch" v-model:search-by="searchBy" v-model:searchValue="searchTerm"
-        v-model:active-view="activeView" v-model:stock-status-filter="stockStatusFilter"
-        v-model:product-type-filter="productTypeFilter" v-model:selected-building="selectedBuilding"
-        v-model:selected-floor="selectedFloor" v-model:mobileLayout="mobileLayout" :available-columns="availableColumns"
-        :visible-columns="visibleColumns" @toggle-column="toggleColumn" />
+        :floor-filter-options="floorFilterOptions" :category-filter-options="categoryOptions"
+        :is-auto-refetching="isAutoRefetching" @search="handleSearchInput" @toggle-refetch="toggleAutoRefetch"
+        v-model:search-by="searchBy" v-model:searchValue="searchTerm" v-model:active-view="activeView"
+        v-model:stock-status-filter="stockStatusFilter" v-model:product-type-filter="productTypeFilter"
+        v-model:selected-building="selectedBuilding" v-model:selected-floor="selectedFloor"
+        v-model:selected-category="selectedCategory" v-model:mobileLayout="mobileLayout"
+        :available-columns="availableColumns" :visible-columns="visibleColumns" @toggle-column="toggleColumn" />
     </div>
 
     <div v-if="loading" class="text-center py-16">

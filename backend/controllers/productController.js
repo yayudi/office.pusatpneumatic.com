@@ -55,6 +55,7 @@ export const getProducts = async (req, res) => {
       floor: req.query.floor || "all",
       sortBy: req.query.sortBy || "sku",
       sortOrder: req.query.sortOrder === "asc" ? "ASC" : "DESC",
+      categoryId: req.query.category_id || "",
     };
     filters.offset = (filters.page - 1) * filters.limit;
     const result = await productRepo.getProductsWithFilters(db, filters);
@@ -139,7 +140,7 @@ export const getProductStockTimeline = async (req, res) => {
 // POST /
 // Membuat produk baru
 export const createProduct = async (req, res) => {
-  const { sku, name, category, price, weight, is_package } = req.body;
+  const { sku, name, category_id, price, weight, is_package } = req.body;
   let components = req.body.components;
 
   // Handle Components JSON parsing from FormData
@@ -168,7 +169,7 @@ export const createProduct = async (req, res) => {
 
   try {
     const productId = await productService.createProductService(
-      { sku, name, category, price, weight, is_package, components, images },
+      { sku, name, category_id, price, weight, is_package, components, images },
       userId
     );
 
@@ -187,7 +188,7 @@ export const createProduct = async (req, res) => {
 // Memperbarui produk
 export const updateProduct = async (req, res) => {
   const { id } = req.params;
-  const { name, category, price, weight, is_package, is_active } = req.body;
+  const { name, category_id, price, weight, is_package, is_active } = req.body;
 
   let components = req.body.components;
   if (typeof components === "string") {
@@ -219,7 +220,7 @@ export const updateProduct = async (req, res) => {
   try {
     await productService.updateProductService(
       id,
-      { name, category, price, weight, is_package, components, images },
+      { name, category_id, price, weight, is_package, components, images },
       userId
     );
 

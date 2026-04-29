@@ -7,6 +7,7 @@ import { useMasterDataStore } from '@/stores/masterData'
 
 const AVAILABLE_COLUMNS = [
   { id: 'sku', label: 'SKU' },
+  { id: 'category', label: 'Kategori' },
   { id: 'weight', label: 'Berat' },
   { id: 'price', label: 'Harga' },
   { id: 'location', label: 'Lokasi' },
@@ -32,6 +33,7 @@ export function useWms() {
   const productTypeFilter = ref('all')
   const selectedBuilding = ref('all')
   const selectedFloor = ref('all')
+  const selectedCategory = ref('all')
   const sortBy = ref('name')
   const sortOrder = ref('asc')
   const isAutoRefetching = ref(true)
@@ -128,6 +130,7 @@ export function useWms() {
       price: apiProduct.price,
       weight: apiProduct.weight,
       is_package: Boolean(apiProduct.is_package),
+      category_name: apiProduct.category_name || null,
       image_path: apiProduct.image_path,
 
       stockPajangan,
@@ -178,6 +181,7 @@ export function useWms() {
         is_package: productTypeFilter.value === 'all' ? undefined : productTypeFilter.value === 'package',
         building: selectedBuilding.value,
         floor: selectedFloor.value,
+        category_id: selectedCategory.value !== 'all' ? selectedCategory.value : undefined,
         sortBy: sortBy.value,
         sortOrder: sortOrder.value,
         startDate: startDate.value,
@@ -202,7 +206,8 @@ export function useWms() {
       const isMasterView =
         activeView.value === 'all' &&
         selectedBuilding.value === 'all' &&
-        selectedFloor.value === 'all'
+        selectedFloor.value === 'all' &&
+        selectedCategory.value === 'all'
 
       if (!isMasterView) {
         transformed = transformed.filter((p) => {
@@ -404,6 +409,7 @@ export function useWms() {
       productTypeFilter,
       selectedBuilding,
       selectedFloor,
+      selectedCategory,
       sortBy,
       sortOrder,
       startDate,
@@ -436,6 +442,7 @@ export function useWms() {
     searchPlaceholder,
     selectedBuilding,
     selectedFloor,
+    selectedCategory,
     sortBy,
     sortOrder,
     allLocations,

@@ -5,7 +5,7 @@ import * as jobRepo from '../repositories/jobRepository.js';
 
 export const getStockMovements = async (req, res) => {
   try {
-    const { startDate, endDate, searchQuery, status, movement, building, timeResolution } = req.query;
+    const { startDate, endDate, searchQuery, status, movement, building, timeResolution, categoryId } = req.query;
     if (!startDate || !endDate) {
       return res.status(400).json({ success: false, message: 'startDate dan endDate diperlukan.' });
     }
@@ -22,7 +22,8 @@ export const getStockMovements = async (req, res) => {
       status,
       movement,
       buildings: buildingsArray,
-      timeResolution
+      timeResolution,
+      categoryId
     };
 
     const data = await statisticService.getStockMovementStatistics(filters);
@@ -39,7 +40,7 @@ export const getStockMovements = async (req, res) => {
 export const requestStockMovementsExport = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { startDate, endDate, searchQuery, status, movement, building } = req.body;
+    const { startDate, endDate, searchQuery, status, movement, building, categoryId } = req.body;
 
     if (!startDate || !endDate) {
       return res.status(400).json({ success: false, message: 'startDate dan endDate diperlukan.' });
@@ -52,6 +53,7 @@ export const requestStockMovementsExport = async (req, res) => {
       status,
       movement,
       buildings: building, // array if passed from UI usually
+      categoryId,
       exportType: "STATISTICS_STOCK_MOVEMENT"
     };
 
@@ -135,7 +137,7 @@ export const requestStockTimelineExport = async (req, res) => {
 
 export const getInventoryValue = async (req, res) => {
   try {
-    const { searchQuery, building, purpose, isPackage, stockStatus } = req.query;
+    const { searchQuery, building, purpose, isPackage, stockStatus, categoryId } = req.query;
 
     let buildingsArray = [];
     if (building) {
@@ -147,7 +149,8 @@ export const getInventoryValue = async (req, res) => {
       building: buildingsArray,
       purpose,
       isPackage,
-      stockStatus
+      stockStatus,
+      categoryId
     };
 
     const data = await statisticService.getInventoryValueStatistics(filters);

@@ -74,6 +74,13 @@ function sortIcon(column) {
               SKU <font-awesome-icon :icon="sortIcon('sku')" />
             </div>
           </th>
+          <th v-if="visibleColumns.has('category')"
+            class="px-6 py-3 text-left md:border-r md:border-secondary/50 cursor-pointer hover:text-primary transition-colors"
+            @click="handleSort('category_name')">
+            <div class="flex items-center gap-2">
+              Kategori <font-awesome-icon :icon="sortIcon('category_name')" />
+            </div>
+          </th>
           <th v-if="visibleColumns.has('weight')"
             class="px-6 py-3 text-right md:border-r md:border-secondary/50 cursor-pointer hover:text-primary transition-colors"
             @click="handleSort('weight')">

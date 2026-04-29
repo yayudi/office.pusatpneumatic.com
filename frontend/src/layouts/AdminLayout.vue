@@ -74,6 +74,11 @@ const route = useRoute()
           <span>Lokasi</span>
         </router-link>
 
+        <router-link to="/admin/categories" class="nav-item" active-class="active" @click="isSidebarOpen = false">
+          <font-awesome-icon icon="fa-solid fa-tags" class="w-5" />
+          <span>Kategori</span>
+        </router-link>
+
         <div class="mt-8 mb-2 text-xs font-bold text-text/40 uppercase tracking-wider px-3">
           Sistem
         </div>

@@ -6,7 +6,7 @@
  * @param {string} endDate
  */
 export const getStockMovementStats = async (connection, filters) => {
-  const { startDate, endDate, searchQuery, buildings } = filters;
+  const { startDate, endDate, searchQuery, buildings, categoryId } = filters;
 
   let queryParams = [];
 
@@ -81,6 +81,12 @@ export const getStockMovementStats = async (connection, filters) => {
     queryParams.push(likeTerm, likeTerm);
   }
 
+  // Category Filter
+  if (categoryId && categoryId !== "all") {
+    query += ` AND p.category_id = ?`;
+    queryParams.push(categoryId);
+  }
+
   query += ` ORDER BY total_sold DESC`;
 
   const [rows] = await connection.query(query, queryParams);
@@ -92,7 +98,7 @@ export const getStockMovementStats = async (connection, filters) => {
  * @param {Object} filters
  */
 export const getInventoryValueStats = async (connection, filters) => {
-  const { searchQuery, building, purpose, isPackage, stockStatus } = filters;
+  const { searchQuery, building, purpose, isPackage, stockStatus, categoryId } = filters;
 
   let whereClauses = ["p.is_active = 1"];
   const queryParams = [];
@@ -128,20 +134,27 @@ export const getInventoryValueStats = async (connection, filters) => {
     queryParams.push(isPackage);
   }
 
+  if (categoryId && categoryId !== "all") {
+    whereClauses.push("p.category_id = ?");
+    queryParams.push(categoryId);
+  }
+
   const query = `
     SELECT
       p.id as product_id,
       p.sku,
       p.name,
-      p.category,
+      p.category_id,
+      c.name as category,
       p.price,
       SUM(COALESCE(sl.quantity, 0)) AS total_quantity,
       (SUM(COALESCE(sl.quantity, 0)) * p.price) AS total_value
     FROM products p
+    LEFT JOIN categories c ON p.category_id = c.id
     LEFT JOIN stock_locations sl ON p.id = sl.product_id
     LEFT JOIN locations l ON sl.location_id = l.id
     WHERE ${whereClauses.join(" AND ")}
-    GROUP BY p.id, p.sku, p.name, p.category, p.price
+    GROUP BY p.id, p.sku, p.name, p.category_id, c.name, p.price
     ORDER BY total_value DESC
   `;
 
@@ -154,7 +167,7 @@ export const getInventoryValueStats = async (connection, filters) => {
  * @param {Object} filters
  */
 export const getMovementTimelineStats = async (connection, filters) => {
-  const { startDate, endDate, searchQuery, buildings, timeResolution } = filters;
+  const { startDate, endDate, searchQuery, buildings, timeResolution, categoryId } = filters;
 
   const queryParams = [startDate, endDate];
 
@@ -173,11 +186,21 @@ export const getMovementTimelineStats = async (connection, filters) => {
 
   let searchJoin = "";
   let searchFilter = "";
-  if (searchQuery) {
+
+  // Kita butuh JOIN products jika ada searchQuery ATAU categoryId
+  if (searchQuery || (categoryId && categoryId !== "all")) {
     searchJoin = "JOIN products p ON sm.product_id = p.id";
-    searchFilter = "AND (p.sku LIKE ? OR p.name LIKE ?)";
-    const likeTerm = `%${searchQuery}%`;
-    queryParams.push(likeTerm, likeTerm);
+    
+    if (searchQuery) {
+      searchFilter += " AND (p.sku LIKE ? OR p.name LIKE ?)";
+      const likeTerm = `%${searchQuery}%`;
+      queryParams.push(likeTerm, likeTerm);
+    }
+
+    if (categoryId && categoryId !== "all") {
+      searchFilter += " AND p.category_id = ?";
+      queryParams.push(categoryId);
+    }
   }
 
   let dateSelect = "DATE_FORMAT(sm.created_at, '%Y-%m-%d')";

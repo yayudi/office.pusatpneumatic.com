@@ -1,6 +1,6 @@
 <!-- frontend/src/components/wms/shared/ProductFormModal.vue -->
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
 import debounce from 'lodash/debounce'
 import axios from '@/api/axios.js'
@@ -23,7 +23,7 @@ const { toast } = useToast()
 const form = ref({
   sku: '',
   name: '',
-  category: '',
+  category_id: null,
   price: 0,
   weight: 0,
   is_package: false,
@@ -35,6 +35,22 @@ const searchResults = ref([])
 const isSearching = ref(false)
 const loading = ref(false)
 const fetchLoading = ref(false)
+
+const categories = ref([])
+async function fetchCategories() {
+  try {
+    const { data } = await axios.get('/categories')
+    if (data.success) {
+      categories.value = data.data
+    }
+  } catch (err) {
+    console.error('Failed to fetch categories', err)
+  }
+}
+
+onMounted(() => {
+  fetchCategories()
+})
 
 // Duplicate Check State
 const duplicateStatus = ref({
@@ -109,7 +125,7 @@ watch(
             form.value = {
               sku: data.data.sku,
               name: data.data.name,
-              category: data.data.category || '',
+              category_id: data.data.category_id || null,
               price: data.data.price || 0,
               weight: data.data.weight || 0,
               is_package: Boolean(data.data.is_package),
@@ -131,7 +147,7 @@ watch(
         }
       } else {
         // MODE CREATE: Kosongkan form
-        form.value = { sku: '', name: '', category: '', price: 0, weight: 0, is_package: false }
+        form.value = { sku: '', name: '', category_id: null, price: 0, weight: 0, is_package: false }
         components.value = []
         selectedImage.value = null
         imagePreview.value = null
@@ -348,7 +364,7 @@ watch(Alt_S, (pressed) => {
                   <font-awesome-icon icon="fa-solid fa-exclamation-circle" class="mr-1" /> SKU sudah digunakan!
                 </div>
                 <!-- <div v-else-if="form.sku && !duplicateStatus.sku.exists && mode === 'create'" class="text-xs text-success mt-1">
-                   SKU Tersedia
+                  SKU Tersedia
                 </div> -->
               </div>
 
@@ -406,12 +422,16 @@ watch(Alt_S, (pressed) => {
               </div>
             </div>
 
-            <!-- Kategori Produk (STATISTIK ONLY) -->
+            <!-- Kategori Produk -->
             <div>
               <label class="block text-xs font-bold text-text/60 mb-1">Kategori</label>
-              <input v-model="form.category" type="text"
-                class="w-full px-3 py-2 bg-secondary/10 border border-secondary/30 rounded-lg focus:outline-none focus:border-primary text-text transition-all"
-                placeholder="Contoh: Alat Tulis, Elektronik (Opsional)" />
+              <select v-model="form.category_id"
+                class="w-full px-3 py-2 bg-secondary/10 border border-secondary/30 rounded-lg focus:outline-none focus:border-primary text-text transition-all appearance-none cursor-pointer">
+                <option :value="null">Pilih Kategori (Opsional)</option>
+                <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+                  {{ cat.name }}
+                </option>
+              </select>
             </div>
 
             <!-- Berat Input -->
@@ -475,7 +495,8 @@ watch(Alt_S, (pressed) => {
                       }}</span>
                       <span class="font-mono text-[10px] text-text/40">{{ res.sku }}</span>
                     </div>
-                    <div class="text-primary text-xs font-bold" :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'">
+                    <div class="text-primary text-xs font-bold"
+                      :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'">
                       + Tambahkan
                     </div>
                   </div>

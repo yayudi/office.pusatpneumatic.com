@@ -3,11 +3,13 @@ import { defineStore } from 'pinia'
 import { fetchAllUsers } from '@/api/helpers/admin.js'
 import { fetchAllLocations } from '@/api/helpers/stock.js'
 import { fetchReportFilters } from '@/api/helpers/stats.js'
+import { fetchCategories } from '@/api/helpers/categories.js'
 
 export const useMasterDataStore = defineStore('masterData', {
   state: () => ({
     users: [],
     locations: [],
+    categories: [],
     reportFilters: null,
     // Private promise trackers to prevent duplicate concurrent requests
     _usersPromise: null,
@@ -60,6 +62,23 @@ export const useMasterDataStore = defineStore('masterData', {
       })
 
       return this._locationsPromise
+    },
+
+    async getCategories(search = '', forceRefresh = false) {
+      if (this.categories.length > 0 && !forceRefresh) return Promise.resolve(this.categories)
+      if (this._categoriesPromise && !forceRefresh) return this._categoriesPromise
+
+      this._categoriesPromise = fetchCategories(search).then(categories => {
+        this.categories = categories
+        this._categoriesPromise = null
+        console.log(categories)
+        return categories
+      }).catch(err => {
+        this._categoriesPromise = null
+        throw err
+      })
+
+      return this._categoriesPromise
     },
 
     /**

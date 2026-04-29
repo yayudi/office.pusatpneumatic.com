@@ -143,6 +143,12 @@ const routes = [
         meta: { requiresPermission: 'manage-locations' },
       },
       {
+        path: 'categories',
+        name: 'CategoryManagement',
+        component: () => import('../views/admin/CategoryManagement.vue'),
+        meta: { requiresPermission: 'manage-categories' },
+      },
+      {
         path: 'reports',
         name: 'Reports',
         component: () => import('../views/admin/ReportsView.vue'),
