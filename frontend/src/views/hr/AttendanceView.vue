@@ -190,7 +190,7 @@ async function handleUpload(formData) {
 <template>
   <div class="min-h-screen">
     <header
-      class="bg-background/80 backdrop-blur-sm sticky top-[65px] z-30 border-b border-secondary/20 transition-all duration-300">
+      class="bg-background/80 backdrop-blur-sm sticky top-[50px] z-30 border-b border-secondary/20 transition-all duration-300">
       <transition enter-active-class="transition-all duration-300 ease-out"
         enter-from-class="transform -translate-y-4 opacity-0 max-h-0"
         enter-to-class="transform translate-y-0 opacity-100 max-h-[500px]"
@@ -225,13 +225,12 @@ async function handleUpload(formData) {
 
             <!-- Row 2: Filters -->
             <div class="w-full">
-              <FilterBar :filters="[]" v-model="filterValues" @clear="clearFilters"
-                class="w-full !mb-0 shrink-0">
+              <FilterBar :filters="[]" v-model="filterValues" @clear="clearFilters" class="w-full !mb-0 shrink-0">
                 <template #prepend>
                   <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                     <DateRangeFilter v-model:startDate="filterValues.startDate" v-model:endDate="filterValues.endDate"
                       align="left" class="w-full sm:w-auto" />
-                    
+
                     <div v-if="canViewAll" class="w-full sm:w-[250px] lg:w-[350px] shrink-0">
                       <BaseSelect v-model="filterValues.name" :options="allUsersForFilter" :multiple="true"
                         :loading="isLoadingUsers" :disabled="isLoadingUsers" label="label" track-by="value"
@@ -240,7 +239,8 @@ async function handleUpload(formData) {
                   </div>
                 </template>
                 <template #actions>
-                  <div class="flex items-center bg-secondary/20 rounded-lg p-1 border border-secondary/20 lg:hidden ml-auto md:ml-0">
+                  <div
+                    class="flex items-center bg-secondary/20 rounded-lg p-1 border border-secondary/20 lg:hidden ml-auto md:ml-0">
                     <button @click="mobileLayout = 'card'"
                       class="p-2 rounded-md transition-all duration-200 flex items-center justify-center w-8 h-8"
                       :class="mobileLayout === 'card' ? 'bg-primary text-secondary shadow-sm' : 'text-text/60 hover:text-primary'"
@@ -269,7 +269,7 @@ async function handleUpload(formData) {
       </div>
     </header>
 
-    <main class="mt-6">
+    <main class="md:mt-6">
       <div class="bg-secondary/20 rounded-xl shadow-md border border-secondary/20 p-6 space-y-6">
         <KeepAlive>
           <div v-if="activeTab === 'summary'" key="summary">

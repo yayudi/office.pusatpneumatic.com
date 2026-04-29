@@ -1,5 +1,8 @@
 <script setup>
 import { useBrokenImages } from '@/composables/useImageUrl'
+import { useMobile } from '@/composables/useMobile.js'
+
+const { isMobile } = useMobile()
 
 const props = defineProps({
   /** Full resolved image URL */
@@ -61,7 +64,8 @@ const { brokenImages, onImgError } = useBrokenImages()
 
     <!-- Hover Overlay with Actions -->
     <div v-if="showOverlay"
-      class="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity p-2 text-center z-10 duration-300">
+      class="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center transition-opacity p-2 text-center z-10 duration-300"
+      :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'">
       <span class="text-xs truncate w-full block mb-2 px-2 text-text font-medium">
         {{ displayName }}
       </span>

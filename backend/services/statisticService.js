@@ -1,6 +1,9 @@
 // backend/services/statisticService.js
 import * as statisticRepo from '../repositories/statisticRepository.js';
-import db from '../config/db.js';
+import db from "../config/db.js";
+import ExcelJS from "exceljs";
+import fs from "fs";
+import { fileURLToPath } from "url";
 
 /**
  * @param {string} startDate
@@ -152,5 +155,100 @@ export const getInventoryValueStatistics = async (filters) => {
     return data;
   } finally {
     if (connection) connection.release();
+  }
+};
+
+
+export const generateStatisticExport = async (filters, filePath) => {
+  console.log(`[StatisticExport] Starting export to: ${filePath}`);
+  const stream = fs.createWriteStream(filePath);
+  const workbookWriter = new ExcelJS.stream.xlsx.WorkbookWriter({
+    stream: stream,
+    useStyles: true,
+    useSharedStrings: true,
+  });
+
+  const styleHeaderLocal = (ws, rowNumber, colCount, bgColor = "FFD9E1F2", fontColor = "FF000000") => {
+    const row = ws.getRow(rowNumber);
+    row.height = 20;
+    for (let i = 1; i <= colCount; i++) {
+      const cell = row.getCell(i);
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bgColor } };
+      cell.font = { bold: true, color: { argb: fontColor } };
+      cell.border = { top: { style: "thin" }, left: { style: "thin" }, bottom: { style: "thin" }, right: { style: "thin" } };
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+    }
+    row.commit();
+  };
+
+  const writeDataToSheet = (sheetName, data) => {
+    // Ensure sheet name is valid for Excel (max 31 chars, no invalid chars)
+    const safeSheetName = String(sheetName).substring(0, 31).replace(/[\\/?*[\]]/g, '-');
+    const sheet = workbookWriter.addWorksheet(safeSheetName);
+
+    const headers = [
+      "SKU", "Nama Produk", "Status", "Stok Saat Ini", "Total Terjual", "Total Masuk", "Rata-rata Terjual Harian", "Estimasi Hari Stok"
+    ];
+
+    sheet.columns = [
+      { key: "sku", width: 15 },
+      { key: "name", width: 40 },
+      { key: "status", width: 15 },
+      { key: "current_stock", width: 15 },
+      { key: "total_sold", width: 15 },
+      { key: "total_inbound", width: 15 },
+      { key: "avg_daily_sales", width: 25 },
+      { key: "days_of_inventory", width: 20 },
+    ];
+
+    sheet.getRow(1).values = headers;
+    styleHeaderLocal(sheet, 1, headers.length, "FF4472C4", "FFFFFFFF");
+
+    for (const row of data) {
+      sheet.addRow({
+        sku: row.sku,
+        name: row.name,
+        status: row.status,
+        current_stock: row.current_stock,
+        total_sold: row.total_sold,
+        total_inbound: row.total_inbound,
+        avg_daily_sales: row.avg_daily_sales,
+        days_of_inventory: row.days_of_inventory !== null ? row.days_of_inventory : "N/A"
+      }).commit();
+    }
+
+    sheet.commit();
+  };
+
+  try {
+    // 1. Tulis Sheet Global (Gabungan semua lokasi yang di-filter)
+    const globalStats = await getStockMovementStatistics(filters);
+    writeDataToSheet("Statistik Global", globalStats.summary || []);
+
+    // 2. Buat Sheet Tambahan per Gedung (jika user memfilter gedung)
+    if (filters.buildings && Array.isArray(filters.buildings) && filters.buildings.length > 0) {
+      for (const building of filters.buildings) {
+        // Ambil data spesifik hanya untuk gedung ini
+        const specificFilters = { ...filters, buildings: [building] };
+        const buildingStats = await getStockMovementStatistics(specificFilters);
+
+        writeDataToSheet(`${building}`, buildingStats.summary || []);
+      }
+    }
+
+    await workbookWriter.commit();
+
+    await new Promise((resolve, reject) => {
+      if (stream.writableEnded || stream.destroyed) return resolve();
+      stream.on("finish", resolve);
+      stream.on("error", reject);
+      stream.on("close", resolve);
+    });
+
+    console.log("[StatisticExport] Finished.");
+  } catch (error) {
+    console.error("[StatisticExport] Error:", error);
+    try { stream.end(); } catch (e) { }
+    throw error;
   }
 };

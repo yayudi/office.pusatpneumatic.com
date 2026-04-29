@@ -75,7 +75,7 @@ onUnmounted(() => {
 
 <template>
   <header class="bg-secondary/15 backdrop-blur-md sticky top-0 z-40 border-b border-secondary/20 shadow-sm">
-    <nav class="container mx-auto px-4 sm:px-6 py-3 flex justify-between items-center" title="Navigation Menu"
+    <nav class="container mx-auto sm:px-6 py-3 flex justify-between items-center" title="Navigation Menu"
       aria-current="page" aria-controls="desktop-menu" aria-expanded="false" aria-haspopup="true"
       aria-labelledby="desktop-menu" role="menu">
       <div class="flex items-center gap-6">

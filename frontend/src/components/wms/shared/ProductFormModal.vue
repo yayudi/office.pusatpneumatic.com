@@ -7,6 +7,9 @@ import axios from '@/api/axios.js'
 import { useToast } from '@/composables/useToast.js'
 import { formatCurrency } from '@/utils/formatters.js'
 import ProductHistoryList from '@/components/products/ProductHistoryList.vue'
+import { useMobile } from '@/composables/useMobile.js'
+
+const { isMobile } = useMobile()
 
 const props = defineProps({
   show: Boolean,
@@ -472,7 +475,7 @@ watch(Alt_S, (pressed) => {
                       }}</span>
                       <span class="font-mono text-[10px] text-text/40">{{ res.sku }}</span>
                     </div>
-                    <div class="text-primary text-xs font-bold opacity-0 group-hover:opacity-100">
+                    <div class="text-primary text-xs font-bold" :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'">
                       + Tambahkan
                     </div>
                   </div>

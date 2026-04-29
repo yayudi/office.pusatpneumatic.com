@@ -9,11 +9,13 @@ import { registerToast } from '@/composables/useToast.js'
 import { useTheme } from '@/composables/useTheme'
 import PwaUpdatePrompt from '@/components/ui/PwaUpdatePrompt.vue'
 import PwaInstallBanner from '@/components/ui/PwaInstallBanner.vue'
+import { useMobile } from '@/composables/useMobile.js'
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 const { initTheme } = useTheme()
+const { isMobile } = useMobile()
 
 const toastComponentRef = ref(null)
 const showHeader = computed(() => route.name !== 'Login')
@@ -38,7 +40,7 @@ function handleLogout() {
     <PwaInstallBanner />
 
     <AppHeader v-if="showHeader" @logout="handleLogout" />
-    <main class="container mx-auto">
+    <main class="container mx-auto" :class="isMobile ? 'px-3' : 'py-4'">
       <RouterView />
     </main>
   </div>

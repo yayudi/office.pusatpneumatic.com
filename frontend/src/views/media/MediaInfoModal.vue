@@ -7,6 +7,9 @@ import { useToast } from '@/composables/useToast.js'
 import { useAuthStore } from '@/stores/auth.js'
 import { formatBytes } from '@/utils/formatBytes.js'
 import { resolveUrl } from '@/composables/useImageUrl'
+import { useMobile } from '@/composables/useMobile.js'
+
+const { isMobile } = useMobile()
 
 const props = defineProps({
   show: Boolean,
@@ -341,7 +344,8 @@ watch(Alt_S, (pressed) => {
                     <span class="text-xs font-semibold text-text/90">{{ res.name }}</span>
                   </div>
                   <div
-                    class="w-6 h-6 flex items-center justify-center rounded-full bg-primary/10 text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                    class="w-6 h-6 flex items-center justify-center rounded-full bg-primary/10 text-primary transition-opacity"
+                    :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'">
                     <font-awesome-icon icon="fa-solid fa-plus" class="text-xs" />
                   </div>
                 </button>

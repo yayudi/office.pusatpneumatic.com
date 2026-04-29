@@ -16,6 +16,7 @@
     "migrate:attendance": "node scripts/migrateAttendance.js",
     "migrate:wms": "node scripts/migrateWms.js",
     "migrate:wmsMaster": "node scripts/migrateMasterProducts.js",
+    "migrate:categories": "node scripts/migrateCategories.js",
     "fetchHolidays": "node scripts/fetchHolidays.js"
   },
   "dependencies": {

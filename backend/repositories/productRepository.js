@@ -133,7 +133,7 @@ export const getProductsWithFilters = async (connection, filters) => {
   const [totalRows] = await connection.query(countQuery, queryParams);
   const totalProducts = totalRows[0]?.total || 0;
   const productsQuery = `
-      SELECT p.id, p.sku, p.name, p.category, p.price, p.weight, p.is_package, p.is_active, p.deleted_at,
+      SELECT p.id, p.sku, p.name, p.category_id, p.price, p.weight, p.is_package, p.is_active, p.deleted_at,
       (SELECT ma.main_path FROM product_images pi JOIN media_assets ma ON pi.media_id = ma.id WHERE pi.product_id = p.id AND pi.is_primary = 1 LIMIT 1) as image_path,
       (SELECT ma.thumbnail_path FROM product_images pi JOIN media_assets ma ON pi.media_id = ma.id WHERE pi.product_id = p.id AND pi.is_primary = 1 LIMIT 1) as thumbnail_path
       FROM products p

@@ -35,7 +35,6 @@ const {
   getSortIcon,
   handleTableScroll
 } = useStatsTable(statisticsList, { initialSortKey: 'total_value' });
-
 const fetchStatistics = async () => {
   isDataLoading.value = true;
   try {
@@ -47,6 +46,11 @@ const fetchStatistics = async () => {
     isDataLoading.value = false;
   }
 };
+
+const applyFilters = () => {
+  fetchStatistics();
+};
+
 
 const filterValues = ref({
   searchQuery: '',
@@ -185,11 +189,8 @@ const chartTopAssetProportionOptions = computed(() => {
     </div>
 
     <!-- Filter Controls -->
-    <StatsFilterBar
-      :loading="isDataLoading"
-      @apply="applyFilters"
-      :hasActiveAdvancedFilters="!!filterValues.building.length || filterValues.stockStatus !== 'all' || filterValues.purpose"
-    >
+    <StatsFilterBar :loading="isDataLoading" @apply="applyFilters"
+      :hasActiveAdvancedFilters="!!filterValues.building.length || filterValues.stockStatus !== 'all' || filterValues.purpose">
       <template #main>
         <div class="flex-1 w-full sm:w-auto min-w-[300px]">
           <SearchInput v-model="filterValues.searchQuery" placeholder="Cari SKU atau Nama Produk..." />
@@ -235,13 +236,13 @@ const chartTopAssetProportionOptions = computed(() => {
           <div class="p-4 bg-secondary/5">
             <span class="text-xs font-bold text-text/50 uppercase block mb-1">Total Unit (Pcs)</span>
             <span class="text-2xl font-black text-warning">{{formatNumber(statisticsList.reduce((acc, curr) => acc +
-              curr.total_quantity, 0)) }}</span>
+              curr.total_quantity, 0))}}</span>
           </div>
           <div class="p-4 bg-primary/5 col-span-2 md:col-span-2 items-center flex justify-between">
             <div>
               <span class="text-xs font-bold text-primary/70 uppercase block mb-1">Total Nilai Keseluruhan</span>
               <span class="text-2xl font-black text-text">{{formatCurrency(statisticsList.reduce((acc, curr) => acc +
-                curr.total_value, 0)) }}</span>
+                curr.total_value, 0))}}</span>
             </div>
             <div class="text-4xl text-primary/20 opacity-50"><font-awesome-icon icon="fa-solid fa-vault" /></div>
           </div>
@@ -305,7 +306,7 @@ const chartTopAssetProportionOptions = computed(() => {
                 <tr v-for="item in visibleData" :key="item.sku" class="hover:bg-secondary/10 transition-colors">
                   <td class="px-4 py-3 font-medium text-text bg-background/50 border-r border-secondary/10 w-auto">{{
                     item.sku
-                  }}</td>
+                    }}</td>
                   <td class="px-4 py-3 w-full">
                     <div class="whitespace-normal leading-tight font-medium text-text/90" :title="item.name">{{
                       item.name }}
@@ -360,12 +361,10 @@ const chartTopAssetProportionOptions = computed(() => {
           </StatsChartCard>
 
           <!-- Card: Top Assets -->
-          <StatsChartCard 
-            :title="`Top ${chartMaxCap} Penahan Nilai Modal (Aset Mengendap Tertinggi)`"
-            class="md:col-span-2"
-          >
+          <StatsChartCard :title="`Top ${chartMaxCap} Penahan Nilai Modal (Aset Mengendap Tertinggi)`"
+            class="md:col-span-2">
             <VueApexCharts width="100%" height="500" type="bar" :options="chartTopAssetsOptions"
-                :series="chartTopAssetsSeries" />
+              :series="chartTopAssetsSeries" />
           </StatsChartCard>
         </div>
 

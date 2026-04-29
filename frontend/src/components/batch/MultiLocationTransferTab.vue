@@ -6,6 +6,9 @@ import { fetchProductStockDetails, searchProducts } from '@/api/helpers/products
 import { processBatchMovement } from '@/api/helpers/stock.js'
 import debounce from 'lodash/debounce'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import { useMobile } from '@/composables/useMobile.js'
+
+const { isMobile } = useMobile()
 
 const props = defineProps({
   allLocations: { type: Array, required: true },
@@ -237,8 +240,8 @@ async function submitDetailedBatch() {
         Belum ada item yang ditambahkan.
       </div>
       <div v-else class="max-h-96 overflow-y-auto">
-        <table class="min-w-full text-sm">
-          <thead class="bg-secondary/10">
+        <table class="text-sm" :class="isMobile ? 'w-full block' : 'min-w-full'">
+          <thead :class="isMobile ? 'hidden' : 'bg-secondary/10'">
             <tr>
               <th class="p-2 text-left">SKU</th>
               <th class="p-2 text-left">Nama Produk</th>
@@ -248,14 +251,30 @@ async function submitDetailedBatch() {
               <th class="p-2 text-center">Aksi</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-secondary/20">
-            <tr v-for="item in batchList" :key="item.id" class="hover:bg-primary/5">
-              <td class="p-2 font-mono">{{ item.sku }}</td>
-              <td class="p-2">{{ item.name }}</td>
-              <td class="p-2 font-mono">{{ item.fromLocationCode }}</td>
-              <td class="p-2 font-mono">{{ item.toLocationCode }}</td>
-              <td class="p-2 text-center font-bold">{{ item.quantity }}</td>
-              <td class="p-2 text-center">
+          <tbody :class="isMobile ? 'block' : 'divide-y divide-secondary/20'">
+            <tr v-for="item in batchList" :key="item.id" class="transition-colors relative"
+              :class="isMobile ? 'block mb-3 p-3 bg-background/50 rounded-xl border border-secondary/20 shadow-sm' : 'hover:bg-primary/5'">
+              <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">SKU</span>
+                <span class="font-mono">{{ item.sku }}</span>
+              </td>
+              <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Produk</span>
+                <span>{{ item.name }}</span>
+              </td>
+              <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Dari</span>
+                <span class="font-mono">{{ item.fromLocationCode }}</span>
+              </td>
+              <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Ke</span>
+                <span class="font-mono">{{ item.toLocationCode }}</span>
+              </td>
+              <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 text-center font-bold'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Jumlah</span>
+                <span class="font-bold">{{ item.quantity }}</span>
+              </td>
+              <td :class="isMobile ? 'absolute top-3 right-3' : 'p-2 text-center'">
                 <button @click="removeFromBatch(item.id)" class="text-accent hover:text-accent/80">
                   <font-awesome-icon icon="fa-solid fa-trash" />
                 </button>
@@ -267,7 +286,7 @@ async function submitDetailedBatch() {
     </div>
 
     <!-- Catatan & Tombol Aksi Final -->
-    <div class="flex justify-between items-end pt-6 border-t border-secondary/20 gap-4">
+    <div class="pt-6 border-t border-secondary/20 gap-4" :class="isMobile ? 'flex flex-col' : 'flex justify-between items-end'">
       <!-- Input Catatan -->
       <div class="flex-grow">
         <label class="block text-sm font-medium text-text/90 mb-2">Catatan (Opsional)</label>

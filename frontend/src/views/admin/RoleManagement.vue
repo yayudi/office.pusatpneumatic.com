@@ -13,9 +13,11 @@ import {
   deleteRole,
 } from '@/api/helpers/roles.js' // Pastikan ini mengarah ke file helper yang benar
 import Modal from '@/components/ui/Modal.vue'
+import { useMobile } from '@/composables/useMobile.js'
 
 // --- STATE ---
 const { toast } = useToast()
+const { isMobile } = useMobile()
 const allRoles = ref([])
 const allPermissions = ref([])
 const selectedRole = ref(null)
@@ -267,7 +269,7 @@ watch(Alt_S, (pressed) => {
               <span class="flex-1 truncate pr-2">{{ role.name }}</span>
               <div :class="[
                 'flex-shrink-0 space-x-2',
-                selectedRole?.id === role.id
+                isMobile || selectedRole?.id === role.id
                   ? 'opacity-100'
                   : 'opacity-0 group-hover:opacity-100 transition-opacity',
               ]">

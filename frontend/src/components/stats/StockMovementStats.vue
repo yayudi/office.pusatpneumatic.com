@@ -165,10 +165,6 @@ const getStatusLabel = (status) => {
   }
 };
 
-const applyFilters = () => {
-  fetchStatistics();
-};
-
 const chartStatusSeries = computed(() => {
   let safe = 0, warning = 0, critical = 0, overstock = 0, empty = 0, negative = 0;
   statisticsList.value.forEach(item => {
@@ -182,6 +178,10 @@ const chartStatusSeries = computed(() => {
   });
   return [safe, warning, critical, overstock, empty, negative];
 });
+
+const applyFilters = () => {
+  fetchStatistics();
+};
 
 const labelColor = computed(() => themeColors.value.text);
 
@@ -567,7 +567,7 @@ const chartScatterOptions = computed(() => ({
                 <tr v-for="item in visibleData" :key="item.sku" class="hover:bg-secondary/10 transition-colors">
                   <td class="px-4 py-2 font-medium text-text bg-background/50 border-r border-secondary/10 w-auto">{{
                     item.sku
-                    }}</td>
+                  }}</td>
                   <td class="px-4 py-2 w-full">
                     <div class="whitespace-normal leading-relaxed pr-4 text-text/90" :title="item.name">{{ item.name }}
                     </div>
@@ -583,7 +583,7 @@ const chartScatterOptions = computed(() => ({
                     {{ item.current_stock }}
                   </td>
                   <td class="px-4 py-2 text-text/80 font-medium tracking-wide whitespace-nowrap">{{ item.avg_daily_sales
-                  }}</td>
+                    }}</td>
                   <td class="px-4 py-2 font-medium whitespace-nowrap">
                     <span v-if="item.days_of_inventory === null || item.days_of_inventory < 0"
                       class="text-text/30 font-bold tracking-widest">---</span>
@@ -686,11 +686,7 @@ const chartScatterOptions = computed(() => ({
         </div>
       </main>
     </div>
-    
-    <StockTimelineModal 
-      :show="showTimelineModal" 
-      :productId="selectedProductId" 
-      @close="showTimelineModal = false" 
-    />
+
+    <StockTimelineModal :show="showTimelineModal" :productId="selectedProductId" @close="showTimelineModal = false" />
   </div>
 </template>

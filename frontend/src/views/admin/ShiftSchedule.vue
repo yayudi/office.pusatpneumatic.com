@@ -8,6 +8,9 @@ import { useMasterDataStore } from '@/stores/masterData'
 import { fetchSchedules, createSchedule, deleteSchedule } from '@/api/helpers/schedule.js'
 import BatchScheduleImportModal from '@/components/shifts/BatchScheduleImportModal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import { useMobile } from '@/composables/useMobile.js'
+
+const { isMobile } = useMobile()
 const masterData = useMasterDataStore()
 
 // State
@@ -25,6 +28,7 @@ const userOptions = computed(() => {
 // Calendar State
 const currentDate = ref(new Date())
 const weekDays = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
+const weekDaysShort = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
 
 // Popover State
 const popover = ref({
@@ -276,7 +280,7 @@ onMounted(loadInitialData)
 
       <!-- Grid Header -->
       <div class="grid grid-cols-7 border-b border-secondary/10 bg-secondary/5">
-        <div v-for="d in weekDays" :key="d"
+        <div v-for="(d, i) in (isMobile ? weekDaysShort : weekDays)" :key="d"
           class="py-2 text-center text-xs font-semibold text-text/60 uppercase tracking-wide">
           {{ d }}
         </div>
@@ -285,13 +289,13 @@ onMounted(loadInitialData)
       <!-- Days Grid -->
       <div class="grid grid-cols-7 auto-rows-fr">
         <div v-for="(day, idx) in calendarDays" :key="idx"
-          class="min-h-[100px] border-b border-r border-secondary/10 p-2 relative transition-colors group select-none"
-          :class="{
+          class="border-b border-r border-secondary/10 p-1 md:p-2 relative transition-colors group select-none"
+          :class="[{
             'bg-secondary/5': day.isPadding,
             'hover:bg-primary/5 cursor-pointer active:bg-primary/10': !day.isPadding,
             'bg-primary/5': day.isToday && !day.isPadding,
             'ring-2 ring-inset ring-primary/40': popover.visible && popover.dateStr === day.dateStr
-          }" @click="openPopover($event, day)">
+          }, isMobile ? 'min-h-[70px]' : 'min-h-[100px]']" @click="openPopover($event, day)">
           <div v-if="!day.isPadding">
             <span class="text-sm font-medium text-text/80 block mb-1"
               :class="{ 'text-primary font-bold': day.isToday }">
@@ -301,14 +305,15 @@ onMounted(loadInitialData)
             <!-- Shift Badge -->
             <div v-if="day.schedule"
               class="bg-primary/10 border border-primary/20 text-primary text-xs rounded p-1.5 break-words shadow-sm">
-              <div class="font-bold truncate">{{ day.schedule.shift_name }}</div>
-              <div class="text-[10px] mt-0.5">{{ day.schedule.start_time.slice(0, 5) }} - {{
+              <div class="font-bold truncate" :class="isMobile ? 'text-[9px]' : ''">{{ day.schedule.shift_name }}</div>
+              <div class="mt-0.5" :class="isMobile ? 'text-[8px]' : 'text-[10px]'">{{ day.schedule.start_time.slice(0, 5) }} - {{
                 day.schedule.end_time.slice(0, 5) }}</div>
             </div>
 
             <!-- Add Indicator (Hover only, if no schedule) -->
             <div v-else
-              class="opacity-0 group-hover:opacity-100 absolute inset-0 flex items-center justify-center text-primary/30 pointer-events-none">
+              class="absolute inset-0 flex items-center justify-center text-primary/30 pointer-events-none"
+              :class="isMobile ? 'opacity-50' : 'opacity-0 group-hover:opacity-100'">
               <font-awesome-icon icon="fa-solid fa-plus" class="text-2xl" />
             </div>
           </div>

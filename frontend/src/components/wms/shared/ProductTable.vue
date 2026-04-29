@@ -51,7 +51,7 @@ function sortIcon(column) {
 
 <template>
   <div
-    class="bg-background rounded-xl border border-secondary/50 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[65vh] table-container">
+    class="bg-background rounded-xl border border-secondary/50 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[80vh] table-container">
     <table class="min-w-full md:min-w-[1000px] w-full bg-background text-sm text-text border-collapse">
       <!-- STATIC HEADER -->
       <thead

@@ -385,8 +385,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="h-min-screen p-4 sm:p-4" @dragenter="handleDragEnter" @dragover="handleDragOver"
-    @dragleave="handleDragLeave" @drop="handleDrop">
+  <div class="h-min-screen" @dragenter="handleDragEnter" @dragover="handleDragOver" @dragleave="handleDragLeave"
+    @drop="handleDrop">
 
     <!-- Global Drag overlay -->
     <div v-show="isDragging"
@@ -485,19 +485,13 @@ onUnmounted(() => {
           :class="selectedMediaIds.has(item.id) ? 'bg-primary/10' : 'bg-secondary/30'"
           @click="isSelectionMode ? toggleSelection(item) : (item.status === 'COMPLETED' ? (isLightboxOpen = true, lightboxIndex = index) : null)">
 
-          <MediaCard
-            :image-url="resolveUrl(item.thumbnail_path || item.main_path)"
-            :image-id="item.id"
-            :display-name="item.original_name || 'Gambar'"
-            :status="item.status"
-            :selected="selectedMediaIds.has(item.id)"
-            :selectable="isSelectionMode && item.status === 'COMPLETED'"
-            :show-overlay="!isSelectionMode"
-            class="!aspect-auto w-full h-full !rounded-lg !border-0 !shadow-none">
+          <MediaCard :image-url="resolveUrl(item.thumbnail_path || item.main_path)" :image-id="item.id"
+            :display-name="item.original_name || 'Gambar'" :status="item.status"
+            :selected="selectedMediaIds.has(item.id)" :selectable="isSelectionMode && item.status === 'COMPLETED'"
+            :show-overlay="!isSelectionMode" class="!aspect-auto w-full h-full !rounded-lg !border-0 !shadow-none">
 
             <template #actions>
-              <MediaActionBar
-                :image-url="item.status === 'COMPLETED' ? resolveUrl(item.main_path) : null"
+              <MediaActionBar :image-url="item.status === 'COMPLETED' ? resolveUrl(item.main_path) : null"
                 :filename="item.original_name">
                 <button @click.stop="openInfoModal(item)"
                   class="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-background hover:backdrop-brightness-75 transition-transform hover:scale-110"
