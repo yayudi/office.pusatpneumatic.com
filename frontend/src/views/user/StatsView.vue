@@ -10,7 +10,7 @@ import { useMasterDataStore } from '@/stores/masterData'
 import { useToast } from '@/composables/useToast.js'
 import SearchInput from '@/components/ui/SearchInput.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
-import FilterContainer from '@/components/ui/FilterContainer.vue'
+import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
 import { formatNumber, formatCurrency } from '@/utils/formatters.js'
 
@@ -19,6 +19,7 @@ const StockMovementStats = defineAsyncComponent(() => import('@/components/stats
 const StockTimelineFull = defineAsyncComponent(() => import('@/components/stats/StockTimelineFull.vue'))
 const InventoryValueStats = defineAsyncComponent(() => import('@/components/stats/InventoryValueStats.vue'))
 const TimePerformanceStats = defineAsyncComponent(() => import('@/components/stats/TimePerformanceStats.vue'))
+const ShopPerformanceStats = defineAsyncComponent(() => import('@/components/stats/ShopPerformanceStats.vue'))
 
 const masterData = useMasterDataStore()
 
@@ -88,7 +89,7 @@ const reportsMenu = [
   },
   {
     key: 'channel-performance',
-    label: 'Laporan Performa Saluran',
+    label: 'Performa Toko & Saluran',
     group: 'Laporan Utama',
     icon: 'fa-solid fa-store',
   },
@@ -360,6 +361,7 @@ async function handleRequestExport() {
                 <StockTimelineFull v-else-if="activeReport === 'stock-timeline'" class="animate-fade-in" />
                 <InventoryValueStats v-else-if="activeReport === 'inventory-value'" class="animate-fade-in" />
                 <TimePerformanceStats v-else-if="activeReport === 'time-performance'" class="animate-fade-in" />
+                <ShopPerformanceStats v-else-if="activeReport === 'channel-performance'" class="animate-fade-in" />
               </KeepAlive>
 
               <div v-if="activeReport === 'export-stock'" class="animate-fade-in">
@@ -372,47 +374,49 @@ async function handleRequestExport() {
 
                 <div class="grid lg:grid-cols-3 gap-8">
                   <div class="lg:col-span-1">
-                    <FilterContainer title="Filter Export" icon="fa-solid fa-filter">
-                      <div class="space-y-5 w-full">
-                        <div>
-                          <label class="label-input">Cari Produk</label>
-                          <SearchInput id="search-filter" v-model="selectedFilters.searchQuery"
-                            placeholder="Cari SKU atau Nama Produk..." />
-                        </div>
-
-                        <div>
-                          <label class="label-input">Gedung</label>
-                          <BaseSelect v-model="selectedFilters.building" :options="availableBuildings" :multiple="true"
-                            placeholder="Semua Gedung" />
-                        </div>
-
-                        <div>
-                          <label class="label-input">Tujuan</label>
-                          <BaseSelect v-model="selectedFilters.purpose" :options="purposeOptions" emitValue
-                            :searchable="false" />
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-3">
+                    <BaseFilterPanel title="Filter Export">
+                      <template #filters>
+                        <div class="space-y-5 w-full">
                           <div>
-                            <label class="label-input">Tipe</label>
-                            <BaseSelect v-model="selectedFilters.isPackage" :options="typeOptions" emitValue
+                            <label class="label-input">Cari Produk</label>
+                            <SearchInput id="search-filter" v-model="selectedFilters.searchQuery"
+                              placeholder="Cari SKU atau Nama Produk..." />
+                          </div>
+
+                          <div>
+                            <label class="label-input">Gedung</label>
+                            <BaseSelect v-model="selectedFilters.building" :options="availableBuildings"
+                              :multiple="true" placeholder="Semua Gedung" />
+                          </div>
+
+                          <div>
+                            <label class="label-input">Tujuan</label>
+                            <BaseSelect v-model="selectedFilters.purpose" :options="purposeOptions" emitValue
                               :searchable="false" />
                           </div>
-                          <div>
-                            <label class="label-input">Status Stok</label>
-                            <BaseSelect v-model="selectedFilters.stockStatus" :options="stockStatusOptions" emitValue
-                              :searchable="false" />
-                          </div>
-                        </div>
 
-                        <button @click="handleRequestExport" :disabled="isRequesting"
-                          class="w-full py-3 bg-primary text-secondary rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]">
-                          <font-awesome-icon v-if="isRequesting" icon="fa-solid fa-circle-notch" spin />
-                          <font-awesome-icon v-else icon="fa-solid fa-file-export" />
-                          <span>{{ isRequesting ? 'Memproses...' : 'Generate Laporan' }}</span>
-                        </button>
-                      </div>
-                    </FilterContainer>
+                          <div class="grid grid-cols-2 gap-3">
+                            <div>
+                              <label class="label-input">Tipe</label>
+                              <BaseSelect v-model="selectedFilters.isPackage" :options="typeOptions" emitValue
+                                :searchable="false" />
+                            </div>
+                            <div>
+                              <label class="label-input">Status Stok</label>
+                              <BaseSelect v-model="selectedFilters.stockStatus" :options="stockStatusOptions" emitValue
+                                :searchable="false" />
+                            </div>
+                          </div>
+
+                          <button @click="handleRequestExport" :disabled="isRequesting"
+                            class="w-full py-3 bg-primary text-secondary rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]">
+                            <font-awesome-icon v-if="isRequesting" icon="fa-solid fa-circle-notch" spin />
+                            <font-awesome-icon v-else icon="fa-solid fa-file-export" />
+                            <span>{{ isRequesting ? 'Memproses...' : 'Generate Laporan' }}</span>
+                          </button>
+                        </div>
+                      </template>
+                    </BaseFilterPanel>
                   </div>
 
                   <div class="lg:col-span-2">
@@ -463,7 +467,7 @@ async function handleRequestExport() {
                               class="px-6 py-4 text-text text-xs sticky left-0 z-10 bg-background group-hover:bg-secondary/5 transition-colors shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
                               <div class="flex flex-col">
                                 <span class="font-bold text-sm">{{ new Date(job.created_at).toLocaleDateString('id-ID')
-                                }}</span>
+                                  }}</span>
                                 <span class="text-text/40 text-[10px]">{{ new
                                   Date(job.created_at).toLocaleTimeString('id-ID') }}</span>
                               </div>
@@ -563,24 +567,6 @@ async function handleRequestExport() {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--color-secondary) / 0.3);
-  border-radius: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--color-secondary) / 0.5);
 }
 
 /* List Transitions */

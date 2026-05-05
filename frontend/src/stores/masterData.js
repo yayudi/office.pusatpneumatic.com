@@ -71,7 +71,6 @@ export const useMasterDataStore = defineStore('masterData', {
       this._categoriesPromise = fetchCategories(search).then(categories => {
         this.categories = categories
         this._categoriesPromise = null
-        console.log(categories)
         return categories
       }).catch(err => {
         this._categoriesPromise = null

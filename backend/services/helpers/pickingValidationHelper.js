@@ -364,6 +364,7 @@ export async function insertPickingHeader(connection, meta) {
     mpStatus: meta.status || MP_STATUS.NEW,
     filename: meta.originalFilename,
     locationPurpose: meta.locationPurpose || "DISPLAY",
+    shopName: meta.shopName,
   });
 }
 
@@ -376,10 +377,14 @@ export async function insertPickingItems(connection, pickingListId, validItems, 
   for (const item of validItems) {
     if (item.is_package) {
       item.components.forEach((c) => {
+        // Komponen paket: harga 0 karena harga jual ada di parent package SKU
+        const price = 0;
+
         rows.push([
           pickingListId,
           c.component_product_id,
           item.sku,
+          price,
           item.qty * c.quantity_per_package,
           c.initialStatus || WMS_STATUS.PENDING,
           c.suggestedLocationId,
@@ -387,10 +392,12 @@ export async function insertPickingItems(connection, pickingListId, validItems, 
       });
     } else {
       const pid = productMap.get(item.sku).id;
+      const price = productMap.get(item.sku).price || 0;
       rows.push([
         pickingListId,
         pid,
         item.sku,
+        price,
         item.qty,
         item.initialStatus || WMS_STATUS.PENDING,
         item.suggestedLocationId,

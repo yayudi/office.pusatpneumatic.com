@@ -1,6 +1,6 @@
 <!-- frontend\src\components\picking\PickingUploadForm.vue -->
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import Tabs from '@/components/ui/Tabs.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import { useToast } from '@/composables/useToast.js'
@@ -13,6 +13,7 @@ const fileInputRef = ref(null)
 const selectedFiles = ref([])
 const selectedSource = ref('Offline')
 const selectedPurpose = ref('DISPLAY')
+const shopNames = ref([])
 const isLoading = ref(false)
 const loadingMessage = ref('')
 const isDragging = ref(false)
@@ -34,6 +35,23 @@ const fileAcceptString = computed(() => {
   return '.csv, .xlsx, .xls'
 })
 
+const availableChannels = ref([])
+
+onMounted(async () => {
+  try {
+    const res = await axios.get('/sales-channels?activeOnly=true')
+    availableChannels.value = res.data?.data || []
+  } catch (error) {
+    console.error('Failed to fetch sales channels:', error)
+  }
+})
+
+const filteredChannelOptions = computed(() => {
+  return availableChannels.value
+    .filter(c => c.platform === selectedSource.value)
+    .map(c => ({ id: c.name, label: c.name }))
+})
+
 // FILE HANDLING
 
 function triggerFileSelect() {
@@ -50,11 +68,20 @@ function onDrop(e) {
 }
 
 function addFiles(files) {
-  selectedFiles.value = files
+  // Hanya tambah file baru yang belum ada
+  const newFiles = files.filter(f => !selectedFiles.value.some(existing => existing.name === f.name))
+  selectedFiles.value = [...selectedFiles.value, ...newFiles]
+
+  // Tambahkan state shopNames untuk file baru
+  newFiles.forEach(() => {
+    shopNames.value.push('')
+  })
 }
 
 function removeFile(index) {
   selectedFiles.value.splice(index, 1)
+  shopNames.value.splice(index, 1)
+
   if (selectedFiles.value.length === 0 && fileInputRef.value) {
     fileInputRef.value.value = ''
   }
@@ -62,6 +89,7 @@ function removeFile(index) {
 
 function resetFileInput() {
   selectedFiles.value = []
+  shopNames.value = []
   if (fileInputRef.value) fileInputRef.value.value = ''
 }
 
@@ -95,6 +123,13 @@ async function triggerUpload() {
     }
   }
 
+  for (let i = 0; i < selectedFiles.value.length; i++) {
+    if (!shopNames.value[i] || shopNames.value[i].trim() === '') {
+      toast(`File ${selectedFiles.value[i].name} belum memiliki Nama Toko / Sales.`, 'error')
+      return
+    }
+  }
+
   isLoading.value = true
   const actionText = isDryRun.value ? 'Simulasi' : 'Mengunggah'
   loadingMessage.value = `${actionText} ${selectedFiles.value.length} file...`
@@ -110,6 +145,8 @@ async function triggerUpload() {
     if (selectedSource.value === 'Offline') {
       formData.append('purpose', selectedPurpose.value)
     }
+
+    formData.append('shopNames', JSON.stringify(shopNames.value))
 
     // Kirim flag dryRun ke backend
     if (isDryRun.value) {
@@ -150,14 +187,9 @@ async function triggerUpload() {
     <div>
       <label class="block text-[10px] font-bold uppercase text-text/40 mb-2 tracking-wider">Sumber Data</label>
       <Tabs :tabs="tabs" v-model:model-value="selectedSource" class="w-full mb-2" />
-      <div v-if="selectedSource === 'Offline'" class="w-full animate-fade-in origin-left">
-        <BaseSelect
-          v-model="selectedPurpose"
-          :options="purposeOptions"
-          placeholder="Pilih Lokasi Stok"
-          track-by="id"
-          emit-value
-        />
+      <div v-if="selectedSource === 'Offline'" class="w-full animate-fade-in origin-left mb-2">
+        <BaseSelect v-model="selectedPurpose" :options="purposeOptions" placeholder="Pilih Lokasi Stok" track-by="id"
+          emit-value />
       </div>
     </div>
 
@@ -174,10 +206,10 @@ async function triggerUpload() {
       <!-- Custom Dropzone -->
       <div @click="triggerFileSelect" @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false"
         @drop.prevent="onDrop" :class="[
-          'relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-200 group',
+          'relative border-2 border-dashed rounded-xl text-center cursor-pointer transition-all duration-200 group',
           isDragging
             ? 'border-primary bg-primary/5 scale-[1.01]'
-            : 'border-secondary/30 hover:border-primary/50 hover:bg-secondary/5 bg-background',
+            : 'border-secondary/30 hover:border-primary/50 hover:bg-background/50 bg-background',
         ]">
         <div class="flex flex-col items-center justify-center gap-3 py-4">
           <!-- Icon berubah jika ada file -->
@@ -205,22 +237,34 @@ async function triggerUpload() {
       </div>
 
       <!-- File List Preview (Dismissible) -->
-      <div v-if="selectedFiles.length > 0" class="mt-3 space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
+      <div v-if="selectedFiles.length > 0" class="mt-3 space-y-3 max-h-64 overflow-y-auto custom-scrollbar">
         <div v-for="(f, i) in selectedFiles" :key="i"
-          class="flex items-center gap-3 p-2 bg-secondary/5 border border-secondary/10 rounded-lg text-xs group hover:bg-secondary/10 transition-colors">
-          <font-awesome-icon :icon="f.name.endsWith('.csv') ? 'fa-solid fa-file-csv' : 'fa-solid fa-file-excel'"
-            class="text-text/40 text-lg ml-1" />
-          <div class="flex-1 min-w-0">
-            <div class="font-semibold text-text/80 truncate">{{ f.name }}</div>
-            <div class="text-[10px] text-text/40 font-mono">
-              {{ (f.size / 1024).toFixed(0) }} KB
+          class="flex flex-col gap-2 p-3 bg-background border border-secondary/10 rounded-lg group hover:bg-background/50 transition-colors">
+
+          <div class="flex items-center gap-3 text-xs">
+            <font-awesome-icon :icon="f.name.endsWith('.csv') ? 'fa-solid fa-file-csv' : 'fa-solid fa-file-excel'"
+              class="text-text/40 text-lg ml-1" />
+            <div class="flex-1 min-w-0">
+              <div class="font-semibold text-text/80 truncate">{{ f.name }}</div>
+              <div class="text-[10px] text-text/40 font-mono">
+                {{ (f.size / 1024).toFixed(0) }} KB
+              </div>
             </div>
+            <button @click.stop="removeFile(i)"
+              class="p-1.5 hover:bg-danger/10 text-text/30 hover:text-danger rounded transition-colors"
+              title="Hapus file">
+              <font-awesome-icon icon="fa-solid fa-xmark" />
+            </button>
           </div>
-          <button @click.stop="removeFile(i)"
-            class="p-1.5 hover:bg-danger/10 text-text/30 hover:text-danger rounded transition-colors"
-            title="Hapus file">
-            <font-awesome-icon icon="fa-solid fa-xmark" />
-          </button>
+
+          <!-- Input Nama Toko Per File -->
+          <div class="w-full mt-1" @click.stop>
+            <label class="block text-[10px] font-bold uppercase text-text/40 mb-1 tracking-wider">
+              Nama Toko / Sales <span class="text-danger">*</span>
+            </label>
+            <BaseSelect v-model="shopNames[i]" :options="filteredChannelOptions" placeholder="Pilih Saluran / Toko..."
+              track-by="id" emit-value />
+          </div>
         </div>
       </div>
     </div>

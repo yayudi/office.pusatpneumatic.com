@@ -1,6 +1,7 @@
+<!-- frontend\src\components\ui\FilterBar.vue -->
 <script setup>
 import { reactive, watch } from 'vue'
-import FilterContainer from '@/components/ui/FilterContainer.vue'
+import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 
@@ -44,8 +45,8 @@ function emitClear() {
 </script>
 
 <template>
-  <FilterContainer :title="title || 'Filter Data'">
-    <div class="flex flex-wrap gap-4 items-center">
+  <BaseFilterPanel :title="title || 'Filter Data'">
+    <template #filters>
       <slot name="prepend"></slot>
       <!-- Loop through filters -->
       <template v-for="(filter, index) in filters" :key="index">
@@ -66,28 +67,26 @@ function emitClear() {
           <label v-if="filter.label" :for="filter.key" class="text-sm font-medium text-text/80 whitespace-nowrap">
             {{ filter.label }}:
           </label>
-          <BaseSelect 
-            v-model="localValues[filter.key]" 
-            :options="filter.options" 
-            track-by="value" 
-            emit-value 
-            :multiple="filter.multiple || false" 
-            :searchable="false"
-            @update:modelValue="emitChange"
-            class="min-w-[150px]"
-          />
+          <BaseSelect v-model="localValues[filter.key]" :options="filter.options" track-by="value" emit-value
+            :multiple="filter.multiple || false" :searchable="filter.searchable || false"
+            :clearable="filter.clearable !== undefined ? filter.clearable : true"
+            :clear-value="filter.clearValue !== undefined ? filter.clearValue : 'all'"
+            :placeholder="filter.placeholder || ('Semua ' + filter.label)" @update:modelValue="emitChange"
+            class="min-w-[150px] w-full" />
         </div>
       </template>
+    </template>
 
+    <template #filter-actions>
       <!-- Clear Button -->
       <button type="button"
-        class="ml-auto px-3 py-2 bg-secondary/60 hover:bg-secondary text-text/80 text-sm rounded-lg shadow-sm transition-colors flex items-center gap-2"
+        class="h-[42px] px-4 bg-secondary/10 hover:bg-danger/10 text-text/80 hover:text-danger text-sm font-bold border border-secondary/20 hover:border-danger/20 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2"
         @click="emitClear">
-        <font-awesome-icon icon="fa-solid fa-rotate-left" />
-        <span>Reset</span>
+        <font-awesome-icon icon="fa-solid fa-eraser" />
+        <span class="hidden lg:inline">Reset</span>
       </button>
 
       <slot name="actions"></slot>
-    </div>
-  </FilterContainer>
+    </template>
+  </BaseFilterPanel>
 </template>

@@ -131,6 +131,7 @@ export function useWms() {
       weight: apiProduct.weight,
       is_package: Boolean(apiProduct.is_package),
       category_name: apiProduct.category_name || null,
+      thumbnail_path: apiProduct.thumbnail_path,
       image_path: apiProduct.image_path,
 
       stockPajangan,

@@ -1,7 +1,7 @@
-<!-- frontend/src/components/wms/shared/ControlPanel.vue -->
+<!-- frontend/src/components/wms/shared/WmsControlPanel.vue -->
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
-import FilterContainer from '@/components/ui/FilterContainer.vue'
+import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 
 const props = defineProps({
@@ -42,9 +42,8 @@ const emit = defineEmits([
   'update:categoryFilterOptions',
   'update:mobileLayout',
   'search',
-  'update:mobileLayout',
-  'search',
   'toggle-column',
+  'toggle-refetch'
 ])
 
 function onSearchInput(e) {
@@ -52,21 +51,17 @@ function onSearchInput(e) {
   emit('search', e.target.value)
 }
 
-emit('search', '')
-
 function clearSearch() {
   emit('update:searchValue', '')
   emit('search', '')
 }
 
 const typeOptions = [
-  { id: 'all', label: 'Tipe' },
   { id: 'unit', label: 'Satuan' },
   { id: 'package', label: 'Paket' },
 ]
 
 const stockOptions = [
-  { id: 'all', label: 'Stok' },
   { id: 'minus', label: 'Minus' },
   { id: 'positive', label: 'Aman' },
 ]
@@ -122,9 +117,10 @@ function updateDropdownPosition() {
 </script>
 
 <template>
-  <FilterContainer title="Kontrol & Pencarian">
-    <div class="flex flex-col xl:flex-row gap-3 xl:items-center w-full">
-      <div class="relative flex-grow group w-full xl:w-auto">
+  <BaseFilterPanel class="z-50">
+    <!-- Search Row -->
+    <template #search>
+      <div class="relative flex-grow group w-full xl:w-auto shadow-sm rounded-lg">
         <span
           class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text/40 group-focus-within:text-primary transition-colors">
           <font-awesome-icon icon="fa-solid fa-search" />
@@ -132,7 +128,7 @@ function updateDropdownPosition() {
 
         <input id="global-search-input" :value="searchValue" @input="onSearchInput" type="text"
           :placeholder="searchPlaceholder"
-          class="w-full pl-10 pr-10 py-2 bg-background border border-primary/20 rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 text-text transition-all placeholder-text/30 h-[42px]" />
+          class="w-full pl-10 pr-10 py-2 bg-background border border-secondary rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 text-text transition-all placeholder-text/30 h-[42px]" />
 
         <button v-if="searchValue" @click="clearSearch"
           class="absolute inset-y-0 right-0 pr-3 flex items-center text-text/40 hover:text-danger cursor-pointer transition-colors"
@@ -140,11 +136,15 @@ function updateDropdownPosition() {
           <font-awesome-icon icon="fa-solid fa-times-circle" />
         </button>
       </div>
+    </template>
 
-      <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-center shrink-0">
-        <div class="flex bg-background p-1.5 rounded-lg border border-secondary/20 h-[42px] shrink-0 items-center">
+    <!-- Tabs Row -->
+    <template #tabs>
+      <div class="flex flex-col md:flex-row gap-3 w-full lg:w-auto">
+        <!-- Search By Tabs -->
+        <div class="flex bg-background p-1 rounded-lg border border-secondary h-[42px] shrink-0 items-center shadow-sm">
           <button v-for="tab in searchTabs" :key="tab.value" @click="emit('update:searchBy', tab.value)"
-            class="flex-1 md:flex-none px-4 py-1 rounded text-xs font-bold transition-all duration-200 flex items-center justify-center h-full"
+            class="flex-1 md:flex-none px-3 py-1 rounded text-xs font-bold transition-all duration-200 flex items-center justify-center h-full"
             :class="[
               searchBy === tab.value
                 ? 'bg-primary text-secondary shadow-sm'
@@ -154,10 +154,11 @@ function updateDropdownPosition() {
           </button>
         </div>
 
+        <!-- View Tabs -->
         <div
-          class="flex bg-background p-1.5 rounded-lg border border-secondary/20 h-[42px] overflow-x-auto no-scrollbar shrink-0 items-center">
+          class="flex bg-background p-1 rounded-lg border border-secondary h-[42px] overflow-x-auto no-scrollbar shrink-0 items-center shadow-sm">
           <button v-for="view in warehouseViews" :key="view.value" @click="emit('update:activeView', view.value)"
-            class="flex-1 px-4 py-1 rounded text-xs font-bold whitespace-nowrap transition-all flex items-center justify-center h-full"
+            class="flex-1 px-3 py-1 rounded text-xs font-bold whitespace-nowrap transition-all flex items-center justify-center h-full"
             :class="[
               activeView === view.value
                 ? 'bg-primary text-secondary shadow-sm font-bold'
@@ -166,90 +167,98 @@ function updateDropdownPosition() {
             {{ view.label }}
           </button>
         </div>
+      </div>
+    </template>
 
-        <div v-if="activeView === 'gudang'" class="flex gap-2 w-full lg:w-auto animate-fade-in shrink-0">
+    <!-- Actions & Filters (Inline Right) -->
+    <template #actions>
+      <div class="flex flex-wrap items-center justify-between gap-2 min-w-full lg:min-w-0">
+        <!-- Filter Warehouse (Hanya tampil jika view gudang) -->
+        <div v-if="activeView === 'gudang'" class="flex gap-2 animate-fade-in w-full lg:w-auto lg:min-w-[160px]">
           <BaseSelect :model-value="selectedBuilding" @update:modelValue="emit('update:selectedBuilding', $event)"
-            :options="buildingFilterOptions" track-by="value" emit-value :searchable="false"
-            class="flex-1 lg:w-32 min-w-[120px] h-[42px]" />
+            :options="buildingFilterOptions" track-by="value" emit-value :searchable="false" clearable clear-value="all"
+            placeholder="Gedung" class="w-full lg:w-[100px]" />
           <BaseSelect :model-value="selectedFloor" @update:modelValue="emit('update:selectedFloor', $event)"
-            :options="floorFilterOptions" track-by="value" emit-value :searchable="false"
-            class="flex-1 lg:w-24 min-w-[110px] h-[42px]" />
+            :options="floorFilterOptions" track-by="value" emit-value :searchable="false" clearable clear-value="all"
+            placeholder="Lantai" class="w-full lg:w-[100px]" />
         </div>
-        <div class="flex gap-2 shrink-0">
+
+        <!-- Category Filter -->
+        <div class="w-full lg:w-[160px]">
           <BaseSelect :model-value="selectedCategory" @update:modelValue="emit('update:selectedCategory', $event)"
-            :options="categoryFilterOptions" track-by="id" emit-value :searchable="true"
-            class="min-w-[120px] h-[42px] rounded-lg" :class="[
+            :options="categoryFilterOptions" track-by="id" emit-value :searchable="true" clearable clear-value="all"
+            placeholder="- Kategori -" class="w-full" :class="[
               selectedCategory !== 'all'
                 ? 'bg-accent/5 border-accent text-accent'
                 : 'bg-background border-secondary text-text/60 hover:text-text'
             ]" />
         </div>
-        <div class="flex gap-2 shrink-0">
-          <!-- Filter Tipe Produk -->
+
+        <!-- Type Filter -->
+        <div class="w-auto lg:w-[100px] sm:block">
           <BaseSelect :model-value="productTypeFilter" @update:modelValue="emit('update:productTypeFilter', $event)"
-            :options="typeOptions" track-by="id" emit-value :searchable="false"
-            class="min-w-[100px] h-[42px] rounded-lg" :class="[
+            :options="typeOptions" track-by="id" emit-value :searchable="false" clearable clear-value="all"
+            placeholder="- Tipe -" class="w-full" :class="[
               productTypeFilter !== 'all'
                 ? 'bg-accent/5 border-accent text-accent'
                 : 'bg-background border-secondary text-text/60 hover:text-text'
             ]" />
+        </div>
 
-          <!-- Filter Stock Status -->
+        <!-- Status Stock -->
+        <div class="w-auto lg:w-[100px] sm:block">
           <BaseSelect :model-value="stockStatusFilter" @update:modelValue="emit('update:stockStatusFilter', $event)"
-            :options="stockOptions" track-by="id" emit-value :searchable="false"
-            class="min-w-[100px] h-[42px] rounded-lg" :class="[
+            :options="stockOptions" track-by="id" emit-value :searchable="false" clearable clear-value="all"
+            placeholder="- Stok -" class="w-full" :class="[
               stockStatusFilter === 'minus' ? 'bg-danger/5 border-danger text-danger' :
                 stockStatusFilter === 'positive' ? 'bg-success/5 border-success text-success' :
                   'bg-background border-secondary text-text/60 hover:text-text'
             ]" />
+        </div>
 
-          <!-- Column Visibility Selector -->
-          <div class="relative column-selector-group">
-            <button ref="buttonRef" @click.stop="toggleColumnMenu"
-              class="w-[42px] h-[42px] flex items-center justify-center rounded-lg border border-secondary/20 bg-background text-text/60 hover:text-primary transition-all"
-              :class="{ 'bg-primary/10 text-primary border-primary': isColumnMenuOpen }" title="Pilih Kolom">
-              <font-awesome-icon icon="fa-solid fa-table-columns" />
-            </button>
+        <!-- Column Visibility Selector -->
+        <div class="relative column-selector-group shrink-0">
+          <button ref="buttonRef" @click.stop="toggleColumnMenu"
+            class="w-[42px] h-[42px] flex items-center justify-center rounded-lg border border-secondary/20 bg-background text-text/60 hover:text-primary transition-all shadow-sm"
+            :class="{ 'bg-primary/10 text-primary border-primary': isColumnMenuOpen }" title="Pilih Kolom">
+            <font-awesome-icon icon="fa-solid fa-table-columns" />
+          </button>
 
-            <!-- Dropdown Menu -->
-            <Teleport to="body">
-              <div v-if="isColumnMenuOpen"
-                class="fixed z-[9999] bg-background border border-secondary/20 rounded-lg shadow-xl p-2 animate-fade-in-down column-selector-group"
-                :style="{ top: dropdownPosition.top, left: dropdownPosition.left, minWidth: dropdownPosition.minWidth }">
-                <div v-for="col in availableColumns" :key="col.id"
-                  class="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-secondary/10 rounded"
-                  @click.stop="handleToggleColumn(col.id)">
-                  <div class="w-4 h-4 rounded border border-secondary flex items-center justify-center"
-                    :class="visibleColumns.has(col.id) ? 'bg-primary border-primary' : 'bg-transparent'">
-                    <font-awesome-icon v-if="visibleColumns.has(col.id)" icon="fa-solid fa-check"
-                      class="text-secondary text-[10px]" />
-                  </div>
-                  <span class="text-sm font-bold text-text/80">{{ col.label }}</span>
+          <!-- Dropdown Menu -->
+          <Teleport to="body">
+            <div v-if="isColumnMenuOpen"
+              class="fixed z-[9999] bg-background border border-secondary/20 rounded-lg shadow-xl p-2 animate-fade-in-down column-selector-group"
+              :style="{ top: dropdownPosition.top, left: dropdownPosition.left, minWidth: dropdownPosition.minWidth }">
+              <div v-for="col in availableColumns" :key="col.id"
+                class="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-secondary/10 rounded"
+                @click.stop="handleToggleColumn(col.id)">
+                <div class="w-4 h-4 rounded border border-secondary flex items-center justify-center"
+                  :class="visibleColumns.has(col.id) ? 'bg-primary border-primary' : 'bg-transparent'">
+                  <font-awesome-icon v-if="visibleColumns.has(col.id)" icon="fa-solid fa-check"
+                    class="text-secondary text-[10px]" />
                 </div>
+                <span class="text-sm font-bold text-text/80">{{ col.label }}</span>
               </div>
-            </Teleport>
-          </div>
+            </div>
+          </Teleport>
+        </div>
 
-          <!-- Divider -->
-          <div class="w-px h-[42px] bg-secondary/20 md:hidden"></div>
-
-          <!-- Mobile Layout Switcher -->
-          <div class="flex h-[42px] bg-secondary/10 rounded-lg p-1 md:hidden">
-            <button @click="emit('update:mobileLayout', 'card')"
-              class="px-3 rounded-md text-xs font-bold transition-all flex items-center gap-1"
-              :class="mobileLayout === 'card' ? 'bg-background text-primary shadow-sm' : 'text-text/50'">
-              <font-awesome-icon icon="fa-solid fa-grip-vertical" />
-            </button>
-            <button @click="emit('update:mobileLayout', 'compact')"
-              class="px-3 rounded-md text-xs font-bold transition-all flex items-center gap-1"
-              :class="mobileLayout === 'compact' ? 'bg-background text-primary shadow-sm' : 'text-text/50'">
-              <font-awesome-icon icon="fa-solid fa-list" />
-            </button>
-          </div>
+        <!-- Mobile Layout Switcher -->
+        <div class="flex h-[42px] bg-secondary/10 rounded-lg p-1 md:hidden shrink-0">
+          <button @click="emit('update:mobileLayout', 'card')"
+            class="px-3 rounded-md text-xs font-bold transition-all flex items-center gap-1"
+            :class="mobileLayout === 'card' ? 'bg-background text-primary shadow-sm' : 'text-text/50'">
+            <font-awesome-icon icon="fa-solid fa-grip-vertical" />
+          </button>
+          <button @click="emit('update:mobileLayout', 'compact')"
+            class="px-3 rounded-md text-xs font-bold transition-all flex items-center gap-1"
+            :class="mobileLayout === 'compact' ? 'bg-background text-primary shadow-sm' : 'text-text/50'">
+            <font-awesome-icon icon="fa-solid fa-list" />
+          </button>
         </div>
       </div>
-    </div>
-  </FilterContainer>
+    </template>
+  </BaseFilterPanel>
 </template>
 
 <style scoped>

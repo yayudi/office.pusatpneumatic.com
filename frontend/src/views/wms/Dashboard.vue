@@ -10,7 +10,7 @@ import { transferStock, adjustStock } from '@/api/helpers/stock.js'
 import { useMasterDataStore } from '@/stores/masterData.js'
 import { useMobile } from '@/composables/useMobile.js'
 import WmsProductTable from '@/components/wms/shared/ProductTable.vue'
-import WmsControlPanel from '@/components/wms/shared/ControlPanel.vue'
+import WmsControlPanel from '@/components/wms/shared/WmsControlPanel.vue'
 import WmsAdjustModal from '@/components/wms/shared/AdjustModal.vue'
 import WmsTransferModal from '@/components/wms/transfer/TransferModal.vue'
 import WmsHistoryModal from '@/components/wms/shared/HistoryModal.vue'
@@ -64,16 +64,13 @@ const isProductFormOpen = ref(false)
 const productFormMode = ref('edit')
 const isSimulationModalOpen = ref(false)
 const mobileLayout = ref(isMobile.value ? 'card' : 'compact')
-const categoryOptions = ref([{ id: 'all', label: 'Kategori' }])
+const categoryOptions = ref([])
 const masterData = useMasterDataStore()
 
 async function loadCategories() {
   try {
     const categories = await masterData.getCategories()
-    categoryOptions.value = [
-      { id: 'all', label: 'Kategori' },
-      ...categories.map(c => ({ id: c.id, label: c.name }))
-    ]
+    categoryOptions.value = categories.map(c => ({ id: c.id, label: c.name }))
   } catch (error) {
     console.error('Failed to load categories', error)
   }
@@ -107,7 +104,6 @@ const searchTabs = [
 ]
 
 const buildingFilterOptions = [
-  { label: 'Gedung', value: 'all' },
   { label: 'A19', value: 'A19' },
   { label: 'A20', value: 'A20' },
   { label: 'B16', value: 'B16' },
@@ -115,7 +111,6 @@ const buildingFilterOptions = [
 ]
 
 const floorFilterOptions = [
-  { label: 'Lantai', value: 'all' },
   { label: '1', value: '1' },
   { label: '2', value: '2' },
   { label: '3', value: '3' },
@@ -296,17 +291,15 @@ watch(Escape, (pressed) => {
 
   <!-- Panel Kontrol Utama -->
   <div class="bg-secondary/35 rounded-xl shadow-lg border border-secondary/20 p-3 lg:p-6 space-y-2 w-full">
-    <div class="sticky top-14 z-20 rounded-t-xl">
-      <WmsControlPanel :search-placeholder="searchPlaceholder" :search-tabs="searchTabs"
-        :warehouse-views="warehouseViews" :building-filter-options="buildingFilterOptions"
-        :floor-filter-options="floorFilterOptions" :category-filter-options="categoryOptions"
-        :is-auto-refetching="isAutoRefetching" @search="handleSearchInput" @toggle-refetch="toggleAutoRefetch"
-        v-model:search-by="searchBy" v-model:searchValue="searchTerm" v-model:active-view="activeView"
-        v-model:stock-status-filter="stockStatusFilter" v-model:product-type-filter="productTypeFilter"
-        v-model:selected-building="selectedBuilding" v-model:selected-floor="selectedFloor"
-        v-model:selected-category="selectedCategory" v-model:mobileLayout="mobileLayout"
-        :available-columns="availableColumns" :visible-columns="visibleColumns" @toggle-column="toggleColumn" />
-    </div>
+    <WmsControlPanel class="z-100 sticky top-14" :search-placeholder="searchPlaceholder" :search-tabs="searchTabs"
+      :warehouse-views="warehouseViews" :building-filter-options="buildingFilterOptions"
+      :floor-filter-options="floorFilterOptions" :category-filter-options="categoryOptions"
+      :is-auto-refetching="isAutoRefetching" @search="handleSearchInput" @toggle-refetch="toggleAutoRefetch"
+      v-model:search-by="searchBy" v-model:searchValue="searchTerm" v-model:active-view="activeView"
+      v-model:stock-status-filter="stockStatusFilter" v-model:product-type-filter="productTypeFilter"
+      v-model:selected-building="selectedBuilding" v-model:selected-floor="selectedFloor"
+      v-model:selected-category="selectedCategory" v-model:mobileLayout="mobileLayout"
+      :available-columns="availableColumns" :visible-columns="visibleColumns" @toggle-column="toggleColumn" />
 
     <div v-if="loading" class="text-center py-16">
       <font-awesome-icon icon="fa-solid fa-spinner" class="animate-spin text-primary text-3xl" />

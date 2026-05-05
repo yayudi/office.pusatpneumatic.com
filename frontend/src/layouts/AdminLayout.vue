@@ -79,6 +79,11 @@ const route = useRoute()
           <span>Kategori</span>
         </router-link>
 
+        <router-link to="/admin/sales-channels" class="nav-item" active-class="active" @click="isSidebarOpen = false">
+          <font-awesome-icon icon="fa-solid fa-store" class="w-5" />
+          <span>Saluran / Toko</span>
+        </router-link>
+
         <div class="mt-8 mb-2 text-xs font-bold text-text/40 uppercase tracking-wider px-3">
           Sistem
         </div>

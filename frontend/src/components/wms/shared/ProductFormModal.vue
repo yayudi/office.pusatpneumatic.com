@@ -8,6 +8,7 @@ import { useToast } from '@/composables/useToast.js'
 import { formatCurrency } from '@/utils/formatters.js'
 import ProductHistoryList from '@/components/products/ProductHistoryList.vue'
 import { useMobile } from '@/composables/useMobile.js'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 
 const { isMobile } = useMobile()
 
@@ -45,6 +46,41 @@ async function fetchCategories() {
     }
   } catch (err) {
     console.error('Failed to fetch categories', err)
+  }
+}
+
+const categorySearchQuery = ref('')
+function handleCategorySearchChange(query) {
+  categorySearchQuery.value = query
+}
+
+const isCreatingCategory = ref(false)
+async function handleCreateCategory() {
+  if (!categorySearchQuery.value.trim() || isCreatingCategory.value) return
+  isCreatingCategory.value = true
+  try {
+    const { data } = await axios.post('/categories', {
+      name: categorySearchQuery.value.trim()
+    })
+    if (data.success) {
+      toast('Kategori berhasil ditambahkan', 'success')
+      await fetchCategories()
+      
+      const newCatId = data.data?.id || data.data?.insertId
+      if (newCatId) {
+        form.value.category_id = newCatId
+      } else {
+        const found = categories.value.find(c => c.name.toLowerCase() === categorySearchQuery.value.trim().toLowerCase())
+        if (found) form.value.category_id = found.id
+      }
+      categorySearchQuery.value = ''
+    }
+  } catch (err) {
+    console.error(err)
+    const msg = err.response?.data?.message || 'Gagal menambahkan kategori'
+    toast(msg, 'error')
+  } finally {
+    isCreatingCategory.value = false
   }
 }
 
@@ -425,13 +461,32 @@ watch(Alt_S, (pressed) => {
             <!-- Kategori Produk -->
             <div>
               <label class="block text-xs font-bold text-text/60 mb-1">Kategori</label>
-              <select v-model="form.category_id"
-                class="w-full px-3 py-2 bg-secondary/10 border border-secondary/30 rounded-lg focus:outline-none focus:border-primary text-text transition-all appearance-none cursor-pointer">
-                <option :value="null">Pilih Kategori (Opsional)</option>
-                <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-                  {{ cat.name }}
-                </option>
-              </select>
+              <BaseSelect
+                v-model="form.category_id"
+                :options="categories"
+                track-by="id"
+                label="name"
+                emit-value
+                :searchable="true"
+                placeholder="Pilih Kategori (Opsional)"
+                @search-change="handleCategorySearchChange"
+                class="w-full"
+              >
+                <!-- Add Category Button when searching -->
+                <template #afterOptions>
+                  <li v-if="categorySearchQuery" class="px-2 py-2 border-t border-secondary/10 mt-1">
+                    <button
+                      @click.prevent.stop="handleCreateCategory"
+                      :disabled="isCreatingCategory"
+                      class="w-full px-3 py-2 bg-primary/10 text-primary rounded-md text-xs font-bold hover:bg-primary/20 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <font-awesome-icon v-if="isCreatingCategory" icon="fa-solid fa-spinner" class="animate-spin" />
+                      <font-awesome-icon v-else icon="fa-solid fa-plus" />
+                      <span>Tambahkan "{{ categorySearchQuery }}"</span>
+                    </button>
+                  </li>
+                </template>
+              </BaseSelect>
             </div>
 
             <!-- Berat Input -->
@@ -492,7 +547,7 @@ watch(Alt_S, (pressed) => {
                     <div class="flex flex-col">
                       <span class="font-medium text-text group-hover:text-primary">{{
                         res.name
-                      }}</span>
+                        }}</span>
                       <span class="font-mono text-[10px] text-text/40">{{ res.sku }}</span>
                     </div>
                     <div class="text-primary text-xs font-bold"
@@ -593,23 +648,5 @@ watch(Alt_S, (pressed) => {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-/* Custom Scrollbar untuk area list komponen */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--color-secondary) / 0.3);
-  border-radius: 20px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--color-secondary) / 0.5);
 }
 </style>

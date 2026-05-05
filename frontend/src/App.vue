@@ -40,7 +40,7 @@ function handleLogout() {
     <PwaInstallBanner />
 
     <AppHeader v-if="showHeader" @logout="handleLogout" />
-    <main class="container mx-auto" :class="isMobile ? 'px-3' : 'py-4'">
+    <main class="container mx-auto" :class="isMobile ? 'px-3 py-3' : 'px-4 py-4'">
       <RouterView />
     </main>
   </div>

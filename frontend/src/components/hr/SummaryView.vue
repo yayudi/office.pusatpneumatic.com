@@ -84,7 +84,7 @@ function closeModal() {
         <!--  Gunakan 'idealMinutes' dari globalInfo baru -->
         <strong class="font-semibold text-text">{{
           formatJamMenit(globalInfo.idealMinutes)
-        }}</strong>
+          }}</strong>
         )
       </span>
     </div>
@@ -176,24 +176,6 @@ function closeModal() {
 </template>
 
 <style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--color-secondary) / 0.3);
-  border-radius: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--color-secondary) / 0.5);
-}
-
 /* List Transitions */
 .list-enter-active,
 .list-leave-active {

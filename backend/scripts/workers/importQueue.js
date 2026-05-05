@@ -248,7 +248,8 @@ export const importQueue = async () => {
         job.original_filename,
         updateJobProgress,
         isDryRun,
-        jobOptions.purpose
+        jobOptions.purpose,
+        jobOptions.shopName
       );
 
       const logicErrors = [];

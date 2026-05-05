@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useMasterDataStore } from '@/stores/masterData';
 import { useProductSearch } from '@/composables/useProductSearch.js';
 import BaseSelect from '@/components/ui/BaseSelect.vue';
-import FilterContainer from '@/components/ui/FilterContainer.vue';
+import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue';
 import StockTimelineSlider from './StockTimelineSlider.vue';
 
 const { query, results, isSearching, selectedProduct, selectProduct, clear } = useProductSearch({
@@ -47,8 +47,9 @@ const handleClear = () => {
 <template>
   <div class="flex flex-col gap-6">
     <!-- Filter Section -->
-    <FilterContainer title="Filter Investigasi" icon="fa-solid fa-filter">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
+    <BaseFilterPanel title="Filter Investigasi">
+      <template #filters>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
         <!-- Product Search -->
         <div class="relative">
           <label class="block text-xs font-bold text-text/60 uppercase mb-1.5">Cari Produk (Wajib)</label>
@@ -93,8 +94,9 @@ const handleClear = () => {
             placeholder="Semua Gudang (Global)" 
           />
         </div>
-      </div>
-    </FilterContainer>
+        </div>
+      </template>
+    </BaseFilterPanel>
 
     <!-- Slider Section -->
     <div v-if="activeProductId" class="min-h-[500px]">

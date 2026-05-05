@@ -149,6 +149,13 @@ const routes = [
         meta: { requiresPermission: 'manage-categories' },
       },
       {
+        path: 'sales-channels',
+        name: 'SalesChannelManagement',
+        component: () => import('../views/admin/SalesChannelManagement.vue'),
+        // Untuk sekarang gunakan permission ini. Anda dapat menambahkan permission khusus nantinya.
+        meta: { requiresPermission: 'manage-categories' },
+      },
+      {
         path: 'reports',
         name: 'Reports',
         component: () => import('../views/admin/ReportsView.vue'),

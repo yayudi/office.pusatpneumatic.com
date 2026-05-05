@@ -10,7 +10,8 @@ import debounce from 'lodash/debounce'
 import BatchEditModal from '@/components/products/BatchEditModal.vue'
 import ProductFormModal from '@/components/wms/shared/ProductFormModal.vue'
 import ConnectionStatus from '@/components/wms/shared/ConnectionStatus.vue'
-import ProductFilterBar from '@/components/products/ProductFilterBar.vue'
+import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 import ProductTable from '@/components/products/ProductTable.vue'
 import ProductImageModal from '@/components/products/ProductImageModal.vue'
 
@@ -25,6 +26,16 @@ const filterType = ref('all')
 const filterStatus = ref('active')
 const sortBy = ref('sku')
 const sortOrder = ref('desc')
+
+const statusOptions = [
+  { id: 'active', label: 'Produk Aktif' },
+  { id: 'archived', label: 'Diarsipkan (Hapus)' },
+]
+
+const searchByOptions = [
+  { id: 'name', label: 'Nama' },
+  { id: 'sku', label: 'SKU' },
+]
 
 // Modal State
 const showBatchEditModal = ref(false)
@@ -327,16 +338,70 @@ watch(Slash, (pressed) => {
         </div>
 
         <!-- FILTER BAR COMPONENT -->
-        <ProductFilterBar v-model:filterType="filterType" v-model:filterStatus="filterStatus"
-          v-model:searchBy="searchBy" v-model:searchQuery="searchQuery" />
+        <BaseFilterPanel>
+          <template #filters>
+            <!-- Filter Tipe Produk -->
+            <div class="flex bg-background rounded-xl p-1 border border-secondary/10 shrink-0 overflow-x-auto">
+              <button @click="filterType = 'all'"
+                class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2"
+                :class="filterType === 'all'
+                  ? 'bg-secondary/10 text-text shadow-sm'
+                  : 'text-text/50 hover:text-text hover:bg-secondary/5'
+                  ">
+                <font-awesome-icon icon="fa-solid fa-layer-group" />
+                <span>Semua Tipe</span>
+              </button>
+              <button @click="filterType = 'single'"
+                class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2"
+                :class="filterType === 'single'
+                  ? 'bg-primary/10 text-primary shadow-sm'
+                  : 'text-text/50 hover:text-primary hover:bg-primary/5'
+                  ">
+                <font-awesome-icon icon="fa-solid fa-box" />
+                <span>Satuan</span>
+              </button>
+              <button @click="filterType = 'package'"
+                class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2"
+                :class="filterType === 'package'
+                  ? 'bg-accent/10 text-accent shadow-sm'
+                  : 'text-text/50 hover:text-accent hover:bg-accent/5'
+                  ">
+                <font-awesome-icon icon="fa-solid fa-boxes-stacked" />
+                <span>Paket</span>
+              </button>
+            </div>
+
+            <!-- Filter Status -->
+            <div class="shrink-0 w-full sm:w-44">
+              <BaseSelect v-model="filterStatus" :options="statusOptions" label="label" track-by="id"
+                placeholder="Semua Status" :searchable="false" emit-value clearable clear-value="all" />
+            </div>
+
+            <!-- Search Group -->
+            <div class="flex flex-col sm:flex-row flex-1 gap-2 lg:ml-auto">
+              <div class="shrink-0 w-full sm:w-28">
+                <BaseSelect v-model="searchBy" :options="searchByOptions" label="label" track-by="id" placeholder="Cari"
+                  :searchable="false" emit-value />
+              </div>
+
+              <div class="relative flex-1">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-text/40">
+                  <font-awesome-icon icon="fa-solid fa-search" />
+                </span>
+                <input id="global-search-input" v-model="searchQuery" type="text"
+                  :placeholder="`Cari ${searchBy === 'sku' ? 'SKU' : 'Nama'}...`"
+                  class="w-full pl-9 pr-4 py-2.5 bg-background border border-secondary/20 rounded-xl focus:outline-none focus:border-primary text-text text-sm placeholder-text/30 transition-all shadow-sm" />
+              </div>
+            </div>
+          </template>
+        </BaseFilterPanel>
       </div>
 
       <!-- TABLE COMPONENT -->
       <ProductTable :products="products" :loading="loading" :pagination="pagination" :selectedIds="selectedIds"
         :sortBy="sortBy" :sortOrder="sortOrder" @sort="handleSort" @changePage="handleChangePage"
         @update:limit="handleUpdateLimit" @toggleSelection="toggleSelection" @toggleSelectAll="toggleSelectAll"
-        @edit="openEditModal" @restore="handleRestore" @delete="handleDelete"
-        @view-image="openImageModal" />
+        @edit="openEditModal" @restore="handleRestore" @delete="handleDelete" @view-image="openImageModal" />
 
       <!-- FLOATING ACTION BAR -->
       <Transition name="slide-up">
@@ -376,8 +441,8 @@ watch(Slash, (pressed) => {
       <ProductFormModal :show="showProductForm" :mode="productFormMode" :product-data="selectedProduct"
         @close="showProductForm = false" @refresh="handleProductSaved" />
 
-      <ProductImageModal :show="showImageModal" :product-data="selectedImageProduct"
-        @close="showImageModal = false" @refresh="handleImageSaved" />
+      <ProductImageModal :show="showImageModal" :product-data="selectedImageProduct" @close="showImageModal = false"
+        @refresh="handleImageSaved" />
 
       <!-- Batch Edit Modal -->
       <BatchEditModal :is-open="showBatchEditModal" :is-exporting="isExporting" :is-importing="false"

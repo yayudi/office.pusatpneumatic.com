@@ -7,14 +7,14 @@
 :root[data-theme='terang'],
 :root {
   /* Default theme (Premium Modern) */
-  --color-text: 222 47% 11%;      /* Slate 900 - Deep, readable charcoal */
+  --color-text: 222 47% 11%; /* Slate 900 - Deep, readable charcoal */
   --color-background: 210 40% 98%; /* Alice Blue - Very subtle tint, not harsh white */
-  --color-primary: 224 76% 48%;    /* Interstellar Blue - Vibrant, trustworthy */
-  --color-secondary: 214 32% 91%;  /* Slate 100 - Crisp, clean surface/border */
-  --color-accent: 262 83% 58%;     /* Vivid Violet - Premium highlight */
-  --color-success: 158 64% 52%;    /* Emerald 500 - Modern success green */
-  --color-warning: 38 92% 50%;     /* Amber 500 - Warm warning */
-  --color-danger: 344 87% 55%;     /* Rose 500 - Modern error red */
+  --color-primary: 224 76% 48%; /* Interstellar Blue - Vibrant, trustworthy */
+  --color-secondary: 214 32% 91%; /* Slate 100 - Crisp, clean surface/border */
+  --color-accent: 262 83% 58%; /* Vivid Violet - Premium highlight */
+  --color-success: 158 64% 52%; /* Emerald 500 - Modern success green */
+  --color-warning: 38 92% 50%; /* Amber 500 - Warm warning */
+  --color-danger: 344 87% 55%; /* Rose 500 - Modern error red */
 }
 
 /* Tema Gelap    */
@@ -139,8 +139,24 @@
 
 /* Style Override */
 
-
 /* @tailwind */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: hsl(var(--color-secondary) / 0.5);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--color-primary) / 0.3);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--color-primary) / 0.5);
+}

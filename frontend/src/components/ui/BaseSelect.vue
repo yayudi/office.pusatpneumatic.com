@@ -47,6 +47,18 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  clearable: {
+    type: Boolean,
+    default: false,
+  },
+  clearValue: {
+    type: [String, Number, Boolean, Object, Array, null],
+    default: '',
+  },
+  placeholderValues: {
+    type: Array,
+    default: () => [null, '', 'all'],
+  }
 })
 
 const emit = defineEmits(['update:modelValue', 'search-change'])
@@ -108,6 +120,11 @@ const filteredOptions = computed(() => {
 const selectedItems = computed(() => {
   if (!props.multiple) return []
   return Array.isArray(props.modelValue) ? props.modelValue : []
+})
+
+const isPlaceholderState = computed(() => {
+  if (props.multiple) return selectedItems.value.length === 0
+  return props.placeholderValues.includes(props.modelValue)
 })
 
 // --- WATCHERS ---
@@ -225,6 +242,17 @@ function clearSelection() {
   emit('update:modelValue', [])
 }
 
+function handleClear(event) {
+  event.stopPropagation()
+  if (props.disabled) return
+
+  if (props.multiple) {
+    emit('update:modelValue', [])
+  } else {
+    emit('update:modelValue', props.clearValue)
+  }
+}
+
 // Click Outside Handler
 const handleClickOutside = (event) => {
   const isClickInsideContainer = containerRef.value && containerRef.value.contains(event.target)
@@ -245,10 +273,10 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="containerRef" class="relativ text-left font-sans">
+  <div ref="containerRef" class="relative text-left font-sans h-[42px] shadow-sm rounded-lg">
     <!-- TRIGGER AREA -->
     <div ref="triggerRef" @click="toggle"
-      class="w-full min-h-[42px] px-2 bg-background border rounded-lg cursor-pointer flex flex-wrap gap-1.5 items-center transition-all shadow-sm"
+      class="w-full min-h-[42px] px-2 bg-background border rounded-lg cursor-pointer flex flex-wrap gap-1 items-center transition-all shadow-sm"
       :class="[
         isOpen ? 'border-primary ring-1 ring-primary' : 'border-secondary/50 hover:border-primary/50',
         disabled ? 'opacity-50 cursor-not-allowed bg-secondary/10' : ''
@@ -261,7 +289,7 @@ onUnmounted(() => {
       <!-- Multiple: Tags -->
       <template v-if="multiple && selectedItems.length > 0">
         <div v-for="item in selectedItems" :key="typeof item === 'object' ? item[trackBy] : item"
-          class="bg-primary/10 text-primary border border-primary/20 text-xs px-2 py-0.5 rounded-md flex items-center gap-1">
+          class="bg-primary/10 text-primary border border-primary/20 text-xs px-2 py-0.5 rounded-md flex items-center gap-1 select-none">
           <span>{{
             (typeof item === 'object') ? item[label] :
               (props.emitValue ? (options.find(o => (typeof o === 'object' ? o[trackBy] === item : o === item))?.[label]
@@ -271,20 +299,26 @@ onUnmounted(() => {
         </div>
       </template>
 
-      <!-- Single: Display Value -->
-      <span v-else-if="!multiple && modelValue" class="text-sm text-text font-medium truncate pr-2 flex-grow">
-        {{ displayValue }}
+      <!-- Single: Display Value / Placeholder -->
+      <span v-else-if="!multiple" class="text-sm truncate pr-2 flex-grow select-none"
+        :class="isPlaceholderState ? 'text-text/40 font-normal' : 'text-text font-medium'">
+        {{ (isPlaceholderState && (!displayValue || displayValue === modelValue)) ? placeholder : (displayValue ||
+          placeholder) }}
       </span>
 
-      <!-- Placeholder -->
-      <span v-if="(modelValue == null || modelValue === '') && !multiple || (multiple && selectedItems.length === 0)"
-        class="text-sm text-text/40 truncate pr-2 flex-grow">
+      <!-- Placeholder for Multiple -->
+      <span v-if="multiple && selectedItems.length === 0" class="text-sm text-text/40 truncate flex-grow select-none">
         {{ placeholder }}
       </span>
 
-      <!-- Icon Chevron -->
-      <div class="ml-auto pl-2">
-        <font-awesome-icon icon="fa-solid fa-chevron-down"
+      <!-- Action Icons -->
+      <div class="ml-auto pl-1 flex items-center gap-1">
+        <!-- Clear Button -->
+        <font-awesome-icon v-if="clearable && !isPlaceholderState && !disabled" icon="fa-solid fa-xmark"
+          class="text-[13px] text-text/40 hover:text-danger cursor-pointer transition-colors py-1"
+          @click.stop="handleClear" title="Bersihkan" />
+        <!-- Icon Chevron -->
+        <font-awesome-icon v-else icon="fa-solid fa-chevron-down"
           class="text-xs text-text/40 transition-transform duration-200" :class="{ 'rotate-180': isOpen }" />
       </div>
     </div>
@@ -309,7 +343,7 @@ onUnmounted(() => {
 
           <!-- Multiple Selection Action Buttons -->
           <div v-if="multiple"
-            class="p-2 border-b border-secondary/10 bg-background flex flex-wrap gap-2 justify-between items-center text-xs">
+            class="p-2 border-b border-secondary/10 bg-background flex flex-wrap gap-1 justify-between items-center text-xs">
             <button @click.stop="selectAll"
               class="text-primary hover:text-primary/80 font-semibold px-2 py-1 rounded hover:bg-primary/10 transition-colors">
               <font-awesome-icon icon="fa-solid fa-check-double" class="mr-1" /> Pilih Semua
@@ -322,7 +356,7 @@ onUnmounted(() => {
 
           <!-- Options List (Multiple as Chip Cloud) -->
           <div v-if="multiple"
-            class="max-h-[300px] overflow-y-auto custom-scrollbar p-3 flex flex-wrap gap-2 items-start content-start">
+            class="max-h-[300px] overflow-y-auto custom-scrollbar p-3 flex flex-wrap gap-1 items-start content-start">
             <div v-if="loading" class="w-full text-center text-text/60 italic text-xs py-2">
               Memuat data...
             </div>
@@ -331,7 +365,7 @@ onUnmounted(() => {
             </div>
             <button v-else v-for="(option, index) in filteredOptions"
               :key="typeof option === 'object' ? option[trackBy] : index" @click.stop="select(option)"
-              class="px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all shadow-sm flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-primary/50"
+              class="px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all shadow-sm flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-primary/50"
               :class="[
                 isSelected(option)
                   ? 'bg-primary text-secondary border border-transparent hover:brightness-110'
@@ -374,28 +408,11 @@ onUnmounted(() => {
               <!-- Checkmark for Selected -->
               <font-awesome-icon v-if="isSelected(option)" icon="fa-solid fa-check" class="text-xs ml-2" />
             </li>
+
+            <slot name="afterOptions"></slot>
           </ul>
         </div>
       </transition>
     </Teleport>
   </div>
 </template>
-
-<style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(var(--color-secondary), 0.2);
-  border-radius: 9999px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(var(--color-secondary), 0.4);
-}
-</style>

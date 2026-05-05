@@ -49,8 +49,7 @@ function getBadgeColor(action) {
   <div class="border border-secondary/20 rounded-lg overflow-hidden bg-background mt-4">
     <!-- Header -->
     <div
-      class="px-4 py-3 bg-secondary/5 border-b border-secondary/20 font-bold text-sm text-text flex justify-between items-center"
-    >
+      class="px-4 py-3 bg-secondary/5 border-b border-secondary/20 font-bold text-sm text-text flex justify-between items-center">
       <span>Audit Log Perubahan</span>
       <button @click="fetchHistory" class="text-xs text-primary hover:underline font-medium">
         Refresh
@@ -71,9 +70,7 @@ function getBadgeColor(action) {
     <!-- Data Table -->
     <div v-else class="max-h-60 overflow-y-auto custom-scrollbar">
       <table class="w-full text-xs text-left">
-        <thead
-          class="bg-secondary/5 text-text/70 uppercase font-bold sticky top-0 backdrop-blur-sm"
-        >
+        <thead class="bg-secondary/5 text-text/70 uppercase font-bold sticky top-0 backdrop-blur-sm">
           <tr>
             <th class="px-4 py-2">Waktu</th>
             <th class="px-4 py-2">User</th>
@@ -94,10 +91,7 @@ function getBadgeColor(action) {
             </td>
             <!-- Aksi -->
             <td class="px-4 py-2">
-              <span
-                :class="getBadgeColor(log.action)"
-                class="px-1.5 py-0.5 rounded text-[10px] font-bold"
-              >
+              <span :class="getBadgeColor(log.action)" class="px-1.5 py-0.5 rounded text-[10px] font-bold">
                 {{ log.action }}
               </span>
             </td>
@@ -109,11 +103,8 @@ function getBadgeColor(action) {
               <div v-else class="flex items-center gap-2">
                 <span class="line-through text-danger/70 opacity-80">{{
                   formatValue(log.field, log.old_value)
-                }}</span>
-                <font-awesome-icon
-                  icon="fa-solid fa-arrow-right"
-                  class="text-text/30 text-[10px]"
-                />
+                  }}</span>
+                <font-awesome-icon icon="fa-solid fa-arrow-right" class="text-text/30 text-[10px]" />
                 <span class="font-bold text-text">{{ formatValue(log.field, log.new_value) }}</span>
               </div>
             </td>
@@ -123,19 +114,3 @@ function getBadgeColor(action) {
     </div>
   </div>
 </template>
-
-<style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--color-secondary) / 0.3);
-  border-radius: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--color-secondary) / 0.5);
-}
-</style>

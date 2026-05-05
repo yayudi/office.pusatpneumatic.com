@@ -82,8 +82,27 @@ export const fetchAttendanceEvents = async (params) => {
     } else {
       throw new Error(response.data.message || 'Gagal mengambil data absensi.')
     }
-  } catch (error) {
+} catch (error) {
     console.error('Error fetching attendance events:', error)
+    throw error.response?.data || error
+  }
+}
+
+/**
+ * Fetch Shop Performance Stats
+ * @param {object} params - { startDate, endDate, source }
+ * @returns {Promise<Array>} List shop performance
+ */
+export const fetchShopPerformance = async (params) => {
+  try {
+    const response = await api.get('/statistics/shop-performance', { params })
+    if (response.data && response.data.success) {
+      return response.data.data
+    } else {
+      throw new Error(response.data.message || 'Gagal mengambil data performa toko.')
+    }
+  } catch (error) {
+    console.error('Error fetching shop performance:', error)
     throw error.response?.data || error
   }
 }

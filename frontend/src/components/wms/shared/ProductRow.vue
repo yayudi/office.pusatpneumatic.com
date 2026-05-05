@@ -208,14 +208,10 @@ function copyToClipboard(text, fieldName) {
 }
 
 // --- COMPUTED DATA ---
-// Replaced by separate computed property above to support Virtual Stock
-// const currentStock = computed(() => { ... })
-
 const currentLocation = computed(() => {
   if (props.activeView === 'all') return props.product.allLocationsCode || '-'
   if (props.activeView === 'gudang') return props.product.lokasiGudang || '-'
   if (props.activeView === 'pajangan') return props.product.lokasiPajangan || '-'
-  if (props.activeView === 'ltc') return props.product.lokasiLTC
   if (props.activeView === 'ltc') return props.product.lokasiLTC
   return '-'
 })
@@ -253,7 +249,6 @@ const displayWeight = computed(() => {
 
   // Jika berat 0 & Paket -> Hitung dari total komponen
   if (props.product.is_package && props.product.components && props.product.components.length > 0) {
-    // [UPDATE] Rule: Jika ada SATU SAJA komponen yang beratnya 0, maka total berat paket dianggap 0 (belum valid)
     const hasUnweighedComponent = props.product.components.some(c => !c.weight || c.weight <= 0)
 
     if (hasUnweighedComponent) return 0
@@ -290,7 +285,6 @@ const imageUrl = computed(() => resolveProductImageUrl(props.product))
       <div class="flex items-center gap-3 w-full overflow-hidden">
         <!-- Mobile Thumbnail (Hidden on Desktop) -->
         <ProductThumbnail v-if="isMobile" :image-url="imageUrl" @click="$emit('view-image', product)" />
-
         <div class="flex flex-col w-full overflow-hidden">
           <div class="flex items-center gap-2 w-full">
             <span @click="copyToClipboard(product.name, 'Nama Produk')"

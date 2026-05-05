@@ -274,12 +274,12 @@ export const getAllHeadersByInvoiceIds = async (connection, invoiceIds) => {
 
 export const createHeader = async (
   connection,
-  { userId, source, invoiceId, customer, orderDate, status, mpStatus, filename, locationPurpose }
+  { userId, source, invoiceId, customer, orderDate, status, mpStatus, filename, locationPurpose, shopName }
 ) => {
   const [res] = await connection.query(
-    `INSERT INTO picking_lists (user_id, source, original_invoice_id, customer_name, order_date, status, marketplace_status, is_active, created_at, location_purpose)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 1, NOW(), ?)`,
-    [userId, source, invoiceId, customer, orderDate, status, mpStatus, locationPurpose || "DISPLAY"]
+    `INSERT INTO picking_lists (user_id, source, original_invoice_id, customer_name, order_date, status, marketplace_status, is_active, created_at, location_purpose, shop_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1, NOW(), ?, ?)`,
+    [userId, source, invoiceId, customer, orderDate, status, mpStatus, locationPurpose || "DISPLAY", shopName || null]
   );
   return res.insertId;
 };
@@ -299,7 +299,7 @@ export const createItem = async (
 export const createItemsBulk = async (connection, rows) => {
   if (rows.length === 0) return;
   return connection.query(
-    `INSERT INTO picking_list_items (picking_list_id, product_id, original_sku, quantity, status, suggested_location_id) VALUES ?`,
+    `INSERT INTO picking_list_items (picking_list_id, product_id, original_sku, price, quantity, status, suggested_location_id) VALUES ?`,
     [rows]
   );
 };

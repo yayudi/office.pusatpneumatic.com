@@ -546,7 +546,7 @@ const userOvertimeChartOptions = computed(() => ({
                   class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center">
                   <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Cepat</span>
                   <div v-if="u.stats.earlyOutHours !== '0j 0m'" class="text-danger font-bold">{{ u.stats.earlyOutHours
-                    }}
+                  }}
                   </div>
                   <div v-else class="text-text/30">
                     <span class="md:block hidden">-</span>
@@ -669,24 +669,5 @@ const userOvertimeChartOptions = computed(() => ({
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
 }
 </style>

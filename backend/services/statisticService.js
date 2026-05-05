@@ -252,3 +252,116 @@ export const generateStatisticExport = async (filters, filePath) => {
     throw error;
   }
 };
+
+/**
+ * Fetch comprehensive Shop Performance Statistics.
+ * Returns 5 datasets: summary, dailyTrend, topProducts, fulfillment, comparison.
+ * @param {Object} filters { startDate, endDate, source, shopName, prevStartDate, prevEndDate }
+ * @returns {Promise<{summary: Array, dailyTrend: Array, topProducts: Array, fulfillment: Array, comparison: Object}>}
+ */
+export const getShopPerformanceStats = async (filters) => {
+  let connection;
+  try {
+    connection = await db.getConnection();
+
+    const queries = [
+      statisticRepo.getShopPerformanceStats(connection, filters),
+      statisticRepo.getDailySalesTrend(connection, filters),
+      statisticRepo.getTopSellingProducts(connection, { ...filters, limit: 10 }),
+      statisticRepo.getFulfillmentHealth(connection, filters),
+    ];
+
+    // Only run comparison if previous dates are provided
+    if (filters.prevStartDate && filters.prevEndDate) {
+      queries.push(statisticRepo.getPeriodComparison(connection, filters));
+    }
+
+    const results = await Promise.all(queries);
+    const [summaryRows, trendRows, topRows, healthRows] = results;
+    const comparisonRows = results[4] || [];
+
+    const summary = summaryRows.map(row => ({
+      ...row,
+      total_orders: Number(row.total_orders),
+      total_items_sold: Number(row.total_items_sold),
+      total_revenue: Number(row.total_revenue),
+    }));
+
+    const dailyTrend = trendRows.map(row => ({
+      date: row.date,
+      totalOrders: Number(row.total_orders),
+      totalItemsSold: Number(row.total_items_sold),
+      totalRevenue: Number(row.total_revenue),
+    }));
+
+    const topProducts = topRows.map(row => ({
+      source: row.source,
+      shopName: row.shop_name,
+      sku: row.sku,
+      productName: row.product_name,
+      totalSold: Number(row.total_sold),
+      revenue: Number(row.revenue),
+    }));
+
+    const fulfillment = healthRows.map(row => {
+      const total = Number(row.total_orders);
+      const completed = Number(row.completed_orders);
+      const cancelled = Number(row.cancelled_orders);
+      const returned = Number(row.returned_orders);
+      const pending = Number(row.pending_orders);
+
+      return {
+        source: row.source,
+        shopName: row.shop_name,
+        totalOrders: total,
+        completedOrders: completed,
+        cancelledOrders: cancelled,
+        returnedOrders: returned,
+        pendingOrders: pending,
+        completionRate: total > 0 ? Number(((completed / total) * 100).toFixed(1)) : 0,
+        cancellationRate: total > 0 ? Number(((cancelled / total) * 100).toFixed(1)) : 0,
+        returnRate: total > 0 ? Number(((returned / total) * 100).toFixed(1)) : 0,
+      };
+    });
+
+    // Build comparison object
+    const currentRow = comparisonRows.find(r => r.period === 'current');
+    const previousRow = comparisonRows.find(r => r.period === 'previous');
+    const calcDelta = (curr, prev) => prev > 0 ? Number((((curr - prev) / prev) * 100).toFixed(1)) : (curr > 0 ? 100 : 0);
+
+    const comparison = {
+      current: {
+        totalOrders: currentRow ? Number(currentRow.total_orders) : 0,
+        totalItemsSold: currentRow ? Number(currentRow.total_items_sold) : 0,
+        totalRevenue: currentRow ? Number(currentRow.total_revenue) : 0,
+      },
+      previous: {
+        totalOrders: previousRow ? Number(previousRow.total_orders) : 0,
+        totalItemsSold: previousRow ? Number(previousRow.total_items_sold) : 0,
+        totalRevenue: previousRow ? Number(previousRow.total_revenue) : 0,
+      },
+      delta: {
+        orders: calcDelta(
+          currentRow ? Number(currentRow.total_orders) : 0,
+          previousRow ? Number(previousRow.total_orders) : 0
+        ),
+        items: calcDelta(
+          currentRow ? Number(currentRow.total_items_sold) : 0,
+          previousRow ? Number(previousRow.total_items_sold) : 0
+        ),
+        revenue: calcDelta(
+          currentRow ? Number(currentRow.total_revenue) : 0,
+          previousRow ? Number(previousRow.total_revenue) : 0
+        ),
+      },
+    };
+
+    return { summary, dailyTrend, topProducts, fulfillment, comparison };
+  } catch (error) {
+    console.error("Error in getShopPerformanceStats:", error);
+    throw error;
+  } finally {
+    if (connection) connection.release();
+  }
+};
+

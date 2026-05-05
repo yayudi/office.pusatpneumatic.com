@@ -1,7 +1,6 @@
 <script setup>
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import Tabs from '@/components/ui/Tabs.vue'
-import FilterContainer from '@/components/ui/FilterContainer.vue'
 
 // Props untuk data dropdown
 defineProps({
@@ -27,7 +26,8 @@ const tabs = [
   <div>
     <!-- Tabs navigation -->
     <Tabs :tabs="tabs" v-model:model-value="activeTab" />
-    <FilterContainer v-if="activeTab !== 'DETAILED_TRANSFER'" title="Form Perpindahan" class="mt-4">
+    <div v-if="activeTab !== 'DETAILED_TRANSFER'"
+      class="mt-4 bg-background/80 rounded-xl border border-secondary/20 p-4 lg:p-6 shadow-sm flex flex-col gap-4 relative z-30">
       <div class="grid grid-cols-1 md:grid-cols-12 gap-6 w-full">
         <!-- TRANSFER (BATCH) -->
         <template v-if="activeTab === 'TRANSFER'">
@@ -62,6 +62,6 @@ const tabs = [
           </div>
         </template>
       </div>
-    </FilterContainer>
+    </div>
   </div>
 </template>

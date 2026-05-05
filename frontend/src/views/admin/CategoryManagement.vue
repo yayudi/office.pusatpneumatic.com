@@ -112,8 +112,7 @@ watch(Alt_S, (pressed) => {
 
     <div
       class="bg-background shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(100vh-250px)]">
-      <table class="w-full text-sm text-left text-text border-collapse"
-        :class="isMobile ? 'block' : 'min-w-[400px]'">
+      <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : 'min-w-[400px]'">
         <thead class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5"
           :class="isMobile ? 'hidden' : 'sticky top-0 z-30'">
           <tr class="text-xs text-text/80 uppercase">
@@ -147,8 +146,7 @@ watch(Alt_S, (pressed) => {
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Nama</span>
               <span class="font-medium text-text">{{ cat.name }}</span>
             </td>
-            <td class="space-x-4"
-              :class="isMobile ? 'flex justify-end items-center pt-3' : 'px-6 py-4 text-center'">
+            <td class="space-x-4" :class="isMobile ? 'flex justify-end items-center pt-3' : 'px-6 py-4 text-center'">
               <button @click="openEditModal(cat)"
                 class="text-primary hover:text-primary/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105">
                 <font-awesome-icon icon="fa-solid fa-edit" />
@@ -167,8 +165,7 @@ watch(Alt_S, (pressed) => {
   </div>
 
   <!-- Modal untuk Tambah/Edit Kategori -->
-  <Modal :show="isModalOpen" @close="isModalOpen = false"
-    :title="isEditing ? 'Edit Kategori' : 'Tambah Kategori Baru'">
+  <Modal :show="isModalOpen" @close="isModalOpen = false" :title="isEditing ? 'Edit Kategori' : 'Tambah Kategori Baru'">
     <form @submit.prevent="handleSave" class="p-6 space-y-4">
       <div>
         <label class="block text-sm font-medium text-text/80 mb-1">Nama Kategori</label>
@@ -197,24 +194,6 @@ watch(Alt_S, (pressed) => {
 
 .btn-secondary {
   @apply bg-background border border-secondary/30 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-secondary/20;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--color-secondary) / 0.3);
-  border-radius: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--color-secondary) / 0.5);
 }
 
 /* List Transitions */

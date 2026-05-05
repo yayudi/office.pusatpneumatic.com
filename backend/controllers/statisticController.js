@@ -163,3 +163,24 @@ export const getInventoryValue = async (req, res) => {
     res.status(500).json({ success: false, message: 'Gagal memuat statistik nilai inventaris.' });
   }
 };
+
+export const getShopPerformance = async (req, res) => {
+  try {
+    const { startDate, endDate, source, shopName, prevStartDate, prevEndDate } = req.query;
+    
+    if (!startDate || !endDate) {
+      return res.status(400).json({ success: false, message: 'startDate dan endDate diperlukan.' });
+    }
+
+    const filters = { startDate, endDate, source, shopName, prevStartDate, prevEndDate };
+    const data = await statisticService.getShopPerformanceStats(filters);
+    
+    res.json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    console.error('Error getShopPerformance:', error);
+    res.status(500).json({ success: false, message: 'Gagal memuat statistik performa toko.' });
+  }
+};

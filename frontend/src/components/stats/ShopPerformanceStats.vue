@@ -1,0 +1,585 @@
+<script setup>
+import { ref, onMounted, computed } from 'vue'
+import { startOfMonth, endOfMonth, subMonths, subYears, format } from 'date-fns'
+import { useToast } from '@/composables/useToast.js'
+import { useTheme } from '@/composables/useTheme.js'
+import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
+import { fetchShopPerformance } from '@/api/helpers/stats.js'
+import api from '@/api/axios'
+import VueApexCharts from 'vue3-apexcharts'
+import { formatNumber, formatCurrency } from '@/utils/formatters.js'
+
+const { toast } = useToast()
+const { themeColors, isDarkTheme } = useTheme()
+const isDataLoading = ref(false)
+const activeTab = ref('summary')
+
+// Data from API
+const summaryData = ref([])
+const dailyTrendData = ref([])
+const topProductsData = ref([])
+const fulfillmentData = ref([])
+const comparisonData = ref({ current: {}, previous: {}, delta: {} })
+const shopOptions = ref([{ id: 'All', label: 'Semua Toko / Sales' }])
+
+const filterValues = ref({
+  reportType: 'monthly',
+  year: new Date().getFullYear(),
+  selectedMonth: ('0' + (new Date().getMonth() + 1)).slice(-2),
+  startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+  endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+  source: 'All',
+  shopName: 'All'
+})
+
+const tabs = [
+  { id: 'summary', label: 'Ringkasan', icon: 'fa-solid fa-chart-pie' },
+  { id: 'trend', label: 'Tren Harian', icon: 'fa-solid fa-chart-line' },
+  { id: 'top-products', label: 'Produk Terlaris', icon: 'fa-solid fa-ranking-star' },
+  { id: 'fulfillment', label: 'Kesehatan Pemenuhan', icon: 'fa-solid fa-heart-pulse' },
+  { id: 'comparison', label: 'Perbandingan Periode', icon: 'fa-solid fa-right-left' },
+]
+
+const reportTypeOptions = [
+  { id: 'monthly', label: 'Bulanan' },
+  { id: 'annual', label: 'Tahunan' },
+  { id: 'custom', label: 'Rentang Waktu Kustom' }
+]
+
+const sourceOptions = [
+  { id: 'All', label: 'Semua Saluran' },
+  { id: 'Tokopedia', label: 'Tokopedia / TikTok' },
+  { id: 'Shopee', label: 'Shopee' },
+  { id: 'Offline', label: 'Offline / Lainnya' }
+]
+
+const availableMonths = [
+  { value: '01', label: 'Januari' },
+  { value: '02', label: 'Februari' },
+  { value: '03', label: 'Maret' },
+  { value: '04', label: 'April' },
+  { value: '05', label: 'Mei' },
+  { value: '06', label: 'Juni' },
+  { value: '07', label: 'Juli' },
+  { value: '08', label: 'Agustus' },
+  { value: '09', label: 'September' },
+  { value: '10', label: 'Oktober' },
+  { value: '11', label: 'November' },
+  { value: '12', label: 'Desember' }
+]
+
+const availableYears = computed(() => {
+  const current = new Date().getFullYear()
+  return Array.from({ length: 7 }, (_, i) => current - 5 + i)
+})
+
+const getApiPayload = () => {
+  let startDate, endDate, prevStartDate, prevEndDate
+  if (filterValues.value.reportType === 'annual') {
+    startDate = `${filterValues.value.year}-01-01`
+    endDate = `${filterValues.value.year}-12-31`
+    // Previous = year before
+    const prevYear = filterValues.value.year - 1
+    prevStartDate = `${prevYear}-01-01`
+    prevEndDate = `${prevYear}-12-31`
+  } else if (filterValues.value.reportType === 'monthly') {
+    const d = new Date(`${filterValues.value.year}-${filterValues.value.selectedMonth}-02`)
+    startDate = format(startOfMonth(d), 'yyyy-MM-dd')
+    endDate = format(endOfMonth(d), 'yyyy-MM-dd')
+    // Previous = month before
+    const prev = subMonths(d, 1)
+    prevStartDate = format(startOfMonth(prev), 'yyyy-MM-dd')
+    prevEndDate = format(endOfMonth(prev), 'yyyy-MM-dd')
+  } else {
+    startDate = filterValues.value.startDate
+    endDate = filterValues.value.endDate
+    // For custom range, calculate same-length period before
+    const startMs = new Date(startDate).getTime()
+    const endMs = new Date(endDate).getTime()
+    const diffMs = endMs - startMs
+    prevEndDate = format(new Date(startMs - 1), 'yyyy-MM-dd') // day before start
+    prevStartDate = format(new Date(startMs - 1 - diffMs), 'yyyy-MM-dd')
+  }
+  return {
+    startDate, endDate, prevStartDate, prevEndDate,
+    source: filterValues.value.source,
+    shopName: filterValues.value.shopName
+  }
+}
+
+const fetchStatistics = async () => {
+  const payload = getApiPayload()
+  if (!payload.startDate || !payload.endDate) return
+  isDataLoading.value = true
+  try {
+    const response = await fetchShopPerformance(payload)
+    summaryData.value = response.summary || []
+    dailyTrendData.value = response.dailyTrend || []
+    topProductsData.value = response.topProducts || []
+    fulfillmentData.value = response.fulfillment || []
+    comparisonData.value = response.comparison || { current: {}, previous: {}, delta: {} }
+  } catch (error) {
+    toast(error.message || 'Gagal mengambil data statistik performa toko', 'error')
+  } finally {
+    isDataLoading.value = false
+  }
+}
+
+onMounted(async () => {
+  // Fetch shop names for filter
+  try {
+    const res = await api.get('/sales-channels?activeOnly=true')
+    if (res.data?.success) {
+      const channels = res.data.data || []
+      shopOptions.value = [
+        { id: 'All', label: 'Semua Toko / Sales' },
+        ...channels.map(ch => ({ id: ch.name, label: `${ch.name} (${ch.platform})` }))
+      ]
+    }
+  } catch { /* silently fail, dropdown stays with 'All' */ }
+  fetchStatistics()
+})
+const applyFilters = () => fetchStatistics()
+
+const labelColor = computed(() => themeColors.value.text)
+
+// === SUMMARY TAB ===
+const totalRevenueOverall = computed(() => summaryData.value.reduce((a, c) => a + c.total_revenue, 0))
+const totalItemsOverall = computed(() => summaryData.value.reduce((a, c) => a + c.total_items_sold, 0))
+const totalOrdersOverall = computed(() => summaryData.value.reduce((a, c) => a + c.total_orders, 0))
+
+const getPercentage = (val, total) => {
+  if (!total) return 0
+  return ((Number(val) / total) * 100).toFixed(1)
+}
+
+const donutSeries = computed(() => summaryData.value.map(s => s.total_revenue))
+const donutOptions = computed(() => ({
+  chart: { type: 'donut', background: 'transparent' },
+  labels: summaryData.value.map(s => `${s.shop_name} (${s.source})`),
+  theme: { mode: isDarkTheme.value ? 'dark' : 'light' },
+  dataLabels: { enabled: true },
+  legend: { position: 'bottom', labels: { colors: labelColor.value } },
+  stroke: { show: false },
+  plotOptions: {
+    pie: {
+      donut: {
+        labels: {
+          show: true,
+          name: { color: labelColor.value },
+          value: { color: labelColor.value, formatter: (val) => formatCurrency(val) }
+        }
+      }
+    }
+  }
+}))
+
+// === TREND TAB ===
+const trendSeries = computed(() => [
+  { name: 'Omset (Rp)', type: 'area', data: dailyTrendData.value.map(d => d.totalRevenue) },
+  { name: 'Qty Terjual', type: 'line', data: dailyTrendData.value.map(d => d.totalItemsSold) },
+])
+const trendOptions = computed(() => ({
+  chart: { background: 'transparent', toolbar: { show: false }, stacked: false },
+  theme: { mode: isDarkTheme.value ? 'dark' : 'light' },
+  xaxis: { categories: dailyTrendData.value.map(d => d.date), labels: { style: { colors: labelColor.value }, rotate: -45 } },
+  yaxis: [
+    { title: { text: 'Omset (Rp)', style: { color: labelColor.value } }, labels: { style: { colors: labelColor.value }, formatter: (v) => formatCurrency(v) } },
+    { opposite: true, title: { text: 'Qty', style: { color: labelColor.value } }, labels: { style: { colors: labelColor.value } } },
+  ],
+  stroke: { width: [2, 2], curve: 'smooth' },
+  fill: { type: ['gradient', 'solid'], opacity: [0.3, 1] },
+  legend: { labels: { colors: labelColor.value } },
+  tooltip: { shared: true, intersect: false },
+  grid: { borderColor: isDarkTheme.value ? '#333' : '#eee' },
+}))
+
+// === SOURCE BADGE ===
+const sourceBadgeClass = (source) => {
+  if (source === 'Shopee') return 'bg-[#ee4d2d]/10 text-[#ee4d2d]'
+  if (source === 'Tokopedia') return 'bg-[#00AA5B]/10 text-[#00AA5B]'
+  return 'bg-secondary/20 text-text/70'
+}
+
+// === COMPARISON TAB ===
+const compMetrics = computed(() => [
+  { label: 'Total Omset', current: comparisonData.value.current?.totalRevenue ?? 0, previous: comparisonData.value.previous?.totalRevenue ?? 0, delta: comparisonData.value.delta?.revenue ?? 0, format: 'currency' },
+  { label: 'Total Order', current: comparisonData.value.current?.totalOrders ?? 0, previous: comparisonData.value.previous?.totalOrders ?? 0, delta: comparisonData.value.delta?.orders ?? 0, format: 'number' },
+  { label: 'Qty Terjual', current: comparisonData.value.current?.totalItemsSold ?? 0, previous: comparisonData.value.previous?.totalItemsSold ?? 0, delta: comparisonData.value.delta?.items ?? 0, format: 'number' },
+])
+
+const compBarSeries = computed(() => [
+  { name: 'Periode Ini', data: compMetrics.value.map(m => m.current) },
+  { name: 'Periode Sebelumnya', data: compMetrics.value.map(m => m.previous) },
+])
+const compBarOptions = computed(() => ({
+  chart: { type: 'bar', background: 'transparent', toolbar: { show: false } },
+  theme: { mode: isDarkTheme.value ? 'dark' : 'light' },
+  plotOptions: { bar: { horizontal: false, columnWidth: '55%', borderRadius: 4 } },
+  xaxis: { categories: compMetrics.value.map(m => m.label), labels: { style: { colors: labelColor.value } } },
+  yaxis: { labels: { style: { colors: labelColor.value }, formatter: (v) => formatCurrency(v) } },
+  legend: { labels: { colors: labelColor.value } },
+  dataLabels: { enabled: false },
+  grid: { borderColor: isDarkTheme.value ? '#333' : '#eee' },
+  tooltip: { y: { formatter: (v) => formatCurrency(v) } },
+}))
+
+const periodLabel = computed(() => {
+  const f = filterValues.value
+  if (f.reportType === 'annual') return { current: `${f.year}`, previous: `${f.year - 1}` }
+  if (f.reportType === 'monthly') {
+    const monthName = availableMonths.find(m => m.value === f.selectedMonth)?.label || f.selectedMonth
+    const prevDate = subMonths(new Date(`${f.year}-${f.selectedMonth}-02`), 1)
+    const prevMonthName = availableMonths.find(m => m.value === ('0' + (prevDate.getMonth() + 1)).slice(-2))?.label
+    return { current: `${monthName} ${f.year}`, previous: `${prevMonthName} ${prevDate.getFullYear()}` }
+  }
+  return { current: `${f.startDate} s/d ${f.endDate}`, previous: 'Periode sebelumnya' }
+})
+</script>
+
+<template>
+  <div class="space-y-6">
+    <div class="mb-6 border-b border-secondary/20 pb-4">
+      <h3 class="text-lg font-bold text-text">Performa Toko & Saluran</h3>
+      <p class="text-sm text-text/50 mt-1">Analitik penjualan, tren, dan kesehatan pemenuhan per toko.</p>
+    </div>
+
+    <!-- Filter Controls -->
+    <div class="bg-background border border-secondary p-4 rounded-xl flex flex-col gap-4 shadow-sm">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
+        <div>
+          <label class="block text-xs font-semibold text-text/60 mb-2">Tipe Laporan</label>
+          <BaseSelect v-model="filterValues.reportType" :options="reportTypeOptions" emitValue :searchable="false" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-text/60 mb-2">Waktu Spesifik</label>
+          <div v-if="filterValues.reportType === 'annual'">
+            <BaseSelect v-model="filterValues.year" :options="availableYears" emitValue :searchable="false" />
+          </div>
+          <div v-else-if="filterValues.reportType === 'monthly'" class="flex gap-2">
+            <BaseSelect v-model="filterValues.selectedMonth" :options="availableMonths" track-by="value" emitValue
+              :searchable="false" class="w-1/2" />
+            <BaseSelect v-model="filterValues.year" :options="availableYears" emitValue :searchable="false"
+              class="w-1/2" />
+          </div>
+          <div v-else>
+            <DateRangeFilter v-model:startDate="filterValues.startDate" v-model:endDate="filterValues.endDate"
+              align="left" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-text/60 mb-2">Saluran Marketplace</label>
+          <BaseSelect v-model="filterValues.source" :options="sourceOptions" emitValue :searchable="false" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-text/60 mb-2">Nama Toko / Sales</label>
+          <BaseSelect v-model="filterValues.shopName" :options="shopOptions" emitValue :searchable="true" />
+        </div>
+      </div>
+      <div class="flex items-start pt-2 border-t border-secondary/20 mt-2">
+        <button @click="applyFilters" :disabled="isDataLoading"
+          class="h-[42px] px-8 bg-primary text-secondary font-bold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex justify-center items-center text-sm ml-auto">
+          <font-awesome-icon v-if="isDataLoading" icon="fa-solid fa-spinner" spin class="mr-2" />
+          Terapkan Laporan
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-1 bg-secondary/10 p-1 rounded-xl overflow-x-auto">
+      <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id"
+        class="px-4 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2"
+        :class="activeTab === tab.id ? 'bg-background text-primary shadow-sm' : 'text-text/50 hover:text-text hover:bg-background/50'">
+        <font-awesome-icon :icon="tab.icon" />
+        {{ tab.label }}
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <main v-if="isDataLoading"
+      class="bg-background border border-secondary rounded-xl p-16 flex flex-col items-center justify-center text-center shadow-sm">
+      <font-awesome-icon icon="fa-solid fa-circle-notch" spin class="text-4xl mb-4 text-primary" />
+      <p class="font-medium text-text/60">Memuat data performa toko...</p>
+    </main>
+
+    <!-- Empty State -->
+    <main v-else-if="summaryData.length === 0 && dailyTrendData.length === 0"
+      class="bg-background border border-secondary rounded-xl p-16 flex flex-col items-center justify-center text-center shadow-sm">
+      <font-awesome-icon icon="fa-solid fa-store-slash" class="text-4xl mb-4 text-text/30" />
+      <h4 class="font-bold text-text text-lg">Tidak ada data penjualan toko</h4>
+      <p class="text-text/60 mt-2 text-sm max-w-sm">Pada rentang pencarian ini, belum ada data picking list yang valid
+        ter-record.</p>
+    </main>
+
+    <!-- ====== TAB: RINGKASAN ====== -->
+    <template v-else-if="activeTab === 'summary'">
+      <!-- KPI Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fade-in">
+        <div class="bg-background border border-secondary rounded-xl p-5 shadow-sm">
+          <p class="text-xs font-semibold text-text/50 uppercase">Total Omset</p>
+          <p class="text-2xl font-bold text-primary mt-1">{{ formatCurrency(totalRevenueOverall) }}</p>
+        </div>
+        <div class="bg-background border border-secondary rounded-xl p-5 shadow-sm">
+          <p class="text-xs font-semibold text-text/50 uppercase">Total Qty Terjual</p>
+          <p class="text-2xl font-bold text-text mt-1">{{ formatNumber(totalItemsOverall) }} <span
+              class="text-sm text-text/50">pcs</span></p>
+        </div>
+        <div class="bg-background border border-secondary rounded-xl p-5 shadow-sm">
+          <p class="text-xs font-semibold text-text/50 uppercase">Total Order</p>
+          <p class="text-2xl font-bold text-text mt-1">{{ formatNumber(totalOrdersOverall) }}</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
+        <!-- Donut Chart -->
+        <div class="bg-background border border-secondary p-5 md:p-8 rounded-xl shadow-sm w-full lg:col-span-1">
+          <h4 class="font-bold text-text text-lg mb-2">Distribusi Omset</h4>
+          <p class="text-xs md:text-sm text-text/50 mb-6">Pangsa omset per toko.</p>
+          <div class="w-full flex justify-center">
+            <VueApexCharts width="100%" type="donut" :options="donutOptions" :series="donutSeries" />
+          </div>
+        </div>
+
+        <!-- Summary Table -->
+        <div class="bg-background border border-secondary rounded-xl overflow-hidden shadow-sm lg:col-span-2">
+          <div class="p-4 border-b border-secondary/20 flex justify-between items-center bg-secondary/5">
+            <h4 class="font-bold text-text text-sm uppercase px-2">Peringkat Toko</h4>
+          </div>
+          <div class="overflow-auto max-h-[450px] custom-scrollbar">
+            <table class="w-full text-left text-sm whitespace-nowrap">
+              <thead class="bg-background border-b border-secondary sticky top-0 z-10">
+                <tr>
+                  <th class="px-6 py-4 font-semibold text-text/80">Nama Toko</th>
+                  <th class="px-6 py-4 font-semibold text-text/80 text-center">Saluran</th>
+                  <th class="px-6 py-4 font-semibold text-text/80 text-right">Total Order</th>
+                  <th class="px-6 py-4 font-semibold text-text/80 text-right">Qty Terjual</th>
+                  <th class="px-6 py-4 font-semibold text-text/80 text-right">Omset</th>
+                  <th class="px-6 py-4 font-semibold text-text/80 text-right">% Omset</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-secondary/20">
+                <tr v-for="(item, index) in summaryData" :key="item.shop_name + item.source"
+                  class="hover:bg-secondary/10 transition-colors">
+                  <td class="px-6 py-4 font-medium text-text flex items-center gap-3">
+                    <span
+                      class="w-6 h-6 flex items-center justify-center rounded-full bg-secondary/20 text-xs font-bold text-text/50">{{
+                      index + 1 }}</span>
+                    {{ item.shop_name }}
+                  </td>
+                  <td class="px-6 py-4 text-center">
+                    <span class="px-2 py-1 rounded-md text-xs font-bold" :class="sourceBadgeClass(item.source)">{{
+                      item.source }}</span>
+                  </td>
+                  <td class="px-6 py-4 text-right font-mono">{{ formatNumber(item.total_orders) }}</td>
+                  <td class="px-6 py-4 text-right font-mono">{{ formatNumber(item.total_items_sold) }}</td>
+                  <td class="px-6 py-4 text-right font-mono text-primary font-bold">{{
+                    formatCurrency(item.total_revenue) }}</td>
+                  <td class="px-6 py-4 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                      <span class="text-xs font-bold">{{ getPercentage(item.total_revenue, totalRevenueOverall)
+                        }}%</span>
+                      <div class="w-16 h-1.5 bg-secondary/20 rounded-full overflow-hidden">
+                        <div class="h-full bg-primary"
+                          :style="{ width: `${getPercentage(item.total_revenue, totalRevenueOverall)}%` }"></div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- ====== TAB: TREN HARIAN ====== -->
+    <template v-else-if="activeTab === 'trend'">
+      <div v-if="dailyTrendData.length === 0"
+        class="bg-background border border-secondary rounded-xl p-12 text-center shadow-sm animate-fade-in">
+        <font-awesome-icon icon="fa-solid fa-chart-line" class="text-3xl text-text/20 mb-3" />
+        <p class="text-text/50 text-sm">Tidak ada data tren untuk rentang waktu ini.</p>
+      </div>
+      <div v-else class="bg-background border border-secondary p-5 md:p-8 rounded-xl shadow-sm animate-fade-in">
+        <h4 class="font-bold text-text text-lg mb-1">Tren Penjualan Harian</h4>
+        <p class="text-xs text-text/50 mb-6">Pergerakan omset dan kuantitas terjual dari hari ke hari.</p>
+        <VueApexCharts height="380" type="line" :options="trendOptions" :series="trendSeries" />
+      </div>
+    </template>
+
+    <!-- ====== TAB: PRODUK TERLARIS ====== -->
+    <template v-else-if="activeTab === 'top-products'">
+      <div v-if="topProductsData.length === 0"
+        class="bg-background border border-secondary rounded-xl p-12 text-center shadow-sm animate-fade-in">
+        <font-awesome-icon icon="fa-solid fa-ranking-star" class="text-3xl text-text/20 mb-3" />
+        <p class="text-text/50 text-sm">Tidak ada data produk terlaris untuk rentang waktu ini.</p>
+      </div>
+      <div v-else class="bg-background border border-secondary rounded-xl overflow-hidden shadow-sm animate-fade-in">
+        <div class="p-4 border-b border-secondary/20 bg-secondary/5">
+          <h4 class="font-bold text-text text-sm uppercase px-2">Top 10 Produk Terlaris (Semua Toko)</h4>
+        </div>
+        <div class="overflow-auto max-h-[500px] custom-scrollbar">
+          <table class="w-full text-left text-sm whitespace-nowrap">
+            <thead class="bg-background border-b border-secondary sticky top-0 z-10">
+              <tr>
+                <th class="px-6 py-4 font-semibold text-text/80">#</th>
+                <th class="px-6 py-4 font-semibold text-text/80">SKU</th>
+                <th class="px-6 py-4 font-semibold text-text/80">Produk</th>
+                <th class="px-6 py-4 font-semibold text-text/80">Toko</th>
+                <th class="px-6 py-4 font-semibold text-text/80 text-center">Saluran</th>
+                <th class="px-6 py-4 font-semibold text-text/80 text-right">Qty Terjual</th>
+                <th class="px-6 py-4 font-semibold text-text/80 text-right">Pendapatan</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-secondary/20">
+              <tr v-for="(item, index) in topProductsData" :key="`${item.sku}-${item.shopName}`"
+                class="hover:bg-secondary/10 transition-colors">
+                <td class="px-6 py-4">
+                  <span class="w-6 h-6 inline-flex items-center justify-center rounded-full text-xs font-bold"
+                    :class="index < 3 ? 'bg-primary/10 text-primary' : 'bg-secondary/20 text-text/50'">{{ index + 1
+                    }}</span>
+                </td>
+                <td class="px-6 py-4 font-mono text-xs text-text/70">{{ item.sku }}</td>
+                <td class="px-6 py-4 font-medium text-text max-w-[200px] truncate" :title="item.productName">{{
+                  item.productName }}</td>
+                <td class="px-6 py-4 text-text/70 text-xs">{{ item.shopName }}</td>
+                <td class="px-6 py-4 text-center">
+                  <span class="px-2 py-1 rounded-md text-xs font-bold" :class="sourceBadgeClass(item.source)">{{
+                    item.source }}</span>
+                </td>
+                <td class="px-6 py-4 text-right font-mono font-bold">{{ formatNumber(item.totalSold) }}</td>
+                <td class="px-6 py-4 text-right font-mono text-primary font-bold">{{ formatCurrency(item.revenue) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </template>
+
+    <!-- ====== TAB: KESEHATAN PEMENUHAN ====== -->
+    <template v-else-if="activeTab === 'fulfillment'">
+      <div v-if="fulfillmentData.length === 0"
+        class="bg-background border border-secondary rounded-xl p-12 text-center shadow-sm animate-fade-in">
+        <font-awesome-icon icon="fa-solid fa-heart-pulse" class="text-3xl text-text/20 mb-3" />
+        <p class="text-text/50 text-sm">Tidak ada data pemenuhan untuk rentang waktu ini.</p>
+      </div>
+      <div v-else class="space-y-4 animate-fade-in">
+        <div v-for="item in fulfillmentData" :key="`${item.shopName}-${item.source}`"
+          class="bg-background border border-secondary rounded-xl p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <h4 class="font-bold text-text">{{ item.shopName }}</h4>
+              <span class="px-2 py-0.5 rounded-md text-xs font-bold" :class="sourceBadgeClass(item.source)">{{
+                item.source }}</span>
+            </div>
+            <span class="text-xs text-text/50">{{ formatNumber(item.totalOrders) }} order total</span>
+          </div>
+          <!-- Rate Bars -->
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div class="p-3 bg-secondary/5 rounded-lg">
+              <p class="text-[10px] uppercase font-bold text-text/40 mb-1">Selesai</p>
+              <p class="text-lg font-bold text-success">{{ item.completionRate }}%</p>
+              <div class="w-full h-1.5 bg-secondary/20 rounded-full mt-2 overflow-hidden">
+                <div class="h-full bg-success rounded-full transition-all"
+                  :style="{ width: `${item.completionRate}%` }"></div>
+              </div>
+              <p class="text-[10px] text-text/40 mt-1">{{ formatNumber(item.completedOrders) }} order</p>
+            </div>
+            <div class="p-3 bg-secondary/5 rounded-lg">
+              <p class="text-[10px] uppercase font-bold text-text/40 mb-1">Dibatalkan</p>
+              <p class="text-lg font-bold text-danger">{{ item.cancellationRate }}%</p>
+              <div class="w-full h-1.5 bg-secondary/20 rounded-full mt-2 overflow-hidden">
+                <div class="h-full bg-danger rounded-full transition-all"
+                  :style="{ width: `${item.cancellationRate}%` }"></div>
+              </div>
+              <p class="text-[10px] text-text/40 mt-1">{{ formatNumber(item.cancelledOrders) }} order</p>
+            </div>
+            <div class="p-3 bg-secondary/5 rounded-lg">
+              <p class="text-[10px] uppercase font-bold text-text/40 mb-1">Diretur</p>
+              <p class="text-lg font-bold text-warning">{{ item.returnRate }}%</p>
+              <div class="w-full h-1.5 bg-secondary/20 rounded-full mt-2 overflow-hidden">
+                <div class="h-full bg-warning rounded-full transition-all" :style="{ width: `${item.returnRate}%` }">
+                </div>
+              </div>
+              <p class="text-[10px] text-text/40 mt-1">{{ formatNumber(item.returnedOrders) }} order</p>
+            </div>
+            <div class="p-3 bg-secondary/5 rounded-lg">
+              <p class="text-[10px] uppercase font-bold text-text/40 mb-1">Pending</p>
+              <p class="text-lg font-bold text-text/60">{{ item.totalOrders > 0 ? (100 - item.completionRate -
+                item.cancellationRate - item.returnRate).toFixed(1) : 0 }}%</p>
+              <div class="w-full h-1.5 bg-secondary/20 rounded-full mt-2 overflow-hidden">
+                <div class="h-full bg-text/30 rounded-full transition-all"
+                  :style="{ width: `${item.totalOrders > 0 ? (100 - item.completionRate - item.cancellationRate - item.returnRate) : 0}%` }">
+                </div>
+              </div>
+              <p class="text-[10px] text-text/40 mt-1">{{ formatNumber(item.pendingOrders) }} order</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- ====== TAB: PERBANDINGAN PERIODE ====== -->
+    <template v-else-if="activeTab === 'comparison'">
+      <div class="space-y-6 animate-fade-in">
+        <!-- Period Labels -->
+        <div class="flex items-center justify-center gap-4 text-sm">
+          <span class="px-4 py-2 bg-primary/10 text-primary font-bold rounded-lg">{{ periodLabel.current }}</span>
+          <font-awesome-icon icon="fa-solid fa-right-left" class="text-text/30" />
+          <span class="px-4 py-2 bg-secondary/20 text-text/70 font-bold rounded-lg">{{ periodLabel.previous }}</span>
+        </div>
+
+        <!-- Delta Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div v-for="metric in compMetrics" :key="metric.label"
+            class="bg-background border border-secondary rounded-xl p-5 shadow-sm">
+            <p class="text-xs font-semibold text-text/50 uppercase mb-2">{{ metric.label }}</p>
+            <p class="text-2xl font-bold text-text">
+              {{ metric.format === 'currency' ? formatCurrency(metric.current) : formatNumber(metric.current) }}
+            </p>
+            <div class="flex items-center gap-2 mt-2">
+              <span class="text-xs font-bold px-2 py-0.5 rounded-full"
+                :class="metric.delta > 0 ? 'bg-success/10 text-success' : metric.delta < 0 ? 'bg-danger/10 text-danger' : 'bg-secondary/20 text-text/50'">
+                <font-awesome-icon
+                  :icon="metric.delta > 0 ? 'fa-solid fa-arrow-trend-up' : metric.delta < 0 ? 'fa-solid fa-arrow-trend-down' : 'fa-solid fa-minus'"
+                  class="mr-1" />
+                {{ metric.delta > 0 ? '+' : '' }}{{ metric.delta }}%
+              </span>
+              <span class="text-[10px] text-text/40">vs {{ periodLabel.previous }}</span>
+            </div>
+            <p class="text-xs text-text/40 mt-1">
+              Sebelumnya: {{ metric.format === 'currency' ? formatCurrency(metric.previous) :
+                formatNumber(metric.previous) }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Grouped Bar Chart -->
+        <div class="bg-background border border-secondary p-5 md:p-8 rounded-xl shadow-sm">
+          <h4 class="font-bold text-text text-lg mb-1">Grafik Perbandingan</h4>
+          <p class="text-xs text-text/50 mb-6">{{ periodLabel.current }} vs {{ periodLabel.previous }}</p>
+          <VueApexCharts height="350" type="bar" :options="compBarOptions" :series="compBarSeries" />
+        </div>
+      </div>
+    </template>
+  </div>
+</template>
+
+<style scoped>
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>

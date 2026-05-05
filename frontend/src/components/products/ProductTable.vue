@@ -61,7 +61,8 @@ function getSortIcon(field) {
     <div class="flex-1 overflow-auto relative custom-scrollbar">
       <table class="w-full text-left border-collapse" :class="isMobile ? 'block' : 'min-w-[1000px]'">
         <!-- HEADER (Sticky) -->
-        <thead class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5" :class="isMobile ? 'hidden' : 'sticky top-0 z-30'">
+        <thead class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5"
+          :class="isMobile ? 'hidden' : 'sticky top-0 z-30'">
           <tr class="text-text/60 text-xs font-bold uppercase tracking-wider">
             <!-- CHECKBOX ALL (Sticky Left) -->
             <th
@@ -123,7 +124,8 @@ function getSortIcon(field) {
         </thead>
 
         <!-- BODY (Animated) -->
-        <TransitionGroup tag="tbody" name="list" class="relative" :class="isMobile ? 'block' : 'divide-y divide-secondary/5'">
+        <TransitionGroup tag="tbody" name="list" class="relative"
+          :class="isMobile ? 'block' : 'divide-y divide-secondary/5'">
           <!-- Loading State -->
           <template v-if="loading">
             <TableSkeleton v-for="n in 5" :key="n" />
@@ -159,35 +161,15 @@ function getSortIcon(field) {
     </div>
 
     <!-- PAGINATION FOOTER -->
-    <div class="shrink-0 border-t border-secondary/10 bg-secondary/5 flex flex-col sm:flex-row items-center justify-between">
-      <BasePagination 
-        :pagination="pagination" 
-        @changePage="changePage" 
-        @update:limit="(l) => emit('update:limit', l)" 
-      />
+    <div
+      class="shrink-0 border-t border-secondary/10 bg-secondary/5 flex flex-col sm:flex-row items-center justify-between">
+      <BasePagination :pagination="pagination" @changePage="changePage"
+        @update:limit="(l) => emit('update:limit', l)" />
     </div>
   </div>
 </template>
 
 <style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--color-secondary) / 0.3);
-  border-radius: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--color-secondary) / 0.5);
-}
-
 /* List Transitions */
 .list-enter-active,
 .list-leave-active {

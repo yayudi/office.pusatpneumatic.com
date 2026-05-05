@@ -140,7 +140,8 @@ onUnmounted(() => {
 
       <table class="w-full text-left border-collapse" :class="isMobile ? 'block' : 'min-w-[800px]'">
         <thead
-          class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5 text-xs uppercase font-bold text-text/60" :class="isMobile ? 'hidden' : 'sticky top-0 z-30'">
+          class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5 text-xs uppercase font-bold text-text/60"
+          :class="isMobile ? 'hidden' : 'sticky top-0 z-30'">
           <tr>
             <th
               class="p-4 w-16 text-center sticky left-0 z-30 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
@@ -154,7 +155,8 @@ onUnmounted(() => {
               Aksi</th>
           </tr>
         </thead>
-        <TransitionGroup tag="tbody" name="list" class="relative" :class="isMobile ? 'block' : 'divide-y divide-secondary/10'">
+        <TransitionGroup tag="tbody" name="list" class="relative"
+          :class="isMobile ? 'block' : 'divide-y divide-secondary/10'">
           <!-- Loading State -->
           <template v-if="loading && jobs.length === 0">
             <TableSkeleton v-for="n in 5" :key="`skeleton-${n}`" />
@@ -168,10 +170,10 @@ onUnmounted(() => {
             </td>
           </tr>
 
-          <tr v-else v-for="(job, index) in jobs" :key="job.id"
-            class="transition-colors group relative" :class="isMobile ? 'block mb-4 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4' : 'hover:bg-secondary/5'">
-            <td
-              class="font-mono opacity-50 bg-background group-hover:bg-secondary/5 transition-colors" :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'p-4 text-center sticky left-0 z-20 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]'">
+          <tr v-else v-for="(job, index) in jobs" :key="job.id" class="transition-colors group relative"
+            :class="isMobile ? 'block mb-4 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4' : 'hover:bg-secondary/5'">
+            <td class="font-mono opacity-50 bg-background group-hover:bg-secondary/5 transition-colors"
+              :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'p-4 text-center sticky left-0 z-20 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]'">
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">#</span>
               <span>{{ index + 1 }}</span>
             </td>
@@ -191,7 +193,8 @@ onUnmounted(() => {
                 </div>
               </div>
             </td>
-            <td class="text-sm whitespace-nowrap opacity-80" :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'p-4'">
+            <td class="text-sm whitespace-nowrap opacity-80"
+              :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'p-4'">
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Waktu</span>
               <span>{{ formatDate(job.created_at) }}</span>
             </td>
@@ -204,8 +207,8 @@ onUnmounted(() => {
                 {{ job.status }}
               </span>
             </td>
-            <td
-              class="bg-background group-hover:bg-secondary/5 transition-colors" :class="isMobile ? 'flex justify-end items-center pt-4' : 'p-4 text-right sticky right-0 z-20 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]'">
+            <td class="bg-background group-hover:bg-secondary/5 transition-colors"
+              :class="isMobile ? 'flex justify-end items-center pt-4' : 'p-4 text-right sticky right-0 z-20 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]'">
               <button v-if="job.status === 'COMPLETED' && job.download_url"
                 @click="handleDownload(job.download_url, job.file_path)"
                 class="px-3 py-1.5 bg-primary text-secondary rounded-lg text-sm font-bold shadow-md hover:scale-105 active:scale-95 transition-all inline-flex items-center gap-2">
@@ -231,24 +234,6 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--color-secondary) / 0.3);
-  border-radius: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--color-secondary) / 0.5);
-}
-
 /* List Transitions */
 .list-enter-active,
 .list-leave-active {

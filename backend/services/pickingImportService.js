@@ -18,7 +18,8 @@ export const syncOrdersToDB = async (
   originalFilename,
   onProgress = null,
   dryRun = false,
-  locationPurpose = "DISPLAY"
+  locationPurpose = "DISPLAY",
+  shopName = null
 ) => {
   const summary = { processed: 0, updatedCount: 0, errors: [] };
   const ordersToProcess = Array.from(groupedOrders.values());
@@ -76,6 +77,7 @@ export const syncOrdersToDB = async (
             orderDate: order.orderDate,
             status: order.status,
             locationPurpose,
+            shopName,
           };
 
           const listId = await validationHelper.insertPickingHeader(connection, meta);

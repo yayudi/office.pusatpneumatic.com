@@ -134,7 +134,6 @@ function handleScroll(e) {
 </script>
 <template>
   <!-- Wrapper with themed border and background -->
-
   <div ref="tableContainer" @scroll="handleScroll"
     class="bg-background rounded-xl shadow-md border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(100vh-300px)] table-container">
     <table class="w-full bg-background text-sm text-text border-collapse block md:table">
@@ -245,24 +244,6 @@ function handleScroll(e) {
 </template>
 
 <style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--color-secondary) / 0.3);
-  border-radius: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--color-secondary) / 0.5);
-}
-
 /* List Transitions */
 .list-enter-active,
 .list-leave-active {

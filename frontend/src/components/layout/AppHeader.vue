@@ -74,10 +74,11 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <header class="bg-secondary/15 backdrop-blur-md sticky top-0 z-40 border-b border-secondary/20 shadow-sm">
-    <nav class="container mx-auto sm:px-6 py-3 flex justify-between items-center" title="Navigation Menu"
-      aria-current="page" aria-controls="desktop-menu" aria-expanded="false" aria-haspopup="true"
-      aria-labelledby="desktop-menu" role="menu">
+  <header
+    class="bg-secondary/15 py-1 md:py-3 px-6 backdrop-blur-md sticky top-0 z-40 border-b border-secondary/20 shadow-sm">
+    <nav class="container mx-auto flex justify-between items-center" title="Navigation Menu" aria-current="page"
+      aria-controls="desktop-menu" aria-expanded="false" aria-haspopup="true" aria-labelledby="desktop-menu"
+      role="menu">
       <div class="flex items-center gap-6">
         <RouterLink to="/" class="font-bold text-lg text-primary hover:opacity-80 transition-opacity flex-shrink-0"
           @click="isMobileMenuOpen = false" title="Logo" aria-label="Logo" role="button" tabindex="0">
@@ -172,7 +173,7 @@ onUnmounted(() => {
     <div v-if="isMobileMenuOpen" ref="mobileMenuPanel" title="Mobile Menu" id="mobile-menu" aria-expanded="true"
       aria-haspopup="true" aria-labelledby="mobile-menu" role="menu"
       class="md:hidden absolute w-full bg-secondary backdrop-blur-md border-b border-secondary/20 shadow-lg">
-      <nav class="container mx-auto px-4 sm:px-6 py-4 space-y-2 z-200">
+      <nav class="container mx-auto px-4 sm:px-6 py-4 space-y-2 z-[500]">
         <RouterLink to="/absensi" @click="isMobileMenuOpen = false"
           class="block px-3 py-2 rounded-md text-base font-medium text-text/80 hover:bg-secondary/20 hover:text-primary"
           active-class="!text-primary font-bold bg-secondary/10">Absensi</RouterLink>

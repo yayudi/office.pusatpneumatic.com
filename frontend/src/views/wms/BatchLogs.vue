@@ -4,7 +4,7 @@ import { ref, onMounted, computed } from 'vue'
 import { fetchBatchLogs } from '@/api/helpers/stock.js'
 import { useMasterDataStore } from '@/stores/masterData'
 import { useToast } from '@/composables/useToast.js'
-import FilterContainer from '@/components/ui/FilterContainer.vue'
+import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import { useMobile } from '@/composables/useMobile.js'
@@ -30,7 +30,6 @@ const hasSearched = ref(false)
 
 // Options
 const movementTypeOptions = [
-  { id: '', label: 'Tipe' },
   { id: 'TRANSFER', label: 'TRANSFER' },
   { id: 'INBOUND', label: 'INBOUND' },
   { id: 'RETURN', label: 'RETURN' },
@@ -39,10 +38,7 @@ const movementTypeOptions = [
   { id: 'PICKING', label: 'PICKING' },
 ]
 
-const locationOptions = computed(() => [
-  { id: '', label: 'Lokasi' },
-  ...locations.value.map(loc => ({ id: loc.id, label: loc.code })),
-])
+const locationOptions = computed(() => locations.value.map(loc => ({ id: loc.id, label: loc.code })))
 
 onMounted(async () => {
   // Set Default Date: Hari Ini
@@ -109,8 +105,8 @@ function handleReset() {
     </div>
 
     <!-- Filter Section -->
-    <FilterContainer title="Filter Log" class="mb-6">
-      <div class="px-4 py-5">
+    <BaseFilterPanel title="Filter Log" class="mb-6">
+      <template #filters>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 items-end">
           <!-- Product Name -->
           <div class="space-y-1.5">
@@ -128,14 +124,14 @@ function handleReset() {
           <div class="space-y-1.5">
             <label class="text-xs font-bold text-text/60 uppercase tracking-wide">Tipe</label>
             <BaseSelect v-model="searchType" :options="movementTypeOptions" label="label" track-by="id"
-              placeholder="Tipe" :searchable="false" emit-value />
+              placeholder="Semua Tipe" :searchable="false" emit-value clearable clear-value="" />
           </div>
 
           <!-- Location -->
           <div class="space-y-1.5">
             <label class="text-xs font-bold text-text/60 uppercase tracking-wide">Lokasi</label>
             <BaseSelect v-model="searchLocation" :options="locationOptions" label="label" track-by="id"
-              placeholder="Lokasi" :searchable="true" emit-value />
+              placeholder="Semua Lokasi" :searchable="true" emit-value clearable clear-value="" />
           </div>
 
           <!-- User -->
@@ -169,8 +165,8 @@ function handleReset() {
             </button>
           </div>
         </div>
-      </div>
-    </FilterContainer>
+      </template>
+    </BaseFilterPanel>
 
     <!-- Hasil Log -->
     <div class="bg-background rounded-xl shadow-md border border-secondary/20 overflow-hidden">

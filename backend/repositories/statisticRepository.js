@@ -229,3 +229,197 @@ export const getMovementTimelineStats = async (connection, filters) => {
   const [rows] = await connection.query(query, queryParams);
   return rows;
 };
+
+/**
+ * Build common WHERE clause fragments for shop performance queries.
+ * @param {Object} filters
+ * @returns {{ filterSql: string, filterParams: Array }}
+ */
+const buildShopFilters = (filters) => {
+  const { source, shopName } = filters;
+  let filterSql = '';
+  const filterParams = [];
+
+  if (source && source !== 'All') {
+    filterSql += ` AND pl.source = ?`;
+    filterParams.push(source);
+  }
+  if (shopName && shopName !== 'All') {
+    filterSql += ` AND pl.shop_name = ?`;
+    filterParams.push(shopName);
+  }
+  return { filterSql, filterParams };
+};
+
+/**
+ * Get sales statistics aggregated by shop name and source.
+ * @param {import('mysql2/promise').PoolConnection} connection
+ * @param {Object} filters { startDate, endDate, source, shopName }
+ * @returns {Promise<Array>}
+ */
+export const getShopPerformanceStats = async (connection, filters) => {
+  const { startDate, endDate } = filters;
+  const { filterSql, filterParams } = buildShopFilters(filters);
+
+  const query = `
+    SELECT 
+      pl.source,
+      COALESCE(pl.shop_name, 'Toko Tidak Diketahui') as shop_name,
+      COUNT(DISTINCT pl.id) as total_orders,
+      SUM(pli.quantity) as total_items_sold,
+      SUM(pli.quantity * pli.price) as total_revenue
+    FROM picking_lists pl
+    JOIN picking_list_items pli ON pl.id = pli.picking_list_id
+    WHERE pl.order_date >= ? 
+      AND pl.order_date <= ?
+      AND pl.status NOT IN ('CANCEL', 'OBSOLETE')
+      AND pl.is_active = 1
+      ${filterSql}
+    GROUP BY pl.source, pl.shop_name
+    ORDER BY total_revenue DESC
+  `;
+
+  const [rows] = await connection.query(query, [startDate, endDate, ...filterParams]);
+  return rows;
+};
+
+/**
+ * Get daily sales trend within a date range.
+ * @param {import('mysql2/promise').PoolConnection} connection
+ * @param {Object} filters { startDate, endDate, source }
+ * @returns {Promise<Array>}
+ */
+export const getDailySalesTrend = async (connection, filters) => {
+  const { startDate, endDate } = filters;
+  const { filterSql, filterParams } = buildShopFilters(filters);
+
+  const query = `
+    SELECT
+      DATE(pl.order_date) as date,
+      COUNT(DISTINCT pl.id) as total_orders,
+      SUM(pli.quantity) as total_items_sold,
+      SUM(pli.quantity * pli.price) as total_revenue
+    FROM picking_lists pl
+    JOIN picking_list_items pli ON pl.id = pli.picking_list_id
+    WHERE pl.order_date >= ?
+      AND pl.order_date <= ?
+      AND pl.status NOT IN ('CANCEL', 'OBSOLETE')
+      AND pl.is_active = 1
+      ${filterSql}
+    GROUP BY DATE(pl.order_date)
+    ORDER BY date ASC
+  `;
+
+  const [rows] = await connection.query(query, [startDate, endDate, ...filterParams]);
+  return rows;
+};
+
+/**
+ * Get top selling products per shop within a date range.
+ * @param {import('mysql2/promise').PoolConnection} connection
+ * @param {Object} filters { startDate, endDate, source, limit }
+ * @returns {Promise<Array>}
+ */
+export const getTopSellingProducts = async (connection, filters) => {
+  const { startDate, endDate, limit = 10 } = filters;
+  const { filterSql, filterParams } = buildShopFilters(filters);
+
+  const query = `
+    SELECT
+      pl.source,
+      COALESCE(pl.shop_name, 'Toko Tidak Diketahui') as shop_name,
+      p.sku,
+      p.name as product_name,
+      SUM(pli.quantity) as total_sold,
+      SUM(pli.quantity * pli.price) as revenue
+    FROM picking_lists pl
+    JOIN picking_list_items pli ON pl.id = pli.picking_list_id
+    JOIN products p ON pli.product_id = p.id
+    WHERE pl.order_date >= ?
+      AND pl.order_date <= ?
+      AND pl.status NOT IN ('CANCEL', 'OBSOLETE')
+      AND pl.is_active = 1
+      ${filterSql}
+    GROUP BY pl.source, pl.shop_name, p.id
+    ORDER BY total_sold DESC
+    LIMIT ?
+  `;
+
+  const [rows] = await connection.query(query, [startDate, endDate, ...filterParams, Number(limit)]);
+  return rows;
+};
+
+/**
+ * Get fulfillment health statistics (completion rate, cancellation rate).
+ * @param {import('mysql2/promise').PoolConnection} connection
+ * @param {Object} filters { startDate, endDate, source }
+ * @returns {Promise<Array>}
+ */
+export const getFulfillmentHealth = async (connection, filters) => {
+  const { startDate, endDate } = filters;
+  const { filterSql, filterParams } = buildShopFilters(filters);
+
+  const query = `
+    SELECT
+      pl.source,
+      COALESCE(pl.shop_name, 'Toko Tidak Diketahui') as shop_name,
+      COUNT(*) as total_orders,
+      SUM(CASE WHEN pl.status IN ('COMPLETED', 'SHIPPED', 'PACKED') THEN 1 ELSE 0 END) as completed_orders,
+      SUM(CASE WHEN pl.status = 'CANCEL' THEN 1 ELSE 0 END) as cancelled_orders,
+      SUM(CASE WHEN pl.status = 'RETURNED' THEN 1 ELSE 0 END) as returned_orders,
+      SUM(CASE WHEN pl.status = 'PENDING' THEN 1 ELSE 0 END) as pending_orders
+    FROM picking_lists pl
+    WHERE pl.order_date >= ?
+      AND pl.order_date <= ?
+      AND pl.is_active = 1
+      ${filterSql}
+    GROUP BY pl.source, pl.shop_name
+    ORDER BY total_orders DESC
+  `;
+
+  const [rows] = await connection.query(query, [startDate, endDate, ...filterParams]);
+  return rows;
+};
+
+/**
+ * Get period comparison data (current vs previous period).
+ * @param {import('mysql2/promise').PoolConnection} connection
+ * @param {Object} filters { startDate, endDate, prevStartDate, prevEndDate, source, shopName }
+ * @returns {Promise<{current: Object, previous: Object}>}
+ */
+export const getPeriodComparison = async (connection, filters) => {
+  const { startDate, endDate, prevStartDate, prevEndDate } = filters;
+  const { filterSql, filterParams } = buildShopFilters(filters);
+
+  const query = `
+    SELECT
+      CASE
+        WHEN pl.order_date >= ? AND pl.order_date <= ? THEN 'current'
+        WHEN pl.order_date >= ? AND pl.order_date <= ? THEN 'previous'
+      END as period,
+      COUNT(DISTINCT pl.id) as total_orders,
+      SUM(pli.quantity) as total_items_sold,
+      SUM(pli.quantity * pli.price) as total_revenue
+    FROM picking_lists pl
+    JOIN picking_list_items pli ON pl.id = pli.picking_list_id
+    WHERE (
+        (pl.order_date >= ? AND pl.order_date <= ?)
+        OR (pl.order_date >= ? AND pl.order_date <= ?)
+      )
+      AND pl.status NOT IN ('CANCEL', 'OBSOLETE')
+      AND pl.is_active = 1
+      ${filterSql}
+    GROUP BY period
+  `;
+
+  // Params: CASE current start/end, CASE prev start/end, WHERE current start/end, WHERE prev start/end, ...shopFilters
+  const params = [
+    startDate, endDate, prevStartDate, prevEndDate,
+    startDate, endDate, prevStartDate, prevEndDate,
+    ...filterParams
+  ];
+
+  const [rows] = await connection.query(query, params);
+  return rows;
+};
+

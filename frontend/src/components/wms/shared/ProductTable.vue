@@ -51,7 +51,7 @@ function sortIcon(column) {
 
 <template>
   <div
-    class="bg-background rounded-xl border border-secondary/50 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[80vh] table-container">
+    class="bg-background rounded-lg border border-secondary/50 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[80vh] table-container">
     <table class="min-w-full md:min-w-[1000px] w-full bg-background text-sm text-text border-collapse">
       <!-- STATIC HEADER -->
       <thead
@@ -135,24 +135,6 @@ function sortIcon(column) {
 </template>
 
 <style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--color-secondary) / 0.3);
-  border-radius: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--color-secondary) / 0.5);
-}
-
 /* List Transitions */
 .list-enter-active,
 .list-leave-active {

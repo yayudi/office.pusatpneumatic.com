@@ -104,6 +104,11 @@ const sourceBgClass = computed(() => {
               <font-awesome-icon icon="fa-solid fa-clock" class="opacity-50" />
               {{ formatDate(inv.order_date || inv.created_at, true, true) }}
             </span>
+
+            <span class="text-[11px] text-text/60 flex items-center gap-1">
+              <font-awesome-icon icon="fa-solid fa-store" class="opacity-50" />
+              {{ inv.shop_name || '-' }}
+            </span>
           </div>
         </div>
       </div>

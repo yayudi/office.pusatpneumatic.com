@@ -8,7 +8,6 @@ import {
   completePickingItems,
   cancelPickingList,
 } from '@/api/helpers/picking.js'
-
 import PickingFilterBar from '@/components/picking/PickingFilterBar.vue'
 import PickingListCard from '@/components/picking/PickingListCard.vue'
 import PickingListCardCompact from '@/components/picking/PickingListCardCompact.vue'

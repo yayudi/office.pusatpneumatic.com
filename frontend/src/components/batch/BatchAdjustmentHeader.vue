@@ -1,7 +1,5 @@
 <script setup>
 import BaseSelect from '@/components/ui/BaseSelect.vue'
-import FilterContainer from '@/components/ui/FilterContainer.vue'
-
 // Props untuk data dropdown
 defineProps({
   myLocations: { type: Array, default: () => [] },
@@ -15,7 +13,10 @@ const notes = defineModel('notes')
 
 <template>
   <!-- Header Kontekstual Hanya Untuk Adjustment -->
-  <FilterContainer title="Form Penyesuaian">
+  <div class="bg-background/80 rounded-xl border border-secondary/20 p-4 lg:p-6 shadow-sm flex flex-col gap-4 relative z-30">
+    <div class="flex items-center gap-2 mb-2">
+      <h3 class="text-lg font-bold text-text/80 tracking-tight">Form Penyesuaian</h3>
+    </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
       <!-- ADJUSTMENT -->
       <div>
@@ -31,5 +32,5 @@ const notes = defineModel('notes')
           class="w-full p-2 border border-secondary/50 rounded-lg bg-background" />
       </div>
     </div>
-  </FilterContainer>
+  </div>
 </template>

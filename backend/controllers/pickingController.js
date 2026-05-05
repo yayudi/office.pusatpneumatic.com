@@ -77,8 +77,17 @@ export const uploadAndValidate = async (req, res) => {
     // [UPDATE] Deteksi Dry Run
     // FormData mengirim boolean sebagai string 'true'
     const isDryRun = req.body.dryRun === "true" || req.body.dryRun === true;
-    
+
     const locationPurpose = req.body.purpose || "DISPLAY";
+
+    let shopNames = [];
+    try {
+      if (req.body.shopNames) {
+        shopNames = JSON.parse(req.body.shopNames);
+      }
+    } catch (e) {
+      console.warn("Failed to parse shopNames JSON:", e);
+    }
 
     // Tentukan Base Job Type
     let baseJobType = `IMPORT_SALES_${source.toUpperCase()}`;
@@ -89,7 +98,10 @@ export const uploadAndValidate = async (req, res) => {
     const createdJobs = [];
 
     // Loop setiap file yang diupload dan buatkan Job Antrian
-    for (const file of req.files) {
+    for (let i = 0; i < req.files.length; i++) {
+      const file = req.files[i];
+      const shopName = shopNames[i] || null;
+
       // Tentukan catatan untuk Audit Trail / UI
       const modeText = isDryRun ? "Simulasi" : "Import";
       const note = `${modeText} ${source} Sales`;
@@ -100,7 +112,7 @@ export const uploadAndValidate = async (req, res) => {
         originalname: file.originalname,
         serverFilePath: file.path,
         notes: note,
-        options: { purpose: locationPurpose },
+        options: { purpose: locationPurpose, shopName },
       });
 
       console.log(
@@ -156,8 +168,8 @@ export const completeItems = async (req, res) => {
     const result = await pickingService.completePickingItemsService(items, userId);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: error.message,
       errors: error.details || []
     });

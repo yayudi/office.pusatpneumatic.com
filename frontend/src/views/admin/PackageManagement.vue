@@ -8,7 +8,7 @@ import ProductFormModal from '@/components/wms/shared/ProductFormModal.vue'
 import ConnectionStatus from '@/components/wms/shared/ConnectionStatus.vue'
 import PackageTable from '@/components/products/PackageTable.vue'
 import PackageBatchEditModal from '@/components/products/PackageBatchEditModal.vue'
-import FilterContainer from '@/components/ui/FilterContainer.vue'
+import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 
 const { toast } = useToast()
@@ -313,23 +313,23 @@ watch(Slash, (pressed) => {
         </div>
 
         <!-- FILTER BAR SIMPLIFIED -->
-        <FilterContainer title="Filter & Pencarian" class="mb-4">
-          <!-- Content -->
-          <div class="flex flex-col sm:flex-row gap-4 items-center flex-grow">
-            <!-- Search -->
+        <BaseFilterPanel class="mb-4">
+          <template #search>
             <div class="relative flex-1 w-full">
-              <input id="global-search-input" v-model="searchQuery" type="text" placeholder="Cari nama paket atau SKU..."
+              <input id="global-search-input" v-model="searchQuery" type="text"
+                placeholder="Cari nama paket atau SKU..."
                 class="w-full pl-10 pr-4 py-2 bg-background border border-secondary/20 rounded-lg focus:outline-none focus:border-primary text-sm shadow-sm" />
               <font-awesome-icon icon="fa-solid fa-search" class="absolute left-3 top-2.5 text-text/40" />
             </div>
-            <!-- Status Filter -->
+          </template>
+          <template #filters>
             <div class="flex items-center gap-2 w-full sm:w-auto">
               <label class="text-xs font-bold text-text/60 whitespace-nowrap">Status:</label>
               <BaseSelect v-model="filterStatus" :options="statusOptions" track-by="value" emit-value
                 :searchable="false" class="w-full sm:w-[150px]" />
             </div>
-          </div>
-        </FilterContainer>
+          </template>
+        </BaseFilterPanel>
       </div>
 
       <!-- TABLE COMPONENT -->

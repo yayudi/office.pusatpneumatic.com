@@ -28,7 +28,6 @@ const startDate = ref(null)
 const endDate = ref(null)
 
 const actionOptions = [
-  { value: 'all', label: 'Semua Aksi' },
   { value: 'CREATE', label: 'CREATE' },
   { value: 'UPDATE', label: 'UPDATE' },
   { value: 'DELETE', label: 'DELETE' },
@@ -36,7 +35,6 @@ const actionOptions = [
 ]
 
 const targetOptions = [
-  { value: 'all', label: 'Semua Tipe' },
   { value: 'PRODUCT', label: 'PRODUCT' },
   { value: 'USER', label: 'USER' },
   { value: 'ROLE', label: 'ROLE' },
@@ -134,8 +132,10 @@ onMounted(() => {
 
       <DateRangeFilter v-model:startDate="startDate" v-model:endDate="endDate" />
 
-      <BaseSelect v-model="actionFilter" :options="actionOptions" track-by="value" emit-value :searchable="false" class="min-w-[150px]" />
-      <BaseSelect v-model="targetFilter" :options="targetOptions" track-by="value" emit-value :searchable="false" class="min-w-[150px]" />
+      <BaseSelect v-model="actionFilter" :options="actionOptions" track-by="value" emit-value :searchable="false"
+        clearable clear-value="all" placeholder="Semua Aksi" class="min-w-[150px]" />
+      <BaseSelect v-model="targetFilter" :options="targetOptions" track-by="value" emit-value :searchable="false"
+        clearable clear-value="all" placeholder="Semua Tipe" class="min-w-[150px]" />
     </div>
 
     <!-- Table & Pagination Card -->
@@ -143,7 +143,8 @@ onMounted(() => {
       <!-- Scrollable Table -->
       <div class="overflow-x-auto overflow-y-auto custom-scrollbar flex-1 relative rounded-t-xl">
         <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : ''">
-          <thead class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5" :class="isMobile ? 'hidden' : 'sticky top-0 z-30'">
+          <thead class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5"
+            :class="isMobile ? 'hidden' : 'sticky top-0 z-30'">
             <tr class="text-xs text-text/80 uppercase">
               <th
                 class="px-6 py-3 sticky left-0 z-30 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] w-[180px]">
@@ -163,24 +164,26 @@ onMounted(() => {
               <td colspan="5" class="py-12 text-center text-text/50 italic">Tidak ada log aktivitas ditemukan.</td>
             </tr>
 
-            <tr v-else v-for="log in logs" :key="log.id"
-              class="transition-colors group relative" :class="isMobile ? 'block mb-4 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4' : 'border-b border-secondary/20 hover:bg-secondary/5'">
-              <td
-                class="whitespace-nowrap bg-background group-hover:bg-secondary/5 transition-colors" :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4 sticky left-0 z-20 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]'">
+            <tr v-else v-for="log in logs" :key="log.id" class="transition-colors group relative"
+              :class="isMobile ? 'block mb-4 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4' : 'border-b border-secondary/20 hover:bg-secondary/5'">
+              <td class="whitespace-nowrap bg-background group-hover:bg-secondary/5 transition-colors"
+                :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4 sticky left-0 z-20 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]'">
                 <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Waktu</span>
                 <div class="flex flex-col" :class="isMobile ? 'items-end' : ''">
                   <span class="font-bold text-sm text-text">{{ formatDate(log.created_at) }}</span>
                   <span class="text-[10px] text-text/40">{{ log.ip_address || '-' }}</span>
                 </div>
               </td>
-              <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+              <td
+                :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
                 <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">User</span>
                 <div class="flex flex-col" :class="isMobile ? 'items-end' : ''">
                   <span class="font-bold text-sm">{{ log.nickname || log.username || 'System' }}</span>
                   <span class="text-xs text-text/50">{{ log.role || 'N/A' }}</span>
                 </div>
               </td>
-              <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+              <td
+                :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
                 <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Aksi</span>
                 <span class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide border" :class="{
                   'bg-success/10 text-success border-success/20': log.action === 'CREATE',
@@ -192,23 +195,28 @@ onMounted(() => {
                   {{ log.action }}
                 </span>
               </td>
-              <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+              <td
+                :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
                 <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Target</span>
                 <div class="flex flex-col" :class="isMobile ? 'items-end' : ''">
                   <span class="font-bold text-xs text-primary bg-primary/5 px-2 py-0.5 rounded w-fit mb-1">{{
                     log.target_type
-                    }}</span>
-                  <span class="text-xs text-text/60 font-mono tracking-tight text-ellipsis overflow-hidden max-w-[200px]">{{
-                    log.target_id
+                  }}</span>
+                  <span
+                    class="text-xs text-text/60 font-mono tracking-tight text-ellipsis overflow-hidden max-w-[200px]">{{
+                      log.target_id
                     }}</span>
                 </div>
               </td>
               <td class="text-sm" :class="isMobile ? 'flex flex-col gap-2 pt-4' : 'px-6 py-4'">
-                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold block mb-2 border-b border-secondary/10 pb-2">Perubahan</span>
+                <span v-if="isMobile"
+                  class="text-text/60 text-xs uppercase font-semibold block mb-2 border-b border-secondary/10 pb-2">Perubahan</span>
                 <div v-if="log.changes" class="space-y-1">
-                  <div v-for="(val, key) in formatChanges(log.changes)" :key="key"
-                    class="grid gap-2 text-xs" :class="isMobile ? 'grid-cols-1' : 'grid-cols-[100px_1fr]'">
-                    <span class="font-mono text-text/50 truncate" :class="isMobile ? 'text-left font-semibold text-primary' : 'text-right'" :title="key">{{ key }}:</span>
+                  <div v-for="(val, key) in formatChanges(log.changes)" :key="key" class="grid gap-2 text-xs"
+                    :class="isMobile ? 'grid-cols-1' : 'grid-cols-[100px_1fr]'">
+                    <span class="font-mono text-text/50 truncate"
+                      :class="isMobile ? 'text-left font-semibold text-primary' : 'text-right'" :title="key">{{ key
+                      }}:</span>
                     <div v-if="val && typeof val === 'object'" class="font-mono flex items-center gap-2 flex-wrap">
                       <span
                         class="bg-danger/5 text-danger px-1.5 py-0.5 rounded decoration-auto line-through opacity-70 break-all">{{
@@ -218,7 +226,7 @@ onMounted(() => {
                         undefined ?
                         val.new :
                         'NULL'
-                      }}</span>
+                        }}</span>
                     </div>
                     <!-- Handle if val is a primitive -->
                     <div v-else class="font-mono flex items-center gap-2 flex-wrap">
@@ -235,32 +243,8 @@ onMounted(() => {
 
       <!-- Pagination (Sticky Bottom) -->
       <div class="border-t border-secondary/20 flex justify-between items-center bg-background rounded-b-xl shrink-0">
-        <BasePagination 
-          :pagination="paginationData" 
-          @changePage="onChangePage" 
-          @update:limit="onUpdateLimit" 
-        />
+        <BasePagination :pagination="paginationData" @changePage="onChangePage" @update:limit="onUpdateLimit" />
       </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--color-secondary) / 0.3);
-  border-radius: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--color-secondary) / 0.5);
-}
-</style>
