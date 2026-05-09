@@ -31,7 +31,13 @@ export default defineConfig(({ command }) => ({
   base: '/',
 
   plugins: [
-    vue(),
+    vue({
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag) => tag.startsWith('cropper-')
+        }
+      }
+    }),
     vueDevTools(),
     visualizer({ filename: 'bundle-stats.html' }),
     faviconPlugin({ command }),

@@ -70,7 +70,7 @@ async function runTest() {
 
 <template>
   <div class="flex h-screen flex-col items-center justify-center p-4">
-    <div class="w-full max-w-sm bg-secondary/20 p-6 rounded-xl shadow-2xl">
+    <div class="w-full max-w-sm bg-background p-6 rounded-xl shadow-2xl">
       <div class="text-center mb-6">
         <font-awesome-icon icon="fa-solid fa-user-lock" class="text-primary text-4xl mb-3" />
         <h2 class="text-2xl font-bold text-text">Selamat Datang</h2>
@@ -79,10 +79,10 @@ async function runTest() {
 
       <form @submit.prevent="login" class="space-y-4">
         <input v-model="username" type="text" placeholder="Username"
-          class="w-full px-3 py-2 bg-background border border-secondary/50 text-text rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition"
+          class="w-full px-3 py-2 bg-secondary/20 border-2 border-secondary/50 text-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition"
           required />
         <input v-model="password" type="password" placeholder="Password"
-          class="w-full px-3 py-2 bg-background border border-secondary/50 text-text rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition"
+          class="w-full px-3 py-2 bg-secondary/20 border-2 border-secondary/50 text-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition"
           required />
         <button type="submit" :disabled="loading"
           class="w-full bg-primary text-secondary py-2 rounded-lg hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold">

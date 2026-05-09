@@ -1,5 +1,13 @@
 /* frontend\src\assets\main.css */
 @import url('https://fonts.googleapis.com/css2?family=Doto:wght@100..900&display=swap');
+@supports (scrollbar-gutter: stable) {
+  html {
+    overflow-x: hidden;
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+  }
+}
+
 /*
   Definisi Variabel Warna untuk Setiap Tema
   HSL (Hue, Saturation, Lightness)
@@ -145,7 +153,8 @@
 @tailwind utilities;
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -154,9 +163,16 @@
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: hsl(var(--color-primary) / 0.3);
+  width: 10px;
+  height: 10px;
   border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: hsl(var(--color-primary) / 0.5);
+  transition-property: width, height;
+  transition-duration: 3s;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  width: 4vw;
+  height: 4vh;
 }

@@ -183,12 +183,10 @@ function handleScroll(e) {
           </td>
 
           <!-- Date Column (Hidden on Mobile because displayed in Name row for header effect or separate) -->
-          <!-- Actually let's keep it but formatted differently or hidden if merged above. -->
-          <!-- Let's show as standard key-value to be safe -->
           <td
-            class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center whitespace-nowrap hidden md:table-cell">
+            class="flex justify-between items-center px-2 md:px-6 py-1 md:py-4 text-center whitespace-nowrap md:table-cell">
             <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Tanggal</span>
-            <span>{{ row.displayDate }}</span> <!-- usage of displayDate -->
+            <span>{{ row.displayDate }}</span>
           </td>
 
           <td

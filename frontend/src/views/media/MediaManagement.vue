@@ -8,6 +8,7 @@ import apiClient from '@/api/axios';
 import MediaInfoModal from './MediaInfoModal.vue';
 import MediaLightbox from '@/components/common/MediaLightbox.vue';
 import LinkProductModal from './LinkProductModal.vue';
+import ImageCropperModal from './ImageCropperModal.vue';
 import BulkEditTagsModal from './BulkEditTagsModal.vue';
 import BaseSelect from '@/components/ui/BaseSelect.vue';
 import BasePagination from '@/components/ui/BasePagination.vue';
@@ -219,8 +220,7 @@ const triggerUpload = () => {
   }
 };
 
-const handleMultipleFiles = (event) => {
-  const files = event.target.files;
+const processFilesForUpload = (files) => {
   if (!files || files.length === 0) return;
 
   selectedFiles.value = Array.from(files);
@@ -228,7 +228,132 @@ const handleMultipleFiles = (event) => {
   bulkSelectedProducts.value = [];
   bulkProductSearchQuery.value = '';
   isBulkModalOpen.value = true;
+};
+
+const handleMultipleFiles = (event) => {
+  processFilesForUpload(event.target.files);
   event.target.value = null; // reset input
+};
+
+// --- PREVIEW & CROPPER STATE ---
+const filePreviews = ref([]);
+
+watch(selectedFiles, (newFiles) => {
+  // Revoke old URLs to prevent memory leak
+  filePreviews.value.forEach(url => {
+    if (url) URL.revokeObjectURL(url);
+  });
+
+  // Create new URLs
+  filePreviews.value = newFiles.map(f => URL.createObjectURL(f));
+}, { deep: true });
+
+const isCropperOpen = ref(false);
+const currentEditIndex = ref(-1);
+const currentEditFile = ref(null);
+
+const openCropper = (index) => {
+  currentEditIndex.value = index;
+  currentEditFile.value = selectedFiles.value[index];
+  isCropperOpen.value = true;
+};
+
+const handleCroppedSave = (newFile) => {
+  if (currentEditIndex.value !== -1) {
+    // Replace file
+    const updatedFiles = [...selectedFiles.value];
+    updatedFiles[currentEditIndex.value] = newFile;
+    selectedFiles.value = updatedFiles;
+  }
+};
+
+const removeSelectedFile = (index) => {
+  const updatedFiles = [...selectedFiles.value];
+  updatedFiles.splice(index, 1);
+  selectedFiles.value = updatedFiles;
+  if (selectedFiles.value.length === 0) {
+    isBulkModalOpen.value = false;
+  }
+};
+
+const autoCropAllProcessing = ref(false);
+
+const autoCropAll = async () => {
+  if (selectedFiles.value.length === 0) return;
+  autoCropAllProcessing.value = true;
+
+  try {
+    const newFiles = await Promise.all(selectedFiles.value.map(async (file) => {
+      // Create image element
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = url;
+      });
+      URL.revokeObjectURL(url);
+
+      // Calculate crop dimensions for 1:1 center
+      const size = Math.min(img.width, img.height);
+      const startX = (img.width - size) / 2;
+      const startY = (img.height - size) / 2;
+
+      // Create canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      // Draw image
+      ctx.drawImage(img, startX, startY, size, size, 0, 0, size, size);
+
+      // Convert to blob
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, file.type, 0.95));
+      if (!blob) return file;
+
+      return new File([blob], file.name, {
+        type: file.type,
+        lastModified: Date.now()
+      });
+    }));
+
+    selectedFiles.value = newFiles;
+  } catch (error) {
+    console.error("Auto crop failed:", error);
+    alert("Gagal melakukan auto-crop.");
+  } finally {
+    autoCropAllProcessing.value = false;
+  }
+};
+
+const handlePaste = (event) => {
+  // Abaikan paste jika pengguna sedang mengetik di dalam input/textarea (misal sedang ngetik pencarian)
+  if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+    return;
+  }
+
+  const items = event.clipboardData?.items;
+  if (!items) return;
+
+  const pastedFiles = [];
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type.startsWith('image/')) {
+      const file = items[i].getAsFile();
+      if (file) pastedFiles.push(file);
+    }
+  }
+
+  if (pastedFiles.length > 0) {
+    // Jika ada form bulk upload yang sudah terbuka, kita tambahkan ke list, atau replace?
+    // Lebih baik langsung buka bulk modal jika belum terbuka.
+    if (!isBulkModalOpen.value) {
+      processFilesForUpload(pastedFiles);
+    } else {
+      // Append ke file yang sudah ada
+      selectedFiles.value = [...selectedFiles.value, ...pastedFiles];
+    }
+  }
 };
 
 const executeBulkUpload = async () => {
@@ -376,10 +501,12 @@ const handleDrop = (e) => {
 
 onMounted(() => {
   fetchMedia(1);
+  window.addEventListener('paste', handlePaste);
   startPolling();
 });
 
 onUnmounted(() => {
+  window.removeEventListener('paste', handlePaste);
   if (pollInterval) clearInterval(pollInterval);
 });
 </script>
@@ -476,7 +603,7 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6 relative pb-20">
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 relative">
       <div v-for="(item, index) in mediaList" :key="item.id"
         class="card shadow-sm border transition-all relative overflow-hidden"
         :class="selectedMediaIds.has(item.id) ? 'border-primary ring-2 ring-primary ring-offset-2 ring-offset-background' : 'bg-background border-secondary hover:border-primary/50'">
@@ -565,24 +692,55 @@ onUnmounted(() => {
 
     <!-- Bulk Upload Modal -->
     <div v-if="isBulkModalOpen"
-      class="fixed inset-0 bg-background/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+      class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div class="bg-background rounded-xl shadow-2xl p-6 w-full max-w-lg border border-secondary">
         <div class="flex justify-between items-center mb-4">
           <h3 class="font-bold text-xl font-display text-text">Unggah {{ selectedFiles.length }} Aset</h3>
-          <button @click="isBulkModalOpen = false"
-            class="flex items-center justify-center w-8 h-8 rounded-full text-text hover:bg-secondary transition-colors">
-            <font-awesome-icon icon="fa-solid fa-times" />
-          </button>
+          <div class="flex gap-2">
+            <button @click="autoCropAll" :disabled="autoCropAllProcessing"
+              title="Otomatis potong semua gambar menjadi rasio 1:1 di tengah"
+              class="px-3 py-1 text-sm rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-2 font-medium">
+              <font-awesome-icon v-if="autoCropAllProcessing" icon="fa-solid fa-spinner" spin />
+              <font-awesome-icon v-else icon="fa-solid fa-crop-simple" />
+              <span class="hidden sm:inline">Auto 1:1 Semua</span>
+            </button>
+            <button @click="isBulkModalOpen = false"
+              class="flex items-center justify-center w-8 h-8 rounded-full text-text hover:bg-secondary transition-colors">
+              <font-awesome-icon icon="fa-solid fa-times" />
+            </button>
+          </div>
         </div>
 
         <div
-          class="mb-4 max-h-32 overflow-y-auto bg-secondary/30 rounded-lg p-3 text-sm text-text/80 border border-secondary custom-scrollbar">
-          <ul class="list-disc list-inside">
-            <li v-for="file in selectedFiles.slice(0, 10)" :key="file.name" class="truncate opacity-80">{{ file.name }}
-            </li>
-            <li v-if="selectedFiles.length > 10" class="italic text-xs mt-2 text-primary opacity-90">...serta {{
-              selectedFiles.length - 10 }} aset lainnya.</li>
-          </ul>
+          class="mb-4 max-h-64 overflow-y-auto bg-secondary/10 rounded-lg p-3 border border-secondary custom-scrollbar">
+
+          <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+            <div v-for="(file, index) in selectedFiles" :key="index"
+              class="relative aspect-square rounded-lg overflow-hidden border border-secondary group bg-background shadow-sm">
+              <img :src="filePreviews[index]" class="w-full h-full object-cover" />
+
+              <!-- Hover Overlay -->
+              <div
+                class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 backdrop-blur-[2px]">
+                <button @click="openCropper(index)"
+                  class="w-8 h-8 rounded-full bg-primary text-background flex items-center justify-center hover:scale-110 transition-transform shadow-lg"
+                  title="Edit Gambar">
+                  <font-awesome-icon icon="fa-solid fa-crop-simple" />
+                </button>
+                <button @click="removeSelectedFile(index)"
+                  class="w-8 h-8 rounded-full bg-danger text-white flex items-center justify-center hover:scale-110 transition-transform shadow-lg"
+                  title="Hapus">
+                  <font-awesome-icon icon="fa-solid fa-trash-can" />
+                </button>
+              </div>
+
+              <!-- Size indicator -->
+              <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1">
+                <p class="text-[10px] text-white text-center truncate px-1">{{ (file.size / 1024).toFixed(0) }} KB</p>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <!-- Tautan Produk Otomatis (Autocomplete) -->
@@ -679,6 +837,9 @@ onUnmounted(() => {
 
   <BulkEditTagsModal :show="isBulkEditTagsModalOpen" :selectedMediaIds="Array.from(selectedMediaIds)"
     @close="isBulkEditTagsModalOpen = false" @updated="fetchMedia(pagination.page, true); toggleSelectionMode()" />
+
+  <ImageCropperModal :show="isCropperOpen" :file="currentEditFile" @close="isCropperOpen = false"
+    @save="handleCroppedSave" />
 </template>
 
 <style scoped>

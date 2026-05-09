@@ -15,6 +15,10 @@ const props = defineProps({
     type: String,
     default: 'Judul Modal',
   },
+  maxWidth: {
+    type: String,
+    default: 'max-w-xl',
+  },
 })
 
 const emit = defineEmits(['close'])
@@ -29,12 +33,11 @@ watch(Escape, (pressed) => {
 
 <template>
   <!-- Menggunakan <transition> untuk animasi muncul/hilang -->
-  <transition 
-    :enter-active-class="isMobile ? 'transition ease-out duration-300' : 'transition ease-out duration-200'" 
+  <transition :enter-active-class="isMobile ? 'transition ease-out duration-300' : 'transition ease-out duration-200'"
     :enter-from-class="isMobile ? 'transform translate-y-full opacity-0' : 'transform opacity-0 scale-95'"
-    :enter-to-class="isMobile ? 'transform translate-y-0 opacity-100' : 'transform opacity-100 scale-100'" 
+    :enter-to-class="isMobile ? 'transform translate-y-0 opacity-100' : 'transform opacity-100 scale-100'"
     :leave-active-class="isMobile ? 'transition ease-in duration-200' : 'transition ease-in duration-100'"
-    :leave-from-class="isMobile ? 'transform translate-y-0 opacity-100' : 'transform opacity-100 scale-100'" 
+    :leave-from-class="isMobile ? 'transform translate-y-0 opacity-100' : 'transform opacity-100 scale-100'"
     :leave-to-class="isMobile ? 'transform translate-y-full opacity-0' : 'transform opacity-0 scale-95'">
     <!-- Backdrop (area gelap di belakang) -->
     <div v-if="show" @click.self="emit('close')"
@@ -42,9 +45,9 @@ watch(Escape, (pressed) => {
       :class="isMobile ? 'items-end p-0' : 'items-center p-4'">
       <!-- Panel Modal -->
       <div class="bg-background shadow-xl w-full flex flex-col transition-all duration-300"
-        :class="isMobile ? 'max-w-full rounded-t-2xl rounded-b-none mb-0 max-h-[90vh]' : 'max-w-xl rounded-xl max-h-[90vh]'">
+        :class="isMobile ? 'max-w-full rounded-t-2xl rounded-b-none mb-0 max-h-[90vh]' : `${maxWidth} rounded-xl max-h-[90vh]`">
         <!-- Header Modal -->
-        <div class="p-4 border-b border-secondary/20 flex justify-between items-center shrink-0">
+        <div class="p-4 flex justify-between items-center shrink-0">
           <h3 class="font-bold text-text text-lg">
             <!-- Slot untuk judul kustom jika diperlukan -->
             <slot name="title">{{ title }}</slot>
@@ -55,7 +58,7 @@ watch(Escape, (pressed) => {
         </div>
 
         <!-- Konten Utama Modal -->
-        <div class="p-6 overflow-y-auto">
+        <div class="px-6 overflow-y-auto">
           <!-- Slot default untuk konten apa pun -->
           <slot />
         </div>

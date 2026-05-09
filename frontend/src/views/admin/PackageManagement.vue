@@ -281,7 +281,7 @@ watch(Slash, (pressed) => {
 </script>
 
 <template>
-  <div class="bg-background min-h-screen p-6 text-text flex flex-col h-screen overflow-hidden">
+  <div class="bg-background min-h-screen px-6 text-text flex flex-col h-screen overflow-hidden">
     <div class="w-full max-w-7xl mx-auto flex flex-col h-full relative">
       <!-- HEADER -->
       <div class="shrink-0 mb-6">

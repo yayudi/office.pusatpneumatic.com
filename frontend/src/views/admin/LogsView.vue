@@ -113,7 +113,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="p-6">
+  <div class="px-6">
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-2xl font-bold text-text">Audit Logs</h2>
       <button @click="fetchLogs"
@@ -139,7 +139,7 @@ onMounted(() => {
     </div>
 
     <!-- Table & Pagination Card -->
-    <div class="bg-background shadow-md rounded-xl border border-secondary/20 flex flex-col h-[calc(100vh-250px)]">
+    <div class="bg-background shadow-md rounded-xl border border-secondary/20 flex flex-col h-[calc(100vh-100px)]">
       <!-- Scrollable Table -->
       <div class="overflow-x-auto overflow-y-auto custom-scrollbar flex-1 relative rounded-t-xl">
         <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : ''">

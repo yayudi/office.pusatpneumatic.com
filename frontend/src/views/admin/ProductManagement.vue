@@ -306,152 +306,150 @@ watch(Slash, (pressed) => {
 </script>
 
 <template>
-  <div class="bg-background min-h-screen p-6 text-text flex flex-col h-screen overflow-hidden">
-    <div class="w-full max-w-7xl mx-auto flex flex-col h-full relative">
-      <!-- HEADER -->
-      <div class="shrink-0 mb-6">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 class="text-3xl font-bold tracking-tight flex items-center gap-3">
-              <span class="bg-primary/10 text-primary p-2 rounded-lg text-2xl">
-                <font-awesome-icon icon="fa-solid fa-tags" />
-              </span>
-              Manajemen Produk
-            </h1>
-          </div>
-          <div class="flex flex-wrap gap-3">
-            <!-- Tombol Batch Edit -->
-            <button @click="showBatchEditModal = true"
-              class="px-5 py-2.5 bg-secondary hover:bg-secondary/80 text-text rounded-xl shadow-md font-medium flex items-center gap-2 transition-all border border-secondary/30"
-              title="Edit produk secara massal (Export & Import)">
-              <font-awesome-icon icon="fa-solid fa-pen-to-square" />
-              <span class="hidden sm:inline">Batch Edit</span>
-            </button>
-
-            <!-- Tombol Tambah Produk -->
-            <button @click="openAddModal"
-              class="px-5 py-2.5 bg-primary hover:bg-primary/90 text-secondary rounded-xl shadow-lg font-bold flex items-center gap-2 transition-transform hover:-translate-y-0.5">
-              <font-awesome-icon icon="fa-solid fa-plus" />
-              <span>Tambah</span>
-            </button>
-          </div>
+  <div class="w-full max-w-7xl mx-auto flex flex-col h-full relative">
+    <!-- HEADER -->
+    <div class="shrink-0 mb-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 class="text-3xl font-bold tracking-tight flex items-center gap-3">
+            <span class="bg-primary/10 text-primary p-2 rounded-lg text-2xl">
+              <font-awesome-icon icon="fa-solid fa-tags" />
+            </span>
+            Manajemen Produk
+          </h1>
         </div>
+        <div class="flex flex-wrap gap-3">
+          <!-- Tombol Batch Edit -->
+          <button @click="showBatchEditModal = true"
+            class="px-5 py-2.5 bg-secondary hover:bg-secondary/80 text-text rounded-xl shadow-md font-medium flex items-center gap-2 transition-all border border-secondary/30"
+            title="Edit produk secara massal (Export & Import)">
+            <font-awesome-icon icon="fa-solid fa-pen-to-square" />
+            <span class="hidden sm:inline">Batch Edit</span>
+          </button>
 
-        <!-- FILTER BAR COMPONENT -->
-        <BaseFilterPanel>
-          <template #filters>
-            <!-- Filter Tipe Produk -->
-            <div class="flex bg-background rounded-xl p-1 border border-secondary/10 shrink-0 overflow-x-auto">
-              <button @click="filterType = 'all'"
-                class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2"
-                :class="filterType === 'all'
-                  ? 'bg-secondary/10 text-text shadow-sm'
-                  : 'text-text/50 hover:text-text hover:bg-secondary/5'
-                  ">
-                <font-awesome-icon icon="fa-solid fa-layer-group" />
-                <span>Semua Tipe</span>
-              </button>
-              <button @click="filterType = 'single'"
-                class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2"
-                :class="filterType === 'single'
-                  ? 'bg-primary/10 text-primary shadow-sm'
-                  : 'text-text/50 hover:text-primary hover:bg-primary/5'
-                  ">
-                <font-awesome-icon icon="fa-solid fa-box" />
-                <span>Satuan</span>
-              </button>
-              <button @click="filterType = 'package'"
-                class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2"
-                :class="filterType === 'package'
-                  ? 'bg-accent/10 text-accent shadow-sm'
-                  : 'text-text/50 hover:text-accent hover:bg-accent/5'
-                  ">
-                <font-awesome-icon icon="fa-solid fa-boxes-stacked" />
-                <span>Paket</span>
-              </button>
-            </div>
-
-            <!-- Filter Status -->
-            <div class="shrink-0 w-full sm:w-44">
-              <BaseSelect v-model="filterStatus" :options="statusOptions" label="label" track-by="id"
-                placeholder="Semua Status" :searchable="false" emit-value clearable clear-value="all" />
-            </div>
-
-            <!-- Search Group -->
-            <div class="flex flex-col sm:flex-row flex-1 gap-2 lg:ml-auto">
-              <div class="shrink-0 w-full sm:w-28">
-                <BaseSelect v-model="searchBy" :options="searchByOptions" label="label" track-by="id" placeholder="Cari"
-                  :searchable="false" emit-value />
-              </div>
-
-              <div class="relative flex-1">
-                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-text/40">
-                  <font-awesome-icon icon="fa-solid fa-search" />
-                </span>
-                <input id="global-search-input" v-model="searchQuery" type="text"
-                  :placeholder="`Cari ${searchBy === 'sku' ? 'SKU' : 'Nama'}...`"
-                  class="w-full pl-9 pr-4 py-2.5 bg-background border border-secondary/20 rounded-xl focus:outline-none focus:border-primary text-text text-sm placeholder-text/30 transition-all shadow-sm" />
-              </div>
-            </div>
-          </template>
-        </BaseFilterPanel>
-      </div>
-
-      <!-- TABLE COMPONENT -->
-      <ProductTable :products="products" :loading="loading" :pagination="pagination" :selectedIds="selectedIds"
-        :sortBy="sortBy" :sortOrder="sortOrder" @sort="handleSort" @changePage="handleChangePage"
-        @update:limit="handleUpdateLimit" @toggleSelection="toggleSelection" @toggleSelectAll="toggleSelectAll"
-        @edit="openEditModal" @restore="handleRestore" @delete="handleDelete" @view-image="openImageModal" />
-
-      <!-- FLOATING ACTION BAR -->
-      <Transition name="slide-up">
-        <div v-if="selectedIds.size > 0"
-          class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-background border border-secondary/20 shadow-2xl rounded-2xl px-6 py-3 flex items-center gap-6 z-40 text-sm">
-          <div class="flex items-center gap-2 text-text font-bold border-r border-secondary/10 pr-6">
-            <span class="bg-primary/10 text-primary w-6 h-6 flex items-center justify-center rounded-full text-xs">{{
-              selectionCount }}</span>
-            <span>Dipilih</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <button @click="handleBulkPrintLabel"
-              class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-secondary/10 text-text/80 hover:text-primary font-medium">
-              <font-awesome-icon icon="fa-solid fa-print" /> Cetak Label
-            </button>
-            <button v-if="filterStatus === 'archived'" @click="performBulkAction('restore')"
-              class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-success/10 text-success font-bold"
-              :disabled="isProcessingBulk">
-              <font-awesome-icon icon="fa-solid fa-rotate-left" :spin="isProcessingBulk" />
-              Pulihkan
-            </button>
-            <button v-else @click="performBulkAction('archive')"
-              class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-danger/10 text-danger font-bold"
-              :disabled="isProcessingBulk">
-              <font-awesome-icon icon="fa-solid fa-box-archive" :spin="isProcessingBulk" />
-              Arsipkan
-            </button>
-          </div>
-          <button @click="selectedIds.clear()" class="ml-2 text-text/40 hover:text-text text-xl leading-none"
-            title="Batalkan Pilihan">
-            &times;
+          <!-- Tombol Tambah Produk -->
+          <button @click="openAddModal"
+            class="px-5 py-2.5 bg-primary hover:bg-primary/90 text-secondary rounded-xl shadow-lg font-bold flex items-center gap-2 transition-transform hover:-translate-y-0.5">
+            <font-awesome-icon icon="fa-solid fa-plus" />
+            <span>Tambah</span>
           </button>
         </div>
-      </Transition>
+      </div>
 
-      <!-- MODALS -->
-      <ProductFormModal :show="showProductForm" :mode="productFormMode" :product-data="selectedProduct"
-        @close="showProductForm = false" @refresh="handleProductSaved" />
+      <!-- FILTER BAR COMPONENT -->
+      <BaseFilterPanel>
+        <template #filters>
+          <!-- Filter Tipe Produk -->
+          <div class="flex bg-background rounded-xl p-1 border border-secondary/10 shrink-0 overflow-x-auto">
+            <button @click="filterType = 'all'"
+              class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2"
+              :class="filterType === 'all'
+                ? 'bg-secondary/10 text-text shadow-sm'
+                : 'text-text/50 hover:text-text hover:bg-secondary/5'
+                ">
+              <font-awesome-icon icon="fa-solid fa-layer-group" />
+              <span>Semua Tipe</span>
+            </button>
+            <button @click="filterType = 'single'"
+              class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2"
+              :class="filterType === 'single'
+                ? 'bg-primary/10 text-primary shadow-sm'
+                : 'text-text/50 hover:text-primary hover:bg-primary/5'
+                ">
+              <font-awesome-icon icon="fa-solid fa-box" />
+              <span>Satuan</span>
+            </button>
+            <button @click="filterType = 'package'"
+              class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2"
+              :class="filterType === 'package'
+                ? 'bg-accent/10 text-accent shadow-sm'
+                : 'text-text/50 hover:text-accent hover:bg-accent/5'
+                ">
+              <font-awesome-icon icon="fa-solid fa-boxes-stacked" />
+              <span>Paket</span>
+            </button>
+          </div>
 
-      <ProductImageModal :show="showImageModal" :product-data="selectedImageProduct" @close="showImageModal = false"
-        @refresh="handleImageSaved" />
+          <!-- Filter Status -->
+          <div class="shrink-0 w-full sm:w-44">
+            <BaseSelect v-model="filterStatus" :options="statusOptions" label="label" track-by="id"
+              placeholder="Semua Status" :searchable="false" emit-value clearable clear-value="all" />
+          </div>
 
-      <!-- Batch Edit Modal -->
-      <BatchEditModal :is-open="showBatchEditModal" :is-exporting="isExporting" :is-importing="false"
-        @close="showBatchEditModal = false" @export="handleExport" @import="handleImport" />
+          <!-- Search Group -->
+          <div class="flex flex-col sm:flex-row flex-1 gap-2 lg:ml-auto">
+            <div class="shrink-0 w-full sm:w-28">
+              <BaseSelect v-model="searchBy" :options="searchByOptions" label="label" track-by="id" placeholder="Cari"
+                :searchable="false" emit-value />
+            </div>
+
+            <div class="relative flex-1">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-text/40">
+                <font-awesome-icon icon="fa-solid fa-search" />
+              </span>
+              <input id="global-search-input" v-model="searchQuery" type="text"
+                :placeholder="`Cari ${searchBy === 'sku' ? 'SKU' : 'Nama'}...`"
+                class="w-full pl-9 pr-4 py-2.5 bg-background border border-secondary/20 rounded-xl focus:outline-none focus:border-primary text-text text-sm placeholder-text/30 transition-all shadow-sm" />
+            </div>
+          </div>
+        </template>
+      </BaseFilterPanel>
     </div>
 
-    <!-- GLOBAL COMPONENTS -->
-    <ConnectionStatus />
+    <!-- TABLE COMPONENT -->
+    <ProductTable :products="products" :loading="loading" :pagination="pagination" :selectedIds="selectedIds"
+      :sortBy="sortBy" :sortOrder="sortOrder" @sort="handleSort" @changePage="handleChangePage"
+      @update:limit="handleUpdateLimit" @toggleSelection="toggleSelection" @toggleSelectAll="toggleSelectAll"
+      @edit="openEditModal" @restore="handleRestore" @delete="handleDelete" @view-image="openImageModal" />
+
+    <!-- FLOATING ACTION BAR -->
+    <Transition name="slide-up">
+      <div v-if="selectedIds.size > 0"
+        class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-background border border-secondary/20 shadow-2xl rounded-2xl px-6 py-3 flex items-center gap-6 z-40 text-sm">
+        <div class="flex items-center gap-2 text-text font-bold border-r border-secondary/10 pr-6">
+          <span class="bg-primary/10 text-primary w-6 h-6 flex items-center justify-center rounded-full text-xs">{{
+            selectionCount }}</span>
+          <span>Dipilih</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <button @click="handleBulkPrintLabel"
+            class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-secondary/10 text-text/80 hover:text-primary font-medium">
+            <font-awesome-icon icon="fa-solid fa-print" /> Cetak Label
+          </button>
+          <button v-if="filterStatus === 'archived'" @click="performBulkAction('restore')"
+            class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-success/10 text-success font-bold"
+            :disabled="isProcessingBulk">
+            <font-awesome-icon icon="fa-solid fa-rotate-left" :spin="isProcessingBulk" />
+            Pulihkan
+          </button>
+          <button v-else @click="performBulkAction('archive')"
+            class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-danger/10 text-danger font-bold"
+            :disabled="isProcessingBulk">
+            <font-awesome-icon icon="fa-solid fa-box-archive" :spin="isProcessingBulk" />
+            Arsipkan
+          </button>
+        </div>
+        <button @click="selectedIds.clear()" class="ml-2 text-text/40 hover:text-text text-xl leading-none"
+          title="Batalkan Pilihan">
+          &times;
+        </button>
+      </div>
+    </Transition>
+
+    <!-- MODALS -->
+    <ProductFormModal :show="showProductForm" :mode="productFormMode" :product-data="selectedProduct"
+      @close="showProductForm = false" @refresh="handleProductSaved" />
+
+    <ProductImageModal :show="showImageModal" :product-data="selectedImageProduct" @close="showImageModal = false"
+      @refresh="handleImageSaved" />
+
+    <!-- Batch Edit Modal -->
+    <BatchEditModal :is-open="showBatchEditModal" :is-exporting="isExporting" :is-importing="false"
+      @close="showBatchEditModal = false" @export="handleExport" @import="handleImport" />
   </div>
+
+  <!-- GLOBAL COMPONENTS -->
+  <ConnectionStatus />
 </template>
 
 <style scoped>

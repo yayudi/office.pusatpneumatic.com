@@ -14,6 +14,7 @@ router.get("/", async (req, res) => {
       FROM users u
       LEFT JOIN roles r ON u.role_id = r.id
       LEFT JOIN shifts s ON u.shift_id = s.id
+      WHERE u.is_active = 1
       ORDER BY u.username ASC
     `;
     const [users] = await db.query(query);
@@ -167,7 +168,7 @@ router.delete("/:id", async (req, res) => {
   }
 
   try {
-    await db.query("DELETE FROM users WHERE id = ?", [id]);
+    await db.query("UPDATE users SET is_active = 0 WHERE id = ?", [id]);
 
     // LOGGING
     await createLog(db, {

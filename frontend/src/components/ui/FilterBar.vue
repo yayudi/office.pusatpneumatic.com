@@ -45,7 +45,7 @@ function emitClear() {
 </script>
 
 <template>
-  <BaseFilterPanel :title="title || 'Filter Data'">
+  <BaseFilterPanel :title="title">
     <template #filters>
       <slot name="prepend"></slot>
       <!-- Loop through filters -->

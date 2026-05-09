@@ -291,7 +291,7 @@ watch(Escape, (pressed) => {
 
   <!-- Panel Kontrol Utama -->
   <div class="bg-secondary/35 rounded-xl shadow-lg border border-secondary/20 p-3 lg:p-6 space-y-2 w-full">
-    <WmsControlPanel class="z-100 sticky top-14" :search-placeholder="searchPlaceholder" :search-tabs="searchTabs"
+    <WmsControlPanel class="sticky top-14" :search-placeholder="searchPlaceholder" :search-tabs="searchTabs"
       :warehouse-views="warehouseViews" :building-filter-options="buildingFilterOptions"
       :floor-filter-options="floorFilterOptions" :category-filter-options="categoryOptions"
       :is-auto-refetching="isAutoRefetching" @search="handleSearchInput" @toggle-refetch="toggleAutoRefetch"

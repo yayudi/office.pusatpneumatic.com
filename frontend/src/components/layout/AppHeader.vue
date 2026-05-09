@@ -1,7 +1,7 @@
 <!-- frontend\src\components\layout\AppHeader.vue -->
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import ThemeSwitcher from '../ui/ThemeSwitcher.vue'
 import { useAuthStore } from '../../stores/auth.js'
 import { usePwaInstall } from '@/composables/usePwaInstall.js'
@@ -17,7 +17,10 @@ const isDropdownOpen = ref(false)
 const isMobileMenuOpen = ref(false)
 const emit = defineEmits(['logout'])
 const auth = useAuthStore()
+const route = useRoute()
 const { isInstallable, installPwa } = usePwaInstall()
+
+const isAdminActive = computed(() => route.path.startsWith('/admin'))
 
 useAppHotkeys(handleLogout)
 
@@ -74,8 +77,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <header
-    class="bg-secondary/15 py-1 md:py-3 px-6 backdrop-blur-md sticky top-0 z-40 border-b border-secondary/20 shadow-sm">
+  <header class="bg-background py-1 md:py-3 px-6 sticky top-0 z-[60] border-b border-secondary/20 shadow-md">
     <nav class="container mx-auto flex justify-between items-center" title="Navigation Menu" aria-current="page"
       aria-controls="desktop-menu" aria-expanded="false" aria-haspopup="true" aria-labelledby="desktop-menu"
       role="menu">
@@ -85,34 +87,32 @@ onUnmounted(() => {
           Dunia Pratama Sejahtera
         </RouterLink>
 
-        <div class="hidden md:flex items-center gap-6 text-sm font-medium">
-          <RouterLink to="/wms"
-            class="border-b-2 text-text/80 hover:text-primary transition-colors flex items-center gap-2"
+        <div class="hidden md:flex items-center lg:gap-6 gap-2 text-sm font-medium">
+          <RouterLink to="/wms" class="text-text/80 hover:text-primary transition-colors flex items-center gap-2"
             active-class="!text-primary text-lg font-bold border-primary">
             <font-awesome-icon icon="fa-solid fa-warehouse" />
             <span>WMS</span>
           </RouterLink>
           <RouterLink to="/media" v-if="auth.user?.permissions?.includes('product.image.view')"
-            class="border-b-2 text-text/80 hover:text-primary transition-colors flex items-center gap-2"
+            class="text-text/80 hover:text-primary transition-colors flex items-center gap-2"
             active-class="!text-primary text-lg font-bold border-primary">
             <font-awesome-icon icon="fa-solid fa-images" />
             <span>Media</span>
           </RouterLink>
-          <RouterLink to="/absensi"
-            class="border-b-2 text-text/80 hover:text-primary transition-colors flex items-center gap-2"
+          <RouterLink to="/absensi" class="text-text/80 hover:text-primary transition-colors flex items-center gap-2"
             active-class="!text-primary text-lg font-bold border-primary">
             <font-awesome-icon icon="fa-solid fa-clock" />
             <span>Absensi</span>
           </RouterLink>
           <RouterLink to="/stats" v-if="auth.user?.permissions?.includes('view-reports')"
-            class="border-b-2 text-text/80 hover:text-primary transition-colors flex items-center gap-2"
+            class="text-text/80 hover:text-primary transition-colors flex items-center gap-2"
             active-class="!text-primary text-lg font-bold border-primary">
             <font-awesome-icon icon="fa-solid fa-chart-line" />
             <span>Stats & Reports</span>
           </RouterLink>
           <RouterLink to="/admin/users" v-if="auth.user?.permissions?.includes('manage-users')"
-            class="border-b-2 text-text/80 hover:text-primary transition-colors flex items-center gap-2"
-            active-class="!text-primary text-lg font-bold border-primary">
+            class="text-text/80 hover:text-primary transition-colors flex items-center gap-2"
+            :class="isAdminActive && '!text-primary text-lg font-bold border-primary'">
             <font-awesome-icon icon="fa-solid fa-user-shield" />
             <span>Panel Admin</span>
           </RouterLink>
@@ -130,7 +130,7 @@ onUnmounted(() => {
           </button>
 
           <div v-if="isDropdownOpen"
-            class="absolute right-0 mt-2 w-64 bg-background border border-secondary/30 rounded-lg shadow-lg py-2 z-40">
+            class="absolute right-0 mt-2 w-64 bg-background border border-secondary/30 rounded-lg shadow-xl py-2 z-40">
             <RouterLink to="/account" @click="isDropdownOpen = false"
               class="w-full text-left px-4 py-2 text-sm text-text/90 hover:bg-secondary/20 flex items-center gap-3">
               <font-awesome-icon icon="fa-solid fa-user-cog" class="w-4" />
@@ -172,34 +172,34 @@ onUnmounted(() => {
 
     <div v-if="isMobileMenuOpen" ref="mobileMenuPanel" title="Mobile Menu" id="mobile-menu" aria-expanded="true"
       aria-haspopup="true" aria-labelledby="mobile-menu" role="menu"
-      class="md:hidden absolute w-full bg-secondary backdrop-blur-md border-b border-secondary/20 shadow-lg">
-      <nav class="container mx-auto px-4 sm:px-6 py-4 space-y-2 z-[500]">
+      class="md:hidden absolute bg-background border-b border-secondary/20 rounded-lg shadow-xl w-[35vw] right-0">
+      <nav class="container space-y-2 z-[100] text-right">
         <RouterLink to="/absensi" @click="isMobileMenuOpen = false"
-          class="block px-3 py-2 rounded-md text-base font-medium text-text/80 hover:bg-secondary/20 hover:text-primary"
+          class="block px-6 py-3 rounded-md text-base font-medium text-text/80 hover:bg-secondary/20 hover:text-primary"
           active-class="!text-primary font-bold bg-secondary/10">Absensi</RouterLink>
 
         <RouterLink to="/wms" @click="isMobileMenuOpen = false"
-          class="block px-3 py-2 rounded-md text-base font-medium text-text/80 hover:bg-secondary/20 hover:text-primary"
+          class="block px-6 py-3 rounded-md text-base font-medium text-text/80 hover:bg-secondary/20 hover:text-primary"
           active-class="!text-primary font-bold bg-secondary/10">WMS</RouterLink>
 
         <RouterLink to="/media" @click="isMobileMenuOpen = false"
           v-if="auth.user?.permissions?.includes('product.image.view')"
-          class="block px-3 py-2 rounded-md text-base font-medium text-text/80 hover:bg-secondary/20 hover:text-primary"
+          class="block px-6 py-3 rounded-md text-base font-medium text-text/80 hover:bg-secondary/20 hover:text-primary"
           active-class="!text-primary font-bold bg-secondary/10">Media</RouterLink>
 
         <RouterLink to="/stats" @click="isMobileMenuOpen = false"
           v-if="auth.user?.permissions?.includes('view-reports')"
-          class="block px-3 py-2 rounded-md text-base font-medium text-text/80 hover:bg-secondary/20 hover:text-primary"
+          class="block px-6 py-3 rounded-md text-base font-medium text-text/80 hover:bg-secondary/20 hover:text-primary"
           active-class="!text-primary font-bold bg-secondary/10">Stats & Reports</RouterLink>
 
         <RouterLink to="/admin/users" @click="isMobileMenuOpen = false"
           v-if="auth.user?.permissions?.includes('manage-users')"
-          class="block px-3 py-2 rounded-md text-base font-medium text-text/80 hover:bg-secondary/20 hover:text-primary"
-          active-class="!text-primary font-bold bg-secondary/10">Panel Admin</RouterLink>
+          class="block px-6 py-3 rounded-md text-base font-medium text-text/80 hover:bg-secondary/20 hover:text-primary"
+          :class="isAdminActive && '!text-primary font-bold bg-secondary/10'">Panel Admin</RouterLink>
 
         <!-- Install PWA Mobile Item -->
         <button v-if="isInstallable" @click="installPwa(); isMobileMenuOpen = false"
-          class="block w-full text-left px-3 py-2 mt-2 rounded-md text-base font-bold text-white bg-primary hover:bg-primary/90">
+          class="block w-full text-left px-6 py-3 mt-2 rounded-md text-base font-bold text-white bg-primary hover:bg-primary/90">
           <font-awesome-icon icon="fa-solid fa-download" class="mr-2" />
           Install Aplikasi WMS
         </button>

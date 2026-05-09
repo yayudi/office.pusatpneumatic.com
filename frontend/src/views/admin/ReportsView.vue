@@ -112,7 +112,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="p-6 max-w-7xl mx-auto">
+  <div class="max-w-7xl mx-auto">
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
       <div>
@@ -136,7 +136,7 @@ onUnmounted(() => {
 
     <!-- Job List -->
     <div
-      class="bg-background rounded-xl shadow-lg border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(100vh-250px)]">
+      class="bg-background rounded-xl shadow-lg border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(100vh-100px)]">
 
       <table class="w-full text-left border-collapse" :class="isMobile ? 'block' : 'min-w-[800px]'">
         <thead

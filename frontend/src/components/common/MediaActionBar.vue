@@ -22,7 +22,7 @@ const { copyLinkToClipboard, copyImageToClipboard, downloadImage } = useImageAct
       <font-awesome-icon icon="fa-solid fa-copy" />
     </button>
     <button v-if="imageUrl" @click.stop="downloadImage(imageUrl, filename)"
-      class="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-lg"
+      class="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-secondary hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-lg"
       title="Unduh Gambar">
       <font-awesome-icon icon="fa-solid fa-download" />
     </button>

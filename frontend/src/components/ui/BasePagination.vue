@@ -64,19 +64,15 @@ const handleJumpPage = (e) => {
 
 <template>
   <div
-    class="shrink-0 px-6 py-3 bg-transparent flex flex-col sm:flex-row items-center justify-between gap-4 select-none w-full">
-    
+    class="shrink-0 px-6 py-3 bg-secondary/30 flex flex-col sm:flex-row items-center justify-between gap-4 select-none w-full">
+
     <!-- Info & Limit Picker -->
     <div class="flex items-center gap-4 text-xs text-text/70" v-if="pagination.total !== undefined">
       <div v-if="showLimitPicker" class="flex items-center gap-2">
         <span>Limit:</span>
-        <BaseSelect 
-          :model-value="pagination.limit || limitOptions[0]"
-          @update:modelValue="v => emit('update:limit', parseInt(v))"
-          :options="limitOptions"
-          :searchable="false"
-          class="min-w-[70px]"
-        />
+        <BaseSelect :model-value="pagination.limit || limitOptions[0]"
+          @update:modelValue="v => emit('update:limit', parseInt(v))" :options="limitOptions" :searchable="false"
+          class="min-w-[70px]" />
       </div>
       <div v-if="showLimitPicker" class="h-4 w-px bg-secondary/20 hidden sm:block"></div>
       <span>
@@ -85,7 +81,7 @@ const handleJumpPage = (e) => {
         <b>{{ pagination.total }}</b> data
       </span>
     </div>
-    
+
     <div v-else class="flex items-center gap-4 text-xs text-text/70">
       <span class="text-sm font-medium opacity-70">
         Halaman {{ pagination.page }} dari {{ pagination.totalPages }}
@@ -122,7 +118,7 @@ const handleJumpPage = (e) => {
           </button>
         </template>
       </div>
-      
+
       <div class="flex items-center gap-2 mx-1" v-else>
         <div class="relative w-12 h-8 group">
           <input type="number"

@@ -65,7 +65,7 @@ async function handleCreateCategory() {
     if (data.success) {
       toast('Kategori berhasil ditambahkan', 'success')
       await fetchCategories()
-      
+
       const newCatId = data.data?.id || data.data?.insertId
       if (newCatId) {
         form.value.category_id = newCatId
@@ -461,25 +461,14 @@ watch(Alt_S, (pressed) => {
             <!-- Kategori Produk -->
             <div>
               <label class="block text-xs font-bold text-text/60 mb-1">Kategori</label>
-              <BaseSelect
-                v-model="form.category_id"
-                :options="categories"
-                track-by="id"
-                label="name"
-                emit-value
-                :searchable="true"
-                placeholder="Pilih Kategori (Opsional)"
-                @search-change="handleCategorySearchChange"
-                class="w-full"
-              >
+              <BaseSelect v-model="form.category_id" :options="categories" track-by="id" label="name" emit-value
+                :searchable="true" placeholder="Pilih Kategori (Opsional)" @search-change="handleCategorySearchChange"
+                class="w-full">
                 <!-- Add Category Button when searching -->
                 <template #afterOptions>
                   <li v-if="categorySearchQuery" class="px-2 py-2 border-t border-secondary/10 mt-1">
-                    <button
-                      @click.prevent.stop="handleCreateCategory"
-                      :disabled="isCreatingCategory"
-                      class="w-full px-3 py-2 bg-primary/10 text-primary rounded-md text-xs font-bold hover:bg-primary/20 transition-colors flex items-center justify-center gap-2"
-                    >
+                    <button @click.prevent.stop="handleCreateCategory" :disabled="isCreatingCategory"
+                      class="w-full px-3 py-2 bg-primary/10 text-primary rounded-md text-xs font-bold hover:bg-primary/20 transition-colors flex items-center justify-center gap-2">
                       <font-awesome-icon v-if="isCreatingCategory" icon="fa-solid fa-spinner" class="animate-spin" />
                       <font-awesome-icon v-else icon="fa-solid fa-plus" />
                       <span>Tambahkan "{{ categorySearchQuery }}"</span>
@@ -547,7 +536,7 @@ watch(Alt_S, (pressed) => {
                     <div class="flex flex-col">
                       <span class="font-medium text-text group-hover:text-primary">{{
                         res.name
-                        }}</span>
+                      }}</span>
                       <span class="font-mono text-[10px] text-text/40">{{ res.sku }}</span>
                     </div>
                     <div class="text-primary text-xs font-bold"
@@ -612,7 +601,7 @@ watch(Alt_S, (pressed) => {
           </button>
           <button @click="handleSubmit"
             :disabled="loading || fetchLoading || duplicateStatus.sku.exists || duplicateStatus.name.exists"
-            class="px-5 py-2.5 rounded-lg bg-primary text-text font-bold hover:bg-primary-dark shadow-lg shadow-primary/30 flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95">
+            class="px-5 py-2.5 rounded-lg bg-primary text-secondary font-bold hover:bg-primary-dark shadow-lg shadow-primary/30 flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95">
             <font-awesome-icon v-if="loading" icon="fa-solid fa-circle-notch" class="animate-spin" />
             <span v-else><font-awesome-icon icon="fa-solid fa-save" /></span>
             <span>{{ mode === 'create' ? 'Simpan Produk' : 'Simpan Perubahan' }}</span>

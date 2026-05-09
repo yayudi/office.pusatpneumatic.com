@@ -97,71 +97,69 @@ watch(Alt_S, (pressed) => {
 </script>
 
 <template>
-  <div class="p-6">
-    <div class="flex justify-between items-center mb-6">
-      <div>
-        <h2 class="text-2xl font-bold text-text">Manajemen Kategori</h2>
-        <p class="text-sm text-text/50 mt-1">Kelola kategori produk untuk klasifikasi inventaris.</p>
-      </div>
-      <button @click="openCreateModal"
-        class="bg-primary text-secondary text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 shadow-md shadow-primary/20">
-        <font-awesome-icon icon="fa-solid fa-plus" />
-        <span>Tambah Kategori</span>
-      </button>
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h2 class="text-2xl font-bold text-text">Manajemen Kategori</h2>
+      <p class="text-sm text-text/50 mt-1">Kelola kategori produk untuk klasifikasi inventaris.</p>
     </div>
+    <button @click="openCreateModal"
+      class="bg-primary text-secondary text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 shadow-md shadow-primary/20">
+      <font-awesome-icon icon="fa-solid fa-plus" />
+      <span>Tambah Kategori</span>
+    </button>
+  </div>
 
-    <div
-      class="bg-background shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(100vh-250px)]">
-      <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : 'min-w-[400px]'">
-        <thead class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5"
-          :class="isMobile ? 'hidden' : 'sticky top-0 z-30'">
-          <tr class="text-xs text-text/80 uppercase">
-            <th class="px-6 py-3 border-b border-secondary/10 w-16 text-center">#</th>
-            <th class="px-6 py-3 border-b border-secondary/10">Nama Kategori</th>
-            <th class="px-6 py-3 text-center border-b border-secondary/10 w-32">Aksi</th>
-          </tr>
-        </thead>
-        <TransitionGroup tag="tbody" name="list" class="relative"
-          :class="isMobile ? 'block' : 'divide-y divide-secondary/5'">
-          <!-- Loading State -->
-          <template v-if="loading">
-            <TableSkeleton v-for="n in 5" :key="`skeleton-${n}`" />
-          </template>
+  <div
+    class="bg-background shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(100vh-250px)]">
+    <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : 'min-w-[400px]'">
+      <thead class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5"
+        :class="isMobile ? 'hidden' : 'sticky top-0 z-30'">
+        <tr class="text-xs text-text/80 uppercase">
+          <th class="px-6 py-3 border-b border-secondary/10 w-16 text-center">#</th>
+          <th class="px-6 py-3 border-b border-secondary/10">Nama Kategori</th>
+          <th class="px-6 py-3 text-center border-b border-secondary/10 w-32">Aksi</th>
+        </tr>
+      </thead>
+      <TransitionGroup tag="tbody" name="list" class="relative"
+        :class="isMobile ? 'block' : 'divide-y divide-secondary/5'">
+        <!-- Loading State -->
+        <template v-if="loading">
+          <TableSkeleton v-for="n in 5" :key="`skeleton-${n}`" />
+        </template>
 
-          <tr v-else-if="categories.length === 0" key="empty">
-            <td colspan="3" class="py-12 text-center text-text/50 italic">
-              <font-awesome-icon icon="fa-solid fa-tags" class="text-3xl text-text/20 mb-3 block" />
-              Belum ada kategori. Tambahkan kategori pertama Anda.
-            </td>
-          </tr>
+        <tr v-else-if="categories.length === 0" key="empty">
+          <td colspan="3" class="py-12 text-center text-text/50 italic">
+            <font-awesome-icon icon="fa-solid fa-tags" class="text-3xl text-text/20 mb-3 block" />
+            Belum ada kategori. Tambahkan kategori pertama Anda.
+          </td>
+        </tr>
 
-          <tr v-else v-for="(cat, index) in categories" :key="cat.id" class="transition-colors group relative"
-            :class="isMobile ? 'block mb-3 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4' : 'border-b border-secondary/20 hover:bg-secondary/5'">
-            <td class="text-text/40 font-mono text-xs"
-              :class="isMobile ? 'flex justify-between items-center py-2' : 'px-6 py-4 text-center'">
-              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-sans font-semibold">#</span>
-              <span>{{ index + 1 }}</span>
-            </td>
-            <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
-              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Nama</span>
-              <span class="font-medium text-text">{{ cat.name }}</span>
-            </td>
-            <td class="space-x-4" :class="isMobile ? 'flex justify-end items-center pt-3' : 'px-6 py-4 text-center'">
-              <button @click="openEditModal(cat)"
-                class="text-primary hover:text-primary/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105">
-                <font-awesome-icon icon="fa-solid fa-edit" />
-                <span>Edit</span>
-              </button>
-              <button @click="handleDelete(cat.id)"
-                class="text-danger hover:text-danger/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105">
-                <font-awesome-icon icon="fa-solid fa-trash" />
-                <span>Hapus</span>
-              </button>
-            </td>
-          </tr>
-        </TransitionGroup>
-      </table>
-    </div>
+        <tr v-else v-for="(cat, index) in categories" :key="cat.id" class="transition-colors group relative"
+          :class="isMobile ? 'block mb-3 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4' : 'border-b border-secondary/20 hover:bg-secondary/5'">
+          <td class="text-text/40 font-mono text-xs"
+            :class="isMobile ? 'flex justify-between items-center py-2' : 'px-6 py-4 text-center'">
+            <span v-if="isMobile" class="text-text/60 text-xs uppercase font-sans font-semibold">#</span>
+            <span>{{ index + 1 }}</span>
+          </td>
+          <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+            <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Nama</span>
+            <span class="font-medium text-text">{{ cat.name }}</span>
+          </td>
+          <td class="space-x-4" :class="isMobile ? 'flex justify-end items-center pt-3' : 'px-6 py-4 text-center'">
+            <button @click="openEditModal(cat)"
+              class="text-primary hover:text-primary/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105">
+              <font-awesome-icon icon="fa-solid fa-edit" />
+              <span>Edit</span>
+            </button>
+            <button @click="handleDelete(cat.id)"
+              class="text-danger hover:text-danger/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105">
+              <font-awesome-icon icon="fa-solid fa-trash" />
+              <span>Hapus</span>
+            </button>
+          </td>
+        </tr>
+      </TransitionGroup>
+    </table>
   </div>
 
   <!-- Modal untuk Tambah/Edit Kategori -->
