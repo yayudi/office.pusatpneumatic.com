@@ -140,6 +140,7 @@ async function loadHistory() {
     const response = await getUserExportJobs()
     if (response.success) {
       jobHistory.value = response.data
+      console.log('jobHistory: ', jobHistory.value)
     }
   } catch (error) {
     console.error('Gagal memuat riwayat:', error)
@@ -216,6 +217,11 @@ async function handleRequestExport() {
   } finally {
     isRequesting.value = false
   }
+}
+
+function formatJobType(type) {
+  if (!type) return '-';
+  return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
 }
 
 // Removed locale formatters as they are now imported from utils
@@ -365,7 +371,7 @@ async function handleRequestExport() {
               </KeepAlive>
 
               <div v-if="activeReport === 'export-stock'" class="animate-fade-in">
-                <div class="mb-6 border-b border-secondary/20 pb-4">
+                <div class="mb-6 border-b border-secondary pb-4">
                   <h3 class="text-lg font-bold text-text">Ekspor Laporan Stok</h3>
                   <p class="text-sm text-text/50 mt-1">
                     Filter dan unduh data stok gudang dalam format Excel.
@@ -435,15 +441,21 @@ async function handleRequestExport() {
                       class="bg-background border border-secondary/20 rounded-xl overflow-hidden shadow-md overflow-x-auto overflow-y-auto relative custom-scrollbar max-h-[400px]">
                       <table class="w-full text-left text-sm min-w-[500px] border-collapse">
                         <thead
-                          class="sticky top-0 z-10 bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5">
+                          class="sticky top-0 z-50 bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary">
                           <tr>
                             <th
-                              class="px-6 py-3 font-bold text-xs text-text/60 uppercase sticky left-0 z-10 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                              class="px-3 py-3 font-bold text-xs text-text/60 uppercase sticky left-0 z-10 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                              Nama File</th>
+                            <th
+                              class="px-3 py-3 font-bold text-xs text-text/60 uppercase sticky left-0 z-10 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
                               Waktu</th>
-                            <th class="px-6 py-3 font-bold text-xs text-text/60 uppercase border-b border-secondary/10">
+                            <th
+                              class="px-3 py-3 font-bold text-xs text-text/60 uppercase sticky left-0 z-10 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                              Tipe</th>
+                            <th class="px-3 py-3 font-bold text-xs text-text/60 uppercase border-b border-secondary/10">
                               Status</th>
                             <th
-                              class="px-6 py-3 font-bold text-xs text-text/60 uppercase text-right border-b border-secondary/10 sticky right-0 z-30 bg-background/95 backdrop-blur-md shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                              class="px-3 py-3 font-bold text-xs text-text/60 uppercase text-right border-b border-secondary/10 sticky right-0 z-30 bg-background/95 backdrop-blur-md shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]">
                               Aksi
                             </th>
                           </tr>
@@ -464,42 +476,60 @@ async function handleRequestExport() {
                           <tr v-else v-for="job in jobHistory" :key="job.id"
                             class="hover:bg-secondary/5 transition-colors group relative">
                             <td
-                              class="px-6 py-4 text-text text-xs sticky left-0 z-10 bg-background group-hover:bg-secondary/5 transition-colors shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                              class="px-2 py-1 text-text text-xs sticky left-0 bg-background group-hover:bg-secondary/5 transition-colors shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                              <div class="flex flex-col">
+                                <span class="font-bold text-sm">{{ job.file_path }}</span>
+                              </div>
+                            </td>
+                            <td
+                              class="px-2 py-1 text-text text-xs sticky left-0 bg-background group-hover:bg-secondary/5 transition-colors shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
                               <div class="flex flex-col">
                                 <span class="font-bold text-sm">{{ new Date(job.created_at).toLocaleDateString('id-ID')
-                                  }}</span>
+                                }}</span>
                                 <span class="text-text/40 text-[10px]">{{ new
                                   Date(job.created_at).toLocaleTimeString('id-ID') }}</span>
                               </div>
                             </td>
-                            <td class="px-6 py-4">
+                            <td class="px-2 py-1">
+                              <div class="flex flex-col">
+                                <span class="font-bold text-sm">{{ formatJobType(job.type) }}</span>
+                              </div>
+                            </td>
+                            <td class="px-2 py-1">
+                              <span v-if="job.status === 'PENDING'"
+                                class="inline-flex items-center gap-1.5 justify-center align-center w-full py-1 rounded-full text-[10px] font-bold bg-warning/10 text-warning border border-warning/20"
+                                title="Menunggu">
+                                <font-awesome-icon icon="fa-solid fa-clock" class="animate-ping" />
+                              </span>
                               <span v-if="job.status === 'COMPLETED'"
-                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-success/10 text-success border border-success/20">
-                                <font-awesome-icon icon="fa-solid fa-check" /> Selesai
+                                class="inline-flex items-center gap-1.5 justify-center align-center w-full py-1 rounded-full text-[10px] font-bold bg-success/10 text-success border border-success/20"
+                                title="Selesai">
+                                <font-awesome-icon icon="fa-solid fa-check" />
                               </span>
                               <span v-else-if="job.status === 'FAILED'"
-                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-danger/10 text-danger border border-danger/20"
-                                :title="job.error_message">
-                                <font-awesome-icon icon="fa-solid fa-xmark" /> Gagal
+                                class="inline-flex items-center gap-1.5 justify-center align-center w-full py-1 rounded-full text-[10px] font-bold bg-danger/10 text-danger border border-danger/20"
+                                :title="job.error_message" title="Gagal">
+                                <font-awesome-icon icon="fa-solid fa-xmark" />
                               </span>
-                              <span v-else
-                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-warning/10 text-warning border border-warning/20">
+                              <span v-else-if="job.status === 'PROCESSING'"
+                                class="inline-flex items-center gap-1.5 justify-center align-center w-full py-1 rounded-full text-[10px] font-bold bg-warning/10 text-warning border border-warning/20"
+                                title="Proses">
                                 <span class="w-1.5 h-1.5 rounded-full bg-current animate-ping"></span>
-                                Proses
                               </span>
                             </td>
                             <td
-                              class="px-6 py-4 text-right sticky right-0 z-10 bg-background group-hover:bg-secondary/5 transition-colors shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                              class="px-2 py-1 text-right sticky right-0 bg-background group-hover:bg-secondary/5 transition-colors shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]">
                               <a v-if="job.status === 'COMPLETED'" :href="job.download_url" download
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary hover:text-secondary transition-all shadow-sm">
-                                <font-awesome-icon icon="fa-solid fa-download" /> Unduh
+                                class="inline-flex items-center align-center justify-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-bold w-full hover:bg-primary hover:text-secondary transition-all shadow-sm">
+                                <font-awesome-icon icon="fa-solid fa-download" />
                               </a>
                               <span v-else-if="job.status === 'FAILED'"
-                                class="text-xs text-danger/60 italic cursor-help underline decoration-dotted"
+                                class="text-xs text-danger/60 bg-re align-center justify-center italic cursor-help underline decoration-dotted"
                                 :title="job.error_message">
-                                Lihat Error
+                                Error
                               </span>
-                              <span v-else class="text-xs text-text/30 italic"> Menunggu... </span>
+                              <span v-else class="text-xs text-text/30 align-center justify-center italic"> Menunggu...
+                              </span>
                             </td>
                           </tr>
                         </TransitionGroup>

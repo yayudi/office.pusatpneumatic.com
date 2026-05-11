@@ -229,7 +229,8 @@ const chartTopAssetProportionOptions = computed(() => {
 
         <div>
           <label class="block text-xs font-semibold text-text/60 mb-2">Kategori Produk</label>
-          <BaseSelect v-model="filterValues.categoryId" :options="reportFilters.allCategories" emitValue :searchable="true" />
+          <BaseSelect v-model="filterValues.categoryId" :options="reportFilters.allCategories" emitValue
+            :searchable="true" />
         </div>
       </template>
     </StatsFilterBar>
@@ -257,7 +258,7 @@ const chartTopAssetProportionOptions = computed(() => {
               <span class="text-2xl font-black text-text">{{formatCurrency(statisticsList.reduce((acc, curr) => acc +
                 curr.total_value, 0))}}</span>
             </div>
-            <div class="text-4xl text-primary/20 opacity-50"><font-awesome-icon icon="fa-solid fa-vault" /></div>
+            <div class="text-4xl text-primary/80"><font-awesome-icon icon="fa-solid fa-vault" /></div>
           </div>
         </div>
 

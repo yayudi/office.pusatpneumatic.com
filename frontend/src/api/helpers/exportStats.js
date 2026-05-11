@@ -14,6 +14,7 @@ export const requestStatisticExport = async (filters) => {
     status: filters.status || 'all',
     movement: filters.movement || 'all',
     building: filters.building || [],
+    categoryId: filters.categoryId || 'all',
   });
   return response.data;
 };
