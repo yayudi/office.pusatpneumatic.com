@@ -1,5 +1,6 @@
 <script setup>
 import StockTimelineSlider from './StockTimelineSlider.vue';
+import Modal from '@/components/ui/Modal.vue';
 
 defineProps({
   show: {
@@ -17,28 +18,18 @@ defineEmits(['close']);
 
 <template>
   <Teleport to="body">
-    <div v-if="show" class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-      @click.self="$emit('close')">
-      <div class="bg-background w-full max-w-3xl rounded-xl shadow-2xl flex flex-col max-h-[70vh] border border-secondary/20">
-        
-        <!-- Compact Header -->
-        <div class="px-4 py-3 border-b border-secondary/10 flex items-center justify-between shrink-0">
-          <div class="flex items-center gap-2">
-            <font-awesome-icon icon="fa-solid fa-clock-rotate-left" class="text-primary text-sm" />
-            <span class="font-bold text-sm text-text">Timeline Stok</span>
-          </div>
-          <button @click="$emit('close')"
-            class="w-7 h-7 flex items-center justify-center rounded-md hover:bg-secondary/20 text-text/40 hover:text-text transition-colors text-xs">
-            <font-awesome-icon icon="fa-solid fa-times" />
-          </button>
+    <Modal :show="show" @close="$emit('close')" maxWidth="max-w-3xl">
+      <template #title>
+        <div class="flex items-center gap-2 -mt-1">
+          <font-awesome-icon icon="fa-solid fa-clock-rotate-left" class="text-primary text-sm" />
+          <span class="font-bold text-sm text-text">Timeline Stok</span>
         </div>
+      </template>
 
-        <!-- Content -->
-        <div class="flex-1 overflow-y-auto p-4">
-          <StockTimelineSlider v-if="productId" :productId="productId" :buildings="[]" />
-        </div>
-
+      <!-- Content -->
+      <div class="-mx-6 px-4">
+        <StockTimelineSlider v-if="productId" :productId="productId" :buildings="[]" />
       </div>
-    </div>
+    </Modal>
   </Teleport>
 </template>

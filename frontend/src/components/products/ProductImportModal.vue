@@ -1,16 +1,7 @@
 <!-- frontend/src/components/product/PriceUpdateModal.vue -->
 <template>
-  <div v-if="isOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-    <div
-      class="bg-[hsl(var(--color-background))] text-[hsl(var(--color-text))] rounded-xl shadow-2xl w-full max-w-md p-6 transform transition-all border border-[hsl(var(--color-secondary))/0.3]">
-      <div class="flex justify-between items-center mb-6">
-        <h3 class="text-xl font-bold">Import Produk Massal</h3>
-        <button @click="close"
-          class="text-[hsl(var(--color-text))] opacity-50 hover:opacity-100 transition-opacity text-2xl leading-none">
-          &times;
-        </button>
-      </div>
+  <Modal :show="isOpen" @close="close" maxWidth="max-w-md">
+    <template #title>Import Produk Massal</template>
 
       <div class="space-y-5">
         <div
@@ -80,7 +71,7 @@
         </div>
       </div>
 
-      <div class="mt-8 flex justify-end gap-3">
+      <div class="mt-8 flex justify-end gap-3 pb-2">
         <button @click="close"
           class="px-5 py-2.5 rounded-lg font-medium text-[hsl(var(--color-text))] opacity-70 hover:opacity-100 hover:bg-[hsl(var(--color-secondary))/0.1] transition-all flex items-center gap-2">
           <font-awesome-icon icon="fa-solid fa-times" />
@@ -93,11 +84,11 @@
           <span>{{ isLoading ? 'Mengunggah...' : 'Mulai Import' }}</span>
         </button>
       </div>
-    </div>
-  </div>
+  </Modal>
 </template>
 
 <script setup>
+import Modal from '@/components/ui/Modal.vue'
 import { ref } from 'vue'
 import { uploadPriceUpdate } from '../../api/helpers/products'
 

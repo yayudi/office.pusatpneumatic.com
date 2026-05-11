@@ -55,7 +55,7 @@ watch(
 </script>
 
 <template>
-  <Modal :show="show" @close="emit('close')" :title="`Riwayat Stok: ${product?.name}`">
+  <Modal :show="show" @close="emit('close')" :title="`Riwayat Stok: ${product?.name}`" maxWidth="max-w-4xl">
     <div class="max-h-[80vh] overflow-y-auto">
       <div v-if="loading" class="text-center p-8">Memuat riwayat...</div>
       <div v-else-if="error" class="text-center p-8 text-accent">{{ error }}</div>
@@ -77,7 +77,8 @@ watch(
         <tbody :class="isMobile ? 'block' : 'divide-y divide-secondary/20'">
           <tr v-for="item in history" :key="item.id" class="transition-colors"
             :class="isMobile ? 'block mb-3 p-3 bg-background/50 rounded-xl border border-secondary/20 shadow-sm' : 'hover:bg-primary/5'">
-            <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 whitespace-nowrap'">
+            <td
+              :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 whitespace-nowrap'">
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Tanggal</span>
               <span>{{ new Date(item.created_at).toLocaleString('id-ID') }}</span>
             </td>
@@ -85,15 +86,18 @@ watch(
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Tipe</span>
               <span>{{ item.movement_type }}</span>
             </td>
-            <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 text-center font-bold'">
+            <td
+              :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 text-center font-bold'">
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Jumlah</span>
               <span class="font-bold">{{ item.quantity }}</span>
             </td>
-            <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'">
+            <td
+              :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'">
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Dari</span>
               <span class="font-mono">{{ item.from_location || '-' }}</span>
             </td>
-            <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'">
+            <td
+              :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'">
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Ke</span>
               <span class="font-mono">{{ item.to_location || '-' }}</span>
             </td>
@@ -109,16 +113,11 @@ watch(
         </tbody>
       </table>
     </div>
-    <!-- Paginasi -->
-    <div
-      v-if="pagination.total > pagination.limit"
-      class="mt-4 border-t border-secondary/20 pt-2"
-    >
-      <BasePagination 
-        :pagination="paginationData" 
-        :show-limit-picker="false" 
-        @changePage="(p) => loadHistory(p)" 
-      />
-    </div>
+
+    <template v-if="pagination.total > pagination.limit" #footer>
+      <div class="w-full">
+        <BasePagination :pagination="paginationData" :show-limit-picker="false" @changePage="(p) => loadHistory(p)" />
+      </div>
+    </template>
   </Modal>
 </template>

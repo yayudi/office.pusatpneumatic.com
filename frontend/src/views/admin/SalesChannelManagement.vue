@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useToast } from '@/composables/useToast.js';
 import api from '@/api/axios.js';
 import { format } from 'date-fns';
+import Modal from '@/components/ui/Modal.vue';
 
 const { toast } = useToast();
 const channels = ref([]);
@@ -195,17 +196,14 @@ const handleDelete = async () => {
     </div>
 
     <!-- Form Modal -->
-    <div v-if="isModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeModal"></div>
-      <div class="relative bg-background border border-secondary/20 rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in">
-        <div class="p-4 border-b border-secondary/20 flex justify-between items-center bg-secondary/5">
+    <Modal :show="isModalOpen" @close="closeModal" maxWidth="max-w-md">
+      <template #title>
+        <div class="-mt-1">
           <h3 class="font-bold text-text">{{ modalMode === 'add' ? 'Tambah Saluran Penjualan' : 'Edit Saluran Penjualan' }}</h3>
-          <button @click="closeModal" class="text-text/50 hover:text-danger transition-colors">
-            <font-awesome-icon icon="fa-solid fa-xmark" />
-          </button>
         </div>
-        
-        <div class="p-5 space-y-4">
+      </template>
+
+      <div class="space-y-4">
           <div>
             <label class="block text-xs font-bold text-text/70 mb-1">Platform <span class="text-danger">*</span></label>
             <select v-model="formData.platform" class="w-full bg-background border border-secondary/30 rounded-lg px-3 py-2 text-sm text-text focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none">
@@ -237,16 +235,17 @@ const handleDelete = async () => {
             </label>
           </div>
         </div>
-        
-        <div class="p-4 border-t border-secondary/20 flex justify-end gap-3 bg-secondary/5">
+      
+      <template #footer>
+        <div class="flex justify-end gap-3 w-full">
           <button @click="closeModal" class="px-4 py-2 text-sm font-bold text-text/60 hover:text-text transition-colors">Batal</button>
           <button @click="saveChannel" :disabled="isSaving" class="px-6 py-2 bg-primary text-secondary text-sm font-bold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2">
             <font-awesome-icon v-if="isSaving" icon="fa-solid fa-spinner" spin />
             Simpan
           </button>
         </div>
-      </div>
-    </div>
+      </template>
+    </Modal>
 
   </div>
 </template>

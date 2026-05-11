@@ -1,6 +1,7 @@
 <!-- frontend/src/components/ui/HotkeyCheatSheet.vue -->
 <script setup>
 import { isCheatSheetOpen } from '@/composables/useAppHotkeys'
+import Modal from '@/components/ui/Modal.vue'
 
 const globalHotkeys = [
   { keys: ['Alt', '1'], desc: 'Buka Modul WMS' },
@@ -29,56 +30,48 @@ function close() {
 </script>
 
 <template>
-  <div v-if="isCheatSheetOpen"
-    class="fixed inset-0 z-[99999] flex h-screen items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-    @click.self="close">
-    <div
-      class="bg-background mx-auto my-auto border border-secondary/20 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in-up">
-      <div class="p-6 border-b border-secondary/20 flex justify-between items-center bg-secondary/10">
-        <h2 class="text-xl font-bold text-primary flex items-center gap-2">
-          <font-awesome-icon icon="fa-solid fa-keyboard" />
-          Keyboard Shortcuts
-        </h2>
-        <button @click="close" class="text-text/60 hover:text-danger transition-colors" title="Tutup (Esc)">
-          <font-awesome-icon icon="fa-solid fa-xmark" class="text-xl" />
-        </button>
-      </div>
+  <Modal :show="isCheatSheetOpen" @close="close" maxWidth="max-w-2xl">
+    <template #title>
+      <h2 class="text-xl font-bold text-primary flex items-center gap-2 -mt-1">
+        <font-awesome-icon icon="fa-solid fa-keyboard" />
+        Keyboard Shortcuts
+      </h2>
+    </template>
 
-      <div class="p-6 overflow-y-auto space-y-8 text-text">
-        <section>
-          <h3 class="text-lg font-semibold mb-4 text-text/90 border-b border-secondary/20 pb-2">Global Navigation</h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div v-for="hk in globalHotkeys" :key="hk.desc"
-              class="flex justify-between items-center bg-secondary/25 p-3 rounded-lg border border-secondary/10">
-              <span class="text-sm font-medium">{{ hk.desc }}</span>
-              <div class="flex gap-1">
-                <kbd v-for="k in hk.keys" :key="k"
-                  class="bg-background border border-secondary/40 text-text/80 rounded px-2 py-1 text-xs font-mono shadow-sm">
-                  {{ k }}
-                </kbd>
-              </div>
+    <div class="space-y-8 text-text">
+      <section>
+        <h3 class="text-lg font-semibold mb-4 text-text/90 border-b border-secondary/20 pb-2">Global Navigation</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div v-for="hk in globalHotkeys" :key="hk.desc"
+            class="flex justify-between items-center bg-secondary/25 p-3 rounded-lg border border-secondary/10">
+            <span class="text-sm font-medium">{{ hk.desc }}</span>
+            <div class="flex gap-1">
+              <kbd v-for="k in hk.keys" :key="k"
+                class="bg-background border border-secondary/40 text-text/80 rounded px-2 py-1 text-xs font-mono shadow-sm">
+                {{ k }}
+              </kbd>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section>
-          <h3 class="text-lg font-semibold mb-4 text-text/90 border-b border-secondary/20 pb-2">Form & WMS Actions</h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div v-for="hk in localHotkeys" :key="hk.desc"
-              class="flex justify-between items-center bg-secondary/25 p-3 rounded-lg border border-secondary/10">
-              <span class="text-sm font-medium">{{ hk.desc }}</span>
-              <div class="flex gap-1">
-                <kbd v-for="k in hk.keys" :key="k"
-                  class="bg-background border border-secondary/40 text-text/80 rounded px-2 py-1 text-xs font-mono shadow-sm">
-                  {{ k }}
-                </kbd>
-              </div>
+      <section>
+        <h3 class="text-lg font-semibold mb-4 text-text/90 border-b border-secondary/20 pb-2">Form & WMS Actions</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div v-for="hk in localHotkeys" :key="hk.desc"
+            class="flex justify-between items-center bg-secondary/25 p-3 rounded-lg border border-secondary/10">
+            <span class="text-sm font-medium">{{ hk.desc }}</span>
+            <div class="flex gap-1">
+              <kbd v-for="k in hk.keys" :key="k"
+                class="bg-background border border-secondary/40 text-text/80 rounded px-2 py-1 text-xs font-mono shadow-sm">
+                {{ k }}
+              </kbd>
             </div>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
     </div>
-  </div>
+  </Modal>
 </template>
 
 <style scoped>

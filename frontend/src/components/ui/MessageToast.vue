@@ -44,7 +44,7 @@ defineExpose({ showMessage })
 </script>
 
 <template>
-  <div class="fixed top-5 right-5 space-y-3 z-[100]">
+  <div class="fixed top-5 right-5 space-y-3 z-[99999]">
     <transition-group name="toast-fade" tag="div">
       <div v-for="toast in toasts" :key="toast.id" :class="[
         'px-4 py-3 text-sm font-medium rounded-lg shadow-lg flex items-center gap-3',

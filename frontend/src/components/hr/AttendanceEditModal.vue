@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
 import axios from '@/api/axios'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import Modal from '@/components/ui/Modal.vue'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -111,17 +112,14 @@ watch(Alt_S, (pressed) => {
 </script>
 
 <template>
-  <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-    <div
-      class="bg-background border border-secondary/20 rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in">
-      <div class="bg-secondary/5 px-6 py-4 border-b border-secondary/10 flex justify-between items-center">
+  <Modal :show="isOpen" @close="$emit('close')" maxWidth="max-w-md">
+    <template #title>
+      <div class="-mt-1">
         <h3 class="font-bold text-lg text-text">Edit Absensi</h3>
-        <button @click="$emit('close')" class="text-text/50 hover:text-danger transition-colors">
-          <font-awesome-icon icon="fa-solid fa-times" />
-        </button>
       </div>
+    </template>
 
-      <div class="p-6 space-y-4">
+    <div class="space-y-4">
         <div v-if="logData"
           class="flex items-center justify-between text-sm bg-primary/5 p-3 rounded-lg border border-primary/10">
           <div>
@@ -166,7 +164,8 @@ watch(Alt_S, (pressed) => {
         </div>
       </div>
 
-      <div class="bg-secondary/5 px-6 py-4 border-t border-secondary/10 flex justify-end gap-3">
+    <template #footer>
+      <div class="flex justify-end gap-3 w-full">
         <button @click="$emit('close')"
           class="px-4 py-2 text-sm font-bold text-text/60 hover:text-text hover:bg-secondary/10 rounded-lg transition-colors">
           Batal
@@ -179,6 +178,6 @@ watch(Alt_S, (pressed) => {
           <span>Simpan Perubahan</span>
         </button>
       </div>
-    </div>
-  </div>
+    </template>
+  </Modal>
 </template>

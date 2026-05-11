@@ -12,6 +12,8 @@ import ImageCropperModal from './ImageCropperModal.vue';
 import BulkEditTagsModal from './BulkEditTagsModal.vue';
 import BaseSelect from '@/components/ui/BaseSelect.vue';
 import BasePagination from '@/components/ui/BasePagination.vue';
+import Modal from '@/components/ui/Modal.vue';
+import { autoCropCenter } from '@/utils/imageCropper.js';
 import FloatingTooltip from '@/components/ui/FloatingTooltip.vue';
 import { resolveUrl } from '@/composables/useImageUrl';
 import MediaCard from '@/components/common/MediaCard.vue';
@@ -283,41 +285,7 @@ const autoCropAll = async () => {
   autoCropAllProcessing.value = true;
 
   try {
-    const newFiles = await Promise.all(selectedFiles.value.map(async (file) => {
-      // Create image element
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = url;
-      });
-      URL.revokeObjectURL(url);
-
-      // Calculate crop dimensions for 1:1 center
-      const size = Math.min(img.width, img.height);
-      const startX = (img.width - size) / 2;
-      const startY = (img.height - size) / 2;
-
-      // Create canvas
-      const canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext('2d');
-
-      // Draw image
-      ctx.drawImage(img, startX, startY, size, size, 0, 0, size, size);
-
-      // Convert to blob
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, file.type, 0.95));
-      if (!blob) return file;
-
-      return new File([blob], file.name, {
-        type: file.type,
-        lastModified: Date.now()
-      });
-    }));
-
+    const newFiles = await autoCropCenter(selectedFiles.value);
     selectedFiles.value = newFiles;
   } catch (error) {
     console.error("Auto crop failed:", error);
@@ -691,25 +659,19 @@ onUnmounted(() => {
     </div>
 
     <!-- Bulk Upload Modal -->
-    <div v-if="isBulkModalOpen"
-      class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div class="bg-background rounded-xl shadow-2xl p-6 w-full max-w-lg border border-secondary">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="font-bold text-xl font-display text-text">Unggah {{ selectedFiles.length }} Aset</h3>
-          <div class="flex gap-2">
-            <button @click="autoCropAll" :disabled="autoCropAllProcessing"
-              title="Otomatis potong semua gambar menjadi rasio 1:1 di tengah"
-              class="px-3 py-1 text-sm rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-2 font-medium">
-              <font-awesome-icon v-if="autoCropAllProcessing" icon="fa-solid fa-spinner" spin />
-              <font-awesome-icon v-else icon="fa-solid fa-crop-simple" />
-              <span class="hidden sm:inline">Auto 1:1 Semua</span>
-            </button>
-            <button @click="isBulkModalOpen = false"
-              class="flex items-center justify-center w-8 h-8 rounded-full text-text hover:bg-secondary transition-colors">
-              <font-awesome-icon icon="fa-solid fa-times" />
-            </button>
-          </div>
+    <Modal :show="isBulkModalOpen" @close="isBulkModalOpen = false" maxWidth="max-w-lg">
+      <template #title>
+        <div class="flex items-center justify-between w-full pr-4">
+          <span class="font-bold text-xl font-display text-text">Unggah {{ selectedFiles.length }} Aset</span>
+          <button @click="autoCropAll" :disabled="autoCropAllProcessing"
+            title="Otomatis potong semua gambar menjadi rasio 1:1 di tengah"
+            class="px-3 py-1 text-sm rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-2 font-medium">
+            <font-awesome-icon v-if="autoCropAllProcessing" icon="fa-solid fa-spinner" spin />
+            <font-awesome-icon v-else icon="fa-solid fa-crop-simple" />
+            <span class="hidden sm:inline">Auto 1:1 Semua</span>
+          </button>
         </div>
+      </template>
 
         <div
           class="mb-4 max-h-64 overflow-y-auto bg-secondary/10 rounded-lg p-3 border border-secondary custom-scrollbar">
@@ -801,30 +763,28 @@ onUnmounted(() => {
           </label>
         </div>
 
-        <div class="flex flex-col gap-2 mt-6">
-          <div v-if="isUploading" class="text-sm font-medium text-primary animate-pulse text-center w-full mb-1">
-            <font-awesome-icon icon="fa-solid fa-spinner" spin class="mr-1" />
+      </div>
+
+      <template #footer>
+        <div class="flex w-full justify-end gap-2">
+          <div v-if="isUploading" class="text-sm font-medium text-primary animate-pulse flex items-center mr-auto">
+            <font-awesome-icon icon="fa-solid fa-spinner" spin class="mr-2" />
             {{ uploadProgress || 'Mempersiapkan unggahan...' }}
           </div>
-          <div class="flex w-full justify-end gap-2">
-            <button @click="isBulkModalOpen = false"
-              class="px-4 py-2 rounded-lg bg-secondary text-text font-medium hover:brightness-95 transition-all text-center"
-              :disabled="isUploading">Batal</button>
-            <button @click="executeBulkUpload"
-              class="px-4 py-2 rounded-lg bg-primary text-background font-medium hover:bg-accent transition-colors min-w-[120px] text-center"
-              :disabled="isUploading">
-              <font-awesome-icon v-if="isUploading" icon="fa-solid fa-spinner" spin />
-              <span v-else>
-                <font-awesome-icon icon="fa-solid fa-cloud-upload-alt" class="mr-2" /> Eksekusi
-              </span>
-            </button>
-          </div>
+          <button @click="isBulkModalOpen = false"
+            class="px-4 py-2 rounded-lg bg-secondary text-text font-medium hover:brightness-95 transition-all text-center"
+            :disabled="isUploading">Batal</button>
+          <button @click="executeBulkUpload"
+            class="px-4 py-2 rounded-lg bg-primary text-background font-medium hover:bg-accent transition-colors min-w-[120px] text-center"
+            :disabled="isUploading">
+            <font-awesome-icon v-if="isUploading" icon="fa-solid fa-spinner" spin />
+            <span v-else>
+              <font-awesome-icon icon="fa-solid fa-cloud-upload-alt" class="mr-2" /> Eksekusi
+            </span>
+          </button>
         </div>
-      </div>
-    </div>
-
-
-  </div>
+      </template>
+    </Modal>
 
   <MediaInfoModal :show="isInfoModalOpen" :mediaId="infoMediaId" @close="isInfoModalOpen = false"
     @refresh="fetchMedia(pagination.page, true)" />

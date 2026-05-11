@@ -1,6 +1,7 @@
 <script setup>
-import { ref, watch } from 'vue';
-import debounce from 'lodash/debounce';
+import { ref, watch, onMounted } from 'vue';
+import axios from '@/api/axios.js';
+import Modal from '@/components/ui/Modal.vue';
 import apiClient from '@/api/axios';
 
 const props = defineProps({
@@ -98,22 +99,15 @@ const close = () => {
 </script>
 
 <template>
-  <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-    <div class="bg-background w-full max-w-lg rounded-xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden border border-secondary/20">
-      
-      <!-- Header -->
-      <div class="flex items-center justify-between p-5 border-b border-secondary/20 bg-secondary/10">
-        <div>
-          <h3 class="text-lg font-bold text-text">Tautkan ke Produk</h3>
-          <p class="text-xs text-text/60 mt-1">Pilih produk tujuan untuk {{ selectedMediaIds?.length || 0 }} gambar.</p>
-        </div>
-        <button @click="close" class="text-text/50 hover:text-danger hover:bg-danger/10 w-8 h-8 rounded-full flex items-center justify-center transition-colors">
-          <font-awesome-icon icon="fa-solid fa-times" />
-        </button>
+  <Modal :show="show" @close="close" maxWidth="max-w-lg">
+    <template #title>
+      <div class="-mt-1">
+        <h3 class="text-lg font-bold text-text">Tautkan ke Produk</h3>
+        <p class="text-xs text-text/60 mt-1 font-normal">Pilih produk tujuan untuk {{ selectedMediaIds?.length || 0 }} gambar.</p>
       </div>
+    </template>
 
-      <!-- Body -->
-      <div class="p-5 flex-1 overflow-y-auto min-h-[300px]">
+    <div class="flex-1 min-h-[300px]">
         <!-- Selected Products Preview -->
         <div v-if="selectedProducts.length > 0" class="mb-4">
           <label class="block text-sm font-semibold text-text/80 mb-2">Produk Terpilih ({{ selectedProducts.length }})</label>
@@ -168,16 +162,16 @@ const close = () => {
       </div>
       
       <!-- Footer / Actions -->
-      <div class="p-4 border-t border-secondary/20 bg-secondary/5 flex justify-end gap-2">
-        <button @click="close" class="px-4 py-2 rounded-lg text-text border border-secondary hover:bg-secondary transition-colors" :disabled="isSubmitting">
-          Batal
-        </button>
-        <button @click="submitAll" class="px-4 py-2 rounded-lg bg-primary text-background font-bold hover:bg-accent transition-colors flex items-center gap-2 min-w-[120px] justify-center" :disabled="isSubmitting || selectedProducts.length === 0">
-          <font-awesome-icon v-if="isSubmitting" icon="fa-solid fa-spinner" spin />
-          <span v-else>Tautkan ({{ selectedProducts.length }})</span>
-        </button>
-      </div>
-      
-    </div>
-  </div>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <button @click="close" class="px-4 py-2 rounded-lg text-text border border-secondary hover:bg-secondary transition-colors" :disabled="isSubmitting">
+            Batal
+          </button>
+          <button @click="submitAll" class="px-4 py-2 rounded-lg bg-primary text-background font-bold hover:bg-accent transition-colors flex items-center gap-2 min-w-[120px] justify-center" :disabled="isSubmitting || selectedProducts.length === 0">
+            <font-awesome-icon v-if="isSubmitting" icon="fa-solid fa-spinner" spin />
+            <span v-else>Tautkan ({{ selectedProducts.length }})</span>
+          </button>
+        </div>
+      </template>
+  </Modal>
 </template>

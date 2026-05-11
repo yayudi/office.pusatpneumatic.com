@@ -2,6 +2,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { formatJamMenit } from "@/api/helpers/time.js";
+import Modal from '@/components/ui/Modal.vue';
 
 const props = defineProps({
   summary: { type: Object, required: true },
@@ -83,15 +84,15 @@ watch(weeklyDetails, (newDetails) => {
 </script>
 
 <template>
-  <div @click.self="emit('close')" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
-    <div class="bg-background rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
-      <div class="p-4 border-b border-secondary/20 sticky top-0 bg-background rounded-t-lg">
+  <Modal :show="true" @close="emit('close')" maxWidth="max-w-lg">
+    <template #title>
+      <div class="-mt-1">
         <h3 class="text-xl font-bold text-text">{{ summary.nama }}</h3>
-        <p class="text-sm text-text/70">Rincian Absensi</p>
-        <button @click="emit('close')" class="absolute top-4 right-4 text-text/40 hover:text-primary transition-colors text-2xl font-light">&times;</button>
+        <p class="text-sm text-text/70 font-normal mt-1">Rincian Absensi</p>
       </div>
+    </template>
 
-      <div class="p-4 space-y-5 overflow-y-auto text-sm">
+    <div class="space-y-5 text-sm">
         <!-- Rincian Uang Lembur (Tetap di atas) -->
         <section>
           <h4 class="font-semibold mb-2 text-text/90">Rincian Uang Lembur</h4>
@@ -159,10 +160,8 @@ watch(weeklyDetails, (newDetails) => {
                 </ul>
               </div>
             </div>
-
           </div>
         </section>
       </div>
-    </div>
-  </div>
+  </Modal>
 </template>

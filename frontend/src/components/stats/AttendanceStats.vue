@@ -4,6 +4,7 @@ import VueApexCharts from 'vue3-apexcharts'
 import { calculateSummaryForUser } from '@/api/helpers/summary.js'
 import { useAuthStore } from '@/stores/auth.js'
 import { formatJamMenit } from '@/api/helpers/time.js'
+import Modal from '@/components/ui/Modal.vue'
 
 const props = defineProps({
   users: {
@@ -593,23 +594,16 @@ const userOvertimeChartOptions = computed(() => ({
   </div>
 
   <!-- User Detail Modal -->
-  <div v-if="selectedUser"
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in"
-    @click.self="selectedUser = null">
-    <div
-      class="bg-background border border-secondary/20 rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto custom-scrollbar">
-      <div class="p-6 border-b border-secondary/20 flex justify-between items-start sticky top-0 bg-background z-10">
-        <div>
-          <h4 class="text-xl font-bold text-text">{{ selectedUser.nama }}</h4>
-          <p class="text-sm text-text/50">Detail Statistik Absensi ({{ new Date(2000, month -
-            1).toLocaleString('id-ID', { month: 'long' }) }} {{ year }})</p>
-        </div>
-        <button @click="selectedUser = null" class="text-text/40 hover:text-text transition-colors">
-          <font-awesome-icon icon="fa-solid fa-xmark" class="text-xl" />
-        </button>
+  <Modal :show="!!selectedUser" @close="selectedUser = null" maxWidth="max-w-4xl">
+    <template #title>
+      <div class="-mt-1">
+        <h4 class="text-xl font-bold text-text">{{ selectedUser?.nama }}</h4>
+        <p class="text-sm text-text/50 font-normal mt-1">Detail Statistik Absensi ({{ new Date(2000, month -
+          1).toLocaleString('id-ID', { month: 'long' }) }} {{ year }})</p>
       </div>
+    </template>
 
-      <div class="p-6 space-y-6">
+    <div v-if="selectedUser" class="space-y-6">
         <!-- Summary Cards Small -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div class="bg-secondary/5 rounded-lg p-3 border border-secondary/10">
@@ -649,9 +643,8 @@ const userOvertimeChartOptions = computed(() => ({
             </div>
           </div>
         </div>
-      </div>
     </div>
-  </div>
+  </Modal>
 </template>
 
 <style scoped>

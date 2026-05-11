@@ -1,6 +1,7 @@
 <!-- frontend/src/components/products/ExportModal.vue -->
 <script setup>
 import { ref } from 'vue'
+import Modal from '@/components/ui/Modal.vue'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -18,17 +19,8 @@ const handleExport = () => {
 </script>
 
 <template>
-  <div v-if="isOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-    <div
-      class="bg-[hsl(var(--color-background))] text-[hsl(var(--color-text))] rounded-xl shadow-2xl w-full max-w-md p-6 transform transition-all border border-[hsl(var(--color-secondary))/0.3]">
-      <div class="flex justify-between items-center mb-6">
-        <h3 class="text-xl font-bold">Export Produk</h3>
-        <button @click="$emit('close')"
-          class="text-[hsl(var(--color-text))] opacity-50 hover:opacity-100 transition-opacity text-2xl leading-none">
-          &times;
-        </button>
-      </div>
+  <Modal :show="isOpen" @close="$emit('close')" maxWidth="max-w-md">
+    <template #title>Export Produk</template>
 
       <div class="space-y-4">
         <div>
@@ -74,7 +66,7 @@ const handleExport = () => {
         </div>
       </div>
 
-      <div class="mt-6 flex justify-end gap-3">
+      <div class="mt-6 flex justify-end gap-3 pb-2">
         <button @click="$emit('close')"
           class="px-5 py-2.5 rounded-lg font-medium opacity-70 hover:opacity-100 hover:bg-[hsl(var(--color-secondary))/0.1] flex items-center gap-2">
           <font-awesome-icon icon="fa-solid fa-times" />
@@ -87,6 +79,5 @@ const handleExport = () => {
           <span>Mulai Export</span>
         </button>
       </div>
-    </div>
-  </div>
+  </Modal>
 </template>

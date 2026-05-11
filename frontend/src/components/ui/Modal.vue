@@ -41,7 +41,7 @@ watch(Escape, (pressed) => {
     :leave-to-class="isMobile ? 'transform translate-y-full opacity-0' : 'transform opacity-0 scale-95'">
     <!-- Backdrop (area gelap di belakang) -->
     <div v-if="show" @click.self="emit('close')"
-      class="fixed inset-0 bg-text bg-opacity-60 flex justify-center z-50 transition-all duration-300"
+      class="fixed inset-0 bg-text bg-opacity-60 flex justify-center z-[5000] transition-all duration-300"
       :class="isMobile ? 'items-end p-0' : 'items-center p-4'">
       <!-- Panel Modal -->
       <div class="bg-background shadow-xl w-full flex flex-col transition-all duration-300"
@@ -52,7 +52,8 @@ watch(Escape, (pressed) => {
             <!-- Slot untuk judul kustom jika diperlukan -->
             <slot name="title">{{ title }}</slot>
           </h3>
-          <button @click="emit('close')" class="text-text/50 hover:text-primary transition-colors text-2xl font-light">
+          <button @click="emit('close')"
+            class="text-text/50 hover:text-primary transition-colors text-2xl font-light align-top mt-[-10px]">
             &times;
           </button>
         </div>
@@ -64,7 +65,7 @@ watch(Escape, (pressed) => {
         </div>
 
         <!-- Footer Modal (opsional) -->
-        <div v-if="$slots.footer" class="p-4 bg-secondary/10 flex justify-end gap-2 shrink-0"
+        <div v-if="$slots.footer" class="bg-secondary/10 flex justify-end gap-2 shrink-0"
           :class="isMobile ? 'rounded-none' : 'rounded-b-xl'">
           <slot name="footer" />
         </div>
