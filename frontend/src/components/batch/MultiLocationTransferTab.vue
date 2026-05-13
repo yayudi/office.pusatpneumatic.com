@@ -215,7 +215,7 @@ async function submitDetailedBatch() {
       </div>
 
       <!-- Jumlah & Tombol Tambah -->
-      <div class="flex items-end gap-2">
+      <div class="flex items-end gap-3">
         <div class="flex-grow">
           <label class="block text-sm font-medium text-text/90 mb-2">Jumlah</label>
           <input v-model.number="quantity" @blur="validateQuantity" type="number" min="1"
@@ -254,7 +254,8 @@ async function submitDetailedBatch() {
           <tbody :class="isMobile ? 'block' : 'divide-y divide-secondary/20'">
             <tr v-for="item in batchList" :key="item.id" class="transition-colors relative"
               :class="isMobile ? 'block mb-3 p-3 bg-background/50 rounded-xl border border-secondary/20 shadow-sm' : 'hover:bg-primary/5'">
-              <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'">
+              <td
+                :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'">
                 <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">SKU</span>
                 <span class="font-mono">{{ item.sku }}</span>
               </td>
@@ -262,15 +263,18 @@ async function submitDetailedBatch() {
                 <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Produk</span>
                 <span>{{ item.name }}</span>
               </td>
-              <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'">
+              <td
+                :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'">
                 <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Dari</span>
                 <span class="font-mono">{{ item.fromLocationCode }}</span>
               </td>
-              <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'">
+              <td
+                :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'">
                 <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Ke</span>
                 <span class="font-mono">{{ item.toLocationCode }}</span>
               </td>
-              <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 text-center font-bold'">
+              <td
+                :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 text-center font-bold'">
                 <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Jumlah</span>
                 <span class="font-bold">{{ item.quantity }}</span>
               </td>
@@ -286,7 +290,8 @@ async function submitDetailedBatch() {
     </div>
 
     <!-- Catatan & Tombol Aksi Final -->
-    <div class="pt-6 border-t border-secondary/20 gap-4" :class="isMobile ? 'flex flex-col' : 'flex justify-between items-end'">
+    <div class="pt-6 border-t border-secondary/20 gap-4"
+      :class="isMobile ? 'flex flex-col' : 'flex justify-between items-end'">
       <!-- Input Catatan -->
       <div class="flex-grow">
         <label class="block text-sm font-medium text-text/90 mb-2">Catatan (Opsional)</label>
@@ -301,7 +306,7 @@ async function submitDetailedBatch() {
           Batal
         </button>
         <button @click="submitDetailedBatch" :disabled="isSubmitting || batchList.length === 0"
-          class="px-6 py-3 bg-accent text-secondary rounded-lg font-bold disabled:opacity-50 flex items-center gap-2">
+          class="px-6 py-3 bg-accent text-secondary rounded-lg font-bold disabled:opacity-50 flex items-center gap-3">
           <font-awesome-icon vid-if="isSubmitting" icon="fa-solid fa-spinner" class="animate-spin" />
           <span>{{ isSubmitting ? 'Memproses...' : 'Submit Batch Transfer' }}</span>
         </button>

@@ -110,7 +110,7 @@ watch(Alt_S, (pressed) => {
   </div>
 
   <div
-    class="bg-background shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(100vh-250px)]">
+    class="bg-background shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(95vh]">
     <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : 'min-w-[400px]'">
       <thead class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5"
         :class="isMobile ? 'hidden' : 'sticky top-0 z-30'">

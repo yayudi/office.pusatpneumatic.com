@@ -58,7 +58,7 @@ watch(
   <BaseFilterPanel title="Filter Picking">
     <!-- Search & Date -->
     <template #search>
-      <div class="flex flex-col sm:flex-row gap-2">
+      <div class="flex flex-col sm:flex-row gap-3">
         <!-- Search -->
         <div class="relative flex-grow group">
           <input :value="localValues.search" @input="onSearchInput" type="text" placeholder="Cari Invoice, SKU..."

@@ -10,7 +10,7 @@ const { copyLinkToClipboard, copyImageToClipboard, downloadImage } = useImageAct
 </script>
 
 <template>
-  <div class="flex items-center justify-center flex-wrap gap-2">
+  <div class="flex items-center justify-center flex-wrap gap-3">
     <button v-if="imageUrl" @click.stop="copyLinkToClipboard(imageUrl)"
       class="flex h-8 w-8 items-center justify-center rounded-full bg-success text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-lg"
       title="Salin Tautan">

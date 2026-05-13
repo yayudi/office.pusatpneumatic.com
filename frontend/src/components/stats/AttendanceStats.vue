@@ -45,7 +45,7 @@ const authStore = useAuthStore()
 
 // --- Aggregation Logic ---
 
-// 1. Calculate Summary per User
+// Calculate Summary per User
 const userSummaries = computed(() => {
   if (!props.users.length) return []
   return props.users.map(u => {
@@ -59,7 +59,7 @@ const userSummaries = computed(() => {
   })
 })
 
-// 2. KPI Calculations
+// KPI Calculations
 const kpiStats = computed(() => {
   if (!props.users.length) return []
 
@@ -129,7 +129,7 @@ const kpiStats = computed(() => {
 })
 
 
-// 3. Charts Data
+// Charts Data
 const chartDataPoints = computed(() => {
   if (!props.users.length) return { length: 0, hadir: [], telat: [] }
 
@@ -173,18 +173,13 @@ const chartOptions = computed(() => {
   // Generate categories (Labels)
   let categories = []
   if (props.startDate && props.endDate) {
-    // Generate dates between start and end
     const s = new Date(props.startDate)
     const e = new Date(props.endDate)
     const days = []
     for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
       days.push(new Date(d))
     }
-    categories = days.map(d => d.getDate().toString()) // Show Day only? Or D MMM?
-    // Let's show "D MMM" if > 31 days or spanning months, else just "D"
-    // To match legacy (just numbers), let's try to be smart.
-    // If same month range: numbers. If cross month: D MMM.
-    // For simplicity, let's use numbers if length <= 31.
+    categories = days.map(d => d.getDate().toString())
     if (days.length <= 31) categories = days.map(d => d.getDate())
     else categories = days.map(d => `${d.getDate()} ${d.toLocaleString('id-ID', { month: 'short' })}`)
 
@@ -231,7 +226,7 @@ const chartOptions = computed(() => {
   }
 })
 
-// 4. Tables (Top Lists)
+// Tables (Top Lists)
 const topLateUsers = computed(() => {
   return [...userSummaries.value]
     .map(u => ({
@@ -266,7 +261,7 @@ const topAbsentUsers = computed(() => {
     .slice(0, 5)
 })
 
-// 5. Per-Person Table Logic
+// Per-Person Table Logic
 const tableSearch = ref('')
 const filteredUserSummaries = computed(() => {
   let data = userSummaries.value
@@ -277,38 +272,7 @@ const filteredUserSummaries = computed(() => {
   return data.sort((a, b) => a.nama.localeCompare(b.nama))
 })
 
-// 6. Export Logic
-const handleExportExcel = async () => {
-  if (!userSummaries.value.length) return
-  const XLSX = await import('xlsx')
-
-  const data = userSummaries.value.map(u => ({
-    'ID Karyawan': u.id,
-    'Nama': u.nama,
-    'Total Hadir (Hari)': u.stats.hadirDays,
-    'Total Terlambat': u.stats.telatHours,
-    'Total Pulang Cepat': u.stats.earlyOutHours,
-    'Total Lembur': u.stats.lemburHours,
-    'Total Absen (Hari)': u.stats.absenceDays,
-    'Denda Keterlambatan (Rp)': u.stats.dendaTelat,
-    'Estimasi Uang Lembur (Rp)': u.stats.uangLembur
-  }))
-
-  const ws = XLSX.utils.json_to_sheet(data)
-
-  // Auto-width columns
-  const colWidths = Object.keys(data[0]).map(key => ({
-    wch: Math.max(key.length, ...data.map(row => (row[key] ? row[key].toString().length : 0))) + 2
-  }))
-  ws['!cols'] = colWidths
-
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, `Absensi ${props.month}-${props.year}`)
-
-  XLSX.writeFile(wb, `Statistik_Absensi_${props.year}_${props.month}.xlsx`)
-}
-
-// 7. User Detail Modal Logic
+// User Detail Modal Logic
 const selectedUser = ref(null)
 
 const openDetail = (user) => {
@@ -395,15 +359,6 @@ const userOvertimeChartOptions = computed(() => ({
     </div>
 
     <template v-else>
-      <!-- Header Actions -->
-      <div class="flex justify-end">
-        <button @click="handleExportExcel"
-          class="flex items-center gap-2 px-4 py-2 bg-success/10 text-success hover:bg-success hover:text-background rounded-lg text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-success/20">
-          <font-awesome-icon icon="fa-solid fa-file-excel" />
-          <span>Export Excel</span>
-        </button>
-      </div>
-
       <!-- KPI Cards -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div v-for="(kpi, index) in kpiStats" :key="index"
@@ -499,7 +454,7 @@ const userOvertimeChartOptions = computed(() => ({
         <div class="flex justify-between items-center mb-4">
           <h4 class="text-sm font-bold text-text/70 uppercase">Statistik Per Karyawan</h4>
           <input type="text" v-model="tableSearch" placeholder="Cari karyawan..."
-            class="bg-secondary/10 border border-secondary/20 rounded-lg px-3 py-1 text-sm text-text focus:outline-none focus:ring-1 focus:ring-primary" />
+            class="bg-secondary/80 border border-secondary/20 rounded-lg px-3 py-1 text-sm text-text focus:outline-none focus:ring-1 focus:ring-primary" />
         </div>
         <div class="overflow-x-auto custom-scrollbar">
           <table class="w-full text-left text-sm border-collapse block md:table">
@@ -547,7 +502,7 @@ const userOvertimeChartOptions = computed(() => ({
                   class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center">
                   <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Cepat</span>
                   <div v-if="u.stats.earlyOutHours !== '0j 0m'" class="text-danger font-bold">{{ u.stats.earlyOutHours
-                  }}
+                    }}
                   </div>
                   <div v-else class="text-text/30">
                     <span class="md:block hidden">-</span>
@@ -604,45 +559,44 @@ const userOvertimeChartOptions = computed(() => ({
     </template>
 
     <div v-if="selectedUser" class="space-y-6">
-        <!-- Summary Cards Small -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div class="bg-secondary/5 rounded-lg p-3 border border-secondary/10">
-            <div class="text-xs text-text/50 uppercase font-bold">Total Hadir</div>
-            <div class="text-lg font-bold text-success">{{ selectedUser.stats.hadirDays }} Hari</div>
-          </div>
-          <div class="bg-secondary/5 rounded-lg p-3 border border-secondary/10">
-            <div class="text-xs text-text/50 uppercase font-bold">Total Telat</div>
-            <div class="text-lg font-bold text-warning">{{ selectedUser.stats.telatHours }}</div>
-          </div>
-          <div class="bg-secondary/5 rounded-lg p-3 border border-secondary/10">
-            <div class="text-xs text-text/50 uppercase font-bold">Total Lembur</div>
-            <div class="text-lg font-bold text-primary">{{ selectedUser.stats.lemburHours }}</div>
-          </div>
-          <div class="bg-secondary/5 rounded-lg p-3 border border-secondary/10">
-            <div class="text-xs text-text/50 uppercase font-bold">Estimasi Denda</div>
-            <div class="text-lg font-bold text-danger">Rp {{ selectedUser.stats.dendaTelat.toLocaleString('id-ID') }}
-            </div>
+      <!-- Summary Cards Small -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-secondary/5 rounded-lg p-3 border border-secondary/10">
+          <div class="text-xs text-text/50 uppercase font-bold">Total Hadir</div>
+          <div class="text-lg font-bold text-success">{{ selectedUser.stats.hadirDays }} Hari</div>
+        </div>
+        <div class="bg-secondary/5 rounded-lg p-3 border border-secondary/10">
+          <div class="text-xs text-text/50 uppercase font-bold">Total Telat</div>
+          <div class="text-lg font-bold text-warning">{{ selectedUser.stats.telatHours }}</div>
+        </div>
+        <div class="bg-secondary/5 rounded-lg p-3 border border-secondary/10">
+          <div class="text-xs text-text/50 uppercase font-bold">Total Lembur</div>
+          <div class="text-lg font-bold text-primary">{{ selectedUser.stats.lemburHours }}</div>
+        </div>
+        <div class="bg-secondary/5 rounded-lg p-3 border border-secondary/10">
+          <div class="text-xs text-text/50 uppercase font-bold">Estimasi Denda</div>
+          <div class="text-lg font-bold text-danger">Rp {{ selectedUser.stats.dendaTelat.toLocaleString('id-ID') }}
           </div>
         </div>
+      </div>
 
-        <!-- Charts Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <!-- Arrival Time Chart -->
-          <div class="bg-secondary/5 rounded-xl p-4 border border-secondary/10">
-            <h5 class="text-sm font-bold text-text/70 mb-4">Waktu Kedatangan</h5>
-            <div class="h-[250px]">
-              <VueApexCharts type="line" height="100%" :options="userDetailChartOptions" :series="userArrivalSeries" />
-            </div>
-          </div>
-          <!-- Overtime Duration Chart -->
-          <div class="bg-secondary/5 rounded-xl p-4 border border-secondary/10">
-            <h5 class="text-sm font-bold text-text/70 mb-4">Durasi Lembur (Menit)</h5>
-            <div class="h-[250px]">
-              <VueApexCharts type="bar" height="100%" :options="userOvertimeChartOptions"
-                :series="userOvertimeSeries" />
-            </div>
+      <!-- Charts Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Arrival Time Chart -->
+        <div class="bg-secondary/5 rounded-xl p-4 border border-secondary/10">
+          <h5 class="text-sm font-bold text-text/70 mb-4">Waktu Kedatangan</h5>
+          <div class="h-[250px]">
+            <VueApexCharts type="line" height="100%" :options="userDetailChartOptions" :series="userArrivalSeries" />
           </div>
         </div>
+        <!-- Overtime Duration Chart -->
+        <div class="bg-secondary/5 rounded-xl p-4 border border-secondary/10">
+          <h5 class="text-sm font-bold text-text/70 mb-4">Durasi Lembur (Menit)</h5>
+          <div class="h-[250px]">
+            <VueApexCharts type="bar" height="100%" :options="userOvertimeChartOptions" :series="userOvertimeSeries" />
+          </div>
+        </div>
+      </div>
     </div>
   </Modal>
 </template>

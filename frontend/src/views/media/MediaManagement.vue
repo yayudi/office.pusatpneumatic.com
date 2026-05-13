@@ -651,10 +651,12 @@ onUnmounted(() => {
         Upload gambar dari komputer Anda untuk mulai mengisi galeri media.
       </p>
     </div>
-    <ImageCropperModal v-if="pendingCropIndex !== null && pendingCropIndex < filesToCrop.length" :show="isCropperOpen"
-      :original-image="pendingCropFile" :initial-width="1000" :aspect-ratio="1"
-      @close="isCropperOpen = false; pendingCropIndex = null; pendingCropFile = null; pendingCropFilename = ''"
-      @cropped="handleCroppedImage" :original-filename="pendingCropFilename" :processing="autoCropProcessing" />
+    <ImageCropperModal
+      v-if="currentEditIndex !== -1 && currentEditFile"
+      :show="isCropperOpen"
+      :file="currentEditFile"
+      @close="isCropperOpen = false; currentEditIndex = -1; currentEditFile = null"
+      @save="handleCroppedSave" />
   </div>
 
   <!-- Pagination -->

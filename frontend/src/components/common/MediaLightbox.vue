@@ -107,8 +107,8 @@ onUnmounted(() => {
         <div
           class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white px-6 py-2 rounded-full flex flex-col items-center pointer-events-auto backdrop-blur-sm shadow-lg border border-white/10 min-w-[200px]">
           <span class="font-bold text-sm truncate max-w-[250px] md:max-w-md">{{ images[currentIndex].original_name
-          }}</span>
-          <div class="flex items-center gap-2 text-[10px] text-white/70 mt-0.5 uppercase tracking-wider font-semibold">
+            }}</span>
+          <div class="flex items-center gap-3 text-[10px] text-white/70 mt-0.5 uppercase tracking-wider font-semibold">
             <span>{{ currentIndex + 1 }} OF {{ images.length }}</span>
             <template v-if="images[currentIndex].width && images[currentIndex].height">
               <span class="text-white/30">•</span>

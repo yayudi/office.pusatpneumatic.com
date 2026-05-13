@@ -483,7 +483,8 @@ const chartScatterOptions = computed(() => ({
 
         <div>
           <label class="block text-xs font-semibold text-text/60 mb-2">Kategori Produk</label>
-          <BaseSelect v-model="filterValues.categoryId" :options="reportFilters.allCategories" emitValue :searchable="true" />
+          <BaseSelect v-model="filterValues.categoryId" :options="reportFilters.allCategories" emitValue
+            :searchable="true" />
         </div>
       </template>
     </StatsFilterBar>
@@ -493,7 +494,7 @@ const chartScatterOptions = computed(() => ({
       <!-- Table Section -->
       <main class="flex-1 w-full min-w-0 bg-background border border-secondary rounded-xl overflow-hidden shadow-sm"
         v-if="viewMode === 'table'">
-        <div class="overflow-auto max-h-[650px]" @scroll="handleTableScroll">
+        <div class="overflow-auto max-h-[650px] custom-scrollbar" @scroll="handleTableScroll">
           <table class="w-full text-left text-sm whitespace-nowrap">
             <thead
               class="bg-background border-b border-secondary sticky top-0 z-10 after:absolute after:inset-0 after:bg-secondary/20 after:-z-10">

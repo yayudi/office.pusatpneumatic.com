@@ -120,49 +120,49 @@ watch(Alt_S, (pressed) => {
     </template>
 
     <div class="space-y-4">
-        <div v-if="logData"
-          class="flex items-center justify-between text-sm bg-primary/5 p-3 rounded-lg border border-primary/10">
-          <div>
-            <span class="block text-xs uppercase font-bold text-primary/70">Karyawan</span>
-            <span class="font-medium text-text">{{ logData.nama }}</span>
-          </div>
-          <div class="text-right">
-            <span class="block text-xs uppercase font-bold text-primary/70">Tanggal</span>
-            <span class="font-medium text-text">{{ logData.displayDate }}</span>
-          </div>
-        </div>
-
-        <!-- Status -->
+      <div v-if="logData"
+        class="flex items-center justify-between text-sm bg-primary/5 p-3 rounded-lg border border-primary/10">
         <div>
-          <label class="block text-xs font-bold uppercase text-text/50 mb-1">Status Kehadiran</label>
-          <BaseSelect v-model="form.status" :options="statusOptions" track-by="value" emit-value :searchable="false" />
+          <span class="block text-xs uppercase font-bold text-primary/70">Karyawan</span>
+          <span class="font-medium text-text">{{ logData.nama }}</span>
         </div>
-
-        <!-- Times (Only if Hadir or maybe Partial) -->
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-bold uppercase text-text/50 mb-1">Jam Masuk</label>
-            <input type="time" v-model="form.timeIn"
-              class="w-full bg-background border border-secondary/20 rounded-lg px-3 py-2 text-text focus:outline-none focus:border-primary" />
-          </div>
-          <div>
-            <label class="block text-xs font-bold uppercase text-text/50 mb-1">Jam Keluar</label>
-            <input type="time" v-model="form.timeOut"
-              class="w-full bg-background border border-secondary/20 rounded-lg px-3 py-2 text-text focus:outline-none focus:border-primary" />
-          </div>
-        </div>
-
-        <!-- Notes -->
-        <div>
-          <label class="block text-xs font-bold uppercase text-text/50 mb-1">Catatan / Keterangan</label>
-          <textarea v-model="form.notes" rows="3" placeholder="Contoh: Sakit tipes, Izin urus SIM..."
-            class="w-full bg-background border border-secondary/20 rounded-lg px-3 py-2 text-text focus:outline-none focus:border-primary"></textarea>
-        </div>
-
-        <div v-if="errorMsg" class="text-xs text-danger font-bold bg-danger/10 p-2 rounded">
-          {{ errorMsg }}
+        <div class="text-right">
+          <span class="block text-xs uppercase font-bold text-primary/70">Tanggal</span>
+          <span class="font-medium text-text">{{ logData.displayDate }}</span>
         </div>
       </div>
+
+      <!-- Status -->
+      <div>
+        <label class="block text-xs font-bold uppercase text-text/50 mb-1">Status Kehadiran</label>
+        <BaseSelect v-model="form.status" :options="statusOptions" track-by="value" emit-value :searchable="false" />
+      </div>
+
+      <!-- Times (Only if Hadir or maybe Partial) -->
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold uppercase text-text/50 mb-1">Jam Masuk</label>
+          <input type="time" v-model="form.timeIn"
+            class="w-full bg-background border border-secondary/20 rounded-lg px-3 py-2 text-text focus:outline-none focus:border-primary" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase text-text/50 mb-1">Jam Keluar</label>
+          <input type="time" v-model="form.timeOut"
+            class="w-full bg-background border border-secondary/20 rounded-lg px-3 py-2 text-text focus:outline-none focus:border-primary" />
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div>
+        <label class="block text-xs font-bold uppercase text-text/50 mb-1">Catatan / Keterangan</label>
+        <textarea v-model="form.notes" rows="3" placeholder="Contoh: Sakit tipes, Izin urus SIM..."
+          class="w-full bg-background border border-secondary/20 rounded-lg px-3 py-2 text-text focus:outline-none focus:border-primary"></textarea>
+      </div>
+
+      <div v-if="errorMsg" class="text-xs text-danger font-bold bg-danger/10 p-2 rounded">
+        {{ errorMsg }}
+      </div>
+    </div>
 
     <template #footer>
       <div class="flex justify-end gap-3 w-full">
@@ -171,7 +171,7 @@ watch(Alt_S, (pressed) => {
           Batal
         </button>
         <button @click="handleSave" :disabled="isLoading || !canSave"
-          class="px-4 py-2 text-sm font-bold text-background bg-primary hover:bg-primary/90 rounded-lg shadow-lg shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+          class="px-4 py-2 text-sm font-bold text-background bg-primary hover:bg-primary/90 rounded-lg shadow-lg shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3">
           <span v-if="isLoading" class="animate-spin text-background">
             <font-awesome-icon icon="fa-solid fa-spinner" />
           </span>

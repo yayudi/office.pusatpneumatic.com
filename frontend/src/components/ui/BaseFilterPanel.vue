@@ -32,7 +32,7 @@ const needsStandaloneToggle = computed(() => {
     <!-- ================================================================ -->
     <!-- CASE A: Mobile + has #search → search stays visible, toggle next -->
     <!-- ================================================================ -->
-    <div v-if="shouldCollapse && $slots.search" class="flex gap-2 items-start">
+    <div v-if="shouldCollapse && $slots.search" class="flex gap-3 items-start">
       <div class="flex-grow min-w-0">
         <slot name="search" />
       </div>
@@ -56,7 +56,7 @@ const needsStandaloneToggle = computed(() => {
       class="flex items-center justify-between w-full px-3 py-2 rounded-lg border transition-all" :class="isExpanded || activeFilterCount > 0
         ? 'bg-primary/10 border-primary text-primary'
         : 'bg-secondary/5 border-secondary/20 text-text/70'">
-      <div class="flex items-center gap-2 text-sm font-bold">
+      <div class="flex items-center gap-3 text-sm font-bold">
         <font-awesome-icon icon="fa-solid fa-sliders" />
         <span>{{ title || 'Filter' }}</span>
         <span v-if="activeFilterCount > 0"
@@ -93,11 +93,11 @@ const needsStandaloneToggle = computed(() => {
       <!-- BOTTOM ROW (Filters) -->
       <div v-if="$slots.filters || $slots['filter-actions']"
         class="flex flex-col lg:flex-row gap-3 items-center justify-between">
-        <div v-if="$slots.filters" class="flex flex-wrap gap-2 items-center w-full lg:w-auto flex-grow">
+        <div v-if="$slots.filters" class="flex flex-wrap gap-3 items-center w-full lg:w-auto flex-grow">
           <slot name="filters"></slot>
         </div>
         <div v-if="$slots['filter-actions']"
-          class="flex gap-2 shrink-0 lg:ml-auto w-full lg:w-auto justify-end items-end h-full">
+          class="flex gap-3 shrink-0 lg:ml-auto w-full lg:w-auto justify-end items-end h-full">
           <slot name="filter-actions"></slot>
         </div>
       </div>
@@ -137,10 +137,10 @@ const needsStandaloneToggle = computed(() => {
 
       <!-- Filters -->
       <div v-if="$slots.filters || $slots['filter-actions']" class="flex flex-col gap-3">
-        <div v-if="$slots.filters" class="flex flex-col gap-2 w-full">
+        <div v-if="$slots.filters" class="flex flex-col gap-3 w-full">
           <slot name="filters"></slot>
         </div>
-        <div v-if="$slots['filter-actions']" class="flex gap-2 w-full justify-end">
+        <div v-if="$slots['filter-actions']" class="flex gap-3 w-full justify-end">
           <slot name="filter-actions"></slot>
         </div>
       </div>

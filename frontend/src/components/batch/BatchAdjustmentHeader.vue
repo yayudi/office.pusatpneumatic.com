@@ -13,8 +13,9 @@ const notes = defineModel('notes')
 
 <template>
   <!-- Header Kontekstual Hanya Untuk Adjustment -->
-  <div class="bg-background/80 rounded-xl border border-secondary/20 p-4 lg:p-6 shadow-sm flex flex-col gap-4 relative z-30">
-    <div class="flex items-center gap-2 mb-2">
+  <div
+    class="bg-background/80 rounded-xl border border-secondary/20 p-4 lg:p-6 shadow-sm flex flex-col gap-4 relative z-30">
+    <div class="flex items-center gap-3 mb-2">
       <h3 class="text-lg font-bold text-text/80 tracking-tight">Form Penyesuaian</h3>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">

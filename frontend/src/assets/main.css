@@ -145,12 +145,40 @@
   --color-danger: 0 100 55; /* Merah neon */
 }
 
-/* Style Override */
-
 /* @tailwind */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Style Override */
+
+/* Tooltip Custom */
+.apexcharts-tooltip-series-group {
+  color: hsl(var(--color-background));
+  box-shadow:
+    0 4px 6px -1px hsl(var(--color-secondary) / 0.2),
+    0 2px 4px -2px hsl(var(--color-secondary) / 0.2);
+}
+
+.apexcharts-datalabels .apexcharts-pie-label {
+  color: hsl(var(--color-text)) !important;
+  font-weight: bold !important;
+}
+
+.apexcharts-pie-series > .apexcharts-pie-label:hover {
+  color: hsl(var(--color-background)) !important;
+  text-shadow: 5px 5px 5px hsl(var(--color-background)) !important;
+}
+
+.tooltip.tooltip-error .tooltip-box {
+  background-color: hsl(var(--color-danger));
+  color: hsl(var(--color-background));
+  border-color: hsl(var(--color-danger));
+}
+
+.tooltip.tooltip-error .tooltip-arrow {
+  border-color: hsl(var(--color-danger));
+}
 
 .custom-scrollbar::-webkit-scrollbar {
   width: 10px;

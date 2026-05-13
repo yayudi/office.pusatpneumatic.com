@@ -173,7 +173,7 @@ onUnmounted(() => {
       class="w-full flex items-center gap-2 px-4 py-2 bg-background border border-secondary/30 rounded-lg hover:border-primary/50 hover:bg-secondary/5 transition-all text-sm font-medium text-text group whitespace-nowrap"
       :class="{ 'border-primary ring-1 ring-primary/20': isOpen || startDate }">
       <font-awesome-icon icon="fa-solid fa-calendar" class="text-text/50 group-hover:text-primary transition-colors" />
-      <span class="whitespace-nowrap">{{ displayLabel }}</span>
+      <span class="whitespace-nowrap w-full">{{ displayLabel }}</span>
       <font-awesome-icon icon="fa-solid fa-chevron-down" class="text-xs text-text/30 ml-1 transition-transform"
         :class="{ 'rotate-180': isOpen }" />
     </button>

@@ -317,7 +317,7 @@ watch(Alt_S, (pressed) => {
           <div v-for="(permissionsInGroup, groupName) in groupedPermissions" :key="groupName"
             class="border border-secondary/20 rounded-lg">
             <div
-              class="bg-secondary/10 px-4 py-2 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-secondary/20 gap-2">
+              class="bg-secondary/10 px-4 py-2 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-secondary/20 gap-3">
               <h4 class="font-bold text-text/90">{{ groupName }}</h4>
               <div class="flex gap-4 text-xs font-semibold">
                 <button @click="toggleGroup(groupName, true)"
@@ -370,16 +370,18 @@ watch(Alt_S, (pressed) => {
       </div>
     </form>
     <template #footer>
-      <button type="button" @click="isRoleModalOpen = false" class="btn-secondary flex items-center gap-2">
-        <font-awesome-icon icon="fa-solid fa-times" />
-        <span>Batal</span>
-      </button>
-      <button type="submit" @click="handleSaveRole" class="btn-primary flex items-center gap-2"
-        :disabled="isSaving || !roleForm.name || !roleForm.description">
-        <font-awesome-icon v-if="isSaving" icon="fa-solid fa-spinner" spin />
-        <font-awesome-icon v-else icon="fa-solid fa-save" />
-        <span>{{ isSaving ? 'Menyimpan...' : 'Simpan' }}</span>
-      </button>
+      <div class="flex gap-4 justify-center pb-6 px-4">
+        <button type="button" @click="isRoleModalOpen = false" class="btn-secondary flex items-center gap-2">
+          <font-awesome-icon icon="fa-solid fa-times" />
+          <span>Batal</span>
+        </button>
+        <button type="submit" @click="handleSaveRole" class="btn-primary flex items-center gap-2"
+          :disabled="isSaving || !roleForm.name || !roleForm.description">
+          <font-awesome-icon v-if="isSaving" icon="fa-solid fa-spinner" spin />
+          <font-awesome-icon v-else icon="fa-solid fa-save" />
+          <span>{{ isSaving ? 'Menyimpan...' : 'Simpan' }}</span>
+        </button>
+      </div>
     </template>
   </Modal>
 </template>

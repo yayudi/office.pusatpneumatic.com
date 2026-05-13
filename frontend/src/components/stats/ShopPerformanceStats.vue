@@ -154,25 +154,44 @@ const getPercentage = (val, total) => {
   return ((Number(val) / total) * 100).toFixed(1)
 }
 
-const donutSeries = computed(() => summaryData.value.map(s => s.total_revenue))
-const donutOptions = computed(() => ({
-  chart: { type: 'donut', background: 'transparent' },
+const pieSeries = computed(() => summaryData.value.map(s => s.total_revenue))
+const pieOptions = computed(() => ({
+  chart: { type: 'pie', background: 'transparent' },
   labels: summaryData.value.map(s => `${s.shop_name} (${s.source})`),
   theme: { mode: isDarkTheme.value ? 'dark' : 'light' },
-  dataLabels: { enabled: true },
-  legend: { position: 'bottom', labels: { colors: labelColor.value } },
-  stroke: { show: false },
-  plotOptions: {
-    pie: {
-      donut: {
-        labels: {
-          show: true,
-          name: { color: labelColor.value },
-          value: { color: labelColor.value, formatter: (val) => formatCurrency(val) }
-        }
-      }
+  dataLabels: {
+    enabled: true,
+    style: { fontSize: '11px', fontWeight: 'bold', colors: isDarkTheme.value ? ['#ffffff'] : ['#000000'] },
+    dropShadow: { enabled: false },
+    background: {
+      enabled: true,
+      foreColor: isDarkTheme.value ? '#000000' : '#ffffff',
+      padding: 5,
+      borderRadius: 2,
+      opacity: 0.8
+    },
+    formatter: (val, opts) => {
+      const name = opts.w.globals.labels[opts.seriesIndex]
+      return name.length > 18 ? `${val.toFixed(1)}%` : `${name}\n${val.toFixed(1)}%`
     }
-  }
+  },
+  legend: {
+    position: 'bottom',
+    fontSize: '12px',
+    labels: { colors: labelColor.value },
+    itemMargin: { horizontal: 8, vertical: 4 }
+  },
+  stroke: { show: true, width: 2, colors: isDarkTheme.value ? ['#1e1e1e'] : ['#ffffff'] },
+  tooltip: {
+    y: { formatter: (val) => formatCurrency(val) }
+  },
+  responsive: [{
+    breakpoint: 640,
+    options: {
+      legend: { position: 'bottom', fontSize: '10px' },
+      dataLabels: { style: { fontSize: '9px' } }
+    }
+  }]
 }))
 
 // === TREND TAB ===
@@ -332,12 +351,14 @@ const periodLabel = computed(() => {
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
-        <!-- Donut Chart -->
+        <!-- pie Chart -->
         <div class="bg-background border border-secondary p-5 md:p-8 rounded-xl shadow-sm w-full lg:col-span-1">
           <h4 class="font-bold text-text text-lg mb-2">Distribusi Omset</h4>
           <p class="text-xs md:text-sm text-text/50 mb-6">Pangsa omset per toko.</p>
           <div class="w-full flex justify-center">
-            <VueApexCharts width="100%" type="donut" :options="donutOptions" :series="donutSeries" />
+            <VueApexCharts :key="isDarkTheme ? 'dark' : 'light'" width="100%"
+              :height="Math.max(350, summaryData.length * 40 + 200)" type="pie" :options="pieOptions"
+              :series="pieSeries" />
           </div>
         </div>
 
@@ -364,7 +385,7 @@ const periodLabel = computed(() => {
                   <td class="px-6 py-4 font-medium text-text flex items-center gap-3">
                     <span
                       class="w-6 h-6 flex items-center justify-center rounded-full bg-secondary/20 text-xs font-bold text-text/50">{{
-                      index + 1 }}</span>
+                        index + 1 }}</span>
                     {{ item.shop_name }}
                   </td>
                   <td class="px-6 py-4 text-center">
@@ -378,7 +399,7 @@ const periodLabel = computed(() => {
                   <td class="px-6 py-4 text-right">
                     <div class="flex items-center justify-end gap-2">
                       <span class="text-xs font-bold">{{ getPercentage(item.total_revenue, totalRevenueOverall)
-                        }}%</span>
+                      }}%</span>
                       <div class="w-16 h-1.5 bg-secondary/20 rounded-full overflow-hidden">
                         <div class="h-full bg-primary"
                           :style="{ width: `${getPercentage(item.total_revenue, totalRevenueOverall)}%` }"></div>

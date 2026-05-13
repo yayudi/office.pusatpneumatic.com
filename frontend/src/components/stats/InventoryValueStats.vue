@@ -262,7 +262,7 @@ const chartTopAssetProportionOptions = computed(() => {
           </div>
         </div>
 
-        <div class="overflow-auto max-h-[600px]" @scroll="handleTableScroll">
+        <div class="overflow-auto max-h-[600px] custom-scrollbar" @scroll="handleTableScroll">
           <table class="w-full text-left text-sm whitespace-nowrap">
             <thead
               class="bg-background border-b border-secondary sticky top-0 z-10 after:absolute after:inset-0 after:bg-secondary/20 after:-z-10">
@@ -320,7 +320,7 @@ const chartTopAssetProportionOptions = computed(() => {
                 <tr v-for="item in visibleData" :key="item.sku" class="hover:bg-secondary/10 transition-colors">
                   <td class="px-4 py-3 font-medium text-text bg-background/50 border-r border-secondary/10 w-auto">{{
                     item.sku
-                    }}</td>
+                  }}</td>
                   <td class="px-4 py-3 w-full">
                     <div class="whitespace-normal leading-tight font-medium text-text/90" :title="item.name">{{
                       item.name }}

@@ -125,36 +125,30 @@ function handleScroll(e) {
     }
   }
 }
-
-// Update Template:
-// 1. ref="tableContainer" on wrapper
-// 2. @scroll="handleScroll" on wrapper
-// 3. Loop over visibleRows
-// 4. Add loader at bottom if hasMore
 </script>
 <template>
   <!-- Wrapper with themed border and background -->
   <div ref="tableContainer" @scroll="handleScroll"
-    class="bg-background rounded-xl shadow-md border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(100vh-300px)] table-container">
+    class="bg-background rounded-xl shadow-md border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(75vh)] table-container">
     <table class="w-full bg-background text-sm text-text border-collapse block md:table">
       <!-- Themed table header -->
       <thead
         class="hidden md:table-header-group sticky top-0 z-30 bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5">
         <tr>
           <th
-            class="px-6 py-3 border-b border-secondary/10 sticky left-0 z-30 bg-background/95 backdrop-blur-md shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] w-[200px] text-left uppercase text-xs font-bold text-text/60">
+            class="px-6 py-3 border-b border-secondary/10 sticky left-0 z-30 bg-background/95 backdrop-blur-md shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] w-[200px] text-left uppercase text-xs font-bold text-text">
             Nama</th>
-          <th class="px-6 py-3 border-b border-secondary/10 text-center uppercase text-xs font-bold text-text/60">
+          <th class="px-6 py-3 border-b border-secondary/10 text-center uppercase text-xs font-bold text-text">
             Tanggal</th>
-          <th class="px-6 py-3 border-b border-secondary/10 text-center uppercase text-xs font-bold text-text/60">Jam
-            Masuk</th>
-          <th class="px-6 py-3 border-b border-secondary/10 text-center uppercase text-xs font-bold text-text/60">Mulai
-            Istirahat</th>
-          <th class="px-6 py-3 border-b border-secondary/10 text-center uppercase text-xs font-bold text-text/60">
+          <th class="px-6 py-3 border-b border-secondary/10 text-center uppercase text-xs font-bold text-text">
+            Jam Masuk</th>
+          <th class="px-6 py-3 border-b border-secondary/10 text-center uppercase text-xs font-bold text-text">
+            Mulai Istirahat</th>
+          <th class="px-6 py-3 border-b border-secondary/10 text-center uppercase text-xs font-bold text-text">
             Selesai Istirahat</th>
-          <th class="px-6 py-3 border-b border-secondary/10 text-center uppercase text-xs font-bold text-text/60">Jam
-            Keluar</th>
-          <th class="px-6 py-3 border-b border-secondary/10 text-left uppercase text-xs font-bold text-text/60">
+          <th class="px-6 py-3 border-b border-secondary/10 text-center uppercase text-xs font-bold text-text">
+            Jam Keluar</th>
+          <th class="px-6 py-3 border-b border-secondary/10 text-left uppercase text-xs font-bold text-text">
             Keterangan</th>
         </tr>
       </thead>
@@ -177,7 +171,7 @@ function handleScroll(e) {
             class="flex justify-between items-center md:table-cell px-2 md:px-6 py-2 md:py-4 font-bold text-text whitespace-nowrap md:sticky md:left-0 z-20 md:bg-background md:group-hover:bg-secondary/5 transition-colors md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] border-b border-secondary/10 md:border-none mb-2 md:mb-0">
             <span class="text-base md:text-sm">{{ row.nama }}</span>
             <!-- Mobile Date (Merged into Header) -->
-            <span class="md:hidden text-xs font-normal text-text/60 bg-secondary/10 px-2 py-1 rounded">{{
+            <span class="md:hidden text-xs font-normal text-text bg-secondary/10 px-2 py-1 rounded">{{
               row.displayDate
             }}</span>
           </td>
@@ -185,36 +179,36 @@ function handleScroll(e) {
           <!-- Date Column (Hidden on Mobile because displayed in Name row for header effect or separate) -->
           <td
             class="flex justify-between items-center px-2 md:px-6 py-1 md:py-4 text-center whitespace-nowrap md:table-cell">
-            <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Tanggal</span>
+            <span class="md:hidden text-text text-xs uppercase font-semibold">Tanggal</span>
             <span>{{ row.displayDate }}</span>
           </td>
 
           <td
             class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center font-mono text-xs md:text-sm">
-            <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Masuk</span>
+            <span class="md:hidden text-text text-xs uppercase font-semibold">Masuk</span>
             <span>{{ row.jamMasukStr }}</span>
           </td>
 
           <td v-if="mobileLayout !== 'compact'"
-            class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center font-mono text-xs md:text-sm text-text/60">
-            <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Mulai Ist</span>
+            class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center font-mono text-xs md:text-sm text-text">
+            <span class="md:hidden text-text text-xs uppercase font-semibold">Mulai Ist</span>
             <span>{{ row.breakOut }}</span>
           </td>
           <td v-if="mobileLayout !== 'compact'"
-            class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center font-mono text-xs md:text-sm text-text/60">
-            <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Selesai Ist</span>
+            class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center font-mono text-xs md:text-sm text-text">
+            <span class="md:hidden text-text text-xs uppercase font-semibold">Selesai Ist</span>
             <span>{{ row.breakIn }}</span>
           </td>
 
           <td
             class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center font-mono text-xs md:text-sm">
-            <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Keluar</span>
+            <span class="md:hidden text-text text-xs uppercase font-semibold">Keluar</span>
             <span>{{ row.jamKeluarStr }}</span>
           </td>
 
           <td
             class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 border-t border-secondary/10 md:border-none mt-2 md:mt-0 pt-2 md:pt-4">
-            <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Status</span>
+            <span class="md:hidden text-text text-xs uppercase font-semibold">Status</span>
             <span v-if="row.ket" class="inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold" :class="{
               'bg-danger/10 text-danger': row.ket === 'Tidak hadir',
               'bg-warning/10 text-warning': row.ket === 'Data Tidak Lengkap',

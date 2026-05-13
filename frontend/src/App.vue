@@ -34,13 +34,13 @@ function handleLogout() {
 </script>
 
 <template>
-  <div class="bg-background text-text min-h-screen font-sans">
+  <div class="bg-background text-text min-h-screen font-sans custom-scrollbar overflow-y-auto">
     <MessageToast ref="toastComponentRef" />
     <PwaUpdatePrompt />
     <PwaInstallBanner />
 
     <AppHeader v-if="showHeader" @logout="handleLogout" />
-    <main class="container mx-auto" :class="isMobile ? 'px-3 py-2' : 'p-4'">
+    <main class="container mx-auto mt-12" :class="isMobile ? 'px-3 py-2' : 'p-4'">
       <RouterView />
     </main>
   </div>

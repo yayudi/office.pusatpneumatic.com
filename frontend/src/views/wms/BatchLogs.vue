@@ -153,7 +153,7 @@ function handleReset() {
           </div>
 
           <!-- Actions -->
-          <div class="flex gap-2">
+          <div class="flex gap-3">
             <button @click="handleReset"
               class="h-[42px] px-4 bg-secondary/10 text-text/70 ring-1 ring-danger/20 hover:text-danger hover:bg-danger/10 rounded-lg text-sm font-bold transition-all flex-1 xl:flex-none">
               <font-awesome-icon icon="fa-solid fa-rotate-right" />
@@ -218,7 +218,7 @@ function handleReset() {
                 <div :class="isMobile ? 'text-right' : ''">
                   <div class="font-bold text-primary">{{ log.product_name }}</div>
                   <div class="font-mono text-[10px] text-text/50 bg-secondary/10 inline-block px-1 rounded">{{ log.sku
-                    }}</div>
+                  }}</div>
                 </div>
               </td>
               <td

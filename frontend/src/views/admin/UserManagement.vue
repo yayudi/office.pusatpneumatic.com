@@ -136,7 +136,7 @@ onMounted(fetchData)
   </div>
 
   <div
-    class="bg-secondary/5 shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(100vh-100px)]">
+    class="bg-secondary/5 shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(80vh)]">
     <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : 'min-w-[600px]'">
       <thead class="bg-background shadow-sm ring-1 ring-secondary/5" :class="isMobile ? 'hidden' : 'sticky top-0 z-30'">
         <tr class="text-xs text-text/80 uppercase">
@@ -165,8 +165,8 @@ onMounted(fetchData)
         </tr>
 
         <tr v-else v-for="user in users" :key="user.id" class="transition-colors group relative"
-          :class="isMobile ? 'block mb-4 p-4 bg-secondary/5 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4' : 'border-b border-secondary/20 hover:bg-secondary/5'">
-          <td class="font-medium bg-secondary/5 group-hover:bg-secondary/50 transition-colors"
+          :class="isMobile ? 'block mb-4 p-4 bg-background rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4' : 'border-b border-secondary/20 hover:bg-secondary/5'">
+          <td class="font-medium bg-secondary group-hover:bg-secondary transition-colors"
             :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4 sticky left-0 z-20 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]'">
             <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Username</span>
             <span>{{ user.username }}</span>
@@ -191,7 +191,7 @@ onMounted(fetchData)
             </span>
             <span v-else class="text-text/40 italic">Default</span>
           </td>
-          <td class="space-x-2 bg-secondary/5 group-hover:bg-secondary/50 transition-colors"
+          <td class="space-x-2 bg-secondary transition-colors"
             :class="isMobile ? 'flex justify-end items-center pt-4' : 'text-center px-6 py-4 sticky right-0 z-20 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]'">
             <button @click="openEditModal(user)"
               class="text-primary hover:text-primary/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105">

@@ -14,10 +14,10 @@ const route = useRoute()
 
     <!-- Sidebar -->
     <aside
-      class="fixed md:sticky top-12 ml-[-12px] md:top-0 h-screen z-30 pb-10 w-64 bg-background border-r border-secondary/20 transform transition-transform duration-300 ease-in-out flex flex-col shadow-lg md:shadow-none"
+      class="fixed md:sticky top-12 bottom-0 left-0 md:h-[calc(100vh-3rem)] z-50 w-64 bg-background border-r border-secondary/20 transform transition-transform duration-300 ease-in-out flex flex-col shadow-lg md:shadow-none overflow-y-auto"
       :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'">
       <!-- Logo / Header -->
-      <div class="px-6 py-3 border-t border-secondary/20 flex justify-between items-center bg-secondary/5">
+      <div class="p-6 border-b border-secondary/20 flex justify-between items-center bg-secondary/5">
         <h2 class="text-xl font-bold text-text flex items-center gap-3">
           <font-awesome-icon icon="fa-solid fa-screwdriver-wrench" class="text-primary" />
           <span>Panel Admin</span>
@@ -30,8 +30,8 @@ const route = useRoute()
       </div>
 
       <!-- Navigation -->
-      <nav class="flex-1 overflow-y-auto h-100vh pb-6 px-4 space-y-1">
-        <div class="p-3 border-t border-secondary">
+      <nav class="flex-1 overflow-y-auto space-y-1">
+        <div class="py-4 px-4 pr-6 border-t border-secondary">
           <span class="text-xs font-bold text-text/40 uppercase tracking-wider block mb-2">
             Manajemen
           </span>
@@ -57,7 +57,7 @@ const route = useRoute()
           </router-link>
         </div>
 
-        <div class="p-3 border-t border-secondary">
+        <div class="py-4 px-4 pr-6 border-t border-secondary">
           <span class="text-xs font-bold text-text/40 uppercase tracking-wider block mb-2">
             Inventaris
           </span>
@@ -88,7 +88,7 @@ const route = useRoute()
           </router-link>
         </div>
 
-        <div class="p-3 border-t border-secondary">
+        <div class="py-4 px-4 pr-6 border-t border-secondary">
           <span class="text-xs font-bold text-text/40 uppercase tracking-wider block mb-2">
             Sistem
           </span>

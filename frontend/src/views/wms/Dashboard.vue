@@ -257,7 +257,7 @@ watch(Escape, (pressed) => {
     </h2>
 
     <div
-      class="bg-secondary/35 p-1.5 rounded-xl border border-secondary/20 shadow-sm flex gap-2 overflow-x-auto max-w-full items-center"
+      class="bg-secondary/35 p-1.5 rounded-xl border border-secondary/20 shadow-sm flex gap-3 overflow-x-auto max-w-full items-center"
       :class="isMobile ? 'grid grid-cols-2 justify-center text-center w-full' : ''">
       <router-link v-if="auth.hasPermission('perform-batch-movement')" to="/wms/actions/batch-movement"
         class="px-4 py-2 text-sm font-bold text-accent hover:bg-accent/10 rounded-lg transition-all flex items-center gap-2 justify-center whitespace-nowrap"

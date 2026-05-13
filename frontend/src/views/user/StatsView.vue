@@ -140,7 +140,6 @@ async function loadHistory() {
     const response = await getUserExportJobs()
     if (response.success) {
       jobHistory.value = response.data
-      console.log('jobHistory: ', jobHistory.value)
     }
   } catch (error) {
     console.error('Gagal memuat riwayat:', error)
@@ -228,14 +227,14 @@ function formatJobType(type) {
 </script>
 
 <template>
-  <div class="flex bg-secondary/10 font-sans text-text">
+  <div class="flex font-sans text-text">
     <!-- Mobile Backdrop -->
     <div v-if="isSidebarOpen" @click="isSidebarOpen = false"
       class="fixed inset-0 bg-black/50 z-20 md:hidden backdrop-blur-sm"></div>
 
     <!-- Sidebar -->
     <aside
-      class="fixed md:sticky top-0 h-screen md:max-h-[700px] z-50 w-64 bg-background border-r border-secondary/20 transform transition-transform duration-300 ease-in-out flex flex-col shadow-lg md:shadow-none"
+      class="fixed md:sticky top-12 bottom-0 left-0 md:h-[calc(95vh-3rem)] z-50 w-64 bg-background border-r border-secondary/20 transform transition-transform duration-300 ease-in-out flex flex-col shadow-lg md:shadow-none overflow-y-auto"
       :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'">
       <!-- Logo / Header -->
       <div class="p-6 border-b border-secondary/20 flex justify-between items-center bg-secondary/5">
@@ -251,8 +250,9 @@ function formatJobType(type) {
       </div>
 
       <!-- Navigation -->
-      <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-6">
-        <div v-for="groupName in ['Overview', 'Laporan Utama', 'Audit & Lainnya']" :key="groupName">
+      <nav class="flex-1 space-y-1 overflow-y-auto mt-[-2vh]">
+        <div v-for="groupName in ['Overview', 'Laporan Utama', 'Audit & Lainnya']" :key="groupName"
+          class="border-t border-secondary py-4 pr-6">
           <h4 class="text-xs font-bold text-text/40 uppercase tracking-wider mb-2 px-3">
             {{ groupName }}
           </h4>
@@ -260,7 +260,7 @@ function formatJobType(type) {
             <a v-for="item in reportsMenu.filter((m) => m.group === groupName)" :key="item.key" href="#" @click.prevent="
               activeReport = item.key;
             isSidebarOpen = false
-              " class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all" :class="activeReport === item.key
+              " class="flex items-center ml-5 px-3 py-2.5 text-sm font-medium rounded-lg transition-all" :class="activeReport === item.key
                 ? 'bg-primary/10 text-primary shadow-sm font-bold ring-1 ring-primary/20'
                 : 'text-text/70 hover:bg-secondary/20 hover:text-text'
                 ">
@@ -288,10 +288,10 @@ function formatJobType(type) {
       </header>
 
       <!-- Page Content -->
-      <main class="flex-1 p-4 md:p-8 overflow-x-hidden w-full">
+      <main class="flex-1 p-4 md:ml-8 w-full">
         <div class="w-full md:w-auto mx-auto">
           <div
-            class="bg-background rounded-xl shadow-md border border-secondary/20 p-6 min-h-[500px] relative overflow-visible animate-fade-in">
+            class="bg-background rounded-xl shadow-md border border-secondary/20 p-6 min-h-[calc(50vh+20rem)] relative overflow-visible animate-fade-in">
             <div v-if="isLoading" class="flex flex-col items-center justify-center h-80">
               <font-awesome-icon icon="fa-solid fa-circle-notch" spin class="text-primary text-4xl mb-3" />
               <span class="text-text/50 font-medium">Memuat Data...</span>
@@ -541,7 +541,7 @@ function formatJobType(type) {
 
               <!-- Attendance Stats Section -->
               <div
-                v-if="!['overview', 'stock-movement', 'stock-timeline', 'inventory-value', 'time-performance', 'export-stock'].includes(activeReport)"
+                v-if="!['overview', 'stock-movement', 'stock-timeline', 'inventory-value', 'time-performance', 'export-stock', 'channel-performance'].includes(activeReport)"
                 class="flex flex-col items-center justify-center h-80 text-text/30">
                 <font-awesome-icon icon="fa-solid fa-screwdriver-wrench" class="text-4xl mb-3 opacity-20" />
                 <h3 class="text-lg font-medium italic">Laporan ini sedang dalam pengembangan.</h3>

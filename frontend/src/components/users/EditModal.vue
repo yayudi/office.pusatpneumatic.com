@@ -99,15 +99,17 @@ watch(Alt_S, (pressed) => {
       </div>
     </div>
     <template #footer>
-      <button @click="emit('close')" class="btn-secondary flex items-center gap-2">
-        <font-awesome-icon icon="fa-solid fa-times" />
-        Batal
-      </button>
-      <button @click="handleSave" :disabled="isLoading" class="btn-primary flex items-center gap-2">
-        <font-awesome-icon v-if="isLoading" icon="fa-solid fa-spinner" spin />
-        <font-awesome-icon v-else icon="fa-solid fa-save" />
-        <span>{{ isLoading ? 'Menyimpan...' : 'Simpan Perubahan' }}</span>
-      </button>
+      <div class="flex gap-4 justify-center pb-6 px-4">
+        <button @click="emit('close')" class="btn-secondary flex items-center gap-2">
+          <font-awesome-icon icon="fa-solid fa-times" />
+          Batal
+        </button>
+        <button @click="handleSave" :disabled="isLoading" class="btn-primary flex items-center gap-2">
+          <font-awesome-icon v-if="isLoading" icon="fa-solid fa-spinner" spin />
+          <font-awesome-icon v-else icon="fa-solid fa-save" />
+          <span>{{ isLoading ? 'Menyimpan...' : 'Simpan Perubahan' }}</span>
+        </button>
+      </div>
     </template>
 
   </Modal>

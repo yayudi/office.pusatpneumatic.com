@@ -77,7 +77,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <header class="bg-background py-1 md:py-3 px-6 sticky top-0 z-[60] border-b border-secondary/20 shadow-md">
+  <header class="bg-background py-1 md:py-3 px-6 fixed top-0 z-[60] border-b border-secondary/20 shadow-md min-w-full">
     <nav class="container mx-auto flex justify-between items-center" title="Navigation Menu" aria-current="page"
       aria-controls="desktop-menu" aria-expanded="false" aria-haspopup="true" aria-labelledby="desktop-menu"
       role="menu">
@@ -87,7 +87,7 @@ onUnmounted(() => {
           Dunia Pratama Sejahtera
         </RouterLink>
 
-        <div class="hidden md:flex items-center lg:gap-6 gap-2 text-sm font-medium">
+        <div class="hidden md:flex items-center lg:gap-6 gap-3 text-sm font-medium">
           <RouterLink to="/wms" class="text-text/80 hover:text-primary transition-colors flex items-center gap-2"
             active-class="!text-primary text-lg font-bold border-primary">
             <font-awesome-icon icon="fa-solid fa-warehouse" />

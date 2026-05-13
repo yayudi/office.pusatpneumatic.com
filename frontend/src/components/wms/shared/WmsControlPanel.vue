@@ -172,9 +172,9 @@ function updateDropdownPosition() {
 
     <!-- Actions & Filters (Inline Right) -->
     <template #actions>
-      <div class="flex flex-wrap items-center justify-between gap-2 min-w-full lg:min-w-0">
+      <div class="flex flex-wrap items-center justify-between gap-3 min-w-full lg:min-w-0">
         <!-- Filter Warehouse (Hanya tampil jika view gudang) -->
-        <div v-if="activeView === 'gudang'" class="flex gap-2 animate-fade-in w-full lg:w-auto lg:min-w-[160px]">
+        <div v-if="activeView === 'gudang'" class="flex gap-3 animate-fade-in w-full lg:w-auto lg:min-w-[160px]">
           <BaseSelect :model-value="selectedBuilding" @update:modelValue="emit('update:selectedBuilding', $event)"
             :options="buildingFilterOptions" track-by="value" emit-value :searchable="false" clearable clear-value="all"
             placeholder="Gedung" class="w-full lg:w-[100px]" />
