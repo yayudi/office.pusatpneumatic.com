@@ -97,7 +97,7 @@ onUnmounted(() => {
         <img v-if="resolveUrl(images[currentIndex].main_path || images[currentIndex].thumbnail_path) && !imgBroken"
           :src="resolveUrl(images[currentIndex].main_path || images[currentIndex].thumbnail_path)"
           class="max-h-full max-w-full object-contain pointer-events-auto rounded shadow-2xl transition-transform duration-300"
-          :alt="images[currentIndex].original_name" @error="imgBroken = true" />
+          :alt="images[currentIndex].title" @error="imgBroken = true" />
         <div v-else class="w-64 h-64 flex flex-col items-center justify-center text-white/30 pointer-events-auto">
           <font-awesome-icon icon="fa-solid fa-image" class="text-7xl mb-3" />
           <span class="text-sm font-medium">Gambar tidak tersedia</span>
@@ -106,8 +106,7 @@ onUnmounted(() => {
         <!-- Bottom Metadata Overlay -->
         <div
           class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white px-6 py-2 rounded-full flex flex-col items-center pointer-events-auto backdrop-blur-sm shadow-lg border border-white/10 min-w-[200px]">
-          <span class="font-bold text-sm truncate max-w-[250px] md:max-w-md">{{ images[currentIndex].original_name
-            }}</span>
+          <span class="font-bold text-sm truncate max-w-[250px] md:max-w-md">{{ images[currentIndex].title || 'Gambar' }}</span>
           <div class="flex items-center gap-3 text-[10px] text-white/70 mt-0.5 uppercase tracking-wider font-semibold">
             <span>{{ currentIndex + 1 }} OF {{ images.length }}</span>
             <template v-if="images[currentIndex].width && images[currentIndex].height">

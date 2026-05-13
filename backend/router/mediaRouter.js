@@ -40,5 +40,6 @@ router.get("/:id", mediaController.getMediaById);
 router.post("/upload", upload.array("images", 20), mediaController.uploadMedia);
 router.delete("/:id", mediaController.deleteMedia);
 router.put("/:id/tags", mediaController.updateMediaTagsController);
+router.put("/:id/title", mediaController.updateMediaTitleController);
 
 export default router;

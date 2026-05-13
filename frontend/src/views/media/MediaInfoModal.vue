@@ -142,6 +142,38 @@ async function unlinkProduct(productRaw) {
   }
 }
 
+// --- TITLE EDITING ---
+const isEditingTitle = ref(false)
+const editTitle = ref('')
+const loadingTitle = ref(false)
+
+const startEditTitle = () => {
+  editTitle.value = mediaData.value?.title || ''
+  isEditingTitle.value = true
+}
+
+const saveTitle = async () => {
+  if (!editTitle.value.trim()) {
+    toast('Judul tidak boleh kosong', 'warning')
+    return
+  }
+  loadingTitle.value = true
+  try {
+    const { data } = await instance.put(`/media/${props.mediaId}/title`, { title: editTitle.value })
+    if (data.success) {
+      toast('Judul berhasil diperbarui', 'success')
+      isEditingTitle.value = false
+      await fetchMediaDetails()
+      emit('refresh')
+    }
+  } catch (err) {
+    console.error(err)
+    toast(err.response?.data?.message || 'Gagal memperbarui judul', 'error')
+  } finally {
+    loadingTitle.value = false
+  }
+}
+
 const formatTags = (tagsStr) => {
   if (!tagsStr) return []
   try {
@@ -170,7 +202,7 @@ watch(Alt_S, (pressed) => {
 
       <!-- Left: Image Preview -->
       <div
-        class="w-full md:w-1/2 bg-base-200/50 flex flex-col items-center justify-center relative p-6 border-r border-secondary/10">
+        class="w-full md:w-1/2 bg-secondary/50 flex flex-col items-center justify-center relative p-6 border-r border-secondary/10">
         <div v-if="fetching"
           class="absolute inset-0 flex items-center justify-center bg-background/80 z-10 backdrop-blur-sm">
           <font-awesome-icon icon="fa-solid fa-spinner" spin class="text-primary text-3xl" />
@@ -202,8 +234,32 @@ watch(Alt_S, (pressed) => {
         </button>
 
         <div class="p-6 flex-1 overflow-y-auto w-full">
-          <h3 class="font-bold text-xl text-text mb-1">Detail Media</h3>
-          <p class="text-xs text-text/50 font-mono mb-4">{{ mediaData?.original_name || 'Memuat...' }}</p>
+          <div class="mb-4">
+            <h3 class="font-bold text-xl text-text mb-1">Detail Media</h3>
+
+            <div v-if="!isEditingTitle" class="flex items-center gap-2 group">
+              <p class="text-xs text-text/50 font-mono truncate max-w-sm" :title="mediaData?.title">{{ mediaData?.title
+                || 'Memuat...' }}</p>
+              <button @click="startEditTitle"
+                class="text-primary/50 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Edit Judul">
+                <font-awesome-icon icon="fa-solid fa-pen" class="text-[10px]" />
+              </button>
+            </div>
+
+            <div v-else class="flex items-center gap-2 mt-1">
+              <input type="text" v-model="editTitle" @keyup.enter="saveTitle" @keyup.esc="isEditingTitle = false"
+                class="flex-1 bg-background border border-primary/30 rounded px-2 py-1 text-xs text-text focus:border-primary focus:ring-1 focus:ring-primary outline-none font-mono"
+                placeholder="Judul gambar..." :disabled="loadingTitle" />
+              <button @click="saveTitle" :disabled="loadingTitle" class="text-success hover:text-success/80">
+                <font-awesome-icon :icon="loadingTitle ? 'fa-solid fa-spinner' : 'fa-solid fa-check'"
+                  :spin="loadingTitle" />
+              </button>
+              <button @click="isEditingTitle = false" :disabled="loadingTitle" class="text-danger hover:text-danger/80">
+                <font-awesome-icon icon="fa-solid fa-times" />
+              </button>
+            </div>
+          </div>
 
           <template v-if="mediaData && !fetching">
             <!-- Meta Stats -->
@@ -284,8 +340,9 @@ watch(Alt_S, (pressed) => {
                   class="px-2 py-1 bg-secondary/10 text-text/70 rounded-md text-[10px] border border-secondary/20 font-bold uppercase">
                   #{{ tag }}
                 </span>
-                <span v-if="formatTags(mediaData.tags).length === 0" class="text-xs text-text/40 italic">Tidak ada
-                  tag.</span>
+                <span v-if="formatTags(mediaData.tags).length === 0" class="text-xs text-text/40 italic">
+                  Tidak ada tag.
+                </span>
               </div>
             </div>
 
@@ -295,18 +352,22 @@ watch(Alt_S, (pressed) => {
             <div class="mb-4">
               <h4 class="font-bold text-sm text-text flex items-center justify-between mb-3">
                 Sematan Produk
-                <span class="bg-primary/10 text-primary text-[10px] px-2 py-1 rounded-full font-mono">{{
-                  mediaData.products?.length || 0 }}</span>
+                <span class="bg-primary/10 text-primary text-[10px] px-2 py-1 rounded-full font-mono">
+                  {{ mediaData.products?.length || 0 }}
+                </span>
               </h4>
 
               <div v-if="mediaData.products?.length > 0" class="flex flex-col gap-2">
                 <div v-for="prod in mediaData.products" :key="prod.id"
-                  class="flex items-center justify-between bg-background border border-secondary/20 p-2 rounded-lg shadow-sm hover:border-text/20 transition-colors">
+                  class="flex items-center justify-between bg-secondary/20 border border-secondary/20 p-2 rounded-lg shadow-sm hover:border-text/20 transition-colors">
                   <div class="flex items-center gap-2">
                     <span
-                      class="font-mono bg-secondary/10 border border-secondary/20 px-1.5 py-0.5 rounded text-[10px] text-text/80 font-bold">{{
-                        prod.sku }}</span>
-                    <span class="text-xs font-semibold text-text">{{ prod.name }}</span>
+                      class="font-mono bg-secondary/60 border border-secondary/20 px-1.5 py-0.5 rounded text-[10px] text-text/80 font-bold">
+                      {{ prod.sku }}
+                    </span>
+                    <span class="text-xs font-semibold text-text">
+                      {{ prod.name }}
+                    </span>
                   </div>
                   <button v-if="canDelete" @click="unlinkProduct(prod)" :disabled="loading"
                     class="w-7 h-7 flex items-center justify-center rounded-md bg-danger/10 text-danger hover:bg-danger hover:text-white transition-colors flex-shrink-0"

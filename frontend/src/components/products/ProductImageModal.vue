@@ -36,7 +36,7 @@ const lightboxImages = computed(() =>
   existingImages.value.map(img => ({
     main_path: img.image_path,
     thumbnail_path: img.thumbnail_path || img.image_path,
-    original_name: img.original_name || 'Gambar Produk',
+    title: img.title || 'Gambar Produk',
   }))
 )
 
@@ -103,6 +103,11 @@ watch(
   }
 )
 
+const fileTitles = ref([])
+const uploadTagsStr = ref('')
+
+const stripExtension = (filename) => filename.replace(/\.[^/.]+$/, '');
+
 async function handleImageUpload(event) {
   const files = Array.from(event.target.files)
   if (files.length === 0) return
@@ -117,6 +122,7 @@ async function handleImageUpload(event) {
   validFiles.forEach(file => {
     file.preview = URL.createObjectURL(file)
     selectedImages.value.push(file)
+    fileTitles.value.push(stripExtension(file.name))
   })
 
   event.target.value = ''
@@ -124,6 +130,7 @@ async function handleImageUpload(event) {
 
 function removeSelectedImage(index) {
   selectedImages.value.splice(index, 1)
+  fileTitles.value.splice(index, 1)
 }
 
 const autoCropAllProcessing = ref(false)
@@ -160,8 +167,22 @@ const handleCroppedSave = (newFile) => {
   }
 }
 
+const genericKeywords = ['image', 'images', 'gambar', 'img', 'photo', 'pic', 'untitled', 'whatsapp image', 'telegram', 'screenshot', 'screen shot', 'capture', 'dcim', 'picture', 'snip'];
+const isGenericTitle = (title) => {
+  if (!title || !title.trim()) return true;
+  const lower = title.toLowerCase();
+  return genericKeywords.some(kw => lower.includes(kw));
+}
+
 async function saveNewImages() {
   if (selectedImages.value.length === 0) return
+
+  // Validasi judul generik
+  const invalidIndex = fileTitles.value.findIndex(t => isGenericTitle(t));
+  if (invalidIndex !== -1) {
+    toast(`Silakan ubah nama file "${fileTitles.value[invalidIndex]}" menjadi lebih deskriptif.`, 'warning');
+    return;
+  }
 
   loading.value = true
   const formData = new FormData()
@@ -169,6 +190,10 @@ async function saveNewImages() {
     formData.append('images', file, file.name)
   })
 
+  formData.append('titles', JSON.stringify(fileTitles.value))
+  if (uploadTagsStr.value.trim()) {
+    formData.append('tags', uploadTagsStr.value.trim())
+  }
   formData.append('products', JSON.stringify([props.productData.id]));
 
   try {
@@ -179,6 +204,10 @@ async function saveNewImages() {
     if (data.success) {
       toast(`${selectedImages.value.length} gambar masuk antrean pemrosesan.`, 'success')
       selectedImages.value = []
+      fileTitles.value = []
+      uploadTagsStr.value = ''
+      fileTitles.value = []
+      uploadTagsStr.value = ''
 
       setTimeout(async () => {
         await fetchImages()
@@ -242,7 +271,7 @@ const getImageUrl = resolveUrl
       </div>
     </template>
 
-    <div class="flex flex-col gap-6 h-full pb-6 overflow-y-scroll">
+    <div class="flex flex-col gap-6 h-full pb-6 overflow-y-auto custom-scrollbar">
       <div v-if="fetching" class="flex flex-col items-center justify-center py-12 text-text/40">
         <font-awesome-icon icon="fa-solid fa-spinner" class="animate-spin text-3xl mb-3" />
         <span class="text-sm">Memuat galeri...</span>
@@ -263,7 +292,7 @@ const getImageUrl = resolveUrl
 
           <div v-else class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
             <MediaCard v-for="(img, index) in existingImages" :key="img.id" :image-url="getImageUrl(img.image_path)"
-              :image-id="img.id" :display-name="img.original_name || 'Gambar Produk'"
+              :image-id="img.id" :display-name="img.title || 'Gambar Produk'"
               @click="isLightboxOpen = true; lightboxIndex = index">
 
               <template #badges>
@@ -274,7 +303,7 @@ const getImageUrl = resolveUrl
               </template>
 
               <template #actions>
-                <MediaActionBar :image-url="getImageUrl(img.image_path)" :filename="img.original_name">
+                <MediaActionBar :image-url="getImageUrl(img.image_path)" :filename="img.title">
                   <button v-if="!img.is_primary && canUpload" @click.stop="setPrimary(img.id)" :disabled="loading"
                     class="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-lg"
                     title="Jadikan Utama">
@@ -316,28 +345,56 @@ const getImageUrl = resolveUrl
                 :disabled="loading" />
             </label>
             <div v-if="selectedImages.length > 0" class="flex flex-col gap-3 animate-slide-up">
-              <div class="grid grid-cols-3 md:grid-cols-6 gap-3">
+              <!-- File Item List with Title Edit -->
+              <div class="flex flex-col gap-2">
                 <div v-for="(file, idx) in selectedImages" :key="idx"
-                  class="relative aspect-square rounded-lg overflow-hidden border border-secondary/20 group">
-                  <img :src="file.preview" class="w-full h-full object-cover" />
-                  <!-- Hover overlay for individual crop & delete -->
-                  <div
-                    class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px]">
-                    <button @click.prevent="openCropper(idx)"
-                      class="w-8 h-8 rounded-full bg-primary text-background flex items-center justify-center hover:scale-110 transition-transform shadow-lg"
-                      title="Edit Gambar">
-                      <font-awesome-icon icon="fa-solid fa-crop-simple" />
-                    </button>
+                  class="flex flex-col md:flex-row gap-3 items-start md:items-center p-3 bg-secondary/5 rounded-lg border border-secondary/20 hover:border-primary/30 transition-colors">
+                  
+                  <!-- Thumbnail & Base actions -->
+                  <div class="flex items-center gap-3 w-full md:w-auto shrink-0">
+                    <div class="relative w-16 h-16 rounded overflow-hidden bg-background border border-secondary/10 group">
+                      <img :src="file.preview" class="w-full h-full object-cover" />
+                      <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 backdrop-blur-[2px]">
+                        <button @click.prevent="openCropper(idx)"
+                          class="w-6 h-6 rounded-full bg-primary text-background flex items-center justify-center hover:scale-110 transition-transform shadow-lg"
+                          title="Crop Gambar">
+                          <font-awesome-icon icon="fa-solid fa-crop-simple" class="text-[10px]" />
+                        </button>
+                      </div>
+                    </div>
+                    <div class="flex flex-col flex-1 min-w-0">
+                      <span class="text-xs font-bold text-text truncate" :title="file.name">{{ file.name }}</span>
+                      <span class="text-[10px] text-text/50">{{ (file.size / 1024).toFixed(1) }} KB</span>
+                    </div>
+                  </div>
+
+                  <!-- Title Input & Delete -->
+                  <div class="flex items-center gap-2 w-full md:w-auto md:flex-1 mt-2 md:mt-0">
+                    <div class="flex-1 relative">
+                      <font-awesome-icon icon="fa-solid fa-pen" class="absolute left-3 top-1/2 -translate-y-1/2 text-text/30 text-xs" />
+                      <input type="text" v-model="fileTitles[idx]"
+                        class="w-full bg-background border border-secondary/20 rounded pl-8 pr-3 py-1.5 text-xs text-text focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                        placeholder="Ubah judul gambar..." />
+                    </div>
                     <button @click.prevent="removeSelectedImage(idx)"
-                      class="w-8 h-8 rounded-full bg-danger text-white flex items-center justify-center hover:scale-110 transition-transform shadow-lg"
-                      title="Hapus">
-                      <font-awesome-icon icon="fa-solid fa-trash-can" />
+                      class="shrink-0 w-8 h-8 rounded-full bg-danger/10 text-danger flex items-center justify-center hover:bg-danger hover:text-white transition-colors"
+                      title="Batal Unggah">
+                      <font-awesome-icon icon="fa-solid fa-times" />
                     </button>
                   </div>
                 </div>
               </div>
-              <div class="flex justify-end gap-3 mt-2">
-                <button @click="selectedImages = []"
+
+              <!-- Bulk Tags -->
+              <div class="mt-2 flex items-center gap-3">
+                <font-awesome-icon icon="fa-solid fa-tags" class="text-primary/50" />
+                <input type="text" v-model="uploadTagsStr"
+                  class="flex-1 bg-background border border-secondary/20 rounded px-3 py-1.5 text-xs text-text focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                  placeholder="Tambahkan tag (pisahkan dengan koma). Contoh: depan, atas, merah" />
+              </div>
+
+              <div class="flex justify-end gap-3 mt-4 border-t border-secondary/10 pt-4">
+                <button @click="selectedImages = []; fileTitles = []"
                   class="px-4 py-2 text-text/60 font-bold hover:bg-secondary/10 rounded-lg text-sm transition-colors">
                   Batal
                 </button>

@@ -60,6 +60,7 @@ watch(linkStatusFilter, () => fetchMedia(1));
 // Bulk Upload State
 const isBulkModalOpen = ref(false);
 const selectedFiles = ref([]);
+const fileTitles = ref([]);
 const bulkTagsStr = ref('');
 
 // Bulk Products Autocomplete State
@@ -222,10 +223,13 @@ const triggerUpload = () => {
   }
 };
 
+const stripExtension = (filename) => filename.replace(/\.[^/.]+$/, '');
+
 const processFilesForUpload = (files) => {
   if (!files || files.length === 0) return;
 
   selectedFiles.value = Array.from(files);
+  fileTitles.value = Array.from(files).map(f => stripExtension(f.name));
   bulkTagsStr.value = '';
   bulkSelectedProducts.value = [];
   bulkProductSearchQuery.value = '';
@@ -273,6 +277,11 @@ const removeSelectedFile = (index) => {
   const updatedFiles = [...selectedFiles.value];
   updatedFiles.splice(index, 1);
   selectedFiles.value = updatedFiles;
+
+  const updatedTitles = [...fileTitles.value];
+  updatedTitles.splice(index, 1);
+  fileTitles.value = updatedTitles;
+
   if (selectedFiles.value.length === 0) {
     isBulkModalOpen.value = false;
   }
@@ -320,12 +329,27 @@ const handlePaste = (event) => {
     } else {
       // Append ke file yang sudah ada
       selectedFiles.value = [...selectedFiles.value, ...pastedFiles];
+      fileTitles.value = [...fileTitles.value, ...pastedFiles.map(f => stripExtension(f.name))];
     }
   }
 };
 
+const genericKeywords = ['image', 'images', 'gambar', 'img', 'photo', 'pic', 'untitled', 'whatsapp image', 'telegram', 'screenshot', 'screen shot', 'capture', 'dcim', 'picture', 'snip'];
+const isGenericTitle = (title) => {
+  if (!title || !title.trim()) return true;
+  const lower = title.toLowerCase();
+  return genericKeywords.some(kw => lower.includes(kw));
+}
+
 const executeBulkUpload = async () => {
   if (selectedFiles.value.length === 0) return;
+
+  // Validasi judul generik
+  const invalidIndex = fileTitles.value.findIndex(t => isGenericTitle(t));
+  if (invalidIndex !== -1) {
+    toast(`Silakan ubah nama file "${fileTitles.value[invalidIndex]}" menjadi lebih spesifik.`, 'warning');
+    return;
+  }
 
   isUploading.value = true;
   isBulkModalOpen.value = false;
@@ -338,6 +362,10 @@ const executeBulkUpload = async () => {
 
       const formData = new FormData();
       chunk.forEach(f => formData.append('images', f));
+
+      // Kirim custom titles sejajar dengan chunk
+      const chunkTitles = fileTitles.value.slice(i, i + chunkSize);
+      formData.append('titles', JSON.stringify(chunkTitles));
 
       if (bulkTagsStr.value.trim()) {
         formData.append('tags', bulkTagsStr.value.trim());
@@ -359,6 +387,7 @@ const executeBulkUpload = async () => {
     isUploading.value = false;
     uploadProgress.value = '';
     selectedFiles.value = [];
+    fileTitles.value = [];
     fetchMedia(1);
   }
 };
@@ -411,7 +440,7 @@ const bulkDownloadImages = async () => {
   const items = getSelectedItems();
   if (items.length === 0) return;
   for (const item of items) {
-    await downloadImage(resolveUrl(item.main_path), item.original_name || item.file_name);
+    await downloadImage(resolveUrl(item.main_path), item.title || 'Gambar');
   }
   toast(`${items.length} gambar sedang diunduh.`, 'success');
 };
@@ -581,13 +610,13 @@ onUnmounted(() => {
           @click="isSelectionMode ? toggleSelection(item) : (item.status === 'COMPLETED' ? (isLightboxOpen = true, lightboxIndex = index) : null)">
 
           <MediaCard :image-url="resolveUrl(item.thumbnail_path || item.main_path)" :image-id="item.id"
-            :display-name="item.original_name || 'Gambar'" :status="item.status"
+            :display-name="item.title || 'Gambar'" :status="item.status"
             :selected="selectedMediaIds.has(item.id)" :selectable="isSelectionMode && item.status === 'COMPLETED'"
             :show-overlay="!isSelectionMode" class="!aspect-auto w-full h-full !rounded-lg !border-0 !shadow-none">
 
             <template #actions>
               <MediaActionBar :image-url="item.status === 'COMPLETED' ? resolveUrl(item.main_path) : null"
-                :filename="item.original_name">
+                :filename="item.title">
                 <button @click.stop="openInfoModal(item)"
                   class="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-background hover:backdrop-brightness-75 transition-transform hover:scale-110"
                   title="Info & Editor Tag">
@@ -706,6 +735,23 @@ onUnmounted(() => {
           <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1">
             <p class="text-[10px] text-white text-center truncate px-1">{{ (file.size / 1024).toFixed(0) }} KB</p>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Per-File Title Editing -->
+    <div class="mb-4">
+      <label class="block text-xs font-bold text-text/70 mb-2">
+        <font-awesome-icon icon="fa-solid fa-pen" class="mr-1" />
+        Nama File ({{ selectedFiles.length }})
+      </label>
+      <div class="max-h-40 overflow-y-auto space-y-2 custom-scrollbar">
+        <div v-for="(file, index) in selectedFiles" :key="index"
+          class="flex items-center gap-2 bg-secondary/10 rounded-lg p-1.5 border border-secondary/20">
+          <img :src="filePreviews[index]" class="w-8 h-8 rounded object-cover shrink-0 border border-secondary/30" />
+          <input type="text" v-model="fileTitles[index]"
+            class="flex-1 bg-background border border-secondary/30 rounded px-2 py-1 text-xs text-text focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none"
+            :placeholder="file.name" />
         </div>
       </div>
     </div>

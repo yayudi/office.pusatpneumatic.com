@@ -13,7 +13,7 @@ const buildFilterClause = (filters = {}) => {
   if (filters.search) {
     const keyword = `%${filters.search}%`;
     conditions.push(`(
-      m.original_name LIKE ?
+      m.title LIKE ?
       OR m.tags LIKE ?
       OR EXISTS (
         SELECT 1 FROM product_images pi
@@ -106,14 +106,13 @@ export const getMediaDetailsWithProducts = async (connection, mediaId) => {
  * @returns {Promise<number>}
  */
 export const createMediaAsset = async (connection, mediaData) => {
-  const { originalName, mainPath, thumbnailPath, status, uploaderId, tags } = mediaData;
-  const fileName = originalName;
+  const { title, mainPath, thumbnailPath, status, uploaderId, tags } = mediaData;
   const tagsJson = tags && tags.length > 0 ? JSON.stringify(tags) : null;
 
   const [result] = await connection.query(`
-    INSERT INTO media_assets (file_name, original_name, main_path, thumbnail_path, status, uploader_id, tags)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `, [fileName, originalName, mainPath, thumbnailPath, status, uploaderId, tagsJson]);
+    INSERT INTO media_assets (title, main_path, thumbnail_path, status, uploader_id, tags)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `, [title, mainPath, thumbnailPath, status, uploaderId, tagsJson]);
 
   return result.insertId;
 };
@@ -155,4 +154,15 @@ export const getMediaAssetsByIds = async (connection, mediaIds) => {
 export const updateMediaTags = async (connection, mediaId, tags) => {
   const tagsJson = tags && tags.length > 0 ? JSON.stringify(tags.map(t => t.toLowerCase())) : null;
   await connection.query('UPDATE media_assets SET tags = ? WHERE id = ?', [tagsJson, mediaId]);
+};
+
+/**
+ * Update Title dari Media Asset
+ * @param {object} connection
+ * @param {number} mediaId
+ * @param {string} title
+ * @returns {Promise<void>}
+ */
+export const updateMediaTitle = async (connection, mediaId, title) => {
+  await connection.query('UPDATE media_assets SET title = ? WHERE id = ?', [title, mediaId]);
 };

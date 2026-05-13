@@ -59,7 +59,7 @@ watch(Escape, (pressed) => {
         </div>
 
         <!-- Konten Utama Modal -->
-        <div class="px-6 overflow-y-auto">
+        <div class="px-6 overflow-y-auto custom-scrollbar">
           <!-- Slot default untuk konten apa pun -->
           <slot />
         </div>

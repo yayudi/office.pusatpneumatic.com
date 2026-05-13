@@ -135,20 +135,33 @@ export const uploadMedia = async (req, res) => {
 
   let connection;
 
+  // Parse custom titles (JSON array dari frontend, posisi sejajar dengan req.files)
+  let titles = [];
+  if (req.body.titles) {
+    try {
+      titles = JSON.parse(req.body.titles);
+    } catch (e) {
+      titles = [];
+    }
+  }
+
   try {
     connection = await db.getConnection();
     await connection.beginTransaction();
 
     const uploadedAssets = [];
 
-    for (const file of req.files) {
+    for (let i = 0; i < req.files.length; i++) {
+      const file = req.files[i];
       if (!file.filename) {
         throw new Error("File tidak memiliki filename. Pastikan multerConfig 'uploadDisk' berjalan normal.");
       }
 
+      const fileTitle = (titles[i] && titles[i].trim()) || file.originalname;
+
       const mediaId = await mediaRepo.createMediaAsset(connection, {
-        originalName: file.originalname,
-        mainPath: `temp/${file.filename}`, // Simpan TANPA uploads/ agar sinkron dengan main/ dan thumb/
+        title: fileTitle,
+        mainPath: `temp/${file.filename}`,
         thumbnailPath: null,
         status: "PENDING",
         uploaderId: userId,
@@ -270,6 +283,36 @@ export const updateMediaTagsController = async (req, res) => {
   } catch (error) {
     console.error("Error updating tags:", error);
     res.status(500).json({ success: false, message: "Gagal memperbarui tag" });
+  } finally {
+    if (connection) connection.release();
+  }
+};
+
+/**
+ * PUT /api/media/:id/title
+ * Memperbarui judul (title) aset
+ */
+export const updateMediaTitleController = async (req, res) => {
+  const { id } = req.params;
+  const { title } = req.body;
+
+  if (!title || typeof title !== 'string' || title.trim() === '') {
+    return res.status(400).json({ success: false, message: "Judul tidak boleh kosong" });
+  }
+
+  let connection;
+  try {
+    connection = await db.getConnection();
+
+    const asset = await mediaRepo.getMediaAssetById(connection, id);
+    if (!asset) return res.status(404).json({ success: false, message: "Aset tidak ditemukan" });
+
+    await mediaRepo.updateMediaTitle(connection, id, title.trim());
+    res.json({ success: true, message: "Judul berhasil diperbarui" });
+
+  } catch (error) {
+    console.error("Error updating title:", error);
+    res.status(500).json({ success: false, message: "Gagal memperbarui judul" });
   } finally {
     if (connection) connection.release();
   }

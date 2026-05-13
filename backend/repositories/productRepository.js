@@ -264,7 +264,7 @@ export const getProductDetailWithStock = async (connection, id) => {
   if (rows.length === 0) return null;
   const product = rows[0];
   const [images] = await connection.query(
-    "SELECT pi.id, ma.main_path as image_path, ma.thumbnail_path, ma.original_name, pi.is_primary FROM product_images pi JOIN media_assets ma ON pi.media_id = ma.id WHERE pi.product_id = ? ORDER BY pi.is_primary DESC, pi.sort_order ASC",
+    "SELECT pi.id, ma.main_path as image_path, ma.thumbnail_path, ma.title, pi.is_primary FROM product_images pi JOIN media_assets ma ON pi.media_id = ma.id WHERE pi.product_id = ? ORDER BY pi.is_primary DESC, pi.sort_order ASC",
     [id]
   );
   product.images = images;
