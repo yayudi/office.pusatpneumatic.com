@@ -215,8 +215,13 @@ async function saveNewImages() {
       }, 1500)
     }
   } catch (error) {
-    console.error(error)
-    toast('Gagal mengupload gambar.', 'error')
+    const errData = error.response?.data;
+    if (errData?.error_code === 'DUPLICATE_MEDIA') {
+      toast(`Duplikat: ${errData.message} (ID aset: ${errData.duplicateOf})`, 'warning')
+    } else {
+      console.error(error)
+      toast('Gagal mengupload gambar.', 'error')
+    }
   } finally {
     loading.value = false
   }

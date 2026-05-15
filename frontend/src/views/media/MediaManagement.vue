@@ -376,13 +376,22 @@ const executeBulkUpload = async () => {
         formData.append('products', pIds);
       }
 
-      await apiClient.post('/media/upload', formData, {
+      const result = await apiClient.post('/media/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
+
+      if (!result.data.success) {
+        throw result.data;
+      }
     }
   } catch (err) {
-    console.error('Upload Error:', err);
-    alert(err.response?.data?.message || 'Gagal mengunggah beberapa gambar.');
+    const errData = err.response?.data || err;
+    if (errData?.error_code === 'DUPLICATE_MEDIA') {
+      alert(`⚠️ Duplikat terdeteksi: ${errData.message}\n\nGunakan aset yang sudah ada.`);
+    } else {
+      console.error('Upload Error:', err);
+      alert(errData?.message || 'Gagal mengunggah beberapa gambar.');
+    }
   } finally {
     isUploading.value = false;
     uploadProgress.value = '';
@@ -610,9 +619,9 @@ onUnmounted(() => {
           @click="isSelectionMode ? toggleSelection(item) : (item.status === 'COMPLETED' ? (isLightboxOpen = true, lightboxIndex = index) : null)">
 
           <MediaCard :image-url="resolveUrl(item.thumbnail_path || item.main_path)" :image-id="item.id"
-            :display-name="item.title || 'Gambar'" :status="item.status"
-            :selected="selectedMediaIds.has(item.id)" :selectable="isSelectionMode && item.status === 'COMPLETED'"
-            :show-overlay="!isSelectionMode" class="!aspect-auto w-full h-full !rounded-lg !border-0 !shadow-none">
+            :display-name="item.title || 'Gambar'" :status="item.status" :selected="selectedMediaIds.has(item.id)"
+            :selectable="isSelectionMode && item.status === 'COMPLETED'" :show-overlay="!isSelectionMode"
+            class="!aspect-auto w-full h-full !rounded-lg !border-0 !shadow-none">
 
             <template #actions>
               <MediaActionBar :image-url="item.status === 'COMPLETED' ? resolveUrl(item.main_path) : null"
@@ -680,12 +689,8 @@ onUnmounted(() => {
         Upload gambar dari komputer Anda untuk mulai mengisi galeri media.
       </p>
     </div>
-    <ImageCropperModal
-      v-if="currentEditIndex !== -1 && currentEditFile"
-      :show="isCropperOpen"
-      :file="currentEditFile"
-      @close="isCropperOpen = false; currentEditIndex = -1; currentEditFile = null"
-      @save="handleCroppedSave" />
+    <ImageCropperModal v-if="currentEditIndex !== -1 && currentEditFile" :show="isCropperOpen" :file="currentEditFile"
+      @close="isCropperOpen = false; currentEditIndex = -1; currentEditFile = null" @save="handleCroppedSave" />
   </div>
 
   <!-- Pagination -->
@@ -702,6 +707,7 @@ onUnmounted(() => {
         <button @click="autoCropAll" :disabled="autoCropAllProcessing"
           title="Otomatis potong semua gambar menjadi rasio 1:1 di tengah"
           class="px-3 py-1 text-sm rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-2 font-medium">
+          <!-- TODO: button rata kanan -->
           <font-awesome-icon v-if="autoCropAllProcessing" icon="fa-solid fa-spinner" spin />
           <font-awesome-icon v-else icon="fa-solid fa-crop-simple" />
           <span class="hidden sm:inline">Auto 1:1 Semua</span>

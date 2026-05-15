@@ -2,9 +2,8 @@
 import path from "path";
 import fs from "fs/promises";
 import * as mediaRepo from "../repositories/mediaRepository.js";
+import * as mediaService from "../services/mediaService.js";
 import db from "../config/db.js";
-
-// Helper: Ensure Temp Dir
 const createTempDir = async () => {
   const tempDir = path.resolve('uploads/temp');
   try {
@@ -159,14 +158,10 @@ export const uploadMedia = async (req, res) => {
 
       const fileTitle = (titles[i] && titles[i].trim()) || file.originalname;
 
-      const mediaId = await mediaRepo.createMediaAsset(connection, {
-        title: fileTitle,
-        mainPath: `temp/${file.filename}`,
-        thumbnailPath: null,
-        status: "PENDING",
-        uploaderId: userId,
-        tags: tags
-      });
+// EXIF stripping and hashing are handled in mediaService
+
+      // Use service to process and store the file, handling EXIF stripping, hashing, and duplicate detection
+      const mediaId = await mediaService.processMediaFile(file, fileTitle, tags, userId, connection);
 
       // Tautkan otomatis ke Produk jika ada (fitur Bulk Upload Link)
       if (req.body.products) {
@@ -201,6 +196,24 @@ export const uploadMedia = async (req, res) => {
     });
   } catch (error) {
     if (connection) await connection.rollback();
+    
+    // Cleanup temporary files on failure
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const filePath = file.path || path.resolve('uploads/temp', file.filename);
+        await fs.unlink(filePath).catch(() => {});
+      }
+    }
+
+    if (error.isDuplicate) {
+      return res.status(409).json({
+        success: false,
+        message: `Gambar ${error.filename} sudah ada`,
+        error_code: "DUPLICATE_MEDIA",
+        duplicateOf: error.duplicateOf
+      });
+    }
+
     console.error("Error uploading media:", error);
     res.status(500).json({ success: false, message: "Gagal mengunggah media" });
   } finally {

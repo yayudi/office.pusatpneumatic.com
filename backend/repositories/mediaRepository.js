@@ -100,21 +100,35 @@ export const getMediaDetailsWithProducts = async (connection, mediaId) => {
 };
 
 /**
- * Menyimpan data media yang baru diupload (sebelum diproses wasm-vips)
+ * Menyimpan data media yang baru diupload
  * @param {object} connection
  * @param {object} mediaData
  * @returns {Promise<number>}
  */
 export const createMediaAsset = async (connection, mediaData) => {
-  const { title, mainPath, thumbnailPath, status, uploaderId, tags } = mediaData;
+  const { 
+    title, mainPath, thumbnailPath, status, uploaderId, tags, hash, duplicateOf,
+    sizeBytes, width, height 
+  } = mediaData;
   const tagsJson = tags && tags.length > 0 ? JSON.stringify(tags) : null;
 
   const [result] = await connection.query(`
-    INSERT INTO media_assets (title, main_path, thumbnail_path, status, uploader_id, tags)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `, [title, mainPath, thumbnailPath, status, uploaderId, tagsJson]);
+    INSERT INTO media_assets (
+      title, main_path, thumbnail_path, status, uploader_id, tags, hash, duplicate_of,
+      size_bytes, width, height
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `, [
+    title, mainPath, thumbnailPath, status, uploaderId, tagsJson, hash, duplicateOf,
+    sizeBytes, width, height
+  ]);
 
   return result.insertId;
+};
+
+export const getMediaAssetByHash = async (connection, hash) => {
+  const [rows] = await connection.query('SELECT id FROM media_assets WHERE hash = ?', [hash]);
+  return rows[0] || null;
 };
 
 /**

@@ -59,13 +59,13 @@ watch(Escape, (pressed) => {
         </div>
 
         <!-- Konten Utama Modal -->
-        <div class="px-6 overflow-y-auto custom-scrollbar">
+        <div class="px-4 overflow-y-auto custom-scrollbar">
           <!-- Slot default untuk konten apa pun -->
           <slot />
         </div>
 
         <!-- Footer Modal (opsional) -->
-        <div v-if="$slots.footer" class="bg-secondary/10 flex justify-end gap-2 shrink-0"
+        <div v-if="$slots.footer" class="py-3 px-4 bg-secondary/20 flex justify-end gap-2 shrink-0"
           :class="isMobile ? 'rounded-none' : 'rounded-b-xl'">
           <slot name="footer" />
         </div>
