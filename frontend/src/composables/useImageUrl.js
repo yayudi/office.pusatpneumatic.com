@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import apiClient from '@/api/axios'
+import { useAuthStore } from '@/stores/auth.js'
 
 /**
  * Single source of truth for backend URL derivation and image path resolution.
@@ -22,7 +23,18 @@ export const resolveUrl = (path) => {
   if (!path) return null
   const cleanPath = path.startsWith('/') ? path.substring(1) : path
   const prefix = cleanPath.startsWith('uploads/') ? '' : 'uploads/'
-  return `${backendUrl}/${prefix}${cleanPath}`
+  const url = `${backendUrl}/${prefix}${cleanPath}`
+  
+  // Ambil token dari store (bypass reactivity jika dijalankan diluar setup, pinia sudah terinisialisasi)
+  try {
+    const auth = useAuthStore()
+    if (auth.token) {
+      return `${url}?token=${auth.token}`
+    }
+  } catch (e) {
+    // Abaikan error jika dipanggil sebelum pinia siap (misal saat boot)
+  }
+  return url
 }
 
 /**

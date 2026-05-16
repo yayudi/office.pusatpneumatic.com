@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/auth.js'
 import { formatBytes } from '@/utils/formatBytes.js'
 import { resolveUrl } from '@/composables/useImageUrl'
 import { useMobile } from '@/composables/useMobile.js'
+import { formatTags } from '@/utils/formatters.js'
 
 const { isMobile } = useMobile()
 
@@ -171,16 +172,6 @@ const saveTitle = async () => {
     toast(err.response?.data?.message || 'Gagal memperbarui judul', 'error')
   } finally {
     loadingTitle.value = false
-  }
-}
-
-const formatTags = (tagsStr) => {
-  if (!tagsStr) return []
-  try {
-    const arr = JSON.parse(tagsStr)
-    return Array.isArray(arr) ? arr : []
-  } catch (e) {
-    return tagsStr.split(',').map(s => s.trim())
   }
 }
 

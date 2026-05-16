@@ -28,8 +28,6 @@ export const logDebug = (message, data = null) => {
     }
   }
 
-  logMessage += "\n----------------------------------------\n";
-
   // Write to console for dev
   console.log(logMessage);
 

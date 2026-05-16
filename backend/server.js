@@ -7,6 +7,7 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import db from "./config/db.js";
 import { logDebug } from "./utils/logger.js";
+import jwt from "jsonwebtoken";
 
 import apiRouter from "./router/index.js";
 import assetsRouter from "./router/assetsRouter.js";
@@ -61,9 +62,20 @@ app.use("/uploads", (req, res, next) => {
       fileStatus = `FOUND (Size: ${fileSize} bytes)`;
     }
 
-    logDebug(`[DOWNLOAD REQUEST] Frontend meminta: /uploads${safePath}`, {
-      serverLookingAt: absolutePath,
+    // Ekstrak identitas user jika token disediakan via URL
+    let requestUser = "Anonymous (No Token)";
+    if (req.query.token) {
+      try {
+        const decoded = jwt.verify(req.query.token, process.env.JWT_SECRET);
+        requestUser = decoded.username;
+      } catch (err) {
+        requestUser = "Invalid/Expired Token";
+      }
+    }
+
+    logDebug(`${safePath}`, {
       status: fileStatus,
+      user: requestUser,
       clientIP: req.ip,
     });
   } catch (err) {

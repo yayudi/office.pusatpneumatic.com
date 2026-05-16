@@ -19,6 +19,9 @@ import { resolveUrl } from '@/composables/useImageUrl';
 import MediaCard from '@/components/common/MediaCard.vue';
 import MediaActionBar from '@/components/common/MediaActionBar.vue';
 
+import { formatBytes } from '@/utils/formatBytes.js';
+import { formatTags } from '@/utils/formatters.js';
+
 const linkStatusOptions = [
   { id: 'all', label: 'Semua Media' },
   { id: 'linked', label: 'Sudah Tertaut' },
@@ -28,6 +31,11 @@ const linkStatusOptions = [
 const auth = useAuthStore();
 const { toast } = useToast()
 const mediaList = ref([]);
+const viewMode = ref(localStorage.getItem('mediaViewMode') || 'grid');
+watch(viewMode, (newMode) => {
+  localStorage.setItem('mediaViewMode', newMode);
+});
+
 const pagination = ref({ page: 1, limit: 18, total: 0, totalPages: 1 });
 const isLoading = ref(false);
 const uploaderInput = ref(null);
@@ -419,17 +427,6 @@ const deleteMedia = async (id, usageCount) => {
   }
 };
 
-const formatTags = (tagsRaw) => {
-  if (Array.isArray(tagsRaw)) return tagsRaw;
-  if (typeof tagsRaw === 'string') {
-    try { return JSON.parse(tagsRaw); } catch (e) { return []; }
-  }
-  return [];
-};
-
-// brokenImages, onImgError, copyToClipboard, copyImageToClipboard, downloadImage
-// now come from useImageUrl and useImageActions composables
-
 // --- Bulk helpers ---
 const getSelectedItems = () => mediaList.value.filter(i => selectedMediaIds.value.has(i.id) && i.status === 'COMPLETED');
 
@@ -566,7 +563,7 @@ onUnmounted(() => {
           <div class="w-px h-6 bg-secondary/30"></div>
           <button @click="isLinkProductModalOpen = true"
             class="px-3 py-1.5 rounded-lg hover:bg-primary/10 hover:text-primary text-text text-sm font-semibold transition-colors flex items-center whitespace-nowrap">
-            <font-awesome-icon icon="fa-solid fa-link" class="mr-2" /> Tautkan
+            <font-awesome-icon icon="fa-solid fa-chart-diagram" class="mr-2" /> Tautkan
           </button>
           <button @click="isBulkEditTagsModalOpen = true"
             class="px-3 py-1.5 rounded-lg hover:bg-accent/10 hover:text-accent text-text text-sm font-semibold transition-colors flex items-center whitespace-nowrap">
@@ -589,6 +586,26 @@ onUnmounted(() => {
           placeholder="Filter Media" :searchable="false" emit-value />
         <input type="file" ref="uploaderInput" class="hidden" multiple accept="image/*" @change="handleMultipleFiles" />
         <!-- Actions -->
+
+        <!-- View Pattern Switcher -->
+        <div class="flex items-center bg-secondary/50 p-1 rounded-lg border border-secondary">
+          <button @click="viewMode = 'grid'" class="p-1.5 rounded-md transition-colors"
+            :class="viewMode === 'grid' ? 'bg-background shadow-sm text-primary' : 'text-text/70 hover:text-text'"
+            title="Grid View">
+            <font-awesome-icon icon="fa-solid fa-border-all" />
+          </button>
+          <button @click="viewMode = 'list'" class="p-1.5 rounded-md transition-colors"
+            :class="viewMode === 'list' ? 'bg-background shadow-sm text-primary' : 'text-text/70 hover:text-text'"
+            title="List View">
+            <font-awesome-icon icon="fa-solid fa-list-ul" />
+          </button>
+          <button @click="viewMode = 'compact'" class="p-1.5 rounded-md transition-colors"
+            :class="viewMode === 'compact' ? 'bg-background shadow-sm text-primary' : 'text-text/70 hover:text-text'"
+            title="Compact View">
+            <font-awesome-icon icon="fa-solid fa-th" />
+          </button>
+        </div>
+
         <button @click="fetchMedia(pagination.page)"
           class="flex items-center justify-center w-10 h-10 rounded-lg bg-background border border-secondary text-text hover:border-primary transition-colors"
           title="Refresh">
@@ -603,63 +620,102 @@ onUnmounted(() => {
         <button @click="triggerUpload"
           class="px-4 py-1.5 rounded-lg bg-primary text-background font-medium hover:bg-accent transition-colors flex items-center justify-center whitespace-nowrap"
           :disabled="isUploading">
-          <font-awesome-icon icon="fa-solid fa-upload" class="mr-2" />
-          <span v-text="isUploading ? 'Mengunggah...' : 'Unggah Aset'"></span>
+          <font-awesome-icon icon="fa-solid fa-upload" :class="isMobile ? 'mr-2' : ''" />
+          <span v-if="isMobile" v-text="isUploading ? 'Mengunggah...' : 'Unggah Aset'"></span>
         </button>
       </div>
     </div>
 
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 relative">
-      <div v-for="(item, index) in mediaList" :key="item.id"
-        class="card shadow-sm border transition-all relative overflow-hidden"
-        :class="selectedMediaIds.has(item.id) ? 'border-primary ring-2 ring-primary ring-offset-2 ring-offset-background' : 'bg-background border-secondary hover:border-primary/50'">
+    <div :class="{
+      'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 relative': viewMode === 'grid',
+      'flex flex-col gap-3 relative': viewMode === 'list',
+      'grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 xl:grid-cols-10 gap-2 relative': viewMode === 'compact'
+    }">
+      <div v-for="(item, index) in mediaList" :key="item.id" class="card border transition-all relative overflow-hidden"
+        :class="[
+          selectedMediaIds.has(item.id) ? 'border-primary ring-2 ring-primary ring-offset-2 ring-offset-background' : 'bg-background border-secondary hover:border-primary/50',
+          viewMode === 'list' ? 'flex flex-row items-center p-3 gap-4' : 'shadow-sm'
+        ]">
 
-        <figure class="aspect-square p-2 relative overflow-hidden cursor-pointer"
-          :class="selectedMediaIds.has(item.id) ? 'bg-primary/10' : 'bg-secondary/30'"
-          @click="isSelectionMode ? toggleSelection(item) : (item.status === 'COMPLETED' ? (isLightboxOpen = true, lightboxIndex = index) : null)">
+        <template v-if="viewMode === 'list'">
+          <!-- List Mode Layout -->
+          <div v-if="isSelectionMode" class="flex items-center">
+            <input type="checkbox" :checked="selectedMediaIds.has(item.id)" @change="toggleSelection(item)"
+              class="w-5 h-5 accent-primary cursor-pointer" />
+          </div>
 
-          <MediaCard :image-url="resolveUrl(item.thumbnail_path || item.main_path)" :image-id="item.id"
-            :display-name="item.title || 'Gambar'" :status="item.status" :selected="selectedMediaIds.has(item.id)"
-            :selectable="isSelectionMode && item.status === 'COMPLETED'" :show-overlay="!isSelectionMode"
-            class="!aspect-auto w-full h-full !rounded-lg !border-0 !shadow-none">
+          <figure class="w-16 h-16 shrink-0 relative rounded-md overflow-hidden cursor-pointer"
+            :class="selectedMediaIds.has(item.id) ? 'bg-primary/10' : 'bg-secondary/30'"
+            @click="item.status === 'COMPLETED' ? (isLightboxOpen = true, lightboxIndex = index) : null">
+            <img v-if="item.status === 'COMPLETED'" :src="resolveUrl(item.thumbnail_path || item.main_path)"
+              class="w-full h-full object-cover" />
+            <div v-else class="flex w-full h-full items-center justify-center text-text/50">
+              <font-awesome-icon icon="fa-solid fa-image" class="text-2xl opacity-30" />
+            </div>
+          </figure>
 
-            <template #actions>
-              <MediaActionBar :image-url="item.status === 'COMPLETED' ? resolveUrl(item.main_path) : null"
-                :filename="item.title">
-                <button @click.stop="openInfoModal(item)"
-                  class="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-background hover:backdrop-brightness-75 transition-transform hover:scale-110"
-                  title="Info & Editor Tag">
-                  <font-awesome-icon icon="fa-solid fa-tags" />
-                </button>
-                <button @click.stop="deleteMedia(item.id, item.usage_count)"
-                  class="flex h-8 w-8 items-center justify-center rounded-full bg-danger text-background hover:backdrop-brightness-75 transition-transform hover:scale-110"
-                  title="Hapus Media" :disabled="item.usage_count > 0">
-                  <font-awesome-icon icon="fa-solid fa-trash" />
-                </button>
-              </MediaActionBar>
-            </template>
+          <div class="flex-1 min-w-0 flex flex-col justify-center">
+            <div class="font-medium text-text truncate" :title="item.title">{{ item.title || 'Gambar' }}</div>
+            <div class="text-sm text-text/60 mt-1 flex items-center gap-x-4 gap-y-1">
+              <span>{{ formatBytes(item.size_bytes) }}</span>
+              <span class="hidden sm:inline" v-if="item.width && item.height">{{ item.width }} &times; {{ item.height }}
+                px</span>
+              <span v-if="item.usage_count > 0"
+                class="badge text-xs bg-primary/20 text-primary border border-primary/20 hidden sm:inline-flex cursor-help px-2 py-0.5 rounded-md"
+                @mouseenter="(e) => handleTooltipOpen(e, item)" @mouseleave="handleTooltipClose">{{ item.usage_count }}
+                Produk</span>
+            </div>
+          </div>
 
-            <template #footer>
-              <div class="flex flex-wrap gap-1 justify-center px-1 max-h-[50px] overflow-hidden">
-                <span v-for="tag in formatTags(item.tags).slice(0, 4)" :key="tag"
-                  class="border border-primary text-primary rounded-full px-2 py-0.5 text-[10px] font-semibold flex items-center justify-center h-5">
-                  {{ tag }}
-                </span>
-                <span v-if="formatTags(item.tags).length > 4" class="text-[10px] opacity-70">...</span>
-              </div>
-            </template>
+          <div class="flex gap-2 shrink-0">
+            <MediaActionBar :image-url="item.status === 'COMPLETED' ? resolveUrl(item.main_path) : null"
+              :filename="item.title" show-info show-delete :disable-delete="item.usage_count > 0"
+              @info="openInfoModal(item)" @delete="deleteMedia(item.id, item.usage_count)" />
+          </div>
+        </template>
 
-            <template #badges>
-              <div class="absolute bottom-2 left-2 z-50">
-                <span @mouseenter="(e) => handleTooltipOpen(e, item)" @mouseleave="handleTooltipClose"
-                  class="badge text-xs shadow-sm bg-background/80 px-2 py-1 rounded-lg border border-secondary cursor-help text-secondary font-bold transition-colors"
-                  :class="item.usage_count > 0 ? 'bg-primary/80 text-secondary hover:bg-primary' : 'text-text hover:bg-secondary'"
-                  v-text="item.usage_count + ' Produk'">
-                </span>
-              </div>
-            </template>
-          </MediaCard>
-        </figure>
+        <template v-else>
+          <!-- Grid & Compact Mode Layout -->
+          <div class="relative overflow-hidden cursor-pointer rounded-xl h-full flex flex-col" :class="[
+            selectedMediaIds.has(item.id) ? 'bg-primary/10 ring-2 ring-primary border border-transparent' : 'bg-secondary/5 border border-transparent hover:border-secondary/30',
+            viewMode === 'compact' ? 'p-0.5' : 'p-2'
+          ]"
+            @click="isSelectionMode ? toggleSelection(item) : (item.status === 'COMPLETED' ? (isLightboxOpen = true, lightboxIndex = index) : null)">
+
+            <MediaCard :image-url="resolveUrl(item.thumbnail_path || item.main_path)" :image-id="item.id"
+              :display-name="item.title || 'Gambar'" :status="item.status" :selected="selectedMediaIds.has(item.id)"
+              :selectable="isSelectionMode && item.status === 'COMPLETED'"
+              :show-overlay="!isSelectionMode && viewMode !== 'compact'"
+              class="w-full flex-1 !rounded-none !border-0 !shadow-none bg-transparent">
+
+              <template #actions>
+                <MediaActionBar :image-url="item.status === 'COMPLETED' ? resolveUrl(item.main_path) : null"
+                  :filename="item.title" show-info show-delete :disable-delete="item.usage_count > 0"
+                  @info="openInfoModal(item)" @delete="deleteMedia(item.id, item.usage_count)" />
+              </template>
+
+              <template #footer v-if="viewMode !== 'compact'">
+                <div class="flex flex-wrap gap-1 justify-center px-1 max-h-[50px] overflow-hidden">
+                  <span v-for="tag in formatTags(item.tags).slice(0, 4)" :key="tag"
+                    class="border border-primary text-primary rounded-full px-2 py-0.5 text-[10px] font-semibold flex items-center justify-center h-5">
+                    {{ tag }}
+                  </span>
+                  <span v-if="formatTags(item.tags).length > 4" class="text-[10px] opacity-70">...</span>
+                </div>
+              </template>
+
+              <template #badges>
+                <div class="absolute bottom-2 left-2 z-50">
+                  <span @mouseenter="(e) => handleTooltipOpen(e, item)" @mouseleave="handleTooltipClose"
+                    class="badge text-xs shadow-sm bg-background/80 px-2 py-1 rounded-lg border border-secondary cursor-help text-secondary font-bold transition-colors"
+                    :class="item.usage_count > 0 ? 'bg-primary/80 text-secondary hover:bg-primary' : 'text-text hover:bg-secondary'"
+                    v-text="item.usage_count + ' Produk'">
+                  </span>
+                </div>
+              </template>
+            </MediaCard>
+          </div>
+        </template>
       </div>
     </div>
 

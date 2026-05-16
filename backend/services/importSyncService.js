@@ -27,7 +27,6 @@ export async function syncOrdersToDB(connection, ordersMap, userId, originalFile
 
     try {
       await connection.beginTransaction();
-      // log(invId, "------------------------------------------------");
 
       let listId;
       // Cek Header Existing
@@ -137,8 +136,7 @@ export async function syncOrdersToDB(connection, ordersMap, userId, originalFile
                   );
                   log(
                     invId,
-                    `      -> Komponen: ${comp.component_sku} x ${compQty}. Lokasi: ${
-                      locId || "NULL"
+                    `      -> Komponen: ${comp.component_sku} x ${compQty}. Lokasi: ${locId || "NULL"
                     }`
                   );
 

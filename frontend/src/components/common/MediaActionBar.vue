@@ -4,27 +4,41 @@ import { useImageActions } from '@/composables/useImageActions'
 const props = defineProps({
   imageUrl: { type: String, default: null },
   filename: { type: String, default: null },
+  showInfo: { type: Boolean, default: false },
+  showDelete: { type: Boolean, default: false },
+  disableDelete: { type: Boolean, default: false }
 })
+
+defineEmits(['info', 'delete'])
 
 const { copyLinkToClipboard, copyImageToClipboard, downloadImage } = useImageActions()
 </script>
-
 <template>
-  <div class="flex items-center justify-center flex-wrap gap-3">
-    <button v-if="imageUrl" @click.stop="copyLinkToClipboard(imageUrl)"
-      class="flex h-8 w-8 items-center justify-center rounded-full bg-success text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-lg"
-      title="Salin Tautan">
-      <font-awesome-icon icon="fa-solid fa-link" />
+  <div class="grid grid-cols-5 md:grid-cols-3 items-center justify-center flex-wrap sm:gap-1">
+    <button v-if="showDelete" @click.stop="$emit('delete')"
+      class="px-4 py-3 items-center justify-center rounded-md bg-danger text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+      title="Hapus Media" :disabled="disableDelete">
+      <font-awesome-icon icon="fa-solid fa-trash" class="text-xs" />
     </button>
-    <button v-if="imageUrl" @click.stop="copyImageToClipboard(imageUrl)"
-      class="flex h-8 w-8 items-center justify-center rounded-full bg-warning text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-lg"
-      title="Salin Gambar">
-      <font-awesome-icon icon="fa-solid fa-copy" />
+    <button v-if="showInfo" @click.stop="$emit('info')"
+      class="px-4 py-3 items-center justify-center rounded-md bg-accent text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-md"
+      title="Info & Editor Tag">
+      <font-awesome-icon icon="fa-solid fa-tags" class="text-xs" />
     </button>
     <button v-if="imageUrl" @click.stop="downloadImage(imageUrl, filename)"
-      class="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-secondary hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-lg"
+      class="px-4 py-3 items-center justify-center rounded-md bg-primary text-secondary hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-md"
       title="Unduh Gambar">
-      <font-awesome-icon icon="fa-solid fa-download" />
+      <font-awesome-icon icon="fa-solid fa-download" class="text-xs" />
+    </button>
+    <button v-if="imageUrl" @click.stop="copyLinkToClipboard(imageUrl)"
+      class="px-4 py-3 items-center justify-center rounded-md bg-success text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-md"
+      title="Salin Tautan">
+      <font-awesome-icon icon="fa-solid fa-link" class="text-xs" />
+    </button>
+    <button v-if="imageUrl" @click.stop="copyImageToClipboard(imageUrl)"
+      class="px-4 py-3 items-center justify-center rounded-md bg-warning text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-md"
+      title="Salin Gambar">
+      <font-awesome-icon icon="fa-solid fa-copy" class="text-xs" />
     </button>
     <!-- Extra actions from parent -->
     <slot />

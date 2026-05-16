@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Cached Intl.NumberFormat instances for better performance.
  */
 const idrFormatter = new Intl.NumberFormat('id-ID', {
@@ -49,3 +49,26 @@ export function formatNumber(val, options = {}) {
     ...options
   }).format(num);
 }
+
+/**
+ * Memformat string comma-separated tags atau JSON array menjadi array
+ * @param {string|array} tagsStr 
+ * @returns {string[]}
+ */
+export const formatTags = (tagsStr) => {
+  if (!tagsStr) return [];
+  if (Array.isArray(tagsStr)) return tagsStr;
+  
+  // Coba parse sebagai JSON array dulu
+  if (typeof tagsStr === 'string') {
+    try {
+      const parsed = JSON.parse(tagsStr);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) {
+      // Jika bukan JSON, fallback ke comma-separated
+      return tagsStr.split(',').map(t => t.trim()).filter(Boolean);
+    }
+  }
+  return [];
+};
+
