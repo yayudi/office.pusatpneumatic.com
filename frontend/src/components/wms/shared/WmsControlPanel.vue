@@ -1,6 +1,7 @@
 <!-- frontend/src/components/wms/shared/WmsControlPanel.vue -->
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { useResizeObserver, useEventListener } from '@vueuse/core'
 import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 
@@ -89,14 +90,10 @@ function closeColumnMenu(e) {
 
 onMounted(() => {
   document.addEventListener('click', closeColumnMenu)
-  window.addEventListener('resize', updateDropdownPosition)
-  window.addEventListener('scroll', updateDropdownPosition, true)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', closeColumnMenu)
-  window.removeEventListener('resize', updateDropdownPosition)
-  window.removeEventListener('scroll', updateDropdownPosition, true)
 })
 
 // Validation for position
@@ -113,6 +110,17 @@ function updateDropdownPosition() {
     }
   }
 }
+
+// VueUse Observability to replace window.addEventListener('resize')
+useResizeObserver(document.body, () => {
+  if (isColumnMenuOpen.value) updateDropdownPosition()
+})
+
+useEventListener(document, 'scroll', () => {
+  if (isColumnMenuOpen.value) updateDropdownPosition()
+}, true)
+
+
 
 </script>
 

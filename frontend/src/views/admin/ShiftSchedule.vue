@@ -5,8 +5,9 @@ import axios from '@/api/axios'
 import { useToast } from '@/composables/useToast.js'
 import { fetchShifts } from '@/api/helpers/admin.js'
 import { useMasterDataStore } from '@/stores/masterData'
-import { fetchSchedules, createSchedule, deleteSchedule } from '@/api/helpers/schedule.js'
 import BatchScheduleImportModal from '@/components/shifts/BatchScheduleImportModal.vue'
+import { fetchSchedules, createSchedule, deleteSchedule } from '@/api/helpers/schedule.js'
+import { useEventListener, useResizeObserver } from '@vueuse/core'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import { useMobile } from '@/composables/useMobile.js'
 
@@ -204,7 +205,11 @@ watch(currentDate, () => {
 })
 
 onMounted(loadInitialData)
-
+// Auto-close popover when scrolling or resizing to prevent detached floating elements
+useEventListener(document, 'scroll', closePopover, true)
+useResizeObserver(document.body, () => {
+  if (popover.value.visible) closePopover()
+})
 </script>
 
 <template>

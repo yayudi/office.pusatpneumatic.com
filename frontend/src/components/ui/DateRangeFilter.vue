@@ -132,37 +132,32 @@ const closeDropdown = () => {
 }
 
 const handleClickOutside = (event) => {
+  if (!isOpen.value) return
   if (containerRef.value && containerRef.value.contains(event.target)) return
   if (event.target.closest('.date-range-popover')) return
   isOpen.value = false
 }
 
-const handleScrollOrResize = () => {
-  if (isOpen.value && !isMobile.value) isOpen.value = false
-  if (isOpen.value && isMobile.value) updatePosition()
+const handleScroll = () => {
+  if (!isOpen.value) return
+  if (!isMobile.value) isOpen.value = false
+  else updatePosition()
 }
 
-const handleWindowResize = () => {
+// VueUse: Automatically cleaned up on unmount
+import { useResizeObserver, useEventListener } from '@vueuse/core'
+
+useEventListener(document, 'click', handleClickOutside)
+useEventListener(document, 'scroll', handleScroll, true)
+
+useResizeObserver(document.body, () => {
   if (isOpen.value) updatePosition()
-}
+})
 
 watch(isOpen, (val) => {
   if (val) {
-    document.addEventListener('click', handleClickOutside)
-    window.addEventListener('scroll', handleScrollOrResize, true)
-    window.addEventListener('resize', handleWindowResize)
     nextTick(updatePosition)
-  } else {
-    document.removeEventListener('click', handleClickOutside)
-    window.removeEventListener('scroll', handleScrollOrResize, true)
-    window.removeEventListener('resize', handleWindowResize)
   }
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-  window.removeEventListener('scroll', handleScrollOrResize, true)
-  window.removeEventListener('resize', handleWindowResize)
 })
 </script>
 
@@ -186,7 +181,7 @@ onUnmounted(() => {
 
         <!-- Sidebar / Presets -->
         <div
-          class="bg-secondary/5 border-b md:border-b-0 md:border-r border-secondary/20 p-2 grid grid-cols-2 gap-4 md:flex md:justify-start md:flex-col md:gap-1 w-full md:w-[140px] overflow-x-auto md:overflow-visible">
+          class="bg-secondary/5 border-b md:border-b-0 md:border-r border-secondary/20 p-2 grid grid-cols-2 gap-1 md:flex md:justify-start md:flex-col w-full md:w-[140px] overflow-x-auto md:overflow-visible">
           <button v-for="(preset, idx) in presets" :key="idx" @click="selectPreset(preset)"
             class="px-3 py-2 text-left text-primary text-xs font-medium rounded hover:bg-primary/10 hover:text-primary transition-colors whitespace-nowrap">
             {{ preset.label }}
@@ -195,7 +190,6 @@ onUnmounted(() => {
 
         <!-- Custom Range Inputs -->
         <div class="p-4 flex-1">
-          <h4 class="text-xs font-bold uppercase tracking-wider text-text/50 mb-3">Custom Range</h4>
           <div class="flex flex-col gap-3 mb-4">
             <div class="flex flex-col gap-1">
               <div class="flex items-center justify-between">

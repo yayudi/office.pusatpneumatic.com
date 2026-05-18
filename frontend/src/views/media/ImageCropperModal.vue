@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { useEventListener, useResizeObserver } from '@vueuse/core';
 import 'cropperjs'; // This auto-registers the web components (e.g. <cropper-canvas>)
 import Modal from '@/components/ui/Modal.vue';
 
@@ -127,6 +128,11 @@ const save = async () => {
 const closeModal = () => {
   emit('close');
 };
+
+useEventListener(document, 'scroll', closeRatioDropdown, true);
+useResizeObserver(document.body, () => {
+  if (isRatioDropdownOpen.value) closeRatioDropdown();
+});
 </script>
 
 <template>

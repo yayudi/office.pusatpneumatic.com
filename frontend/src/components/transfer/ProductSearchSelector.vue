@@ -1,7 +1,8 @@
 <!-- frontend\src\components\transfer\ProductSearchSelector.vue -->
 <script setup>
-import { ref, watch, onMounted, onUnmounted, nextTick, toRef } from 'vue'
+import { ref, watch, nextTick, toRef } from 'vue'
 import { useProductSearch } from '@/composables/useProductSearch.js'
+import { useResizeObserver, useEventListener } from '@vueuse/core'
 
 const props = defineProps({
   modelValue: { type: Object, default: null },
@@ -90,14 +91,12 @@ function handleGlobalEvents(event) {
   closeDropdown()
 }
 
-onMounted(() => {
-  window.addEventListener('resize', handleGlobalEvents)
-  window.addEventListener('scroll', handleGlobalEvents, true)
+// VueUse Observability for precise repositioning and cleanup
+useResizeObserver(document.body, () => {
+  if (showDropdown.value) updateDropdownPosition()
 })
-onUnmounted(() => {
-  window.removeEventListener('resize', handleGlobalEvents)
-  window.removeEventListener('scroll', handleGlobalEvents, true)
-})
+
+useEventListener(document, 'scroll', handleGlobalEvents, true)
 
 const getStockColor = (stock) => {
   if (!stock || stock <= 0) return 'text-danger bg-danger/10 border-danger/20'

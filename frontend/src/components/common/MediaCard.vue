@@ -70,7 +70,7 @@ const { brokenImages, onImgError } = useBrokenImages()
     <!-- Area Info & Kontrol -->
     <div v-if="showOverlay" class="flex flex-col gap-2 transition-all duration-300" :class="!isMobile
       ? 'absolute inset-0 bg-background/80 backdrop-blur-sm items-center justify-center p-2 text-center z-10 opacity-0 group-hover:opacity-100'
-      : 'flex-1 p-2 sm:p-2.5 bg-secondary/5 border-t border-secondary/10 justify-between'">
+      : 'flex-1 pt-2 bg-secondary/5 border-t border-secondary/10 justify-between'">
       <!-- Judul File -->
       <span class="font-medium truncate w-full text-center block"
         :class="!isMobile ? 'text-xs text-text mb-2 px-2' : 'text-xs sm:text-sm text-text'" :title="displayName">

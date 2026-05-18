@@ -14,29 +14,29 @@ defineEmits(['info', 'delete'])
 const { copyLinkToClipboard, copyImageToClipboard, downloadImage } = useImageActions()
 </script>
 <template>
-  <div class="grid grid-cols-5 md:grid-cols-3 items-center justify-center flex-wrap sm:gap-1">
+  <div class="grid grid-cols-5 md:grid-cols-3 items-center justify-center flex-wrap gap-1">
     <button v-if="showDelete" @click.stop="$emit('delete')"
-      class="px-4 py-3 items-center justify-center rounded-md bg-danger text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+      class="px-2 py-1 md:px-4 md:py-3 items-center justify-center rounded-md bg-danger text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
       title="Hapus Media" :disabled="disableDelete">
       <font-awesome-icon icon="fa-solid fa-trash" class="text-xs" />
     </button>
     <button v-if="showInfo" @click.stop="$emit('info')"
-      class="px-4 py-3 items-center justify-center rounded-md bg-accent text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-md"
+      class="px-2 py-1 md:px-4 md:py-3 items-center justify-center rounded-md bg-accent text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-md"
       title="Info & Editor Tag">
       <font-awesome-icon icon="fa-solid fa-tags" class="text-xs" />
     </button>
     <button v-if="imageUrl" @click.stop="downloadImage(imageUrl, filename)"
-      class="px-4 py-3 items-center justify-center rounded-md bg-primary text-secondary hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-md"
+      class="px-2 py-1 md:px-4 md:py-3 items-center justify-center rounded-md bg-primary text-secondary hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-md"
       title="Unduh Gambar">
       <font-awesome-icon icon="fa-solid fa-download" class="text-xs" />
     </button>
     <button v-if="imageUrl" @click.stop="copyLinkToClipboard(imageUrl)"
-      class="px-4 py-3 items-center justify-center rounded-md bg-success text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-md"
+      class="px-2 py-1 md:px-4 md:py-3 items-center justify-center rounded-md bg-success text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-md"
       title="Salin Tautan">
       <font-awesome-icon icon="fa-solid fa-link" class="text-xs" />
     </button>
     <button v-if="imageUrl" @click.stop="copyImageToClipboard(imageUrl)"
-      class="px-4 py-3 items-center justify-center rounded-md bg-warning text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-md"
+      class="px-2 py-1 md:px-4 md:py-3 items-center justify-center rounded-md bg-warning text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-md"
       title="Salin Gambar">
       <font-awesome-icon icon="fa-solid fa-copy" class="text-xs" />
     </button>

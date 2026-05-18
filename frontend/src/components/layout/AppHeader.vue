@@ -174,13 +174,13 @@ onUnmounted(() => {
       aria-haspopup="true" aria-labelledby="mobile-menu" role="menu"
       class="md:hidden absolute bg-background border-b border-secondary/20 rounded-lg shadow-xl w-[35vw] right-0">
       <nav class="container space-y-2 z-[100] text-right">
-        <RouterLink to="/absensi" @click="isMobileMenuOpen = false"
-          class="block px-6 py-3 rounded-md text-base font-medium text-text/80 hover:bg-secondary/20 hover:text-primary"
-          active-class="!text-primary font-bold bg-secondary/10">Absensi</RouterLink>
-
         <RouterLink to="/wms" @click="isMobileMenuOpen = false"
           class="block px-6 py-3 rounded-md text-base font-medium text-text/80 hover:bg-secondary/20 hover:text-primary"
           active-class="!text-primary font-bold bg-secondary/10">WMS</RouterLink>
+
+        <RouterLink to="/absensi" @click="isMobileMenuOpen = false"
+          class="block px-6 py-3 rounded-md text-base font-medium text-text/80 hover:bg-secondary/20 hover:text-primary"
+          active-class="!text-primary font-bold bg-secondary/10">Absensi</RouterLink>
 
         <RouterLink to="/media" @click="isMobileMenuOpen = false"
           v-if="auth.user?.permissions?.includes('product.image.view')"
