@@ -6,6 +6,7 @@ import fs from "fs";
 import { canAccess } from "../middleware/permissionMiddleware.js";
 import * as productController from "../controllers/productController.js";
 import { createJobService } from "../services/jobService.js";
+import Logger from "../utils/logger.js";
 
 const router = express.Router();
 
@@ -16,9 +17,9 @@ const uploadDir = "uploads/imports/";
 if (!fs.existsSync(uploadDir)) {
   try {
     fs.mkdirSync(uploadDir, { recursive: true });
-    console.log(`[System] Folder created: ${uploadDir}`);
+    Logger.info(`Folder created: ${uploadDir}`, "PRODUCT_ROUTER");
   } catch (err) {
-    console.error(`[System] Failed to create folder ${uploadDir}:`, err);
+    Logger.error(`Failed to create folder ${uploadDir}`, err, "PRODUCT_ROUTER");
   }
 }
 
@@ -40,9 +41,9 @@ const productUploadDir = "uploads/products/";
 if (!fs.existsSync(productUploadDir)) {
   try {
     fs.mkdirSync(productUploadDir, { recursive: true });
-    console.log(`[System] Folder created: ${productUploadDir}`);
+    Logger.info(`Folder created: ${productUploadDir}`, "PRODUCT_ROUTER");
   } catch (err) {
-    console.error(`[System] Failed to create folder ${productUploadDir}:`, err);
+    Logger.error(`Failed to create folder ${productUploadDir}`, err, "PRODUCT_ROUTER");
   }
 }
 
@@ -102,7 +103,7 @@ router.post(
         jobId: jobId,
       });
     } catch (error) {
-      console.error("Upload Price Error:", error);
+      Logger.error("Upload Price Error", error, "PRODUCT_ROUTER");
       res.status(500).json({ message: "Gagal memproses upload.", error: error.message });
     }
   }

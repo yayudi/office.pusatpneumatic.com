@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import readline from "readline";
 import db from "../config/db.js";
+import Logger from "../utils/logger.js";
 import "dotenv/config";
 
 async function migrate() {
@@ -43,22 +44,22 @@ async function migrate() {
       const [catRows] = await connection.query('SELECT id FROM categories WHERE name = ?', [kategori]);
       if (catRows.length > 0) {
         await connection.query('UPDATE products SET category_id = ? WHERE sku = ?', [catRows[0].id, sku]);
-        console.log(`✅ [OK] SKU: ${sku} | Kategori: ${kategori} -> ID: ${catRows[0].id}`);
+        Logger.info(`SKU: ${sku} | Kategori: ${kategori} -> ID: ${catRows[0].id}`, "MIGRATE_CAT");
         successCount++;
       } else {
-        console.warn(`⚠️ [SKIP] SKU: ${sku} | Kategori tidak ditemukan: "${kategori}"`);
+        Logger.warn(`SKU: ${sku} | Kategori tidak ditemukan: "${kategori}"`, "MIGRATE_CAT");
         skipCount++;
       }
     }
 
     await connection.commit();
     console.groupEnd();
-    console.log(`\n🎉 Migrasi selesai! Berhasil: ${successCount}, Dilewati: ${skipCount}`);
+    Logger.info(`Migrasi selesai! Berhasil: ${successCount}, Dilewati: ${skipCount}`, "MIGRATE_CAT");
     process.exit(0);
   } catch (err) {
     await connection.rollback();
     console.groupEnd();
-    console.error('\n❌ Migrasi gagal! Seluruh perubahan di-rollback.', err);
+    Logger.error("Migrasi gagal! Seluruh perubahan di-rollback.", err, "MIGRATE_CAT");
     process.exit(1);
   } finally {
     connection.release();

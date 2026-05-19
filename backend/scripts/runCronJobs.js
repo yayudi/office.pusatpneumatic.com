@@ -4,6 +4,7 @@ dns.setDefaultResultOrder("ipv4first");
 
 import "dotenv/config";
 import db from "../config/db.js";
+import Logger from "../utils/logger.js";
 
 import { syncStockToDatabase } from "./tasks/syncStock.js";
 import { fetchAndCacheHolidays } from "./fetchHolidays.js";
@@ -12,7 +13,7 @@ const JOB_TIMEOUT = 600000; // 10 menit
 const STUCK_JOB_TIMEOUT = "15 MINUTE"; // Waktu untuk menganggap job "nyantol"
 
 function log(msg) {
-  console.log(`[${new Date().toISOString()}] ${msg}`);
+  Logger.info(msg, "RUN_CRON_JOBS");
 }
 
 /**
@@ -31,7 +32,7 @@ async function cleanupStuckJobs() {
       log(`🧹 Membersihkan ${result.affectedRows} tugas yang 'nyantol'.`);
     }
   } catch (error) {
-    log(`⚠️ Gagal membersihkan tugas yang 'nyantol': ${error.message}`);
+    Logger.error("Gagal membersihkan tugas yang nyantol", error, "RUN_CRON_JOBS");
   } finally {
     if (connection) connection.release();
   }
@@ -94,7 +95,7 @@ async function processQueue() {
 
     log(`Tugas '${job.task_name}' (ID: ${jobId}) berhasil diselesaikan.`);
   } catch (error) {
-    log(`❌ Gagal memproses tugas (ID: ${jobId}). Error: ${error.message}`);
+    Logger.error(`Gagal memproses tugas (ID: ${jobId})`, error, "RUN_CRON_JOBS");
     if (connection && jobId) {
       await connection.query("UPDATE jobs SET status = 'failed', last_error = ? WHERE id = ?", [
         error.message.substring(0, 1000),
@@ -113,7 +114,7 @@ async function main() {
     await cleanupStuckJobs();
     await processQueue();
   } catch (error) {
-    log(`Error fatal pada worker: ${error.message}`);
+    Logger.error("Error fatal pada worker", error, "RUN_CRON_JOBS");
   } finally {
     await db.end();
     log("Worker selesai, koneksi ditutup.");

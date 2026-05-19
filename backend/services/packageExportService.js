@@ -2,6 +2,7 @@ import db from "../config/db.js";
 import ExcelJS from "exceljs";
 import fs from "fs";
 import * as productRepo from "../repositories/productRepository.js";
+import Logger from "../utils/logger.js";
 
 const styleHeader = (worksheet, rowNumber, colCount, bgColor = "FFD9E1F2") => {
   const row = worksheet.getRow(rowNumber);
@@ -17,7 +18,7 @@ const styleHeader = (worksheet, rowNumber, colCount, bgColor = "FFD9E1F2") => {
 };
 
 export const generatePackageExport = async (filters, filePath) => {
-  console.log(`[PackageExport] Starting export to: ${filePath}`);
+  Logger.info(`Starting export to: ${filePath}`, "PACKAGE_EXPORT");
   let connection;
   const stream = fs.createWriteStream(filePath);
   const workbookWriter = new ExcelJS.stream.xlsx.WorkbookWriter({
@@ -108,9 +109,9 @@ export const generatePackageExport = async (filters, filePath) => {
        stream.on("close", resolve);
     });
 
-    console.log("[PackageExport] Finished.");
+    Logger.info("Finished.", "PACKAGE_EXPORT");
   } catch (error) {
-    console.error("[PackageExport] Error:", error);
+    Logger.error("Error", error, "PACKAGE_EXPORT");
     try { stream.end(); } catch (e) {}
     throw error;
   } finally {

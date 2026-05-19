@@ -1,5 +1,6 @@
 // backend/repositories/pickingRepository.js
 import { WMS_STATUS } from "../config/wmsConstants.js";
+import Logger from "../utils/logger.js";
 
 // ============================================================================
 // READ OPERATIONS
@@ -185,7 +186,7 @@ export const cancelItemsByListId = async (connection, listId) => {
 };
 
 export const updateSuggestedLocation = async (connection, itemId, locationId) => {
-  console.log("Updating suggested location:", { itemId, locationId });
+  Logger.info("Updating suggested location", "PICKING_REPO", { itemId, locationId });
   return connection.query(`UPDATE picking_list_items SET suggested_location_id = ? WHERE id = ?`, [
     locationId,
     itemId,

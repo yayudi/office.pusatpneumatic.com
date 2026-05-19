@@ -1,6 +1,7 @@
 // backend/controllers/jobController.js
 import db from "../config/db.js";
 import * as jobRepo from "../repositories/jobRepository.js";
+import Logger from "../utils/logger.js";
 
 /**
  * Get list of import jobs for the current user.
@@ -20,7 +21,7 @@ export const getUserImportJobs = async (req, res) => {
         try {
           errorLog = typeof job.error_log === "string" ? JSON.parse(job.error_log) : job.error_log;
         } catch (e) {
-          console.warn(`Failed to parse error_log for job ${job.id}`, e);
+          Logger.warn(`Failed to parse error_log for job ${job.id}`, "JOB_CTRL", e);
         }
       }
 
@@ -44,7 +45,7 @@ export const getUserImportJobs = async (req, res) => {
       data: formattedJobs,
     });
   } catch (error) {
-    console.error("Error getting user import jobs:", error);
+    Logger.error("Error getting user import jobs", error, "JOB_CTRL");
     res.status(500).json({
       success: false,
       message: "Gagal mengambil riwayat import.",

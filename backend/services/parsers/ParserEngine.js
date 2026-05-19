@@ -2,6 +2,7 @@
 import path from "path";
 import { BaseParser } from "./BaseParser.js";
 import { Mappers } from "../../config/importMappers.js";
+import Logger from "../../utils/logger.js";
 
 // Jika Anda masih ingin menggunakan class spesifik untuk legacy, import di sini.
 // Namun, BaseParser + Mappers sudah cukup powerful untuk handle semuanya.
@@ -20,10 +21,11 @@ export class ParserEngine {
   }
 
   async run() {
-    console.log(
-      `[ParserEngine] Meminta parser untuk source: "${this.source}" | File: ${path.basename(
+    Logger.info(
+      `Meminta parser untuk source: "${this.source}" | File: ${path.basename(
         this.filePath
-      )}`
+      )}`,
+      "PARSER_ENGINE"
     );
 
     let mapper = null;
@@ -36,8 +38,9 @@ export class ParserEngine {
     // 2. Fallback: Auto-detect dari nama file jika Source tidak valid/kosong
     else {
       const fileName = path.basename(this.filePath).toLowerCase();
-      console.log(
-        `[ParserEngine] Source '${this.source}' tidak spesifik. Mencoba auto-detect dari filename: ${fileName}`
+      Logger.info(
+        `Source '${this.source}' tidak spesifik. Mencoba auto-detect dari filename: ${fileName}`,
+        "PARSER_ENGINE"
       );
 
       if (fileName.includes("tokopedia")) {
@@ -58,7 +61,7 @@ export class ParserEngine {
       }
 
       mapper = Mappers[normalizedSource];
-      console.log(`[ParserEngine] Auto-detect result: ${normalizedSource}`);
+      Logger.info(`Auto-detect result: ${normalizedSource}`, "PARSER_ENGINE");
     }
 
     if (!mapper) {

@@ -4,6 +4,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
 import Vips from 'wasm-vips'
+import Logger from "../../utils/logger.js";
 import {
   getPendingMediaJobs,
   lockMediaJobs,
@@ -36,7 +37,7 @@ export const runMediaWorker = async () => {
     // 2. Ambil max 5 job pending
     const jobs = await getPendingMediaJobs(5)
     if (jobs.length === 0) {
-      console.log('No pending media jobs.')
+      Logger.info('No pending media jobs.', "MEDIA_WORKER");
       return false
     }
 
@@ -46,7 +47,7 @@ export const runMediaWorker = async () => {
     const lockedRows = await lockMediaJobs(jobIds)
     if (lockedRows === 0) return false
 
-    console.log(`Processing ${lockedRows} media jobs: [${jobIds.join(',')}]`)
+    Logger.info(`Processing ${lockedRows} media jobs: [${jobIds.join(',')}]`, "MEDIA_WORKER");
 
     const vips = await initVips()
 
@@ -108,7 +109,7 @@ export const runMediaWorker = async () => {
         const fileSizeInBytes = fileStat.size;
 
         // Hapus file asli karena udah jadi .webp
-        await fs.unlink(rawPath).catch(err => console.warn("Failed to delete raw image:", err.message))
+        await fs.unlink(rawPath).catch(err => Logger.warn("Failed to delete raw image", "MEDIA_WORKER", err))
 
         // Update Job sebagai Completed dan set return path relative
         await completeMediaJob(
@@ -122,9 +123,9 @@ export const runMediaWorker = async () => {
           }
         )
 
-        console.log(`Job ${job.id} completed.`)
+        Logger.info(`Job ${job.id} completed.`, "MEDIA_WORKER");
       } catch (error) {
-        console.error(`Job ${job.id} failed:`, error)
+        Logger.error(`Job ${job.id} failed`, error, "MEDIA_WORKER");
         await failMediaJob(job.id, error.message || 'Unknown processing error')
       }
     }
@@ -132,7 +133,7 @@ export const runMediaWorker = async () => {
     // Matikan manual (hanya di worker process standalone)
     return true
   } catch (globalErr) {
-    console.error('Media Worker Error:', globalErr)
+    Logger.error('Media Worker Error', globalErr, "MEDIA_WORKER");
     throw globalErr
   }
 }

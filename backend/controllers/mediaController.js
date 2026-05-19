@@ -4,12 +4,14 @@ import fs from "fs/promises";
 import * as mediaRepo from "../repositories/mediaRepository.js";
 import * as mediaService from "../services/mediaService.js";
 import db from "../config/db.js";
+import Logger from "../utils/logger.js";
+
 const createTempDir = async () => {
   const tempDir = path.resolve('uploads/temp');
   try {
     await fs.mkdir(tempDir, { recursive: true });
   } catch (err) {
-    console.error("Gagal membuat direktori temp:", err);
+    Logger.error("Gagal membuat direktori temp", err, "MEDIA_CONTROLLER");
   }
   return tempDir;
 };
@@ -48,7 +50,7 @@ export const listMedia = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("Error listing media:", error);
+    Logger.error("Error listing media", error, "MEDIA_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal mengambil daftar media" });
   } finally {
     if (connection) connection.release();
@@ -70,7 +72,7 @@ export const getMediaById = async (req, res) => {
     }
     res.json({ success: true, data: asset });
   } catch (error) {
-    console.error("Error retrieving media:", error);
+    Logger.error("Error retrieving media", error, "MEDIA_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal mengambil detail media" });
   } finally {
     if (connection) connection.release();
@@ -99,7 +101,7 @@ export const getMediaStatus = async (req, res) => {
     const assets = await mediaRepo.getMediaAssetsByIds(connection, mediaIds);
     res.json({ success: true, data: assets });
   } catch (error) {
-    console.error("Error retrieving media status:", error);
+    Logger.error("Error retrieving media status", error, "MEDIA_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal mengambil status media" });
   } finally {
     if (connection) connection.release();
@@ -158,7 +160,7 @@ export const uploadMedia = async (req, res) => {
 
       const fileTitle = (titles[i] && titles[i].trim()) || file.originalname;
 
-// EXIF stripping and hashing are handled in mediaService
+      // EXIF stripping and hashing are handled in mediaService
 
       // Use service to process and store the file, handling EXIF stripping, hashing, and duplicate detection
       const mediaId = await mediaService.processMediaFile(file, fileTitle, tags, userId, connection);
@@ -196,12 +198,11 @@ export const uploadMedia = async (req, res) => {
     });
   } catch (error) {
     if (connection) await connection.rollback();
-    
     // Cleanup temporary files on failure
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
         const filePath = file.path || path.resolve('uploads/temp', file.filename);
-        await fs.unlink(filePath).catch(() => {});
+        await fs.unlink(filePath).catch(() => { });
       }
     }
 
@@ -214,7 +215,7 @@ export const uploadMedia = async (req, res) => {
       });
     }
 
-    console.error("Error uploading media:", error);
+    Logger.error("Error uploading media", error, "MEDIA_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal mengunggah media" });
   } finally {
     if (connection) connection.release();
@@ -247,7 +248,7 @@ export const deleteMedia = async (req, res) => {
       try {
         await fs.unlink(fullPath);
       } catch (err) {
-        console.warn(`Could not delete file ${fullPath}:`, err.message);
+        Logger.warn(`Could not delete file ${fullPath}`, "MEDIA_CTRL", err);
       }
     };
 
@@ -264,7 +265,7 @@ export const deleteMedia = async (req, res) => {
     if (error.code === 'ER_ROW_IS_REFERENCED_2') {
       return res.status(409).json({ success: false, message: "Tidak bisa dihapus karena sedang dipakai oleh produk" });
     }
-    console.error("Error deleting media:", error);
+    Logger.error("Error deleting media", error, "MEDIA_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal menghapus media" });
   } finally {
     if (connection) connection.release();
@@ -294,7 +295,7 @@ export const updateMediaTagsController = async (req, res) => {
     res.json({ success: true, message: "Tags berhasil diperbarui" });
 
   } catch (error) {
-    console.error("Error updating tags:", error);
+    Logger.error("Error updating tags", error, "MEDIA_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal memperbarui tag" });
   } finally {
     if (connection) connection.release();
@@ -324,7 +325,7 @@ export const updateMediaTitleController = async (req, res) => {
     res.json({ success: true, message: "Judul berhasil diperbarui" });
 
   } catch (error) {
-    console.error("Error updating title:", error);
+    Logger.error("Error updating title", error, "MEDIA_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal memperbarui judul" });
   } finally {
     if (connection) connection.release();

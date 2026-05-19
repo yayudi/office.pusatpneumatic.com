@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import db from "../config/db.js";
+import Logger from "../utils/logger.js";
 import "dotenv/config";
 
 const BASE_JSON_DIR = path.join(process.cwd(), "assets", "json", "absensi");
@@ -12,7 +13,7 @@ const JAM_KERJA_SELESAI_SABTU = 840; // 14:00
 const TOLERANSI_MENIT = 5;
 
 function log(message) {
-  console.log(`[${new Date().toISOString()}] ${message}`);
+  Logger.info(message, "MIGRATE_ATTENDANCE");
 }
 
 // --- FUNGSI LENGKAP: Mencari file secara rekursif ---
@@ -178,7 +179,7 @@ async function migrate() {
     );
   } catch (error) {
     log("❌ Terjadi error fatal selama proses migrasi:");
-    console.error(error);
+    Logger.error("Fatal error during attendance migration", error, "MIGRATE_ATTENDANCE");
   } finally {
     if (connection) connection.release();
     await db.end();

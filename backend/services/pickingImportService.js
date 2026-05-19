@@ -1,11 +1,11 @@
 // backend/services/pickingImportService.js
 import db from "../config/db.js";
 import * as validationHelper from "./helpers/pickingValidationHelper.js";
+import Logger from "../utils/logger.js";
 
 // Helper log sederhana dengan Timestamp
 const log = (msg) => {
-  const time = new Date().toISOString().split("T")[1].split(".")[0];
-  console.log(`[SYNC][${time}] ${msg}`);
+  Logger.info(msg, "PICKING_IMPORT_SERVICE");
 };
 
 /**
@@ -114,7 +114,7 @@ export const syncOrdersToDB = async (
       throw innerError;
     }
   } catch (error) {
-    console.error("[PickingImport] Critical Error:", error);
+    Logger.error("Critical Error", error, "PICKING_IMPORT_SERVICE");
     summary.errors.push(`System Error: ${error.message}`);
     throw error;
   }

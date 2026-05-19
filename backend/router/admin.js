@@ -1,8 +1,8 @@
-// File: backend/router/admin.js
 import express from "express";
 import bcrypt from "bcryptjs";
 import db from "../config/db.js";
 import { createLog } from "../repositories/systemLogRepository.js";
+import Logger from "../utils/logger.js";
 
 const router = express.Router();
 
@@ -20,13 +20,13 @@ router.get("/", async (req, res) => {
     const [users] = await db.query(query);
     res.json({ success: true, users });
   } catch (err) {
-    console.error("Error fetching users:", err);
+    Logger.error("Error fetching users", err, "ADMIN_ROUTER");
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
 router.post("/", async (req, res) => {
-  console.log("[ADMIN ROUTER] Menerima request POST untuk membuat pengguna baru...");
+  Logger.info("Menerima request POST untuk membuat pengguna baru...", "ADMIN_ROUTER");
   const { username, password, role_id, nickname, shift_id } = req.body;
 
   // Validasi input
@@ -71,7 +71,7 @@ router.post("/", async (req, res) => {
     if (error.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ success: false, message: "Username sudah digunakan." });
     }
-    console.error("Error creating user:", error);
+    Logger.error("Error creating user", error, "ADMIN_ROUTER");
     res.status(500).json({ success: false, message: "Gagal membuat pengguna." });
   }
 });
@@ -151,7 +151,7 @@ router.put("/:id", async (req, res) => {
         .status(409)
         .json({ success: false, message: `Username '${username}' sudah digunakan.` });
     }
-    console.error("Error updating user:", error);
+    Logger.error("Error updating user", error, "ADMIN_ROUTER");
     res.status(500).json({ success: false, message: "Gagal memperbarui data pengguna." });
   }
 });
@@ -182,6 +182,7 @@ router.delete("/:id", async (req, res) => {
     });
     res.json({ success: true, message: "User berhasil dihapus." });
   } catch (err) {
+    Logger.error("Error deleting user", err, "ADMIN_ROUTER");
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
@@ -198,7 +199,7 @@ router.get("/:id/locations", async (req, res) => {
     const locationIds = rows.map((row) => row.location_id);
     res.json({ success: true, data: locationIds });
   } catch (error) {
-    console.error("Error fetching user locations:", error);
+    Logger.error("Error fetching user locations", error, "ADMIN_ROUTER");
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
@@ -249,7 +250,7 @@ router.put("/:id/locations", async (req, res) => {
         .status(400)
         .json({ success: false, message: "Satu atau lebih ID lokasi tidak valid." });
     }
-    console.error("Error updating user locations:", error);
+    Logger.error("Error updating user locations", error, "ADMIN_ROUTER");
     res.status(500).json({ success: false, message: "Server error" });
   } finally {
     if (connection) connection.release();

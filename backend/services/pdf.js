@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 // Menggunakan createRequire untuk menjembatani sistem modul ESM dan CommonJS
 import { createRequire } from "module";
+import Logger from "../utils/logger.js";
 const require = createRequire(import.meta.url);
 
 // Impor library dan dependensinya menggunakan metode CommonJS (require) yang andal
@@ -26,7 +27,7 @@ export async function parsePdf(filePath) {
     // Kembalikan konten teksnya
     return result.text;
   } catch (error) {
-    console.error("Gagal membaca atau mem-parsing file PDF:", error);
+    Logger.error("Gagal membaca atau mem-parsing file PDF", error, "PDF_SERVICE");
     throw new Error("Gagal membaca konten dari file PDF.");
   }
 }

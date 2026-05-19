@@ -1,6 +1,7 @@
 // backend/services/priceImportService.js
 import { ParserEngine } from "./parsers/ParserEngine.js";
 import * as productRepo from "../repositories/productRepository.js";
+import Logger from "../utils/logger.js";
 
 export const processProductImport = async (
   connection,
@@ -25,8 +26,9 @@ export const processProductImport = async (
   const startTime = Date.now();
   const TIME_LIMIT = 25000;
 
-  console.log(
-    `[ProductService] Processing: ${originalFilename} (DryRun: ${isDryRun}) start: ${startIndex}`
+  Logger.info(
+    `Processing: ${originalFilename} (DryRun: ${isDryRun}) start: ${startIndex}`,
+    "PRODUCT_IMPORT_SERVICE"
   );
 
   try {
@@ -137,7 +139,7 @@ export const processProductImport = async (
       },
     };
   } catch (error) {
-    console.error("[ProductImport] Error:", error);
+    Logger.error("Error", error, "PRODUCT_IMPORT_SERVICE");
     throw error;
   }
 };

@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import ExcelJS from "exceljs";
 import { fileURLToPath } from "url";
+import Logger from "../../utils/logger.js";
 
 // SERVICES
 import { ParserEngine } from "../../services/parsers/ParserEngine.js";
@@ -33,7 +34,7 @@ if (!fs.existsSync(EXPORT_DIR)) {
   try {
     fs.mkdirSync(EXPORT_DIR, { recursive: true });
   } catch (err) {
-    console.error(`[ImportWorker] Gagal membuat direktori export: ${err.message}`);
+    Logger.error("Gagal membuat direktori export", err, "IMPORT_WORKER");
   }
 }
 
@@ -51,10 +52,10 @@ async function cleanupStuckJobs(connection) {
       [JOB_TIMEOUT_MINUTES]
     );
     if (result.affectedRows > 0) {
-      console.warn(`[ImportWorker] 🧹 Membersihkan ${result.affectedRows} job yang macet/zombie.`);
+      Logger.warn(`🧹 Membersihkan ${result.affectedRows} job yang macet/zombie.`, "IMPORT_WORKER");
     }
   } catch (e) {
-    console.error("[ImportWorker] Gagal menjalankan cleanup:", e.message);
+    Logger.error("Gagal menjalankan cleanup", e, "IMPORT_WORKER");
   }
 }
 
@@ -108,7 +109,7 @@ async function generateErrorFile(originalFilePath, errors, headerRowIndex = 1, j
       if (e.row) errorMap.set(e.row, e.message);
     });
 
-    console.log(`[ImportWorker] Generate Error File: ${errors.length} total errors, ${errorMap.size} mapped to rows.`);
+    Logger.info(`Generate Error File: ${errors.length} total errors, ${errorMap.size} mapped to rows.`, "IMPORT_WORKER");
 
 
     let targetRowIdx = 2;
@@ -148,7 +149,7 @@ async function generateErrorFile(originalFilePath, errors, headerRowIndex = 1, j
     await errorWorkbook.xlsx.writeFile(outputPath);
     return `/uploads/exports/${filename}`;
   } catch (err) {
-    console.error("[ImportWorker] Failed to generate error file:", err);
+    Logger.error("Failed to generate error file", err, "IMPORT_WORKER");
     return null;
   }
 }
@@ -196,8 +197,8 @@ export const importQueue = async () => {
     }
 
     const retryInfo = job.retry_count > 0 ? `(Retry #${job.retry_count})` : "";
-    console.log(`[ImportWorker] Starting Job ${jobId} ${retryInfo}: ${job.job_type}`);
-    console.log(`[ImportWorker] Processing File: ${absoluteFilePath}`);
+    Logger.info(`Starting Job ${jobId} ${retryInfo}: ${job.job_type}`, "IMPORT_WORKER");
+    Logger.info(`Processing File: ${absoluteFilePath}`, "IMPORT_WORKER");
 
     connection = await db.getConnection();
     let logSummary = "";
@@ -213,7 +214,7 @@ export const importQueue = async () => {
       if (job.options)
         jobOptions = typeof job.options === "string" ? JSON.parse(job.options) : job.options;
     } catch (e) {
-      console.warn("Invalid job options JSON", e);
+      Logger.warn("Invalid job options JSON", "IMPORT_WORKER", e);
     }
 
     const updateJobProgress = async (processed, total) => {
@@ -379,7 +380,7 @@ export const importQueue = async () => {
              WHERE id = ?`,
         [nextOptionsStr, pauseMsg, jobId]
       );
-      console.log(`[ImportWorker] Job ${jobId} PAUSED (Resumable). Next offset saved.`);
+      Logger.info(`Job ${jobId} PAUSED (Resumable). Next offset saved.`, "IMPORT_WORKER");
       return;
     }
 
@@ -406,7 +407,6 @@ export const importQueue = async () => {
         timestamp: new Date().toISOString(),
         summary: logSummary,
         download_url: downloadUrl,
-        download_url: downloadUrl,
         errors: errors.length > 50 ? errors.slice(0, 50).concat([{ message: `... and ${errors.length - 50} more errors. See download file.` }]) : errors,
       };
       errorLogJSON = JSON.stringify(payload);
@@ -428,9 +428,9 @@ export const importQueue = async () => {
       } catch (err) { }
     }
 
-    console.log(`[ImportWorker] Job ${jobId} Finished: ${finalStatus} (DryRun: ${isDryRun})`);
+    Logger.info(`Job ${jobId} Finished: ${finalStatus} (DryRun: ${isDryRun})`, "IMPORT_WORKER");
   } catch (error) {
-    console.error(`[ImportWorker] Job ${jobId} CRASHED:`, error);
+    Logger.error(`Job ${jobId} CRASHED`, error, "IMPORT_WORKER");
 
     if (jobId && connection) {
       try {
@@ -441,7 +441,7 @@ export const importQueue = async () => {
         const currentRetry = jobQuery[0][0]?.retry_count || 0;
 
         if (isRetriableError(error) && currentRetry < MAX_RETRIES) {
-          console.warn(`[ImportWorker] Transient Error. Scheduling Retry #${currentRetry + 1}...`);
+          Logger.warn(`Transient Error. Scheduling Retry #${currentRetry + 1}...`, "IMPORT_WORKER");
           await jobRepo.retryImportJob(connection, jobId, currentRetry, error.message);
         } else {
           await jobRepo.failImportJob(
@@ -451,7 +451,7 @@ export const importQueue = async () => {
           );
         }
       } catch (e) {
-        console.error("Gagal update status CRASH/RETRY ke DB:", e);
+        Logger.error("Gagal update status CRASH/RETRY ke DB", e, "IMPORT_WORKER");
       }
     }
   } finally {
@@ -464,10 +464,10 @@ if (
   process.argv[1] &&
   import.meta.url.endsWith(process.argv[1])
 ) {
-  console.log("[ImportWorker] Menjalankan Worker via CLI...");
+  Logger.info("Menjalankan Worker via CLI...", "IMPORT_WORKER");
   importQueue().finally(() => {
     if (db.pool) db.pool.end();
-    console.log("[ImportWorker] Proses Selesai.");
+    Logger.info("Proses Selesai.", "IMPORT_WORKER");
     process.exit(0);
   });
 }

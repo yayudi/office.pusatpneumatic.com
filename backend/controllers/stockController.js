@@ -1,6 +1,7 @@
 // backend/controllers/stockController.js
 import * as stockService from "../services/stockService.js";
 import * as jobService from "../services/jobService.js";
+import Logger from "../utils/logger.js";
 
 // ============================================================================
 //                               READ OPERATIONS
@@ -48,7 +49,7 @@ export const uploadAdjustment = async (req, res) => {
       jobId: jobId,
     });
   } catch (error) {
-    console.error("[StockController] Upload Error:", error);
+    Logger.error("Upload Error", error, "STOCK_CONTROLLER");
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -140,7 +141,7 @@ export const getInboundTemplate = async (req, res) => {
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
-    console.error("[StockController] Template Inbound Error:", error);
+    Logger.error("Template Inbound Error", error, "STOCK_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal membuat template inbound." });
   }
 };
@@ -166,7 +167,7 @@ export const importBatchInbound = async (req, res) => {
       jobId: jobId,
     });
   } catch (error) {
-    console.error("[StockController] Import Inbound Error:", error);
+    Logger.error("Import Inbound Error", error, "STOCK_CONTROLLER");
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -180,7 +181,7 @@ export const getImportJobs = async (req, res) => {
     const jobs = await jobService.getUserJobsService(req.user.id);
     res.json({ success: true, data: jobs });
   } catch (error) {
-    console.error("[StockController] Get Jobs Error:", error);
+    Logger.error("Get Jobs Error", error, "STOCK_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal mengambil riwayat." });
   }
 };
@@ -190,7 +191,7 @@ export const cancelImportJob = async (req, res) => {
     await jobService.cancelJobService(req.params.id, req.user.id);
     res.json({ success: true, message: "Antrian berhasil dibatalkan." });
   } catch (error) {
-    console.error("[StockController] Cancel Job Error:", error);
+    Logger.error("Cancel Job Error", error, "STOCK_CONTROLLER");
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -216,7 +217,7 @@ export const processBatchMovements = async (req, res) => {
     });
     res.json({ success: true, message: `Batch ${type} berhasil.`, ...result });
   } catch (error) {
-    console.error("[StockController] Batch Process Error:", error);
+    Logger.error("Batch Process Error", error, "STOCK_CONTROLLER");
     res.status(400).json({ success: false, message: error.message });
   }
 };
@@ -227,7 +228,7 @@ export const getStockHistory = async (req, res) => {
     const result = await stockService.getStockHistoryService(req.params.productId, page);
     res.json({ success: true, ...result });
   } catch (error) {
-    console.error("[StockController] History Error:", error);
+    Logger.error("History Error", error, "STOCK_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal mengambil riwayat stok." });
   }
 };
@@ -248,7 +249,7 @@ export const batchTransfer = async (req, res) => {
     });
     res.json({ success: true, message: "Batch transfer berhasil.", ...result });
   } catch (error) {
-    console.error("[StockController] Batch Transfer Error:", error);
+    Logger.error("Batch Transfer Error", error, "STOCK_CONTROLLER");
     const status = error.message.includes("Akses ditolak") ? 403 : 400;
     res.status(status).json({ success: false, message: error.message });
   }
@@ -271,7 +272,7 @@ export const getBatchLogs = async (req, res) => {
     });
     res.json({ success: true, data: logs });
   } catch (error) {
-    console.error("[StockController] Batch Log Error:", error);
+    Logger.error("Batch Log Error", error, "STOCK_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal mengambil log." });
   }
 };
@@ -290,7 +291,7 @@ export const validateReturn = async (req, res) => {
     });
     res.json(result);
   } catch (error) {
-    console.error("[StockController] Validate Return Error:", error);
+    Logger.error("Validate Return Error", error, "STOCK_CONTROLLER");
     res.status(400).json({ success: false, message: error.message });
   }
 };

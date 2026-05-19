@@ -1,4 +1,5 @@
 import NodeCache from "node-cache";
+import Logger from "../utils/logger.js";
 
 /**
  * Membuat instance cache tunggal (singleton) untuk digunakan di seluruh aplikasi.
@@ -7,6 +8,6 @@ import NodeCache from "node-cache";
  */
 const cache = new NodeCache({ stdTTL: 120, checkperiod: 150 });
 
-console.log("Modul Cache berhasil dimuat.");
+Logger.info("Modul Cache berhasil dimuat.", "CACHE");
 
 export default cache;

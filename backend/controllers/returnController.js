@@ -3,6 +3,7 @@ import db from "../config/db.js";
 import * as returnRepo from "../repositories/returnRepository.js";
 import * as locationRepo from "../repositories/locationRepository.js";
 import * as stockRepo from "../repositories/stockMovementRepository.js";
+import Logger from "../utils/logger.js";
 
 /**
  * GET: Ambil daftar barang yang statusnya RETURNED
@@ -16,7 +17,7 @@ export const getPendingReturns = async (req, res) => {
 
     res.json({ success: true, data: items });
   } catch (error) {
-    console.error("[Return] Get Pending Error:", error);
+    Logger.error("Get Pending Error", error, "RETURN_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal mengambil antrian retur." });
   } finally {
     if (connection) connection.release();
@@ -38,7 +39,7 @@ export const getReturnHistory = async (req, res) => {
     const items = await returnRepo.getReturnHistory(connection, limit);
     res.json({ success: true, data: items });
   } catch (error) {
-    console.error("[Return] Get History Error:", error);
+    Logger.error("Get History Error", error, "RETURN_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal mengambil riwayat retur." });
   } finally {
     if (connection) connection.release();
@@ -128,7 +129,7 @@ export const approveReturn = async (req, res) => {
     });
   } catch (error) {
     if (connection) await connection.rollback();
-    console.error("[Return] Approve Error:", error);
+    Logger.error("Approve Error", error, "RETURN_CONTROLLER");
     res.status(500).json({ success: false, message: error.message });
   } finally {
     if (connection) connection.release();
@@ -183,7 +184,7 @@ export const createManualReturn = async (req, res) => {
     res.json({ success: true, message: "Retur manual berhasil dicatat." });
   } catch (error) {
     if (connection) await connection.rollback();
-    console.error("[Return] Manual Create Error:", error);
+    Logger.error("Manual Create Error", error, "RETURN_CONTROLLER");
     res.status(500).json({ success: false, message: error.message });
   } finally {
     if (connection) connection.release();

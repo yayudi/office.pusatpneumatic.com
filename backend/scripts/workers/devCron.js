@@ -1,5 +1,6 @@
 // backend/scripts/workers/devCron.js
 import db from '../../config/db.js'
+import Logger from '../../utils/logger.js'
 
 // Import jobs
 import { processQueue as exportQueue } from './exportQueue.js'
@@ -15,7 +16,7 @@ let isExporting = false
 let isImporting = false
 let isProcessingMedia = false
 
-console.log('[DevCron] 🔥 Unified Development Worker Started!')
+Logger.info('Unified Development Worker Started!', 'DEV_CRON')
 
 // Wrapper runners
 const runExport = async () => {
@@ -24,7 +25,7 @@ const runExport = async () => {
   try {
     await exportQueue()
   } catch (err) {
-    console.error('[DevCron] ❌ Export Worker Error:', err.message)
+    Logger.error('Export Worker Error', err, 'DEV_CRON')
   } finally {
     isExporting = false
   }
@@ -36,7 +37,7 @@ const runImport = async () => {
   try {
     await importQueue()
   } catch (err) {
-    console.error('[DevCron] ❌ Import Worker Error:', err.message)
+    Logger.error('Import Worker Error', err, 'DEV_CRON')
   } finally {
     isImporting = false
   }
@@ -48,7 +49,7 @@ const runMedia = async () => {
   try {
     await runMediaWorker()
   } catch (err) {
-    console.error('[DevCron] ❌ Media Worker Error:', err.message)
+    Logger.error('Media Worker Error', err, 'DEV_CRON')
   } finally {
     isProcessingMedia = false
   }
@@ -60,21 +61,21 @@ const runMedia = async () => {
 
 // 1. Media Worker (Ringan/Cepat tp bisa CPU Bound)
 setTimeout(() => {
-  console.log('[DevCron] ⏱️ Memulai Interval Media Worker (tiap 5s)...')
+  Logger.info('Memulai Interval Media Worker (tiap 5s)...', 'DEV_CRON')
   runMedia() // Initial run
   setInterval(runMedia, MEDIA_INTERVAL)
 }, 1000)
 
 // 2. Export Worker (Offset 3 detik dari boot/media)
 setTimeout(() => {
-  console.log('[DevCron] ⏱️ Memulai Interval Export Worker (tiap 10s)...')
+  Logger.info('Memulai Interval Export Worker (tiap 10s)...', 'DEV_CRON')
   runExport() // Initial run
   setInterval(runExport, EXPORT_INTERVAL)
 }, 3000)
 
 // 3. Import Worker (Offset 6 detik dari boot/media)
 setTimeout(() => {
-  console.log('[DevCron] ⏱️ Memulai Interval Import Worker (tiap 15s)...')
+  Logger.info('Memulai Interval Import Worker (tiap 15s)...', 'DEV_CRON')
   runImport() // Initial run
   setInterval(runImport, IMPORT_INTERVAL)
 }, 6000)
@@ -83,7 +84,7 @@ setTimeout(() => {
 // GRACEFUL SHUTDOWN
 // -----------------------------------------------------
 function shutdown() {
-  console.log('\n[DevCron] 🛑 Menghentikan Unified Worker. Menutup pool koneksi...')
+  Logger.info('Menghentikan Unified Worker. Menutup pool koneksi...', 'DEV_CRON')
   if (db.pool) {
     db.pool.end()
   }

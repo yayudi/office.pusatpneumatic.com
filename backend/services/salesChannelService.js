@@ -1,6 +1,7 @@
 // backend/services/salesChannelService.js
 import db from '../config/db.js';
 import * as salesChannelRepo from '../repositories/salesChannelRepository.js';
+import Logger from '../utils/logger.js';
 
 export const getAllChannels = async (onlyActive = false) => {
   let connection;
@@ -8,7 +9,7 @@ export const getAllChannels = async (onlyActive = false) => {
     connection = await db.getConnection();
     return await salesChannelRepo.getAll(connection, onlyActive);
   } catch (error) {
-    console.error("Error in getAllChannels:", error);
+    Logger.error("Error in getAllChannels", error, "SALES_CHANNEL_SERVICE");
     throw error;
   } finally {
     if (connection) connection.release();
@@ -25,7 +26,7 @@ export const getChannelById = async (id) => {
     }
     return channel;
   } catch (error) {
-    console.error("Error in getChannelById:", error);
+    Logger.error("Error in getChannelById", error, "SALES_CHANNEL_SERVICE");
     throw error;
   } finally {
     if (connection) connection.release();
@@ -50,7 +51,7 @@ export const createChannel = async (channelData, userId) => {
     return newId;
   } catch (error) {
     if (connection) await connection.rollback();
-    console.error("Error in createChannel:", error);
+    Logger.error("Error in createChannel", error, "SALES_CHANNEL_SERVICE");
     throw error;
   } finally {
     if (connection) connection.release();
@@ -78,7 +79,7 @@ export const updateChannel = async (id, channelData, userId) => {
     return success;
   } catch (error) {
     if (connection) await connection.rollback();
-    console.error("Error in updateChannel:", error);
+    Logger.error("Error in updateChannel", error, "SALES_CHANNEL_SERVICE");
     throw error;
   } finally {
     if (connection) connection.release();
@@ -102,7 +103,7 @@ export const deleteChannel = async (id, userId) => {
     return success;
   } catch (error) {
     if (connection) await connection.rollback();
-    console.error("Error in deleteChannel:", error);
+    Logger.error("Error in deleteChannel", error, "SALES_CHANNEL_SERVICE");
     throw error;
   } finally {
     if (connection) connection.release();

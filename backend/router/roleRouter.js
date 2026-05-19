@@ -2,6 +2,7 @@
 import express from "express";
 import db from "../config/db.js";
 import { createLog } from "../repositories/systemLogRepository.js";
+import Logger from "../utils/logger.js";
 
 const router = express.Router();
 
@@ -16,7 +17,7 @@ router.get("/", async (req, res) => {
     );
     res.json({ success: true, data: roles });
   } catch (error) {
-    console.error("Error saat mengambil data peran:", error);
+    Logger.error("Error saat mengambil data peran", error, "ROLE_ROUTER");
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
@@ -32,7 +33,7 @@ router.get("/permissions", async (req, res) => {
     );
     res.json({ success: true, data: permissions });
   } catch (error) {
-    console.error("Error saat mengambil data izin:", error);
+    Logger.error("Error saat mengambil data izin", error, "ROLE_ROUTER");
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
@@ -50,7 +51,7 @@ router.get("/:id/permissions", async (req, res) => {
     const permissionIds = rows.map((row) => row.permission_id);
     res.json({ success: true, data: permissionIds });
   } catch (error) {
-    console.error("Error saat mengambil izin peran:", error);
+    Logger.error("Error saat mengambil izin peran", error, "ROLE_ROUTER");
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
@@ -103,7 +104,7 @@ router.put("/:id/permissions", async (req, res) => {
         .status(400)
         .json({ success: false, message: "Satu atau lebih ID izin atau peran tidak valid." });
     }
-    console.error("Error saat memperbarui izin peran:", error);
+    Logger.error("Error saat memperbarui izin peran", error, "ROLE_ROUTER");
     res.status(500).json({ success: false, message: "Server error" });
   } finally {
     if (connection) connection.release();
@@ -142,7 +143,7 @@ router.post("/", async (req, res) => {
     if (error.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ success: false, message: "Nama peran sudah ada." });
     }
-    console.error("Error saat membuat peran:", error);
+    Logger.error("Error saat membuat peran", error, "ROLE_ROUTER");
     res.status(500).json({ success: false, message: "Gagal membuat peran." });
   }
 });
@@ -182,7 +183,7 @@ router.put("/:id", async (req, res) => {
     if (error.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ success: false, message: "Nama peran sudah digunakan." });
     }
-    console.error("Error saat mengedit peran:", error);
+    Logger.error("Error saat mengedit peran", error, "ROLE_ROUTER");
     res.status(500).json({ success: false, message: "Gagal mengedit peran." });
   }
 });
@@ -217,7 +218,7 @@ router.delete("/:id", async (req, res) => {
         message: "Gagal menghapus: Peran ini masih digunakan oleh satu atau lebih pengguna.",
       });
     }
-    console.error("Error saat menghapus peran:", error);
+    Logger.error("Error saat menghapus peran", error, "ROLE_ROUTER");
     res.status(500).json({ success: false, message: "Gagal menghapus peran." });
   }
 });

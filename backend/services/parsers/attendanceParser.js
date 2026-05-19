@@ -2,6 +2,7 @@
 import fs from "fs";
 import csv from "csv-parser";
 import { PARSER_CONSTANTS } from "../../config/wmsConstants.js"; // Import Config
+import Logger from "../../utils/logger.js";
 
 /**
  * Mencoba mengekstrak tanggal dari 10 baris pertama file (Metadata Header)
@@ -11,22 +12,22 @@ export async function extractDateFromCsv(filepath) {
     const fileContent = await fs.promises.readFile(filepath, "utf8");
     const lines = fileContent.split(/\r?\n/).slice(0, 10); // Baca 10 baris pertama
 
-    console.log(`[Parser] 🔍 Mencari metadata tanggal di 10 baris pertama...`);
+    Logger.info("Mencari metadata tanggal di 10 baris pertama...", "ATTENDANCE_PARSER");
 
     for (const line of lines) {
       // Cari pola "From YYYY/MM/DD To YYYY/MM/DD"
       // Regex flexible: support separator / atau -
       const match = line.match(/From\s+(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})\s+To/i);
       if (match) {
-        console.log(`[Parser] Metadata ditemukan: "${line.trim()}"`);
+        Logger.info(`Metadata ditemukan: "${line.trim()}"`, "ATTENDANCE_PARSER");
         return { year: parseInt(match[1]), month: parseInt(match[2]) };
       }
     }
 
-    console.log("[Parser] ℹ️ Metadata tanggal tidak ditemukan di header file.");
+    Logger.info("Metadata tanggal tidak ditemukan di header file.", "ATTENDANCE_PARSER");
     return { year: null, month: null };
   } catch (error) {
-    console.error("[Parser] ❌ Error membaca metadata:", error);
+    Logger.error("Error membaca metadata", error, "ATTENDANCE_PARSER");
     return { year: null, month: null };
   }
 }
@@ -41,7 +42,7 @@ export function parseCsvToUserData(filepath) {
     let validRowCount = 0;
     let skippedCount = 0;
 
-    console.log(`[Parser] 📂 Memulai stream file: ${filepath}`);
+    Logger.info(`Memulai stream file: ${filepath}`, "ATTENDANCE_PARSER");
 
     fs.createReadStream(filepath)
       .pipe(
@@ -50,13 +51,13 @@ export function parseCsvToUserData(filepath) {
           mapHeaders: ({ header, index }) => {
             // Bersihkan header dari karakter aneh (BOM) dan spasi berlebih
             const cleanHeader = header.replace(/^\uFEFF/, "").trim();
-            if (index < 5) console.log(`[Parser] Header Col ${index}: '${cleanHeader}'`);
+            if (index < 5) Logger.info(`Header Col ${index}: '${cleanHeader}'`, "ATTENDANCE_PARSER");
             return cleanHeader;
           },
         })
       )
       .on("headers", (headers) => {
-        console.log(`[Parser] 📋 Header Lengkap:`, JSON.stringify(headers));
+        Logger.info(`📋 Header Lengkap: ${JSON.stringify(headers)}`, "ATTENDANCE_PARSER");
 
         const hasUserID = headers.some((h) =>
           ["User ID", "No.", "AC-No.", "ID Number"].includes(h)
@@ -64,8 +65,9 @@ export function parseCsvToUserData(filepath) {
         const hasDate = headers.some((h) => ["Date/Time", "Time", "Waktu", "DateTime"].includes(h));
 
         if (!hasUserID || !hasDate) {
-          console.warn(
-            `[Parser] ⚠️ PERINGATAN: Header 'User ID' atau 'Date/Time' tidak terdeteksi standar!`
+          Logger.warn(
+            "PERINGATAN: Header 'User ID' atau 'Date/Time' tidak terdeteksi standar!",
+            "ATTENDANCE_PARSER"
           );
         }
       })
@@ -74,7 +76,7 @@ export function parseCsvToUserData(filepath) {
 
         // Debug 3 baris pertama
         if (rowCount <= 3) {
-          console.log(`[Parser] 🔍 Row #${rowCount}:`, JSON.stringify(row));
+          Logger.info(`Row #${rowCount}: ${JSON.stringify(row)}`, "ATTENDANCE_PARSER");
         }
 
         const id = row["User ID"] || row["No."] || row["AC-No."] || row["ID Number"];
@@ -83,8 +85,9 @@ export function parseCsvToUserData(filepath) {
 
         if (!id || !datetimeRaw) {
           if (skippedCount < 5)
-            console.warn(
-              `[Parser] ⚠️ Baris ${rowCount} SKIPPED (Data Incomplete): ID=${id}, Time=${datetimeRaw}`
+            Logger.warn(
+              `Baris ${rowCount} SKIPPED (Data Incomplete): ID=${id}, Time=${datetimeRaw}`,
+              "ATTENDANCE_PARSER"
             );
           skippedCount++;
           return;
@@ -116,7 +119,7 @@ export function parseCsvToUserData(filepath) {
 
         if (isNaN(dateObj.getTime())) {
           if (skippedCount < 5)
-            console.warn(`[Parser] ⚠️ Baris ${rowCount} SKIPPED (Invalid Date): ${datetimeRaw}`);
+            Logger.warn(`Baris ${rowCount} SKIPPED (Invalid Date): ${datetimeRaw}`, "ATTENDANCE_PARSER");
           skippedCount++;
           return;
         }
@@ -140,15 +143,16 @@ export function parseCsvToUserData(filepath) {
         validRowCount++;
       })
       .on("end", () => {
-        console.log(`[Parser] Parsing Selesai.`);
-        console.log(
-          `[Parser] 📊 Statistik: Total=${rowCount}, Valid=${validRowCount}, Skipped=${skippedCount}`
+        Logger.info("Parsing Selesai", "ATTENDANCE_PARSER");
+        Logger.info(
+          `Statistik: Total=${rowCount}, Valid=${validRowCount}, Skipped=${skippedCount}`,
+          "ATTENDANCE_PARSER"
         );
-        console.log(`[Parser] 👥 User Unik Ditemukan: ${Object.keys(data).length}`);
+        Logger.info(`User Unik Ditemukan: ${Object.keys(data).length}`, "ATTENDANCE_PARSER");
         resolve({ data });
       })
       .on("error", (error) => {
-        console.error("[Parser] ❌ Stream Error:", error);
+        Logger.error("Stream Error", error, "ATTENDANCE_PARSER");
         reject(error);
       });
   });

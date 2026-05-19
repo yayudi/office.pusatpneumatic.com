@@ -18,8 +18,9 @@
 
 import path from "path";
 import { fileURLToPath } from "url";
-import fs from "fs"; // <-- Import fs
-import db from "../config/db.js"; // Pastikan path ini benar
+import fs from "fs";
+import db from "../config/db.js";
+import Logger from "../utils/logger.js";
 import "dotenv/config";
 
 // --- KONFIGURASI ---
@@ -76,7 +77,7 @@ async function updatePackageQuantities() {
       return;
     }
   } catch (err) {
-    console.error(`❌ Gagal membaca atau mem-parsing file data: ${err.message}`);
+    Logger.error("Gagal membaca atau mem-parsing file data", err, "UPDATE_PKG_QTY");
     return;
   }
 
@@ -194,12 +195,12 @@ async function updatePackageQuantities() {
 
     // Proses hasil
     if (updateErrors.length > 0 || missingSkuDetails.length > 0 || skippedRowDetails.length > 0) {
-      console.warn("\n--- LAPORAN MASALAH IMPOR ---");
+      Logger.warn("--- LAPORAN MASALAH IMPOR ---", "UPDATE_PKG_QTY");
+      
       // Laporan SKU Tidak Ditemukan
       if (missingSkuDetails.length > 0) {
-        console.warn(
-          `\n[SKU Tidak Ditemukan di Tabel 'products'] (${missingSkuDetails.length} SKU unik):`
-        );
+        Logger.warn(`[SKU Tidak Ditemukan di Tabel 'products'] (${missingSkuDetails.length} SKU unik):`, "UPDATE_PKG_QTY");
+        
         // Kelompokkan berdasarkan SKU untuk kejelasan
         const missingGrouped = missingSkuDetails.reduce((acc, curr) => {
           if (!acc[curr.sku]) {
@@ -207,47 +208,43 @@ async function updatePackageQuantities() {
           }
           return acc;
         }, {});
+        
         Object.entries(missingGrouped).forEach(([sku, details]) => {
-          console.warn(
-            `  - SKU: "${sku}" (${details.type}), pertama ditemukan di baris CSV: ${details.firstFoundAtRow}`
-          );
+          Logger.warn(`  - SKU: "${sku}" (${details.type}), pertama ditemukan di baris CSV: ${details.firstFoundAtRow}`, "UPDATE_PKG_QTY");
         });
       }
+      
       // Laporan Baris Dilewati
       if (skippedRowDetails.length > 0) {
-        console.warn(`\n[Baris CSV Dilewati] (${skippedRowDetails.length} baris):`);
+        Logger.warn(`[Baris CSV Dilewati] (${skippedRowDetails.length} baris):`, "UPDATE_PKG_QTY");
         skippedRowDetails.forEach((detail) =>
-          console.warn(`  - Baris ${detail.row}: ${detail.reason}`)
+          Logger.warn(`  - Baris ${detail.row}: ${detail.reason}`, "UPDATE_PKG_QTY")
         );
       }
+      
       // Laporan Error Update
       if (updateErrors.length > 0) {
-        console.warn("\n[Error Saat Mencoba Mengupdate Baris Berikut]:");
+        Logger.warn("[Error Saat Mencoba Mengupdate Baris Berikut]:", "UPDATE_PKG_QTY");
         updateErrors.forEach((err) =>
-          console.warn(
-            `  - Baris ${err.row} (${err.packageSku} -> ${err.componentSku}): ${err.error}`
-          )
+          Logger.warn(`  - Baris ${err.row} (${err.packageSku} -> ${err.componentSku}): ${err.error}`, "UPDATE_PKG_QTY")
         );
         // Putuskan untuk rollback jika ada error update
         throw new Error("Terjadi error saat mengupdate data, transaksi dibatalkan.");
       }
-      console.warn("------------------------------\n");
+      Logger.warn("------------------------------", "UPDATE_PKG_QTY");
     }
 
     await connection.commit();
   } catch (error) {
     if (connection) {
-      console.error("❌ Terjadi error, melakukan rollback transaksi...");
+      Logger.error("Terjadi error, melakukan rollback transaksi...", null, "UPDATE_PKG_QTY");
       await connection.rollback();
     }
-    console.error("❌ Gagal mengupdate data:", error.message);
-    // console.error(error.stack); // Uncomment untuk stack trace lengkap jika perlu
+    Logger.error("Gagal mengupdate data", error, "UPDATE_PKG_QTY");
   } finally {
     if (connection) {
       connection.release();
     }
-    // Hitung SKU unik yang hilang
-    const uniqueMissingSkus = new Set(missingSkuDetails.map((m) => m.sku));
   }
 }
 

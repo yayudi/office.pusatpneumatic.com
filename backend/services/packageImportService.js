@@ -1,6 +1,7 @@
 import db from "../config/db.js";
 import ExcelJS from "exceljs";
 import * as productRepo from "../repositories/productRepository.js";
+import Logger from "../utils/logger.js";
 
 /**
  * Validates and Imports Package Components
@@ -11,7 +12,7 @@ import * as productRepo from "../repositories/productRepository.js";
  * 4. Replace components (DELETE old -> INSERT new).
  */
 export const processPackageImport = async (filePath, jobId, updateProgress) => {
-  console.log(`[PackageImport] Processing file: ${filePath}`);
+  Logger.info(`Processing file: ${filePath}`, "PACKAGE_IMPORT");
   let connection;
   const errors = [];
   let processedCount = 0;
@@ -32,7 +33,7 @@ export const processPackageImport = async (filePath, jobId, updateProgress) => {
     });
 
     const totalRows = rows.length;
-    console.log(`[PackageImport] Total rows found: ${totalRows}`);
+    Logger.info(`Total rows found: ${totalRows}`, "PACKAGE_IMPORT");
 
     for (const row of rows) {
       processedCount++;
@@ -111,7 +112,7 @@ export const processPackageImport = async (filePath, jobId, updateProgress) => {
     return { successCount, errors };
 
   } catch (error) {
-    console.error("[PackageImport] Fatal Error:", error);
+    Logger.error("Fatal Error", error, "PACKAGE_IMPORT");
     throw error;
   } finally {
     if (connection) connection.release();

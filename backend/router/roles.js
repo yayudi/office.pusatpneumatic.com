@@ -1,4 +1,5 @@
 import axios from "../axios";
+import Logger from "../utils/logger.js";
 
 /**
  * Mengambil daftar semua peran (roles) dari server.
@@ -9,7 +10,7 @@ export async function fetchAllRoles() {
     const response = await axios.get("/admin/roles");
     return response.data.data || [];
   } catch (error) {
-    console.error("Error saat mengambil data peran:", error.response?.data || error.message);
+    Logger.error("Error saat mengambil data peran", error, "ROLES_LEGACY");
     throw error.response?.data || error;
   }
 }
@@ -23,7 +24,7 @@ export async function fetchAllPermissions() {
     const response = await axios.get("/admin/roles/permissions");
     return response.data.data || [];
   } catch (error) {
-    console.error("Error saat mengambil data izin:", error.response?.data || error.message);
+    Logger.error("Error saat mengambil data izin", error, "ROLES_LEGACY");
     throw error.response?.data || error;
   }
 }
@@ -38,7 +39,7 @@ export async function fetchRolePermissions(roleId) {
     const response = await axios.get(`/admin/roles/${roleId}/permissions`);
     return response.data.data || [];
   } catch (error) {
-    console.error("Error saat mengambil izin peran:", error.response?.data || error.message);
+    Logger.error("Error saat mengambil izin peran", error, "ROLES_LEGACY");
     throw error.response?.data || error;
   }
 }
@@ -54,7 +55,7 @@ export async function updateRolePermissions(roleId, permissionIds) {
     const response = await axios.put(`/admin/roles/${roleId}/permissions`, { permissionIds });
     return response.data;
   } catch (error) {
-    console.error("Error saat memperbarui izin peran:", error.response?.data || error.message);
+    Logger.error("Error saat memperbarui izin peran", error, "ROLES_LEGACY");
     throw error.response?.data || error;
   }
 }

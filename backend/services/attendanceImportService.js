@@ -1,6 +1,7 @@
 // backend/services/attendanceImportService.js
 import db from "../config/db.js";
 import { parseCsvToUserData, extractDateFromCsv } from "./parsers/attendanceParser.js";
+import Logger from "../utils/logger.js";
 import {
   // Constants now deprecated for Calculation, but PARSER_CONSTANTS might still be used if parser needs them
   // Checking usage...
@@ -26,8 +27,8 @@ export async function processAttendanceImport(
   // --- DEBUG ARGUMENTS ---
   // Cek apakah argumen sudah sesuai
   if (typeof isDryRun === "function") {
-    console.error("[AttendanceService] ⚠️ CRITICAL: Argument Mismatch! 'isDryRun' is a function.");
-    console.error("DEBUG ARGS:", {
+    Logger.error("CRITICAL: Argument Mismatch! 'isDryRun' is a function.", null, "ATTENDANCE_IMPORT");
+    Logger.error("DEBUG ARGS", null, "ATTENDANCE_IMPORT", {
       userId,
       originalFilename,
       typeProgress: typeof updateProgress,
@@ -47,11 +48,11 @@ export async function processAttendanceImport(
   const stats = { success: 0, failed: 0, skipped: 0 };
   const filenameStr = String(originalFilename);
 
-  console.log(`\n[AttendanceService] 🚀 START PROCESS`);
-  console.log(`  - File: ${filenameStr}`);
-  console.log(`  - User ID: ${userId}`);
-  console.log(`  - DryRun Mode: ${isDryRun} (${typeof isDryRun})`);
-  console.log(`  - DB Connection ID: ${connection.threadId}`);
+  Logger.info("START PROCESS", "ATTENDANCE_IMPORT");
+  Logger.info(`  - File: ${filenameStr}`, "ATTENDANCE_IMPORT");
+  Logger.info(`  - User ID: ${userId}`, "ATTENDANCE_IMPORT");
+  Logger.info(`  - DryRun Mode: ${isDryRun} (${typeof isDryRun})`, "ATTENDANCE_IMPORT");
+  Logger.info(`  - DB Connection ID: ${connection.threadId}`, "ATTENDANCE_IMPORT");
 
   try {
     // 1. Tentukan Periode (Tahun & Bulan)
@@ -86,7 +87,7 @@ export async function processAttendanceImport(
           month = meta.month;
         }
       } catch (e) {
-        console.warn("[AttendanceService] Gagal baca metadata file:", e.message);
+        Logger.warn("Gagal baca metadata file", "ATTENDANCE_IMPORT", e);
       }
     }
 
@@ -105,7 +106,7 @@ export async function processAttendanceImport(
         );
       }
     }
-    console.log(`[AttendanceService] Periode Terdeteksi: ${year}-${month}`);
+    Logger.info(`Periode Terdeteksi: ${year}-${month}`, "ATTENDANCE_IMPORT");
 
     // 2. Parse Data User dari CSV
     const { data: parsedData } = await parseCsvToUserData(filePath);
@@ -323,24 +324,22 @@ export async function processAttendanceImport(
     }
 
     if (isDryRun === true) {
-      console.log(`[AttendanceService] Mode Dry Run: Rollback transaksi.`);
+      Logger.info("Mode Dry Run: Rollback transaksi", "ATTENDANCE_IMPORT");
       await connection.rollback();
       logSummary = `[SIMULASI SUKSES] Validasi ${totalProcessedDays} hari kerja untuk ${totalUsers} karyawan. Data valid.`;
     } else {
       await connection.commit();
-      console.log(
-        `[AttendanceService] Mode LIVE: Commit transaksi berhasil. ${dbInsertCount} hari kerja tersimpan.`
-      );
+      Logger.info(`Mode LIVE: Commit transaksi berhasil. ${dbInsertCount} hari kerja tersimpan.`, "ATTENDANCE_IMPORT");
       logSummary = `Sukses: ${totalProcessedDays} data hari kerja, ${totalUsers} karyawan.`;
     }
 
     stats.success = totalProcessedDays;
-    console.log(`[AttendanceService] Selesai. ${logSummary}`);
+    Logger.info(`Selesai. ${logSummary}`, "ATTENDANCE_IMPORT");
 
     return { logSummary, errors, stats };
   } catch (error) {
     await connection.rollback();
-    console.error("[AttendanceService] Fatal Error:", error);
+    Logger.error("Fatal Error", error, "ATTENDANCE_IMPORT");
     throw error;
   }
 }

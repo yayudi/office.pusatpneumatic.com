@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 import db from '../../config/db.js';
+import Logger from '../../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,7 +11,7 @@ const __dirname = path.dirname(__filename);
 const UPLOADS_DIR = path.resolve(__dirname, '../../uploads');
 
 async function deduplicateMedia() {
-  console.log('🚀 Memulai pembersihan duplikat media...');
+  Logger.info('Memulai pembersihan duplikat media...', "DEDUPLICATE_MEDIA");
   let connection;
 
   try {
@@ -26,13 +27,13 @@ async function deduplicateMedia() {
       HAVING count > 1
     `);
 
-    console.log(`Menemukan ${duplicates.length} grup hash duplikat.`);
+    Logger.info(`Menemukan ${duplicates.length} grup hash duplikat.`, "DEDUPLICATE_MEDIA");
 
     let totalDeleted = 0;
     let totalMergedLinks = 0;
 
     for (const group of duplicates) {
-      console.log(`\nProcessing hash: ${group.hash}`);
+      Logger.info(`Processing hash: ${group.hash}`, "DEDUPLICATE_MEDIA");
       
       // 2. Ambil detail semua aset dalam grup ini beserta jumlah link produknya
       const [assets] = await connection.query(`
@@ -52,10 +53,10 @@ async function deduplicateMedia() {
       const master = assets[0];
       const itemsToDelete = assets.slice(1);
 
-      console.log(`  Keeping ID: ${master.id} (Usage: ${master.usage_count}, Created: ${master.created_at})`);
+      Logger.info(`Keeping ID: ${master.id} (Usage: ${master.usage_count}, Created: ${master.created_at})`, "DEDUPLICATE_MEDIA");
 
       for (const dupe of itemsToDelete) {
-        console.log(`  Processing Duplicate ID: ${dupe.id}...`);
+        Logger.info(`Processing Duplicate ID: ${dupe.id}...`, "DEDUPLICATE_MEDIA");
 
         // A. Pindahkan link produk ke Master
         // Gunakan INSERT IGNORE pattern untuk menghindari duplikasi link pada produk yang sama
@@ -84,31 +85,27 @@ async function deduplicateMedia() {
         // Jika file master dan file duplikat menunjuk ke path yang sama (jarang terjadi tapi mungkin), jangan hapus
         if (dupe.main_path && dupe.main_path !== master.main_path) {
           const mainFile = path.join(UPLOADS_DIR, dupe.main_path);
-          await fs.unlink(mainFile).catch(err => console.log(`    ⚠️ Gagal hapus main file: ${mainFile} (${err.code})`));
+          await fs.unlink(mainFile).catch(err => Logger.error(`Gagal hapus main file: ${mainFile}`, err, "DEDUPLICATE_MEDIA"));
         }
 
         if (dupe.thumbnail_path && dupe.thumbnail_path !== master.thumbnail_path) {
           const thumbFile = path.join(UPLOADS_DIR, dupe.thumbnail_path);
-          await fs.unlink(thumbFile).catch(err => console.log(`    ⚠️ Gagal hapus thumb file: ${thumbFile} (${err.code})`));
+          await fs.unlink(thumbFile).catch(err => Logger.error(`Gagal hapus thumb file: ${thumbFile}`, err, "DEDUPLICATE_MEDIA"));
         }
 
         // C. Hapus record dari media_assets
         await connection.query(`DELETE FROM media_assets WHERE id = ?`, [dupe.id]);
         totalDeleted++;
-        console.log(`    ✅ ID ${dupe.id} berhasil dihapus.`);
+        Logger.info(`ID ${dupe.id} berhasil dihapus.`, "DEDUPLICATE_MEDIA");
       }
     }
 
     await connection.commit();
-    console.log('\n=======================================');
-    console.log('🎉 Pembersihan Duplikat Selesai!');
-    console.log(`Total Aset Dihapus: ${totalDeleted}`);
-    console.log(`Total Link Produk Dimigrasi: ${totalMergedLinks}`);
-    console.log('=======================================');
+    Logger.info(`Pembersihan Duplikat Selesai! Total Aset Dihapus: ${totalDeleted}, Total Link Produk Dimigrasi: ${totalMergedLinks}`, "DEDUPLICATE_MEDIA");
 
   } catch (error) {
     if (connection) await connection.rollback();
-    console.error('Terjadi kesalahan fatal saat deduplikasi:', error);
+    Logger.error('Terjadi kesalahan fatal saat deduplikasi', error, "DEDUPLICATE_MEDIA");
   } finally {
     if (connection) connection.release();
     process.exit(0);

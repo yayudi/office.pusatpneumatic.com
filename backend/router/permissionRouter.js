@@ -1,5 +1,5 @@
-// backend\router\permissionRouter.js
 import axios from "../axios";
+import Logger from "../utils/logger.js";
 
 /**
  * Mengambil semua peran (roles).
@@ -10,7 +10,7 @@ export async function fetchAllRoles() {
     const response = await axios.get("/admin/roles"); // Diubah
     return response.data.data || [];
   } catch (error) {
-    console.error("Error saat mengambil semua peran:", error.response?.data || error.message);
+    Logger.error("Error saat mengambil semua peran", error, "PERMISSION_ROUTER");
     throw error.response?.data || error;
   }
 }
@@ -28,7 +28,7 @@ export async function fetchAllPermissions() {
     // Asumsi data: { id, name, description, group }
     return response.data.data || [];
   } catch (error) {
-    console.error("Error saat mengambil semua izin:", error.response?.data || error.message);
+    Logger.error("Error saat mengambil semua izin", error, "PERMISSION_ROUTER");
     throw error.response?.data || error;
   }
 }
@@ -44,7 +44,7 @@ export async function fetchRolePermissions(roleId) {
     // Asumsi backend mengembalikan: { success: true, data: [1, 5, 12] }
     return response.data.data || [];
   } catch (error) {
-    console.error("Error saat mengambil izin peran:", error.response?.data || error.message);
+    Logger.error("Error saat mengambil izin peran", error, "PERMISSION_ROUTER");
     throw error.response?.data || error;
   }
 }
@@ -63,7 +63,7 @@ export async function updateRolePermissions(roleId, permissionIds) {
     });
     return response.data;
   } catch (error) {
-    console.error("Error saat memperbarui izin peran:", error.response?.data || error.message);
+    Logger.error("Error saat memperbarui izin peran", error, "PERMISSION_ROUTER");
     throw error.response?.data || error;
   }
 }
@@ -80,7 +80,7 @@ export async function createRole(roleData) {
     const response = await axios.post("/admin/roles", roleData); // Diubah
     return response.data;
   } catch (error) {
-    console.error("Error saat membuat peran:", error.response?.data || error.message);
+    Logger.error("Error saat membuat peran", error, "PERMISSION_ROUTER");
     throw error.response?.data || error;
   }
 }
@@ -96,7 +96,7 @@ export async function updateRole(roleId, roleData) {
     const response = await axios.put(`/admin/roles/${roleId}`, roleData); // Diubah
     return response.data;
   } catch (error) {
-    console.error("Error saat memperbarui peran:", error.response?.data || error.message);
+    Logger.error("Error saat memperbarui peran", error, "PERMISSION_ROUTER");
     throw error.response?.data || error;
   }
 }
@@ -111,7 +111,7 @@ export async function deleteRole(roleId) {
     const response = await axios.delete(`/admin/roles/${roleId}`); // Diubah
     return response.data;
   } catch (error) {
-    console.error("Error saat menghapus peran:", error.response?.data || error.message);
+    Logger.error("Error saat menghapus peran", error, "PERMISSION_ROUTER");
     throw error.response?.data || error;
   }
 }

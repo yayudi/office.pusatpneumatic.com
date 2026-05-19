@@ -2,6 +2,7 @@
 import fs from "fs/promises";
 import path from "path";
 import db from "../../config/db.js";
+import Logger from "../../utils/logger.js";
 
 const STATUS_A = 1;
 const STATUS_L = 2;
@@ -43,7 +44,7 @@ export async function loadHolidays(tahun) {
       }
     }
   } catch (error) {
-    console.warn(`Gagal memuat data libur dari SQL untuk tahun ${tahun}:`, error.message);
+    Logger.warn(`Gagal memuat data libur dari SQL untuk tahun ${tahun}`, "FILE_HELPERS", error);
   }
   return holidayMap;
 }
@@ -71,7 +72,7 @@ export async function generateJsonIndex() {
     const outputFile = path.join(process.cwd(), "assets", "json", "list_index.json");
     await fs.writeFile(outputFile, JSON.stringify(index, null, 2));
   } catch (error) {
-    console.error("Gagal membuat index JSON:", error);
+    Logger.error("Gagal membuat index JSON", error, "FILE_HELPERS");
   }
 }
 
@@ -113,7 +114,7 @@ export async function loadAndDecompactExistingData(jsonPath, tahun, bulan, holid
       }
     }
   } catch (error) {
-    if (error.code !== "ENOENT") console.warn(`Gagal memuat data JSON lama:`, error.message);
+    if (error.code !== "ENOENT") Logger.warn("Gagal memuat data JSON lama", "FILE_HELPERS", error);
   }
   return userLogs;
 }

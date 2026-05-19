@@ -7,6 +7,7 @@ import { pipeline } from "stream/promises";
 import * as locationRepo from "../repositories/locationRepository.js";
 import * as reportRepo from "../repositories/reportRepository.js";
 import * as productRepo from "../repositories/productRepository.js";
+import Logger from "../utils/logger.js";
 
 // Helper Styling
 const styleHeader = (
@@ -37,7 +38,7 @@ const styleHeader = (
  * Service: Generate Stock Report (Streaming)
  */
 export const generateStockReportStreaming = async (filters, filePath) => {
-  console.log(`[ExportService] Mulai generate STOCK ke: ${filePath}`);
+  Logger.info(`Mulai generate STOCK ke: ${filePath}`, "EXPORT_SERVICE");
   let connection;
 
   const stream = fs.createWriteStream(filePath);
@@ -122,7 +123,7 @@ export const generateStockReportStreaming = async (filters, filePath) => {
       };
 
       queryStream.on("error", (err) => {
-        console.error(`[ExportService] SQL Stream Error: ${err.message}`);
+        Logger.error("SQL Stream Error", err, "EXPORT_SERVICE");
         cleanup();
         reject(err);
       });
@@ -252,15 +253,16 @@ import * as fastCsv from "fast-csv";
  */
 export const generateProductExportStreaming = async (filters, filePath) => {
   const isCsv = filters.format === "csv";
-  console.log(
-    `[ExportService] Mulai generate MASTER PRODUK (${isCsv ? "CSV" : "XLSX"}) ke: ${filePath}`
+  Logger.info(
+    `Mulai generate MASTER PRODUK (${isCsv ? "CSV" : "XLSX"}) ke: ${filePath}`,
+    "EXPORT_SERVICE"
   );
 
   let connection;
   const stream = fs.createWriteStream(filePath);
   let workbookWriter = null;
   let csvStream = null;
-  console.log(`[ExportService] Stream created for ${filePath}`);
+  Logger.info(`Stream created for ${filePath}`, "EXPORT_SERVICE");
 
   try {
     connection = await db.getConnection();
@@ -287,7 +289,7 @@ export const generateProductExportStreaming = async (filters, filePath) => {
     // --- WRITE DATA ---
     if (isCsv) {
       // CSV WRITING via Pipeline (Safer & Auto-close)
-      console.log("[ExportService] Starting CSV Pipeline...");
+      Logger.info("Starting CSV Pipeline...", "EXPORT_SERVICE");
 
       const transformRow = (p) => ({
         sku: p.sku,
@@ -303,7 +305,7 @@ export const generateProductExportStreaming = async (filters, filePath) => {
         stream
       );
 
-      console.log("[ExportService] CSV Pipeline Completed.");
+      Logger.info("CSV Pipeline Completed.", "EXPORT_SERVICE");
     } else {
       // EXCEL WRITING
       const sheet = workbookWriter.addWorksheet("Master Produk");
@@ -338,29 +340,29 @@ export const generateProductExportStreaming = async (filters, filePath) => {
 
     // Tunggu stream selesai benar (Hanya untuk Excel, karena Pipeline CSV sudah auto-wait)
     if (!isCsv) {
-      console.log("[ExportService] Waiting for stream finish/close...");
+      Logger.info("Waiting for stream finish/close...", "EXPORT_SERVICE");
       await new Promise((resolve, reject) => {
         if (stream.writableEnded || stream.destroyed) {
-          console.log("[ExportService] Stream checks: already ended/destroyed. Resolving.");
+          Logger.info("Stream checks: already ended/destroyed. Resolving.", "EXPORT_SERVICE");
           return resolve();
         }
 
         stream.on("finish", () => {
-          console.log("[ExportService] Stream FINISHED.");
+          Logger.info("Stream FINISHED.", "EXPORT_SERVICE");
           resolve();
         });
         stream.on("close", () => {
-          console.log("[ExportService] Stream CLOSED.");
+          Logger.info("Stream CLOSED.", "EXPORT_SERVICE");
           resolve();
         });
         stream.on("error", (err) => {
-          console.error("[ExportService] Stream ERROR:", err);
+          Logger.error("Stream ERROR", err, "EXPORT_SERVICE");
           reject(err);
         });
       });
     }
 
-    console.log(`[ExportService] Selesai generate MASTER PRODUK.`);
+    Logger.info("Selesai generate MASTER PRODUK.", "EXPORT_SERVICE");
   } catch (error) {
     if (workbookWriter) {
       // Try to close writer/stream on error

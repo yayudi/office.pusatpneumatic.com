@@ -1,11 +1,12 @@
 import db from "../config/db.js";
+import Logger from "../utils/logger.js";
 
 const migratePermissions = async () => {
   const connection = await db.getConnection();
   await connection.beginTransaction();
 
   try {
-    console.log("🚀 Starting Permission Migration for Product Images...");
+    Logger.info("Starting Permission Migration for Product Images...", "MIGRATE_PERMS");
 
     // 1. Define Permissions
     const permissions = [
@@ -19,9 +20,9 @@ const migratePermissions = async () => {
       const [existing] = await connection.query("SELECT id FROM permissions WHERE name = ?", [perm.name]);
       if (existing.length === 0) {
         await connection.query("INSERT INTO permissions (name, description) VALUES (?, ?)", [perm.name, perm.description]);
-        console.log(`Permission created: ${perm.name}`);
+        Logger.info(`Permission created: ${perm.name}`, "MIGRATE_PERMS");
       } else {
-        console.log(`ℹ️ Permission already exists: ${perm.name}`);
+        Logger.info(`Permission already exists: ${perm.name}`, "MIGRATE_PERMS");
       }
     }
 
@@ -38,7 +39,7 @@ const migratePermissions = async () => {
     // Helper to assign
     const assign = async (roleName, permNames) => {
       const roleId = roleMap[roleName.toLowerCase()];
-      if (!roleId) return console.warn(`⚠️ Role not found: ${roleName}`);
+      if (!roleId) return Logger.warn(`Role not found: ${roleName}`, "MIGRATE_PERMS");
 
       for (const permName of permNames) {
         const [permRow] = await connection.query("SELECT id FROM permissions WHERE name = ?", [permName]);
@@ -49,7 +50,7 @@ const migratePermissions = async () => {
         const [exists] = await connection.query("SELECT 1 FROM role_permission WHERE role_id = ? AND permission_id = ?", [roleId, permId]);
         if (exists.length === 0) {
           await connection.query("INSERT INTO role_permission (role_id, permission_id) VALUES (?, ?)", [roleId, permId]);
-          console.log(`   ➕ Assigned '${permName}' to '${roleName}'`);
+          Logger.info(`Assigned '${permName}' to '${roleName}'`, "MIGRATE_PERMS");
         }
       }
     };
@@ -64,10 +65,10 @@ const migratePermissions = async () => {
     await assign("cs", limitedPerms);
 
     await connection.commit();
-    console.log("Migration permissions completed successfully.");
+    Logger.info("Migration permissions completed successfully.", "MIGRATE_PERMS");
   } catch (error) {
     await connection.rollback();
-    console.error("❌ Migration failed:", error);
+    Logger.error("Migration failed", error, "MIGRATE_PERMS");
     process.exit(1);
   } finally {
     connection.release();

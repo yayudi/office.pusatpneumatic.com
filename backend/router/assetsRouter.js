@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import mime from "mime-types";
 import { fileURLToPath } from "url";
+import Logger from "../utils/logger.js";
 
 const router = express.Router();
 
@@ -33,7 +34,7 @@ router.get("*", (req, res, next) => {
     // Aman untuk stream karena sudah dipastikan ini file
     const stream = fs.createReadStream(requestedPath);
     stream.on("error", (streamErr) => {
-      console.error("[ASSETS] Stream error:", streamErr.message);
+      Logger.error("Stream error", streamErr, "ASSETS_ROUTER");
       if (!res.headersSent) {
         res.status(500).send("Internal Server Error");
       }

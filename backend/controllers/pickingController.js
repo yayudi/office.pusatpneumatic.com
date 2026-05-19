@@ -6,6 +6,7 @@ import { fileURLToPath } from "url";
 // --- SERVICES ---
 import * as pickingService from "../services/pickingDataService.js";
 import * as jobService from "../services/jobService.js";
+import Logger from "../utils/logger.js";
 
 // --- CONFIG ---
 const __filename = fileURLToPath(import.meta.url);
@@ -24,7 +25,7 @@ export const getPendingItems = async (req, res) => {
     const items = await pickingService.getPendingPickingItemsService();
     res.json({ success: true, data: items });
   } catch (error) {
-    console.error("[Controller] Get Pending Items Error:", error);
+    Logger.error("Get Pending Items Error", error, "PICKING_CTRL");
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -38,7 +39,7 @@ export const getHistoryItems = async (req, res) => {
     const items = await pickingService.getHistoryPickingItemsService(limit);
     res.json({ success: true, data: items });
   } catch (error) {
-    console.error("[Controller] Get History Items Error:", error);
+    Logger.error("Get History Items Error", error, "PICKING_CTRL");
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -52,7 +53,7 @@ export const getPickingDetail = async (req, res) => {
     const items = await pickingService.fetchPickingListDetails(id);
     res.json({ success: true, data: items });
   } catch (error) {
-    console.error("[Controller] Get Detail Error:", error);
+    Logger.error("Get Detail Error", error, "PICKING_CTRL");
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -86,7 +87,7 @@ export const uploadAndValidate = async (req, res) => {
         shopNames = JSON.parse(req.body.shopNames);
       }
     } catch (e) {
-      console.warn("Failed to parse shopNames JSON:", e);
+      Logger.warn("Failed to parse shopNames JSON", "PICKING_CTRL", e);
     }
 
     // Tentukan Base Job Type
@@ -115,8 +116,9 @@ export const uploadAndValidate = async (req, res) => {
         options: { purpose: locationPurpose, shopName },
       });
 
-      console.log(
-        `[PickingController] Job Created: ID ${jobId} (${modeText}) - ${file.originalname}`
+      Logger.info(
+        `Job Created: ID ${jobId} (${modeText}) - ${file.originalname}`,
+        "PICKING_CTRL"
       );
       createdJobs.push(jobId);
     }
@@ -128,7 +130,7 @@ export const uploadAndValidate = async (req, res) => {
       data: { jobIds: createdJobs }, // Return array job IDs
     });
   } catch (error) {
-    console.error("[Controller] Upload Error:", error);
+    Logger.error("Upload Error", error, "PICKING_CTRL");
     // Cleanup file jika gagal buat job
     if (req.files) {
       req.files.forEach((f) => {

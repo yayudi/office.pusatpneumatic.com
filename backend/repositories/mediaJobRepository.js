@@ -1,5 +1,6 @@
 // backend/repositories/mediaJobRepository.js
 import db from "../config/db.js";
+import Logger from "../utils/logger.js";
 
 export const createMediaJob = async ({ productId, tempFilepath }) => {
   // Legacy function: NO-OP or redirect
@@ -56,7 +57,7 @@ export const completeMediaJob = async (jobId, finalMainPath, finalThumbPath, met
 
 export const failMediaJob = async (jobId, errorMessage) => {
   // Save error message logging logic elsewhere or adapt schema, but for now just mark FAILED
-  console.error(`Media Asset ${jobId} failed: ${errorMessage}`);
+  Logger.error(`Media Asset ${jobId} failed: ${errorMessage}`, null, "MEDIA_JOB_REPOSITORY");
   return db.query(
     `UPDATE media_assets SET status = 'FAILED', updated_at = NOW() WHERE id = ?`,
     [jobId]
@@ -76,6 +77,6 @@ export const cleanupMediaJobs = async () => {
        WHERE status = 'PENDING' AND updated_at < NOW() - INTERVAL 2 HOUR
     `);
   } catch (error) {
-    console.error('Failed to cleanup media assets queue:', error);
+    Logger.error('Failed to cleanup media assets queue', error, 'MEDIA_JOB_REPOSITORY');
   }
 };

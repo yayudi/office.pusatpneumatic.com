@@ -3,16 +3,13 @@ import * as locationRepo from "../../repositories/locationRepository.js";
 import * as productRepo from "../../repositories/productRepository.js";
 import * as pickingRepo from "../../repositories/pickingRepository.js";
 import { WMS_STATUS, MP_STATUS } from "../../config/wmsConstants.js";
+import Logger from "../../utils/logger.js";
 
 // ==============================================================================
-// 🔍 DEBUGGER HELPER
+// 🔍 DEBUGGER HELPER (MIGRATED TO GLOBAL LOGGER)
 // ==============================================================================
-const DEBUG = true;
 function logTrace(stage, message, data = null) {
-  if (!DEBUG) return;
-  const timestamp = new Date().toISOString().split("T")[1].slice(0, 8);
-  console.log(`[${timestamp}][${stage}] ${message}`);
-  if (data) console.dir(data, { depth: 2, colors: true });
+  Logger.debug(message, stage, data);
 }
 
 /**

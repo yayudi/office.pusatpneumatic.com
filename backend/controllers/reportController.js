@@ -2,6 +2,7 @@
 import { getReportFilters } from "../repositories/reportRepository.js";
 import db from "../config/db.js";
 import * as jobRepo from "../repositories/jobRepository.js";
+import Logger from "../utils/logger.js";
 
 // [FIX V5] Tentukan URL Backend Secara Dinamis
 // Agar bisa jalan di Localhost maupun Production tanpa ubah code
@@ -28,7 +29,7 @@ export const requestStockReport = async (req, res) => {
       jobId,
     });
   } catch (error) {
-    console.error("Error saat requestStockReport:", error);
+    Logger.error("Error saat requestStockReport", error, "REPORT_CONTROLLER");
     res.status(500).json({ message: "Gagal membuat permintaan ekspor." });
   }
 };
@@ -76,7 +77,7 @@ export const getUserExportJobs = async (req, res) => {
 
     res.status(200).json({ success: true, data: jobsWithUrl });
   } catch (error) {
-    console.error("Error saat getUserExportJobs:", error);
+    Logger.error("Error saat getUserExportJobs", error, "REPORT_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal mengambil riwayat pekerjaan." });
   }
 };
@@ -86,7 +87,7 @@ export const fetchReportFilters = async (req, res) => {
     const filters = await getReportFilters();
     res.status(200).json({ success: true, data: filters });
   } catch (error) {
-    console.error("Error di reportController fetchReportFilters:", error.message);
+    Logger.error("Error di reportController fetchReportFilters", error, "REPORT_CONTROLLER");
     res.status(500).json({
       success: false,
       message: "Gagal mengambil data filter laporan.",

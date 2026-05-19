@@ -1,6 +1,7 @@
 // backend/services/productService.js
 import db from "../config/db.js";
 import * as productRepo from "../repositories/productRepository.js";
+import Logger from "../utils/logger.js";
 
 import fs from "fs/promises";
 import path from "path";
@@ -222,7 +223,7 @@ export const deleteProductImageService = async (imageId, userId) => {
         const actualPath = path.resolve("uploads/products/", image.image_path);
         await fs.unlink(actualPath);
       } catch (err) {
-        console.warn(`[File System] Gagal menghapus file ${image.image_path}:`, err.message);
+        Logger.warn(`Gagal menghapus file ${image.image_path}`, "PRODUCT_SERVICE", err);
       }
     }
 

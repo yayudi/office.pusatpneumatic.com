@@ -1,5 +1,6 @@
 // backend\router\realtimeRouter.js
 import express from "express";
+import Logger from "../utils/logger.js";
 
 const router = express.Router();
 
@@ -25,8 +26,8 @@ router.get("/stock-updates", (req, res) => {
  */
 export function broadcastStockUpdate(updatedProducts) {
   // Tidak melakukan apa-apa.
-  // Console log opsional untuk debugging dev mode saja:
-  console.log(`[INFO] Stock updated for ${updatedProducts.length} items (Polling Mode)`);
+  // Central logger opsional untuk debugging dev mode saja:
+  Logger.info(`Stock updated for ${updatedProducts.length} items (Polling Mode)`, "REALTIME_ROUTER");
 }
 
 export default router;

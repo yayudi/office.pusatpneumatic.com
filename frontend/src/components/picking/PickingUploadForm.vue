@@ -262,7 +262,7 @@ async function triggerUpload() {
             <label class="block text-[10px] font-bold uppercase text-text/40 mb-1 tracking-wider">
               Nama Toko / Sales <span class="text-danger">*</span>
             </label>
-            <BaseSelect v-model="shopNames[i]" :options="filteredChannelOptions" placeholder="Pilih Saluran / Toko..."
+            <BaseSelect v-model="shopNames[i]" :options="filteredChannelOptions" placeholder="Pilih Sales / Toko..."
               track-by="id" emit-value />
           </div>
         </div>

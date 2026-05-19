@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import { canAccess } from "../middleware/permissionMiddleware.js";
 import * as mediaController from "../controllers/mediaController.js";
+import Logger from "../utils/logger.js";
 
 const router = express.Router();
 
@@ -12,9 +13,9 @@ const tempUploadDir = "uploads/temp/";
 if (!fs.existsSync(tempUploadDir)) {
   try {
     fs.mkdirSync(tempUploadDir, { recursive: true });
-    console.log(`[Media] Temp folder created: ${tempUploadDir}`);
+    Logger.info(`Temp folder created: ${tempUploadDir}`, "MEDIA_ROUTER");
   } catch (err) {
-    console.error(`[Media] Failed to create folder ${tempUploadDir}:`, err);
+    Logger.error(`Failed to create folder ${tempUploadDir}`, err, "MEDIA_ROUTER");
   }
 }
 

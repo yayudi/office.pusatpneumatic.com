@@ -3,10 +3,11 @@ import path from "path";
 import https from "https";
 import db from "../config/db.js";
 import { fileURLToPath } from "url";
+import Logger from "../utils/logger.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function log(message) {
-  console.log(`[${new Date().toISOString()}] ${message}`);
+  Logger.info(message, "FETCH_HOLIDAYS");
 }
 
 async function ensureDir(dirPath) {
@@ -80,7 +81,7 @@ export async function fetchAndCacheHolidays(targetYear = null) {
     log(`[FILE] Sukses tersimpan sebagai JSON.`);
   } catch (error) {
     if (connection) await connection.rollback();
-    log(`🔥 [ERROR] ${error.message}`);
+    Logger.error("Gagal melakukan fetch dan cache holidays", error, "FETCH_HOLIDAYS");
     throw error;
   } finally {
     if (connection) connection.release();
@@ -100,7 +101,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       log("🎉 [DONE] Skrip selesai.");
       process.exit(0);
     } catch (error) {
-      log(`💀 [FATAL] Skrip gagal total.`);
+      Logger.error("Skrip gagal total", error, "FETCH_HOLIDAYS");
       process.exit(1);
     }
   })();

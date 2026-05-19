@@ -1,4 +1,5 @@
 import * as categoryService from "../services/categoryService.js";
+import Logger from "../utils/logger.js";
 
 /**
  * Mengambil semua kategori yang aktif
@@ -12,7 +13,7 @@ export const getCategories = async (req, res) => {
       data,
     });
   } catch (error) {
-    console.error("Error getCategories:", error);
+    Logger.error("Error getCategories", error, "CATEGORY_CONTROLLER");
     res.status(500).json({
       success: false,
       message: "Gagal mengambil data kategori",
@@ -42,7 +43,7 @@ export const createCategory = async (req, res) => {
       data,
     });
   } catch (error) {
-    console.error("Error createCategory:", error);
+    Logger.error("Error createCategory", error, "CATEGORY_CONTROLLER");
     if (error.code === 'DUPLICATE_ENTRY') {
       return res.status(400).json({
         success: false,
@@ -80,7 +81,7 @@ export const updateCategory = async (req, res) => {
       message: "Kategori berhasil diupdate",
     });
   } catch (error) {
-    console.error("Error updateCategory:", error);
+    Logger.error("Error updateCategory", error, "CATEGORY_CONTROLLER");
     if (error.code === 'NOT_FOUND') {
       return res.status(404).json({
         success: false,
@@ -109,7 +110,7 @@ export const deleteCategory = async (req, res) => {
       message: "Kategori berhasil dihapus",
     });
   } catch (error) {
-    console.error("Error deleteCategory:", error);
+    Logger.error("Error deleteCategory", error, "CATEGORY_CONTROLLER");
     if (error.code === 'NOT_FOUND') {
       return res.status(404).json({
         success: false,

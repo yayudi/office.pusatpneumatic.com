@@ -1,5 +1,6 @@
 // backend/config/importMappers.js
 import { MP_STATUS } from "./wmsConstants.js";
+import Logger from "../utils/logger.js";
 
 // --- HELPERS ---
 const formatToDbDate = (dateObj) => {
@@ -87,11 +88,11 @@ export const Mappers = {
         "returned quantity",
       ]);
       const returnedQty = parseInt(rawReturnQty || "0", 10);
-      console.log(`[MAPPER] Raw Return Qty for Invoice ${id}, SKU ${sku}:`, rawReturnQty);
-      console.log(`[MAPPER] Parsed Return Qty:`, returnedQty);
+      Logger.debug(`Raw Return Qty for Invoice ${id}, SKU ${sku}: ${rawReturnQty}`, "TOKOPEDIA_MAPPER");
+      Logger.debug(`Parsed Return Qty: ${returnedQty}`, "TOKOPEDIA_MAPPER");
 
       // [DEBUG LOG] Aktifkan ini untuk melihat per baris jika masih bermasalah
-      // if (returnedQty > 0) console.log(`[MAPPER] Found Return: ${id} | SKU: ${sku} | Qty: ${qty} | Ret: ${returnedQty}`);
+      // if (returnedQty > 0) Logger.debug(`Found Return: ${id} | SKU: ${sku} | Qty: ${qty} | Ret: ${returnedQty}`, "TOKOPEDIA_MAPPER");
 
       const recipient = getter(["recipient", "nama penerima", "penerima"]);
       const orderDate = parseDate(

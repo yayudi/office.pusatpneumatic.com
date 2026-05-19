@@ -1,5 +1,5 @@
-// backend/services/statsService.js
 import db from "../config/db.js";
+import Logger from "../utils/logger.js";
 
 /**
  * Mengambil data KPI utama untuk dashboard statistik.
@@ -43,7 +43,7 @@ export const getKpiSummary = async () => {
       ...inventoryResult[0],
     };
   } catch (error) {
-    console.error("Error di getKpiSummary service:", error);
+    Logger.error("Error di getKpiSummary service", error, "STATS_SERVICE");
     throw error;
   } finally {
     if (connection) connection.release();

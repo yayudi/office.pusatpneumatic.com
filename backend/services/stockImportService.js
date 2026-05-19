@@ -4,6 +4,7 @@ import fs from "fs";
 import * as stockService from "./stockService.js";
 import * as locationRepo from "../repositories/locationRepository.js";
 import * as productRepo from "../repositories/productRepository.js";
+import Logger from "../utils/logger.js";
 
 export const processStockInboundImport = async (jobId, filePath, userId) => {
   let connection;
@@ -86,7 +87,7 @@ export const processStockInboundImport = async (jobId, filePath, userId) => {
     try {
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     } catch (e) {
-      console.error("Gagal hapus file upload:", e);
+      Logger.error("Gagal hapus file upload", e, "STOCK_IMPORT_SERVICE");
     }
   }
 };

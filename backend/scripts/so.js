@@ -1,4 +1,5 @@
 import db from "../config/db.js";
+import Logger from "../utils/logger.js";
 
 /**
  * ID Pengguna yang akan dicatat di 'stock_movements'.
@@ -81,27 +82,28 @@ async function runStockOpname() {
     }
 
     // Eksekusi semua query
-    console.log("[OPNAME] Mencatat `stock_movements`...");
+    Logger.info("Mencatat stock_movements...", "STOCK_OPNAME");
     await Promise.all(movementInserts);
 
-    console.log("[OPNAME] Mengatur `stock_locations` menjadi 0...");
+    Logger.info("Mengatur stock_locations menjadi 0...", "STOCK_OPNAME");
     await Promise.all(locationUpdates);
 
     // Jika semua berhasil, commit transaksi
     await connection.commit();
-    console.log(
-      `[OPNAME] SUKSES! Transaksi di-commit. ${stocksToAdjust.length} item diatur menjadi 0.`
+    Logger.info(
+      `SUKSES! Transaksi di-commit. ${stocksToAdjust.length} item diatur menjadi 0.`,
+      "STOCK_OPNAME"
     );
   } catch (error) {
-    console.error("[OPNAME] ERROR TERJADI:", error.message);
+    Logger.error("ERROR TERJADI", error, "STOCK_OPNAME");
     if (connection) {
       await connection.rollback();
-      console.error("[OPNAME] Transaksi di-rollback. Tidak ada data yang diubah.");
+      Logger.error("Transaksi di-rollback. Tidak ada data yang diubah.", null, "STOCK_OPNAME");
     }
   } finally {
     if (connection) {
       connection.release();
-      console.log("[OPNAME] Koneksi DB dilepaskan.");
+      Logger.info("Koneksi DB dilepaskan.", "STOCK_OPNAME");
     }
     // Hentikan pool agar skrip bisa exit
     if (db.pool) {

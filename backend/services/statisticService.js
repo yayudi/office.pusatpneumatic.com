@@ -3,7 +3,7 @@ import * as statisticRepo from '../repositories/statisticRepository.js';
 import db from "../config/db.js";
 import ExcelJS from "exceljs";
 import fs from "fs";
-import { fileURLToPath } from "url";
+import Logger from "../utils/logger.js";
 
 /**
  * @param {string} startDate
@@ -160,7 +160,7 @@ export const getInventoryValueStatistics = async (filters) => {
 
 
 export const generateStatisticExport = async (filters, filePath) => {
-  console.log(`[StatisticExport] Starting export to: ${filePath}`);
+  Logger.info(`Starting export to: ${filePath}`, "STATISTIC_SERVICE");
   const stream = fs.createWriteStream(filePath);
   const workbookWriter = new ExcelJS.stream.xlsx.WorkbookWriter({
     stream: stream,
@@ -245,9 +245,9 @@ export const generateStatisticExport = async (filters, filePath) => {
       stream.on("close", resolve);
     });
 
-    console.log("[StatisticExport] Finished.");
+    Logger.info("Finished.", "STATISTIC_SERVICE");
   } catch (error) {
-    console.error("[StatisticExport] Error:", error);
+    Logger.error("Error in generateStatisticExport", error, "STATISTIC_SERVICE");
     try { stream.end(); } catch (e) { }
     throw error;
   }
@@ -358,7 +358,7 @@ export const getShopPerformanceStats = async (filters) => {
 
     return { summary, dailyTrend, topProducts, fulfillment, comparison };
   } catch (error) {
-    console.error("Error in getShopPerformanceStats:", error);
+    Logger.error("Error in getShopPerformanceStats", error, "STATISTIC_SERVICE");
     throw error;
   } finally {
     if (connection) connection.release();

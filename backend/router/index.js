@@ -31,6 +31,7 @@ import salesChannelsRoutes from "./salesChannels.js";
 import authenticateToken from "../middleware/authMiddleware.js";
 import { canAccess } from "../middleware/permissionMiddleware.js";
 import db from "../config/db.js"; // Impor db untuk rute /test
+import Logger from "../utils/logger.js";
 
 const apiRouter = Router();
 
@@ -73,7 +74,7 @@ apiRouter.get("/test", async (req, res) => {
       data: rows[0],
     });
   } catch (error) {
-    console.error("--- TES KONEKSI DB GAGAL ---", error);
+    Logger.error("TES KONEKSI DB GAGAL", error, "ROUTER_INDEX");
     res.status(500).json({
       success: false,
       message: "Gagal terhubung ke database.",

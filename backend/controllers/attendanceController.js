@@ -9,6 +9,7 @@ import {
   JAM_KERJA_SELESAI,
   JAM_KERJA_SELESAI_SABTU,
 } from "../config/wmsConstants.js";
+import Logger from "../utils/logger.js";
 
 // ============================================================================
 // READ OPERATIONS
@@ -30,7 +31,7 @@ export const getHistory = async (req, res) => {
     const data = await attendanceService.getHistory(startDate, endDate, search);
     res.json({ success: true, data: data.logs });
   } catch (error) {
-    console.error("Error fetching attendance history:", error);
+    Logger.error("Error fetching attendance history", error, "ATTENDANCE_CONTROLLER");
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -56,7 +57,7 @@ export const getIndexes = async (req, res) => {
     }
     res.json(indexes);
   } catch (error) {
-    console.error("Error fetching attendance indexes:", error);
+    Logger.error("Error fetching attendance indexes", error, "ATTENDANCE_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal mengambil indeks data absensi." });
   }
 };
@@ -140,7 +141,7 @@ export const getRangeData = async (req, res) => {
 
     res.json(responseJson);
   } catch (error) {
-    console.error(`Error fetching attendance data for range ${startDate} to ${endDate}:`, error);
+    Logger.error(`Error fetching attendance data for range ${startDate} to ${endDate}`, error, "ATTENDANCE_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal mengambil data absensi range." });
   }
 };
@@ -216,7 +217,7 @@ export const getMonthlyData = async (req, res) => {
 
     res.json(responseJson);
   } catch (error) {
-    console.error(`Error fetching attendance data for ${year}-${month}:`, error);
+    Logger.error(`Error fetching attendance data for ${year}-${month}`, error, "ATTENDANCE_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal mengambil data absensi." });
   }
 };
@@ -259,7 +260,7 @@ export const uploadAttendanceLogs = async (req, res) => {
       jobId: jobId,
     });
   } catch (error) {
-    console.error("[Attendance] Upload Error:", error);
+    Logger.error("Upload Error", error, "ATTENDANCE_CONTROLLER");
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -284,7 +285,7 @@ export const updateLog = async (req, res) => {
 
     res.json({ success: true, message: "Data updated successfully", data: result });
   } catch (error) {
-    console.error("Error updating log:", error);
+    Logger.error("Error updating log", error, "ATTENDANCE_CONTROLLER");
     res.status(500).json({ success: false, message: error.message });
   }
 };

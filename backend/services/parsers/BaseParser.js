@@ -4,6 +4,7 @@ import fs from "fs";
 import ExcelJS from "exceljs";
 import { fileURLToPath } from "url"; // Added for robust path resolving
 import { sanitizeExcel } from "../../utils/ExcelSanitizer.js";
+import Logger from "../../utils/logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,8 +55,9 @@ export class BaseParser {
   }
 
   async run() {
-    console.log(`\n[${this.source}Parser] 🚀 START: ${path.basename(this.filePath)}`);
-    console.log(`[DEBUG] Reading from: ${this.filePath}`); // Debug log tambahan
+    const parserTag = `${this.source.toUpperCase()}_PARSER`;
+    Logger.info(`START: ${path.basename(this.filePath)}`, parserTag);
+    Logger.debug(`Reading from: ${this.filePath}`, parserTag); // Debug log tambahan
 
     const workbook = new ExcelJS.Workbook();
 
@@ -63,7 +65,7 @@ export class BaseParser {
       const ext = path.extname(this.filePath).toLowerCase();
 
       if (ext === ".csv") {
-        console.log(`[DEBUG] Mode CSV Manual Read (fs). Delimiter: '${this.csvDelimiter}'`);
+        Logger.debug(`Mode CSV Manual Read (fs). Delimiter: '${this.csvDelimiter}'`, parserTag);
 
         // Baca file manual untuk handle CSV yang berantakan (multiline di dalam quotes)
         const fileContent = fs.readFileSync(this.filePath, "utf8");
@@ -132,7 +134,7 @@ export class BaseParser {
 
       const result = await this._processWorkbookData(workbook);
 
-      console.log(`[${this.source}Parser] 🏁 FINISH. Stats:`, this.stats);
+      Logger.info(`FINISH. Stats: ${JSON.stringify(this.stats)}`, parserTag);
       return {
         orders: result.orders,
         stats: this.stats,
@@ -140,7 +142,7 @@ export class BaseParser {
         headerRowIndex: result.headerRowIdx,
       };
     } catch (error) {
-      console.error(`[DEBUG] Error di run():`, error);
+      Logger.error("Error di run()", error, parserTag);
 
       const isRescueable =
         error.message === "LOW_HEADER_SCORE" ||
@@ -149,8 +151,9 @@ export class BaseParser {
 
       // Mekanisme Self-Healing: Coba sanitasi file jika korup
       if (isRescueable && !this.sanitized) {
-        console.warn(
-          `[${this.source}Parser] 🚑 File Error (${error.message}). Mencoba Sanitasi...`
+        Logger.warn(
+          `File Error (${error.message}). Mencoba Sanitasi...`,
+          parserTag
         );
         try {
           await sanitizeExcel(this.filePath);
@@ -207,12 +210,13 @@ export class BaseParser {
     });
 
     if (!bestSheet || maxScore < 2) {
-      console.error(`[${this.source}Parser] ❌ Gagal Header. Max Score: ${maxScore}`);
+      Logger.error(`Gagal Header. Max Score: ${maxScore}`, null, parserTag);
       throw new Error("LOW_HEADER_SCORE");
     }
 
-    console.log(
-      `[${this.source}Parser] Header: Row ${headerRowIdx} @ Sheet "${bestSheet.name}"`
+    Logger.info(
+      `Header: Row ${headerRowIdx} @ Sheet "${bestSheet.name}"`,
+      parserTag
     );
 
     const orders = new Map();

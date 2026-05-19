@@ -2,6 +2,7 @@ import * as scheduleService from '../services/scheduleService.js';
 import * as jobRepositories from '../repositories/jobRepository.js';
 import db from '../config/db.js';
 import ExcelJS from 'exceljs';
+import Logger from '../utils/logger.js';
 
 export const getSchedules = async (req, res) => {
   try {
@@ -13,7 +14,7 @@ export const getSchedules = async (req, res) => {
     const schedules = await scheduleService.getSchedules(userId, startDate, endDate);
     res.json({ success: true, data: schedules });
   } catch (error) {
-    console.error(error);
+    Logger.error("Error in getSchedules", error, "SCHEDULE_CONTROLLER");
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -31,7 +32,7 @@ export const createSchedule = async (req, res) => {
     await scheduleService.createSchedule(userId, shiftId, date, createdBy);
     res.json({ success: true, message: 'Schedule saved' });
   } catch (error) {
-    console.error(error);
+    Logger.error("Error in createSchedule", error, "SCHEDULE_CONTROLLER");
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -46,7 +47,7 @@ export const deleteSchedule = async (req, res) => {
     await scheduleService.deleteSchedule(userId, date);
     res.json({ success: true, message: 'Schedule deleted' });
   } catch (error) {
-    console.error(error);
+    Logger.error("Error in deleteSchedule", error, "SCHEDULE_CONTROLLER");
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -76,7 +77,7 @@ export const uploadImportSchedule = async (req, res) => {
       data: { jobId }
     });
   } catch (error) {
-    console.error(error);
+    Logger.error("Error in uploadImportSchedule", error, "SCHEDULE_CONTROLLER");
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -176,7 +177,7 @@ export const downloadTemplate = async (req, res) => {
     res.end();
 
   } catch (error) {
-    console.error("Template Gen Error:", error);
+    Logger.error("Template Gen Error", error, "SCHEDULE_CONTROLLER");
     res.status(500).send("Gagal generate template");
   }
 };

@@ -1,4 +1,5 @@
 import * as logRepo from "../repositories/systemLogRepository.js";
+import Logger from "../utils/logger.js";
 
 export const getSystemLogs = async (req, res) => {
   try {
@@ -17,7 +18,7 @@ export const getSystemLogs = async (req, res) => {
 
     res.json({ success: true, ...result });
   } catch (error) {
-    console.error("Error fetching system logs:", error);
+    Logger.error("Error fetching system logs", error, "SYSTEM_LOG_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal mengambil log sistem." });
   }
 };

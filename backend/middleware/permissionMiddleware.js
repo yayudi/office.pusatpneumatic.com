@@ -1,5 +1,6 @@
 // backend\middleware\permissionMiddleware.js
 import db from "../config/db.js";
+import Logger from "../utils/logger.js";
 
 // Fungsi ini adalah "middleware factory" (pabrik middleware)
 // Ia akan membuat fungsi middleware berdasarkan izin yang kita minta
@@ -33,7 +34,7 @@ export function canAccess(permissionName) {
           .json({ success: false, message: `Akses ditolak. Memerlukan izin: '${permissionName}'` });
       }
     } catch (error) {
-      console.error("Error saat memeriksa izin:", error);
+      Logger.error("Error saat memeriksa izin", error, "PERMISSION_MIDDLEWARE");
       res.status(500).json({ success: false, message: "Server error saat memeriksa izin." });
     }
   };

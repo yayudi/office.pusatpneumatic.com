@@ -7,7 +7,12 @@ async function loadApp() {
   await import("./server.js");
 }
 
-loadApp().catch((err) => {
-  console.error("Failed to start ESM application:", err);
+loadApp().catch(async (err) => {
+  try {
+    const { default: Logger } = await import("./utils/logger.js");
+    Logger.error("Failed to start ESM application", err, "PASSENGER_WRAPPER");
+  } catch (e) {
+    console.error("Failed to start ESM application:", err);
+  }
   process.exit(1);
 });

@@ -3,6 +3,7 @@ import db from "../../config/db.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import Logger from "../../utils/logger.js";
 
 // REPOSITORIES
 import * as jobRepo from "../../repositories/jobRepository.js";
@@ -25,7 +26,7 @@ if (!fs.existsSync(EXPORT_DIR_PATH)) {
   try {
     fs.mkdirSync(EXPORT_DIR_PATH, { recursive: true });
   } catch (err) {
-    console.error(`GAGAL membuat folder ekspor: ${err.message}`);
+    Logger.error("GAGAL membuat folder ekspor", err, "EXPORT_WORKER");
   }
 }
 
@@ -58,12 +59,12 @@ export const processQueue = async () => {
     }
 
     jobId = job.id;
-    console.log(`[ExportWorker] Memulai Job ID: ${jobId}`);
+    Logger.info(`Memulai Job ID: ${jobId}`, "EXPORT_WORKER");
 
     // Lock Job
-    console.log(`[ExportWorker] Locking Job ${jobId}...`);
+    Logger.info(`Locking Job ${jobId}...`, "EXPORT_WORKER");
     await jobRepo.lockExportJob(connection, jobId);
-    console.log(`[ExportWorker] Job ${jobId} LOCKED. Releasing main connection.`);
+    Logger.info(`Job ${jobId} LOCKED. Releasing main connection.`, "EXPORT_WORKER");
     connection.release();
 
     // Parse Filters & Determine Type
@@ -84,7 +85,7 @@ export const processQueue = async () => {
     const filePath = path.join(EXPORT_DIR_PATH, fileName);
 
     // DISPATCHER
-    console.log(`[ExportWorker] Dispatching service for type: ${exportType}`);
+    Logger.info(`Dispatching service for type: ${exportType}`, "EXPORT_WORKER");
     if (exportType === "PRODUCT_MASTER") {
       await generateProductExportStreaming(filters, filePath);
     } else if (exportType === "EXPORT_PACKAGES") {
@@ -102,7 +103,7 @@ export const processQueue = async () => {
       const stats = fs.statSync(filePath);
       fileSize = stats.size;
     } catch (e) {
-      console.warn(`Gagal cek file size: ${e.message}`);
+      Logger.warn("Gagal cek file size", "EXPORT_WORKER", e);
     }
 
     if (fileSize === 0) throw new Error("File Excel yang dihasilkan kosong (0 bytes).");
@@ -110,22 +111,22 @@ export const processQueue = async () => {
     // Complete Job
     const updateConnection = await db.getConnection();
     try {
-      console.log(`[ExportWorker] Updating job ${jobId} status to COMPLETED...`);
+      Logger.info(`Updating job ${jobId} status to COMPLETED...`, "EXPORT_WORKER");
       await jobRepo.completeExportJob(updateConnection, jobId, `${fileName}`);
     } finally {
       updateConnection.release();
     }
 
-    console.log(`[ExportWorker] Job ID ${jobId} SELESAI. File: ${fileName}`);
+    Logger.info(`Job ID ${jobId} SELESAI. File: ${fileName}`, "EXPORT_WORKER");
   } catch (error) {
-    console.error(`[ExportWorker] Job ID ${jobId} GAGAL: ${error.message}`);
+    Logger.error(`Job ID ${jobId} GAGAL`, error, "EXPORT_WORKER");
     if (jobId) {
       try {
         const errConnection = await db.getConnection();
         await jobRepo.failExportJob(errConnection, jobId, error.message.substring(0, 255));
         errConnection.release();
       } catch (dbError) {
-        console.error("Fatal DB Error saat update FAILED:", dbError);
+        Logger.error("Fatal DB Error saat update FAILED", dbError, "EXPORT_WORKER");
       }
     }
   }
@@ -133,14 +134,14 @@ export const processQueue = async () => {
 
 // Runner jika dijalankan manual via node
 if (import.meta.url === `file://${process.argv[1]}`) {
-  console.log("[ExportWorker] Mode Standalone Aktif");
+  Logger.info("Mode Standalone Aktif", "EXPORT_WORKER");
   processQueue()
     .then(() => {
-      console.log("[ExportWorker] Selesai.");
+      Logger.info("Selesai.", "EXPORT_WORKER");
       process.exit(0);
     })
     .catch((err) => {
-      console.error("[ExportWorker] Error:", err);
+      Logger.error("Error", err, "EXPORT_WORKER");
       process.exit(1);
     });
 }

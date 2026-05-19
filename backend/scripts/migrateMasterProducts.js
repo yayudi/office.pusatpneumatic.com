@@ -1,4 +1,5 @@
 import db from "../config/db.js";
+import Logger from "../utils/logger.js";
 import "dotenv/config";
 import { fetchSheet, cleanHarga } from "./tasks/taskHelpers.js"; // Hanya butuh cleanHarga
 
@@ -8,7 +9,7 @@ const SPREADSHEET_MASTER = "16498vcLnqZZ5gyMQBV7dasKXG7ldfXfKk9t3Wtt6xdA";
 const RANGE_MASTER = "ALL-DATA!A1:D20000";
 
 function log(message) {
-  console.log(`[${new Date().toISOString()}] ${message}`);
+  Logger.info(message, "MIGRATE_MASTER_PRODUCTS");
 }
 
 /**
@@ -67,8 +68,7 @@ async function migrateMasterProducts() {
     log(`   - ${productsCreated} produk berhasil dibuat dari MASTER.`);
   } catch (error) {
     if (connection) await connection.rollback();
-    log("❌ Terjadi error fatal selama migrasi:");
-    console.error(error);
+    Logger.error("Error fatal selama migrasi master products", error, "MIGRATE_MASTER_PRODUCTS");
   } finally {
     if (connection) connection.release();
     await db.end();

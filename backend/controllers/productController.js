@@ -4,6 +4,7 @@ import cache from "../config/cache.js";
 import * as productService from "../services/productService.js";
 import * as productRepo from "../repositories/productRepository.js";
 import * as jobRepo from "../repositories/jobRepository.js";
+import Logger from "../utils/logger.js";
 
 // ============================================================================
 // READ OPERATIONS (Direct Repo Access)
@@ -18,7 +19,7 @@ export const searchProducts = async (req, res) => {
     const results = await productRepo.searchProducts(db, searchTerm, locationId);
     res.json(results);
   } catch (error) {
-    console.error("Error searching products:", error);
+    Logger.error("Error searching products", error, "PRODUCT_CONTROLLER");
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -30,7 +31,7 @@ export const getAdminProductList = async (req, res) => {
     const rows = await productRepo.getAllActiveProducts(db);
     res.json({ success: true, data: rows });
   } catch (error) {
-    console.error("Error admin list:", error);
+    Logger.error("Error admin list", error, "PRODUCT_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal mengambil data produk." });
   }
 };
@@ -61,7 +62,7 @@ export const getProducts = async (req, res) => {
     const result = await productRepo.getProductsWithFilters(db, filters);
     res.json(result);
   } catch (error) {
-    console.error("Error fetching products:", error);
+    Logger.error("Error fetching products", error, "PRODUCT_CONTROLLER");
     res.status(500).json({
       success: false,
       message: "Gagal mengambil data produk.",
@@ -81,7 +82,7 @@ export const getProductById = async (req, res) => {
 
     res.json({ success: true, data: product });
   } catch (error) {
-    console.error("Error fetching product detail:", error);
+    Logger.error("Error fetching product detail", error, "PRODUCT_CONTROLLER");
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
@@ -93,7 +94,7 @@ export const getProductStockDetails = async (req, res) => {
     const rows = await productRepo.getProductStockDetails(db, id);
     res.json({ success: true, data: rows });
   } catch (error) {
-    console.error(`Error stok detail ID ${id}:`, error);
+    Logger.error(`Error stok detail ID ${id}`, error, "PRODUCT_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal mengambil detail stok." });
   }
 };
@@ -105,7 +106,7 @@ export const getProductHistory = async (req, res) => {
     const history = await productRepo.getProductHistory(db, id);
     res.json({ success: true, data: history });
   } catch (error) {
-    console.error("Error fetching product history:", error);
+    Logger.error("Error fetching product history", error, "PRODUCT_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal mengambil riwayat produk." });
   }
 };
@@ -128,7 +129,7 @@ export const getProductStockTimeline = async (req, res) => {
     const timeline = await productService.getHistoricalStockTimelineService(id, page, limit, filters);
     res.json({ success: true, data: timeline });
   } catch (error) {
-    console.error("Error fetching stock timeline:", error);
+    Logger.error("Error fetching stock timeline", error, "PRODUCT_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal mengambil timeline stok." });
   }
 };
@@ -176,7 +177,7 @@ export const createProduct = async (req, res) => {
     cache.flushAll(); // Reset cache WMS
     res.status(201).json({ success: true, message: "Produk berhasil dibuat.", productId });
   } catch (error) {
-    console.error("Create Product Error:", error);
+    Logger.error("Create Product Error", error, "PRODUCT_CONTROLLER");
     if (error.code === "DUPLICATE_SKU" || error.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ success: false, message: "SKU sudah terdaftar." });
     }
@@ -209,7 +210,7 @@ export const updateProduct = async (req, res) => {
       cache.flushAll();
       return res.json({ success: true, message: "Produk berhasil dipulihkan." });
     } catch (error) {
-      console.error("Restore Error:", error);
+      Logger.error("Restore Error", error, "PRODUCT_CONTROLLER");
       return res.status(500).json({ success: false, message: "Gagal memulihkan produk." });
     }
   }
@@ -227,7 +228,7 @@ export const updateProduct = async (req, res) => {
     cache.flushAll();
     res.json({ success: true, message: "Produk berhasil diperbarui." });
   } catch (error) {
-    console.error("Update Product Error:", error);
+    Logger.error("Update Product Error", error, "PRODUCT_CONTROLLER");
     if (error.code === "PRODUCT_NOT_FOUND") {
       return res.status(404).json({ success: false, message: "Produk tidak ditemukan." });
     }
@@ -267,7 +268,7 @@ export const linkMediaToProduct = async (req, res) => {
       message: "Media berhasil disematkan.",
     });
   } catch (error) {
-    console.error("Link Media Error:", error);
+    Logger.error("Link Media Error", error, "PRODUCT_CONTROLLER");
     return res.status(500).json({ success: false, message: "Gagal menyematkan media." });
   }
 };
@@ -292,7 +293,7 @@ export const uploadMoreImages = async (req, res) => {
       message: `${images.length} gambar berhasil ditambahkan.`,
     });
   } catch (error) {
-    console.error("Upload Images Error:", error);
+    Logger.error("Upload Images Error", error, "PRODUCT_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal mengunggah gambar." });
   }
 };
@@ -307,7 +308,7 @@ export const deleteProductImage = async (req, res) => {
     cache.flushAll();
     res.json({ success: true, message: "Gambar berhasil dihapus." });
   } catch (error) {
-    console.error("Delete Image Error:", error);
+    Logger.error("Delete Image Error", error, "PRODUCT_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal menghapus gambar." });
   }
 };
@@ -322,7 +323,7 @@ export const setPrimaryImage = async (req, res) => {
     cache.flushAll();
     res.json({ success: true, message: "Gambar utama berhasil diatur." });
   } catch (error) {
-    console.error("Set Primary Image Error:", error);
+    Logger.error("Set Primary Image Error", error, "PRODUCT_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal mengatur gambar utama." });
   }
 };
@@ -364,7 +365,7 @@ export const exportProducts = async (req, res) => {
       jobId,
     });
   } catch (error) {
-    console.error("Export Request Error:", error);
+    Logger.error("Export Request Error", error, "PRODUCT_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal membuat permintaan ekspor." });
   }
 };

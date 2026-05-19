@@ -2,6 +2,7 @@
 import XLSX from "xlsx"; // FIXED: Use Default Import for CommonJS compatibility
 import fs from "fs";
 import path from "path";
+import Logger from "./logger.js";
 
 /**
  * Repairs a malformed Excel file by reading it with SheetJS (robust)
@@ -32,7 +33,7 @@ export const sanitizeExcel = (filePath) => {
 
     return filePath;
   } catch (error) {
-    console.error(`[ExcelSanitizer] ❌ Repair failed:`, error.message);
+    Logger.error("Repair failed", error, "EXCEL_SANITIZER");
     // If XLSX.readFile failed, maybe the file is truly unreadable or empty
     throw error;
   }

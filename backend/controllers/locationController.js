@@ -1,6 +1,7 @@
 import * as locationService from "../services/locationService.js";
 import db from "../config/db.js";
 import { createLog } from "../repositories/systemLogRepository.js";
+import Logger from "../utils/logger.js";
 
 /**
  * Handle request to create a new location
@@ -41,7 +42,7 @@ export const createLocation = async (req, res) => {
       data: { locationId },
     });
   } catch (error) {
-    console.error("[LocationController] Error creating location:", error);
+    Logger.error("Error creating location", error, "LOCATION_CONTROLLER");
 
     // Map Service Errors to HTTP Codes
     if (error.message.includes("VALIDATION_ERROR")) {

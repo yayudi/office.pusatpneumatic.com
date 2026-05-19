@@ -1,4 +1,5 @@
 import Vips from 'wasm-vips';
+import Logger from './logger.js';
 
 let vipsInstance = null;
 
@@ -33,7 +34,7 @@ export const stripExif = async (buffer) => {
     
     return { buffer: cleanBuffer, width, height };
   } catch (err) {
-    console.error('Error stripping EXIF:', err);
+    Logger.error("Error stripping EXIF", err, "IMAGE_PROCESSOR");
     // Fallback to original buffer if vips fails for some reason
     // In this fallback, we won't have dimensions easily unless we use another lib
     // We return zeros to signify failure to read dimensions

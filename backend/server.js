@@ -6,7 +6,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import db from "./config/db.js";
-import { logDebug } from "./utils/logger.js";
+import Logger from "./utils/logger.js";
 import jwt from "jsonwebtoken";
 
 import apiRouter from "./router/index.js";
@@ -73,13 +73,13 @@ app.use("/uploads", (req, res, next) => {
       }
     }
 
-    logDebug(`${safePath}`, {
+    Logger.debug(safePath, "DOWNLOAD", {
       status: fileStatus,
       user: requestUser,
       clientIP: req.ip,
     });
   } catch (err) {
-    console.error("Logger Error:", err);
+    Logger.error("Logger Error", err, "SERVER");
   }
   next();
 });
@@ -112,14 +112,14 @@ app.use("/", assetsRouter);
 app.use((req, res) => {
   // Hanya log jika bukan request favicon/robots.txt yang annoying
   if (!req.originalUrl.includes("favicon") && !req.originalUrl.includes("robots")) {
-    logDebug(`[404 MISSING] URL tidak ditemukan: ${req.originalUrl}`);
+    Logger.debug(`URL tidak ditemukan: ${req.originalUrl}`, "404_MISSING");
   }
   res.status(404).json({ success: false, message: "Endpoint tidak ditemukan." });
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✅ Server backend berjalan di http://localhost:${PORT}`);
-  console.log(`📂 Serving static uploads from: ${path.join(__dirname, "uploads")}`);
-  console.log(`🔓 CORS Policy: Permissive (All Origins Allowed)`);
+  Logger.info(`Server backend berjalan di http://localhost:${PORT}`, "SERVER");
+  Logger.info(`Serving static uploads from: ${path.join(__dirname, "uploads")}`, "SERVER");
+  Logger.info("CORS Policy: Permissive (All Origins Allowed)", "SERVER");
 });

@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import { canAccess } from "../middleware/permissionMiddleware.js";
 import * as packageController from "../controllers/packageController.js";
+import Logger from "../utils/logger.js";
 
 const router = express.Router();
 
@@ -15,7 +16,7 @@ if (!fs.existsSync(uploadDir)) {
   try {
     fs.mkdirSync(uploadDir, { recursive: true });
   } catch (err) {
-    console.error(`[System] Failed to create folder ${uploadDir}:`, err);
+    Logger.error(`Failed to create folder ${uploadDir}`, err, "PACKAGE_ROUTER");
   }
 }
 

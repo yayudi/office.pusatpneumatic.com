@@ -1,29 +1,13 @@
 // backend/scripts/purgeObsoleteData.js
 import db from "../config/db.js";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import Logger from "../utils/logger.js";
 
 // --- KONFIGURASI ---
 const RETENTION_DAYS = 30; // Hapus data obsolete yg lebih tua dari 30 hari
 const BATCH_SIZE = 1000; // Hapus per 1000 baris agar DB tidak lock
 
-// Logger sederhana
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const LOG_FILE = path.join(__dirname, "../logs", "purge_job.log");
-
 const log = (msg) => {
-  const time = new Date().toISOString();
-  const text = `[${time}] ${msg}\n`;
-  console.log(msg);
-  try {
-    if (!fs.existsSync(path.dirname(LOG_FILE)))
-      fs.mkdirSync(path.dirname(LOG_FILE), { recursive: true });
-    fs.appendFileSync(LOG_FILE, text);
-  } catch (e) {
-    console.error("Log error:", e);
-  }
+  Logger.info(msg, "PURGE_OBSOLETE_DATA");
 };
 
 const purgeObsoleteData = async () => {
@@ -78,7 +62,7 @@ const purgeObsoleteData = async () => {
 
     log(`🏁 Purge Selesai. Total dihapus: ${deletedCount} invoice beserta itemnya.`);
   } catch (error) {
-    log(`🔥 ERROR Purge Job: ${error.message}`);
+    Logger.error("ERROR Purge Job", error, "PURGE_OBSOLETE_DATA");
   } finally {
     if (connection) connection.release();
     process.exit(0);

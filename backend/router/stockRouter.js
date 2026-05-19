@@ -6,6 +6,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { getTimestampString_YYMMDDHHSS } from "../services/helpers/sharedHelpers.js";
+import Logger from "../utils/logger.js";
 
 import { canAccess } from "../middleware/permissionMiddleware.js"; // Uncomment jika middleware sudah siap
 
@@ -22,7 +23,7 @@ if (!fs.existsSync(UPLOAD_DIR)) {
   try {
     fs.mkdirSync(UPLOAD_DIR, { recursive: true });
   } catch (err) {
-    console.error("Gagal membuat folder upload adjustment:", err);
+    Logger.error("Gagal membuat folder upload adjustment", err, "STOCK_ROUTER");
   }
 }
 

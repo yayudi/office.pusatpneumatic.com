@@ -1,9 +1,10 @@
 import fs from "fs/promises";
+import Logger from "../../utils/logger.js";
 
 const SHEETS_API_KEY = process.env.SHEETS_API_KEY;
 
 export function log(msg) {
-  console.log(`[${new Date().toISOString()}] ${msg}`);
+  Logger.info(msg, "TASK_HELPERS");
 }
 
 export async function ensureDir(dirPath) {

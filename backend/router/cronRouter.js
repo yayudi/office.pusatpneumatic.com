@@ -2,6 +2,7 @@
 import express from "express";
 import { canAccess } from "../middleware/permissionMiddleware.js";
 import db from "../config/db.js"; // Impor koneksi database
+import Logger from "../utils/logger.js";
 
 const router = express.Router();
 
@@ -26,8 +27,9 @@ router.post("/trigger/:task", canAccess("trigger-sync"), async (req, res) => {
       task,
     ]);
 
-    console.log(
-      `[PRODUCER] Tugas '${task}' berhasil ditambahkan ke antrian dengan ID: ${result.insertId}`
+    Logger.info(
+      `Tugas '${task}' berhasil ditambahkan ke antrian dengan ID: ${result.insertId}`,
+      "CRON_ROUTER"
     );
 
     // Langsung kirim respons 'Accepted' (202) kembali ke frontend.
@@ -37,7 +39,7 @@ router.post("/trigger/:task", canAccess("trigger-sync"), async (req, res) => {
       message: `Tugas '${task}' telah ditambahkan ke antrian dan akan segera diproses.`,
     });
   } catch (error) {
-    console.error(`[PRODUCER] Gagal menambahkan tugas '${task}' ke antrian:`, error);
+    Logger.error(`Gagal menambahkan tugas '${task}' ke antrian`, error, "CRON_ROUTER");
     res.status(500).json({ success: false, message: "Gagal memulai tugas." });
   }
 });

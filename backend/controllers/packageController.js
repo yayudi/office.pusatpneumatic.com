@@ -1,6 +1,7 @@
 import db from "../config/db.js";
 import * as jobRepo from "../repositories/jobRepository.js";
 import * as productRepo from "../repositories/productRepository.js"; // For standard CRUD if needed
+import Logger from "../utils/logger.js";
 
 // Helper: Get Base URL
 const getBaseUrl = (req) => {
@@ -37,7 +38,7 @@ export const exportPackages = async (req, res) => {
       data: { jobId },
     });
   } catch (error) {
-    console.error("Export Package Error:", error);
+    Logger.error("Export Package Error", error, "PACKAGE_CONTROLLER");
     res.status(500).json({ success: false, message: error.message });
   } finally {
     if (connection) connection.release();
@@ -74,7 +75,7 @@ export const importPackagesBatch = async (req, res) => {
           data: { jobId }
       });
   } catch(error) {
-      console.error("Import Package Error:", error);
+      Logger.error("Import Package Error", error, "PACKAGE_CONTROLLER");
       res.status(500).json({ success: false, message: error.message });
   } finally {
       if(connection) connection.release();

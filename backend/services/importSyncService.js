@@ -3,13 +3,14 @@ import * as pickingRepo from "../repositories/pickingRepository.js";
 import * as productRepo from "../repositories/productRepository.js";
 import * as locationRepo from "../repositories/locationRepository.js";
 import { WMS_STATUS, MP_STATUS } from "../config/wmsConstants.js";
+import Logger from "../utils/logger.js";
 
 const safe = (val) => (val === undefined ? null : val);
 
 // Helper log sederhana dengan Timestamp
 const log = (invoiceId, msg) => {
-  const time = new Date().toISOString().split("T")[1].split(".")[0];
-  console.log(`[SYNC][${time}][${invoiceId || "GENERAL"}] ${msg}`);
+  const ctx = invoiceId ? `IMPORT_SYNC:${invoiceId}` : "IMPORT_SYNC";
+  Logger.info(msg, ctx);
 };
 
 /**
@@ -200,7 +201,7 @@ export async function syncOrdersToDB(connection, ordersMap, userId, originalFile
       updatedCount++;
     } catch (e) {
       await connection.rollback();
-      console.error(`[SYNC ERROR] ${order.invoiceId}:`, e);
+      Logger.error(`SYNC ERROR on ${order.invoiceId}`, e, "IMPORT_SYNC");
       errors.push(`Order ${order.invoiceId}: ${e.message}`);
     }
   }

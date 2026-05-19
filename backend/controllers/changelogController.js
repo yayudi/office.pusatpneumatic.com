@@ -1,4 +1,5 @@
 import * as changelogService from "../services/changelogService.js";
+import Logger from "../utils/logger.js";
 
 export const getChangelogs = async (req, res) => {
   try {
@@ -9,7 +10,7 @@ export const getChangelogs = async (req, res) => {
       data: data
     });
   } catch (error) {
-    console.error("Error in getChangelogs:", error);
+    Logger.error("Error in getChangelogs", error, "CHANGELOG_CONTROLLER");
     return res.status(500).json({
       success: false,
       message: "Gagal mengambil data changelog",

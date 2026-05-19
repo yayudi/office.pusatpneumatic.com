@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import db from "../config/db.js";
 import { createLog } from "../repositories/systemLogRepository.js";
+import Logger from "../utils/logger.js";
 
 const router = express.Router();
 
@@ -25,7 +26,7 @@ router.get("/profile", async (req, res) => {
       user: completeUser, // Kirim data yang sudah digabung
     });
   } catch (error) {
-    console.error("Error saat mengambil profil lengkap user:", error);
+    Logger.error("Error saat mengambil profil lengkap user", error, "USER_ROUTER");
     res.status(500).json({ success: false, message: "Server error saat mengambil profil." });
   }
 });
@@ -79,7 +80,7 @@ router.put("/profile", async (req, res) => {
     const updatedUser = updatedUserRows[0];
 
     // Log untuk memastikan versi ini yang berjalan
-    console.log("[DEBUG] Mengirim kembali data user yang sudah diupdate:", updatedUser);
+    Logger.debug(`Mengirim kembali data user yang sudah diupdate: ${JSON.stringify(updatedUser)}`, "USER_ROUTER");
 
     // LOGGING
     await createLog(db, {
@@ -101,7 +102,7 @@ router.put("/profile", async (req, res) => {
       user: updatedUser, // Kirim data user yang sudah lengkap dan diperbarui
     });
   } catch (err) {
-    console.error("Error saat update profil:", err);
+    Logger.error("Error saat update profil", err, "USER_ROUTER");
     res.status(500).json({ success: false, message: "Terjadi kesalahan pada server." });
   }
 });
@@ -123,7 +124,7 @@ router.get("/my-locations", async (req, res) => {
     const [locations] = await db.query(query, [userId]);
     res.json({ success: true, data: locations });
   } catch (error) {
-    console.error(`Error saat mengambil lokasi untuk user ID ${userId}:`, error);
+    Logger.error(`Error saat mengambil lokasi untuk user ID ${userId}`, error, "USER_ROUTER");
     res.status(500).json({ success: false, message: "Gagal mengambil data lokasi." });
   }
 });

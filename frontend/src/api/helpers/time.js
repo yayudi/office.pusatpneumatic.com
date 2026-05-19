@@ -1,4 +1,8 @@
 // frontend/src/api/helpers/time.js
+import dayjs from 'dayjs'
+import 'dayjs/locale/id'
+
+dayjs.locale('id')
 
 /**
  * Parse jam string "HH:MM" jadi menit
@@ -24,24 +28,23 @@ export function formatJamMenit(menit) {
  */
 export function toYmd(input) {
   if (!input) return ''
-  if (input instanceof Date) {
-    const y = input.getFullYear()
-    const m = String(input.getMonth() + 1).padStart(2, '0')
-    const d = String(input.getDate()).padStart(2, '0')
-    return `${y}-${m}-${d}`
-  }
+  
   let s = String(input).trim()
-  // Handle DD/MM/YYYY or MM/DD/YYYY to YYYY-MM-DD
+  
+  // Handle manual DD/MM/YYYY pattern to YYYY-MM-DD for consistency
   if (s.includes('/')) {
-    const [a, b, c] = s.split('/')
-    if (a.length <= 2 && b.length <= 2 && c.length === 4)
-      return `${c}-${String(a).padStart(2, '0')}-${String(b).padStart(2, '0')}`
-    if (a.length === 4) return `${a}-${String(b).padStart(2, '0')}-${String(c).padStart(2, '0')}`
+    const parts = s.split('/')
+    if (parts.length === 3) {
+      const [a, b, c] = parts
+      if (a.length <= 2 && b.length <= 2 && c.length === 4) {
+        return `${c}-${String(b).padStart(2, '0')}-${String(a).padStart(2, '0')}`
+      }
+    }
   }
-  if (s.includes('-')) {
-    const [y, m, d] = s.split('-')
-    if (y.length === 4) return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-  }
+  
+  const d = dayjs(input)
+  if (d.isValid()) return d.format('YYYY-MM-DD')
+  
   return s
 }
 
@@ -53,24 +56,19 @@ export function toYmd(input) {
  * @param {boolean} withYear - Sertakan tahun? (Default: false, kecuali beda tahun)
  */
 export function formatDate(val, withTime = true, withYear = false) {
-  if (!val) return null // Return null agar komponen bisa handle v-else
-  const date = new Date(val)
-  if (isNaN(date.getTime())) return '-'
+  if (!val) return null 
+  
+  const d = dayjs(val)
+  if (!d.isValid()) return '-'
 
-  const options = {
-    day: 'numeric',
-    month: 'short',
-  }
-
-  if (withYear || date.getFullYear() !== new Date().getFullYear()) {
-    options.year = 'numeric'
+  let formatStr = 'D MMM'
+  if (withYear || d.year() !== dayjs().year()) {
+    formatStr += ' YYYY'
   }
 
   if (withTime) {
-    options.hour = '2-digit'
-    options.minute = '2-digit'
-    options.hour12 = false
+    formatStr += ' HH:mm'
   }
 
-  return new Intl.DateTimeFormat('id-ID', options).format(date)
+  return d.format(formatStr)
 }

@@ -1,19 +1,19 @@
-
 import { loadHolidays } from "../services/helpers/fileHelpers.js";
+import Logger from "../utils/logger.js";
 
 (async () => {
   try {
-    console.log("Testing loadHolidays(2025)...");
+    Logger.info("Testing loadHolidays(2025)...", "CHECK_HOLIDAYS");
     const holidays = await loadHolidays(2025);
-    console.log("Holidays Map Keys:", Object.keys(holidays).length);
+    Logger.info(`Holidays Map Keys: ${Object.keys(holidays).length}`, "CHECK_HOLIDAYS");
     if (holidays['2025-12-25']) {
-      console.log("Success: Christmas 2025 found in map!");
+      Logger.info("Success: Christmas 2025 found in map!", "CHECK_HOLIDAYS");
     } else {
-      console.error("❌ Failed: Christmas 2025 NOT found.");
+      Logger.error("Failed: Christmas 2025 NOT found", null, "CHECK_HOLIDAYS");
     }
     process.exit(0);
   } catch (error) {
-    console.error(error);
+    Logger.error("Error checking holidays", error, "CHECK_HOLIDAYS");
     process.exit(1);
   }
 })();

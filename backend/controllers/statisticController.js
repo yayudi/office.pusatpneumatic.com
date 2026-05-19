@@ -2,6 +2,7 @@
 import * as statisticService from '../services/statisticService.js';
 import db from '../config/db.js';
 import * as jobRepo from '../repositories/jobRepository.js';
+import Logger from '../utils/logger.js';
 
 export const getStockMovements = async (req, res) => {
   try {
@@ -32,7 +33,7 @@ export const getStockMovements = async (req, res) => {
       data
     });
   } catch (error) {
-    console.error('Error getStockMovements:', error);
+    Logger.error('Error getStockMovements', error, 'STATISTIC_CONTROLLER');
     res.status(500).json({ success: false, message: 'Gagal memuat statistik stok.' });
   }
 };
@@ -69,7 +70,7 @@ export const requestStockMovementsExport = async (req, res) => {
       jobId,
     });
   } catch (error) {
-    console.error("Error at requestStockMovementsExport:", error);
+    Logger.error("Error at requestStockMovementsExport", error, "STATISTIC_CONTROLLER");
     res.status(500).json({ success: false, message: "Gagal membuat permintaan ekspor." });
   }
 };
@@ -96,7 +97,7 @@ export const getStockTimeline = async (req, res) => {
       data,
     });
   } catch (error) {
-    console.error('Error getStockTimeline:', error);
+    Logger.error('Error getStockTimeline', error, 'STATISTIC_CONTROLLER');
     res.status(500).json({ success: false, message: 'Gagal memuat statistik timeline stok.' });
   }
 };
@@ -130,7 +131,7 @@ export const requestStockTimelineExport = async (req, res) => {
       jobId,
     });
   } catch (error) {
-    console.error('Error requestStockTimelineExport:', error);
+    Logger.error('Error requestStockTimelineExport', error, 'STATISTIC_CONTROLLER');
     res.status(500).json({ success: false, message: 'Gagal membuat permintaan ekspor.' });
   }
 };
@@ -159,7 +160,7 @@ export const getInventoryValue = async (req, res) => {
       data
     });
   } catch (error) {
-    console.error('Error getInventoryValue:', error);
+    Logger.error('Error getInventoryValue', error, 'STATISTIC_CONTROLLER');
     res.status(500).json({ success: false, message: 'Gagal memuat statistik nilai inventaris.' });
   }
 };
@@ -180,7 +181,7 @@ export const getShopPerformance = async (req, res) => {
       data
     });
   } catch (error) {
-    console.error('Error getShopPerformance:', error);
+    Logger.error('Error getShopPerformance', error, 'STATISTIC_CONTROLLER');
     res.status(500).json({ success: false, message: 'Gagal memuat statistik performa toko.' });
   }
 };

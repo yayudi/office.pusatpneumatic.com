@@ -1,5 +1,6 @@
 // backend\repositories\reportRepository.js
 import db from "../config/db.js";
+import Logger from "../utils/logger.js";
 
 /**
  * Streaming Data Stok untuk Report Excel
@@ -124,7 +125,7 @@ export const getReportFilters = async () => {
       buildingsByPurpose: buildingsByPurpose,
     };
   } catch (error) {
-    console.error("Error di getReportFilters service:", error);
+    Logger.error("Error di getReportFilters service", error, "REPORT_REPOSITORY");
     throw error;
   } finally {
     if (connection) connection.release();

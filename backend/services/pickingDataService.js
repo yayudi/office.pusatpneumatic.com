@@ -1,29 +1,19 @@
 // backend/services/pickingDataService.js
 import db from "../config/db.js";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import Logger from "../utils/logger.js";
 
 // REPOSITORIES
 import * as pickingRepo from "../repositories/pickingRepository.js";
 import * as locationRepo from "../repositories/locationRepository.js";
 import * as stockRepo from "../repositories/stockMovementRepository.js";
 
-// --- LOGGER SETUP ---
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const LOG_DIR = path.join(__dirname, "../logs");
-const LOG_FILE = path.join(LOG_DIR, "debug_picking.log");
-
-if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
-
 const fileLog = (msg) => {
-  const timestamp = new Date().toISOString().replace("T", " ").split(".")[0];
-  fs.appendFileSync(LOG_FILE, `[${timestamp}] ${msg}\n`);
+  Logger.warn(msg, "PICKING_DATA_SERVICE");
 };
+
 const logger = {
-  info: (msg) => console.log(`[INFO] ${msg}`),
-  error: (msg, err) => console.error(`[ERROR] ${msg}`, err),
+  info: (msg) => Logger.info(msg, "PICKING_DATA_SERVICE"),
+  error: (msg, err) => Logger.error(msg, err, "PICKING_DATA_SERVICE"),
 };
 
 // ==============================================================================
@@ -317,7 +307,7 @@ export const completePickingItemsService = async (payloadItems, userId) => {
     };
   } catch (error) {
     await connection.rollback();
-    console.error("[PickingService] Complete Transaction Failed:", error);
+    Logger.error("Complete Transaction Failed", error, "PICKING_DATA_SERVICE");
     throw error;
   } finally {
     connection.release();

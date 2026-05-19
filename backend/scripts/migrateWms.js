@@ -1,4 +1,5 @@
 import db from "../config/db.js";
+import Logger from "../utils/logger.js";
 import "dotenv/config";
 import { fetchSheet, cleanHarga, cleanQty } from "./tasks/taskHelpers.js";
 
@@ -9,7 +10,7 @@ const SPREADSHEET_MASTER = "16498vcLnqZZ5gyMQBV7dasKXG7ldfXfKk9t3Wtt6xdA";
 const RANGE_MASTER = "ALL-DATA!A1:D20000";
 
 function log(message) {
-  console.log(`[${new Date().toISOString()}] ${message}`);
+  Logger.info(message, "MIGRATE_WMS");
 }
 
 /**
@@ -111,8 +112,7 @@ async function migrateWmsData() {
     log(`   - ${stockLocationsCreated} data lokasi stok berhasil dibuat.`);
   } catch (error) {
     if (connection) await connection.rollback();
-    log("❌ Terjadi error fatal selama migrasi:");
-    console.error(error);
+    Logger.error("Error fatal selama migrasi data WMS", error, "MIGRATE_WMS");
   } finally {
     if (connection) connection.release();
     await db.end();

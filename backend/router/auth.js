@@ -3,6 +3,7 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import db from "../config/db.js";
+import Logger from "../utils/logger.js";
 
 const router = express.Router();
 
@@ -26,7 +27,7 @@ router.post("/login", async (req, res) => {
     const user = rows[0];
 
     if (!user.password_hash) {
-      console.error(`[AUTH ERROR] User '${username}' tidak memiliki hash password di database.`);
+      Logger.error(`User '${username}' tidak memiliki hash password di database`, null, "AUTH_ROUTER");
       return res
         .status(500)
         .json({ success: false, message: "Konfigurasi akun error. Hubungi administrator." });
@@ -69,7 +70,7 @@ router.post("/login", async (req, res) => {
       user: payload,
     });
   } catch (err) {
-    console.error("Login error:", err);
+    Logger.error("Login error", err, "AUTH_ROUTER");
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
