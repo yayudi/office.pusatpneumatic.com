@@ -3,8 +3,10 @@
 import { ref, watch, computed } from 'vue'
 import Modal from '@/components/ui/Modal.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
-import { fetchStockHistory } from '@/api/helpers/stock.js'
+import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
+import { fetchStockHistory, fetchAllLocations } from '@/api/helpers/stock.js'
 import { useMobile } from '@/composables/useMobile.js'
+import { onMounted } from 'vue'
 
 const { isMobile } = useMobile()
 
@@ -20,6 +22,31 @@ const pagination = ref({})
 const loading = ref(false)
 const error = ref(null)
 const currentPage = ref(1)
+const movementType = ref('all')
+const startDate = ref('')
+const endDate = ref('')
+const locationId = ref('all')
+const userFilter = ref('')
+const locations = ref([])
+
+onMounted(async () => {
+  try {
+    locations.value = await fetchAllLocations()
+  } catch (err) {
+    console.error('Gagal memuat lokasi:', err)
+  }
+})
+
+const movementTypes = [
+  { label: 'Semua Tipe', value: 'all' },
+  { label: 'Inbound', value: 'INBOUND' },
+  { label: 'Transfer', value: 'TRANSFER' },
+  { label: 'Transfer Multi', value: 'TRANSFER_MULTI' },
+  { label: 'Penyesuaian (Adjustment)', value: 'ADJUSTMENT' },
+  { label: 'Opname', value: 'OPNAME' },
+  { label: 'Penjualan (Sales)', value: 'SALES' },
+  { label: 'Retur (Return)', value: 'RETURN' },
+]
 
 const paginationData = computed(() => ({
   page: pagination.value.page || 1,
@@ -33,7 +60,7 @@ async function loadHistory(page) {
   loading.value = true
   error.value = null
   try {
-    const response = await fetchStockHistory(props.product.id, page)
+    const response = await fetchStockHistory(props.product.id, page, movementType.value, startDate.value, endDate.value, locationId.value, userFilter.value)
     history.value = response.data
     pagination.value = response.pagination
     currentPage.value = response.pagination.page
@@ -43,6 +70,18 @@ async function loadHistory(page) {
     loading.value = false
   }
 }
+
+let userDebounceTimer = null
+watch(userFilter, () => {
+  clearTimeout(userDebounceTimer)
+  userDebounceTimer = setTimeout(() => {
+    loadHistory(1)
+  }, 500)
+})
+
+watch([movementType, startDate, endDate, locationId], () => {
+  loadHistory(1)
+})
 
 watch(
   () => props.show,
@@ -56,7 +95,34 @@ watch(
 
 <template>
   <Modal :show="show" @close="emit('close')" :title="`Riwayat Stok: ${product?.name}`" maxWidth="max-w-4xl">
-    <div class="max-h-[80vh] overflow-y-auto">
+    <div
+      class="px-4 py-3 grid grid-cols-1 sm:grid-cols-4 gap-3 items-center border-b border-secondary/20 bg-background/50">
+      <div class="w-full">
+        <select v-model="movementType"
+          class="w-full bg-background border border-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow">
+          <option v-for="type in movementTypes" :key="type.value" :value="type.value">
+            {{ type.label }}
+          </option>
+        </select>
+      </div>
+      <div class="w-full">
+        <select v-model="locationId"
+          class="w-full bg-background border border-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow">
+          <option value="all">Semua Lokasi</option>
+          <option v-for="loc in locations" :key="loc.id" :value="loc.id">
+            {{ loc.code || loc.name }}
+          </option>
+        </select>
+      </div>
+      <div class="w-full">
+        <input type="text" v-model="userFilter" placeholder="Cari user..."
+          class="w-full bg-background border border-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow" />
+      </div>
+      <div class="w-full">
+        <DateRangeFilter v-model:startDate="startDate" v-model:endDate="endDate" class="w-full" align="right" />
+      </div>
+    </div>
+    <div class="max-h-[70vh] overflow-y-auto">
       <div v-if="loading" class="text-center p-8">Memuat riwayat...</div>
       <div v-else-if="error" class="text-center p-8 text-accent">{{ error }}</div>
       <div v-else-if="history.length === 0" class="text-center p-8 text-text/60">

@@ -524,14 +524,14 @@ export const generateInboundTemplateService = async () => {
   }
 };
 
-export const getStockHistoryService = async (productId, page = 1, limit = 15) => {
+export const getStockHistoryService = async (productId, page = 1, limit = 15, movementType = null, startDate = null, endDate = null, locationId = null, user = null) => {
   const offset = (page - 1) * limit;
   const connection = await db.getConnection();
   try {
-    const countQuery = "SELECT COUNT(*) as total FROM stock_movements WHERE product_id = ?";
-    const [totalRows] = await connection.query(countQuery, [productId]);
+    let countQuery = "SELECT COUNT(*) as total FROM stock_movements sm JOIN users u ON sm.user_id = u.id WHERE sm.product_id = ?";
+    let countParams = [productId];
 
-    const historyQuery = `
+    let historyQuery = `
     SELECT
       sm.id,
       sm.quantity,
@@ -545,10 +545,56 @@ export const getStockHistoryService = async (productId, page = 1, limit = 15) =>
     JOIN users u ON sm.user_id = u.id
     LEFT JOIN locations from_loc ON sm.from_location_id = from_loc.id
     LEFT JOIN locations to_loc ON sm.to_location_id = to_loc.id
-    WHERE sm.product_id = ?
-    ORDER BY sm.created_at DESC LIMIT ? OFFSET ?`;
+    WHERE sm.product_id = ?`;
+    let historyParams = [productId];
 
-    const [history] = await connection.query(historyQuery, [productId, limit, offset]);
+    if (movementType && movementType !== 'all') {
+      countQuery += " AND sm.movement_type = ?";
+      countParams.push(movementType);
+      
+      historyQuery += " AND sm.movement_type = ?";
+      historyParams.push(movementType);
+    }
+    
+    if (startDate && endDate) {
+      countQuery += " AND DATE(sm.created_at) BETWEEN ? AND ?";
+      countParams.push(startDate, endDate);
+      historyQuery += " AND DATE(sm.created_at) BETWEEN ? AND ?";
+      historyParams.push(startDate, endDate);
+    } else if (startDate) {
+      countQuery += " AND DATE(sm.created_at) >= ?";
+      countParams.push(startDate);
+      historyQuery += " AND DATE(sm.created_at) >= ?";
+      historyParams.push(startDate);
+    } else if (endDate) {
+      countQuery += " AND DATE(sm.created_at) <= ?";
+      countParams.push(endDate);
+      historyQuery += " AND DATE(sm.created_at) <= ?";
+      historyParams.push(endDate);
+    }
+    
+    if (locationId && locationId !== 'all') {
+      countQuery += " AND (sm.from_location_id = ? OR sm.to_location_id = ?)";
+      countParams.push(locationId, locationId);
+      
+      historyQuery += " AND (sm.from_location_id = ? OR sm.to_location_id = ?)";
+      historyParams.push(locationId, locationId);
+    }
+    
+    if (user) {
+      countQuery += " AND u.username LIKE ?";
+      countParams.push(`%${user}%`);
+      
+      historyQuery += " AND u.username LIKE ?";
+      historyParams.push(`%${user}%`);
+    }
+
+    historyQuery += " ORDER BY sm.created_at DESC LIMIT ? OFFSET ?";
+    historyParams.push(limit, offset);
+
+    const [totalRows] = await connection.query(countQuery, countParams);
+    const [history] = await connection.query(historyQuery, historyParams);
+    
     return { data: history, pagination: { total: totalRows[0].total, page, limit } };
   } finally {
     connection.release();

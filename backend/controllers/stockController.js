@@ -225,7 +225,12 @@ export const processBatchMovements = async (req, res) => {
 export const getStockHistory = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const result = await stockService.getStockHistoryService(req.params.productId, page);
+    const movementType = req.query.movementType || null;
+    const startDate = req.query.startDate || null;
+    const endDate = req.query.endDate || null;
+    const locationId = req.query.locationId || null;
+    const user = req.query.user || null;
+    const result = await stockService.getStockHistoryService(req.params.productId, page, 15, movementType, startDate, endDate, locationId, user);
     res.json({ success: true, ...result });
   } catch (error) {
     Logger.error("History Error", error, "STOCK_CONTROLLER");

@@ -64,13 +64,25 @@ export const fetchAllLocations = async () => {
  * Mengambil riwayat pergerakan stok untuk produk tertentu.
  * @param {number} productId - ID produk.
  * @param {number} page - Nomor halaman yang diminta.
+ * @param {string} movementType - Tipe pergerakan stok (opsional).
+ * @param {string} startDate - Tanggal mulai (opsional).
+ * @param {string} endDate - Tanggal akhir (opsional).
+ * @param {string|number} locationId - ID Lokasi (opsional).
+ * @param {string} user - Nama pengguna (opsional).
  * @returns {Promise<object>} - Objek berisi data riwayat dan informasi paginasi.
  */
-export async function fetchStockHistory(productId, page = 1) {
+export async function fetchStockHistory(productId, page = 1, movementType = 'all', startDate = '', endDate = '', locationId = 'all', user = '') {
   try {
-    const response = await axios.get(`/stock/history/${productId}`, {
-      params: { page },
-    })
+    const params = { page }
+    if (movementType && movementType !== 'all') {
+      params.movementType = movementType
+    }
+    if (startDate) params.startDate = startDate;
+    if (endDate) params.endDate = endDate;
+    if (locationId && locationId !== 'all') params.locationId = locationId;
+    if (user) params.user = user;
+    
+    const response = await axios.get(`/stock/history/${productId}`, { params })
     return response.data
   } catch (error) {
     console.error(

@@ -164,9 +164,8 @@ watch(isOpen, (val) => {
 <template>
   <div class="relative inline-block" ref="containerRef">
     <!-- Trigger Button -->
-    <button @click.stop="toggleDropdown"
-      class="w-full flex items-center gap-2 px-4 py-2 bg-background border border-secondary/30 rounded-lg hover:border-primary/50 hover:bg-secondary/5 transition-all text-sm font-medium text-text group whitespace-nowrap"
-      :class="{ 'border-primary ring-1 ring-primary/20': isOpen || startDate }">
+    <button @click.stop="toggleDropdown" class="w-full flex items-center gap-2 px-4 py-2 bg-background border border-secondary rounded-lg hover:border-primary/50 hover:bg-secondary/5 transition-all text-sm font-medium text-text group whitespace-nowrap  focus:outline-none
+      focus:ring-2 focus:ring-primary/50" :class="{ 'border-primary ring-1 ring-primary/20': isOpen || startDate }">
       <font-awesome-icon icon="fa-solid fa-calendar" class="text-text/50 group-hover:text-primary transition-colors" />
       <span class="whitespace-nowrap w-full">{{ displayLabel }}</span>
       <font-awesome-icon icon="fa-solid fa-chevron-down" class="text-xs text-text/30 ml-1 transition-transform"
@@ -176,7 +175,7 @@ watch(isOpen, (val) => {
     <!-- Popover via Teleport -->
     <Teleport to="body">
       <div v-if="isOpen"
-        class="date-range-popover fixed z-50 w-auto min-w-[320px] max-w-[calc(100vw-32px)] md:max-w-[600px] bg-background border border-secondary/20 shadow-xl rounded-xl overflow-hidden flex flex-col md:flex-row ml-[-5vw] md:m-0"
+        class="date-range-popover fixed z-[5000] w-auto min-w-[320px] max-w-[calc(100vw-32px)] md:max-w-[600px] bg-background border border-secondary/20 shadow-xl rounded-xl overflow-hidden flex flex-col md:flex-row ml-[-5vw] md:m-0"
         :style="popoverStyle">
 
         <!-- Sidebar / Presets -->
