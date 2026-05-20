@@ -22,19 +22,11 @@ export class BaseParser {
     if (path.isAbsolute(filePath)) {
       this.filePath = filePath;
     } else {
-      // Jika relative, coba resolve dari process.cwd() (biasanya root project)
-      // Jika process.cwd() di /home/dpvindon tapi project di /home/dpvindon/wmsBackend,
-      // kita perlu memastikan pathnya benar.
-      // Strategi: Jika path tidak mengandung 'wmsBackend' dan kita tahu struktur folder,
-      // kita bisa mencoba resolve dari lokasi file ini naik ke root.
-
-      // Asumsi file ini ada di: backend/services/parsers/BaseParser.js
-      // Root project (wmsBackend) ada di 3 level ke atas: ../../
       const projectRoot = path.resolve(__dirname, "../../");
       this.filePath = path.join(projectRoot, filePath);
     }
 
-    this.source = source;
+    this.source = source || "UNKNOWN";
     this.mapper = mapper;
     this.goldenKeys = goldenKeys;
     this.csvDelimiter = csvDelimiter;
@@ -42,6 +34,7 @@ export class BaseParser {
     this.stats = { totalRows: 0, success: 0, failed: 0, skippedStatus: 0 };
     this.auditLog = [];
     this.sanitized = false;
+    this.parserTag = `${String(this.source).toUpperCase()}_PARSER`;
   }
 
   _normalizeHeaderClean(val) {
@@ -55,9 +48,8 @@ export class BaseParser {
   }
 
   async run() {
-    const parserTag = `${this.source.toUpperCase()}_PARSER`;
-    Logger.info(`START: ${path.basename(this.filePath)}`, parserTag);
-    Logger.debug(`Reading from: ${this.filePath}`, parserTag); // Debug log tambahan
+    Logger.info(`START: ${path.basename(this.filePath)}`, this.parserTag);
+    Logger.debug(`Reading from: ${this.filePath}`, this.parserTag); // Debug log tambahan
 
     const workbook = new ExcelJS.Workbook();
 
@@ -65,13 +57,12 @@ export class BaseParser {
       const ext = path.extname(this.filePath).toLowerCase();
 
       if (ext === ".csv") {
-        Logger.debug(`Mode CSV Manual Read (fs). Delimiter: '${this.csvDelimiter}'`, parserTag);
+        Logger.debug(`Mode CSV Manual Read (fs). Delimiter: '${this.csvDelimiter}'`, this.parserTag);
 
         // Baca file manual untuk handle CSV yang berantakan (multiline di dalam quotes)
         const fileContent = fs.readFileSync(this.filePath, "utf8");
         const sheet = workbook.addWorksheet("Sheet1");
 
-        // [FIX MULTILINE CSV] Logic penanganan baris baru di dalam kutip
         const rawLines = fileContent.split(/\r?\n/);
         const mergedLines = [];
         let buffer = "";
@@ -134,7 +125,7 @@ export class BaseParser {
 
       const result = await this._processWorkbookData(workbook);
 
-      Logger.info(`FINISH. Stats: ${JSON.stringify(this.stats)}`, parserTag);
+      Logger.info(`FINISH. Stats: ${JSON.stringify(this.stats)}`, this.parserTag);
       return {
         orders: result.orders,
         stats: this.stats,
@@ -142,7 +133,7 @@ export class BaseParser {
         headerRowIndex: result.headerRowIdx,
       };
     } catch (error) {
-      Logger.error("Error di run()", error, parserTag);
+      Logger.error("Error di run()", error, this.parserTag);
 
       const isRescueable =
         error.message === "LOW_HEADER_SCORE" ||
@@ -153,7 +144,7 @@ export class BaseParser {
       if (isRescueable && !this.sanitized) {
         Logger.warn(
           `File Error (${error.message}). Mencoba Sanitasi...`,
-          parserTag
+          this.parserTag
         );
         try {
           await sanitizeExcel(this.filePath);
@@ -210,13 +201,13 @@ export class BaseParser {
     });
 
     if (!bestSheet || maxScore < 2) {
-      Logger.error(`Gagal Header. Max Score: ${maxScore}`, null, parserTag);
+      Logger.error(`Gagal Header. Max Score: ${maxScore}`, null, this.parserTag);
       throw new Error("LOW_HEADER_SCORE");
     }
 
     Logger.info(
       `Header: Row ${headerRowIdx} @ Sheet "${bestSheet.name}"`,
-      parserTag
+      this.parserTag
     );
 
     const orders = new Map();

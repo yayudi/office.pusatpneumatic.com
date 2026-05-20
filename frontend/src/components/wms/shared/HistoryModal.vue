@@ -95,32 +95,25 @@ watch(
 
 <template>
   <Modal :show="show" @close="emit('close')" :title="`Riwayat Stok: ${product?.name}`" maxWidth="max-w-4xl">
-    <div
-      class="px-4 py-3 grid grid-cols-1 sm:grid-cols-4 gap-3 items-center border-b border-secondary/20 bg-background/50">
-      <div class="w-full">
-        <select v-model="movementType"
-          class="w-full bg-background border border-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow">
-          <option v-for="type in movementTypes" :key="type.value" :value="type.value">
-            {{ type.label }}
-          </option>
-        </select>
-      </div>
-      <div class="w-full">
-        <select v-model="locationId"
-          class="w-full bg-background border border-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow">
-          <option value="all">Semua Lokasi</option>
-          <option v-for="loc in locations" :key="loc.id" :value="loc.id">
-            {{ loc.code || loc.name }}
-          </option>
-        </select>
-      </div>
-      <div class="w-full">
-        <input type="text" v-model="userFilter" placeholder="Cari user..."
-          class="w-full bg-background border border-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow" />
-      </div>
-      <div class="w-full">
-        <DateRangeFilter v-model:startDate="startDate" v-model:endDate="endDate" class="w-full" align="right" />
-      </div>
+    <div class="px-4 py-3 grid gap-2 items-center border-b border-secondary/20 bg-background/50"
+      :class="isMobile ? 'grid-cols-2' : 'grid-cols-4'">
+      <select v-model="movementType"
+        class="w-full bg-background border border-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow">
+        <option v-for="type in movementTypes" :key="type.value" :value="type.value">
+          {{ type.label }}
+        </option>
+      </select>
+      <select v-model="locationId"
+        class="w-full bg-background border border-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow">
+        <option value="all">Semua Lokasi</option>
+        <option v-for="loc in locations" :key="loc.id" :value="loc.id">
+          {{ loc.code || loc.name }}
+        </option>
+      </select>
+      <input type="text" v-model="userFilter" placeholder="Cari user..."
+        class="w-full bg-background border border-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow" />
+      <DateRangeFilter v-model:startDate="startDate" v-model:endDate="endDate" class="w-full"
+        :align="isMobile ? 'left' : 'right'" />
     </div>
     <div class="max-h-[70vh] overflow-y-auto">
       <div v-if="loading" class="text-center p-8">Memuat riwayat...</div>
