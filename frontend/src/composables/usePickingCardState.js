@@ -18,7 +18,7 @@ export function usePickingCardState(props, authStore) {
     if (props.mode === 'history' || !props.inv.locations) return false
     for (const locName in props.inv.locations) {
       for (const item of props.inv.locations[locName]) {
-        if (!item.location_code || Number(item.available_stock || 0) < Number(item.quantity || 0))
+        if (item.status === 'BACKORDER' || !item.location_code || Number(item.available_stock || 0) < Number(item.quantity || 0))
           return true
       }
     }
@@ -57,7 +57,7 @@ export function usePickingCardState(props, authStore) {
 
   function hasInsufficientStock(item) {
     if (props.mode === 'history') return false
-    if (!item.location_code) return true
+    if (item.status === 'BACKORDER' || !item.location_code) return true
     const available = Number(item.available_stock || 0)
     const needed = Number(item.quantity || 0)
     return available < needed

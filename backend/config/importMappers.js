@@ -13,18 +13,22 @@ const parseDate = (val) => {
   const dateStr = String(val).trim();
   if (!dateStr) return null;
   try {
-    let date = new Date(dateStr);
-    if (isNaN(date.getTime())) {
-      const idFormatRegex = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})(?:\s(\d{1,2}):(\d{1,2}))?/;
-      const match = dateStr.match(idFormatRegex);
-      if (match) {
-        const [_, day, month, year, hour, minute] = match;
-        const isoStr = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T${(
-          hour || "00"
-        ).padStart(2, "0")}:${(minute || "00").padStart(2, "0")}:00`;
-        date = new Date(isoStr);
-      }
+    let date;
+    // Prioritaskan pencocokan format DD/MM/YYYY atau DD-MM-YYYY (standar Indonesia)
+    const idFormatRegex = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})(?:\s(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/;
+    const match = dateStr.match(idFormatRegex);
+
+    if (match) {
+      const [_, day, month, year, hour, minute, second] = match;
+      const isoStr = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T${(
+        hour || "00"
+      ).padStart(2, "0")}:${(minute || "00").padStart(2, "0")}:${(second || "00").padStart(2, "0")}`;
+      date = new Date(isoStr);
+    } else {
+      // Fallback ke Date bawaan JS (contoh: untuk YYYY-MM-DD, ISO string, atau format penamaan bulan inggris)
+      date = new Date(dateStr);
     }
+
     return !isNaN(date.getTime()) ? formatToDbDate(date) : null;
   } catch (e) {
     return null;

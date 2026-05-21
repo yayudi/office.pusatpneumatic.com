@@ -24,6 +24,7 @@ export const getPendingItems = async (connection) => {
       pl.customer_name,
       pl.marketplace_status,
       pl.location_purpose,
+      pl.shop_name,
       COALESCE(sl.quantity, 0) as available_stock
     FROM picking_list_items pli
     JOIN picking_lists pl ON pli.picking_list_id = pl.id
@@ -34,7 +35,7 @@ export const getPendingItems = async (connection) => {
     LEFT JOIN stock_locations sl ON sl.location_id = pli.suggested_location_id AND sl.product_id = pli.product_id
     WHERE pl.status IN (?, ?)
       AND pl.is_active = 1
-      AND pli.status = ?
+      AND pli.status IN (?, 'BACKORDER')
     ORDER BY pl.created_at DESC, location_code ASC
   `;
 
@@ -50,7 +51,7 @@ export const getHistoryItems = async (connection, limit = 1000) => {
   const query = `
     SELECT
       pl.id as picking_list_id, pl.original_invoice_id, pl.source, pl.status,
-      pl.marketplace_status, pl.customer_name, pl.created_at, pl.order_date, pl.location_purpose,
+      pl.marketplace_status, pl.customer_name, pl.shop_name, pl.created_at, pl.order_date, pl.location_purpose,
       pli.id as item_id, pli.original_sku as sku, pli.quantity, pli.status as item_status,
       pli.return_condition, pli.return_notes,
       p.name as product_name

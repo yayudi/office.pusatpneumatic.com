@@ -8,6 +8,7 @@ export function usePickingFilters(initialState = {}, emitChangeFn = null) {
     source: 'ALL',
     locationPurpose: 'ALL',
     stockStatus: 'ALL',
+    shopName: 'ALL',
     sortBy: 'newest',
     viewMode: 'grid',
     startDate: '',
@@ -21,6 +22,7 @@ export function usePickingFilters(initialState = {}, emitChangeFn = null) {
       filterState.source !== 'ALL' ||
       filterState.locationPurpose !== 'ALL' ||
       filterState.stockStatus !== 'ALL' ||
+      filterState.shopName !== 'ALL' ||
       filterState.search !== '' ||
       filterState.startDate !== '' ||
       filterState.endDate !== ''
@@ -32,6 +34,7 @@ export function usePickingFilters(initialState = {}, emitChangeFn = null) {
     filterState.source = 'ALL'
     filterState.locationPurpose = 'ALL'
     filterState.stockStatus = 'ALL'
+    filterState.shopName = 'ALL'
     filterState.startDate = ''
     filterState.endDate = ''
     if (emitChangeFn) emitChangeFn({ ...filterState })

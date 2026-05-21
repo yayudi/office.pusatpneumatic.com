@@ -8,7 +8,7 @@ import JobErrorModal from '@/components/picking/JobErrorModal.vue'
 
 // --- STATE ---
 const activeTab = ref('pickingList')
-const API_BASE_URL = 'http://localhost:3000'
+const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
 
 // --- REFS KE CHILD COMPONENTS ---
 // Kita butuh ini untuk memanggil fungsi refresh/fetch di dalam child
@@ -83,7 +83,7 @@ const pendingCount = computed(() => taskTabRef.value?.pendingCount || 0)
       ]" :key="tab.id" @click="activeTab = tab.id"
         class="flex-1 py-2.5 px-4 rounded-md text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2"
         :class="activeTab === tab.id
-          ? 'bg-primary text-secondary shadow-lg scale-[1.02]'
+          ? 'bg-primary text-secondary shadow-lg'
           : 'text-text/60 hover:text-text hover:bg-secondary/20'
           ">
         <font-awesome-icon :icon="`fa-solid ${tab.icon}`" />
@@ -109,7 +109,7 @@ const pendingCount = computed(() => taskTabRef.value?.pendingCount || 0)
     </div>
 
     <!-- Shared Error Modal -->
-    <JobErrorModal :show="showJobErrorModal" :job="selectedJob" :api-base-url="API_BASE_URL"
+    <JobErrorModal :show="showJobErrorModal" :job="selectedJob" :api-base-url="baseUrl"
       @close="showJobErrorModal = false" />
   </div>
 </template>

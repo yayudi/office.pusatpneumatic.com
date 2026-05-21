@@ -18,7 +18,7 @@ export function useTaskGrouping(itemsRef, filterStateRef) {
       const end = filter.endDate ? new Date(filter.endDate + 'T23:59:59') : new Date('2100-12-31')
 
       filtered = filtered.filter((i) => {
-        const d = new Date(i.order_date || i.created_at)
+        const d = new Date(i.created_at || i.order_date)
         return d >= start && d <= end
       })
     }
@@ -38,8 +38,13 @@ export function useTaskGrouping(itemsRef, filterStateRef) {
           (i.original_invoice_id || '').toLowerCase().includes(q) ||
           (i.sku || '').toLowerCase().includes(q) ||
           (i.product_name || '').toLowerCase().includes(q) ||
-          (i.customer_name || '').toLowerCase().includes(q),
+          (i.customer_name || '').toLowerCase().includes(q) ||
+          (i.shop_name || '').toLowerCase().includes(q),
       )
+    }
+
+    if (filter.shopName && filter.shopName !== 'ALL') {
+      filtered = filtered.filter((i) => i.shop_name === filter.shopName)
     }
 
     if (filter.stockStatus !== 'ALL') {
@@ -48,9 +53,9 @@ export function useTaskGrouping(itemsRef, filterStateRef) {
         const stock = Number(i.available_stock || 0)
         const hasLoc = !!i.location_code
 
-        if (filter.stockStatus === 'READY') return hasLoc && stock >= qty
-        if (filter.stockStatus === 'ISSUE') return hasLoc && stock < qty
-        if (filter.stockStatus === 'EMPTY') return !hasLoc
+        if (filter.stockStatus === 'READY') return hasLoc && stock >= qty && i.status !== 'BACKORDER'
+        if (filter.stockStatus === 'ISSUE') return hasLoc && stock < qty && i.status !== 'BACKORDER'
+        if (filter.stockStatus === 'EMPTY') return !hasLoc || i.status === 'BACKORDER'
         return true
       })
     }
@@ -69,6 +74,7 @@ export function useTaskGrouping(itemsRef, filterStateRef) {
           source: item.source || 'Unknown',
           location_purpose: item.location_purpose,
           customer_name: item.customer_name,
+          shop_name: item.shop_name,
           status: item.status,
           marketplace_status: item.marketplace_status,
           order_date: item.order_date,

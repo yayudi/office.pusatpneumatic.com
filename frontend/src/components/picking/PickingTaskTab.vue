@@ -21,6 +21,24 @@ const isLoadingPicking = ref(false)
 const pendingItems = ref([])
 const selectedItems = ref(new Set())
 
+const selectionStats = computed(() => {
+  const uniqueInvoices = new Set()
+  let skuCount = 0
+
+  selectedItems.value.forEach((itemId) => {
+    const item = itemsMap.value.get(itemId)
+    if (item) {
+      skuCount++
+      uniqueInvoices.add(item.picking_list_id)
+    }
+  })
+
+  return {
+    invoices: uniqueInvoices.size,
+    skus: skuCount,
+  }
+})
+
 const filterState = ref({
   search: '',
   source: 'ALL',
@@ -38,6 +56,23 @@ const itemsMap = computed(() => {
     map.set(item.id, item)
   })
   return map
+})
+
+// --- COMPUTED: SHOP OPTIONS ---
+const shopOptions = computed(() => {
+  const shops = new Set()
+  pendingItems.value.forEach((item) => {
+    if (item.shop_name) {
+      shops.add(item.shop_name)
+    }
+  })
+
+  const options = [{ id: 'ALL', label: 'Semua Channel/Toko' }]
+  Array.from(shops).sort().forEach(shop => {
+    options.push({ id: shop, label: shop })
+  })
+
+  return options
 })
 
 // --- LOGIC: GROUPING ---
@@ -67,10 +102,6 @@ const stockUsage = computed(() => {
 function canSelectItem(item) {
   if (!item) return false
 
-  // [UPDATE] Izinkan semua item dipilih.
-  // Backend memiliki logika "Smart Re-route" (JIT) yang akan mencari stok di lokasi lain
-  // jika lokasi yang disarankan saat ini tidak mencukupi (Backorder).
-
   // Debugging log
   const debugTag = `[Validasi Item #${item.id} ${item.sku}]`
 
@@ -97,7 +128,6 @@ function canSelectItem(item) {
 }
 
 // --- ACTIONS (API CALLS) ---
-
 async function fetchPendingItems() {
   isLoadingPicking.value = true
   try {
@@ -140,7 +170,6 @@ async function handleCompleteSelectedItems() {
 
     if (res.success) {
       toast(res.message, 'success')
-      // Optimistic Update: Hapus item yang selesai dari list lokal agar UI responsif
       pendingItems.value = pendingItems.value.filter((item) => !selectedItems.value.has(item.id))
       selectedItems.value = new Set() // Reset dengan Set baru
     } else {
@@ -193,7 +222,6 @@ function handleToggleInvoice({ inv, checked }) {
     inv.items.forEach((item) => allItemIds.push(item))
   }
 
-  // FIX: Buat Set baru untuk memicu reaktivitas Vue
   const newSet = new Set(selectedItems.value)
 
   allItemIds.forEach((item) => {
@@ -243,7 +271,10 @@ function handleUncheckAll() {
 
 defineExpose({
   fetchPendingItems,
-  pendingCount: computed(() => pendingItems.value.length),
+  pendingCount: computed(() => {
+    const uniqueInvoices = new Set(pendingItems.value.map((i) => i.picking_list_id))
+    return uniqueInvoices.size
+  }),
 })
 
 onMounted(() => {
@@ -275,12 +306,19 @@ onMounted(() => {
         </div>
 
         <!-- Tengah: Info (Jika ada yang dipilih) -->
-        <div v-if="selectedItems.size > 0" class="flex flex-col items-center leading-none px-1 min-w-[60px]">
-          <span class="font-black text-lg text-text">{{ selectedItems.size }}</span>
-          <span class="text-[9px] font-bold text-text/50 uppercase tracking-wider">Item</span>
+        <div v-if="selectedItems.size > 0" class="flex items-center gap-3 px-2">
+          <div class="flex flex-col items-center leading-none min-w-[50px]">
+            <span class="font-black text-lg text-text">{{ selectionStats.invoices }}</span>
+            <span class="text-[9px] font-bold text-text/50 uppercase tracking-wider">Invoices</span>
+          </div>
+          <div class="w-px h-6 bg-secondary/20 rounded-full hidden sm:block"></div>
+          <div class="hidden sm:flex flex-col items-center leading-none min-w-[50px]">
+            <span class="font-black text-lg text-text">{{ selectionStats.skus }}</span>
+            <span class="text-[9px] font-bold text-text/50 uppercase tracking-wider">SKU</span>
+          </div>
         </div>
         <div v-else class="text-xs text-text/30 italic px-1 hidden md:block">
-          Belum ada item dipilih
+          Belum ada pesanan dipilih
         </div>
 
         <!-- Kanan: Tombol Eksekusi -->
@@ -298,11 +336,9 @@ onMounted(() => {
     </transition>
 
     <div class="space-y-6 animate-fade-in pb-32">
-      <!--
-        TOP CONTROLS
-      -->
-      <div class="bg-secondary/5 p-4 rounded-xl border border-dashed border-secondary/20">
-        <PickingFilterBar v-model="filterState" class="w-full" />
+      <!--TOP CONTROLS-->
+      <div class="bg-secondary/25 p-4 rounded-xl border border-dashed border-secondary/20">
+        <PickingFilterBar v-model="filterState" :shop-options="shopOptions" class="w-full" />
       </div>
 
       <!-- Loading & Empty States -->

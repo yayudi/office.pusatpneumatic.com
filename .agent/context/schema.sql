@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: May 04, 2026 at 05:21 PM
+-- Generation Time: May 21, 2026 at 05:02 PM
 -- Server version: 10.11.16-MariaDB-cll-lve
--- PHP Version: 8.4.20
+-- PHP Version: 8.4.21
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -199,8 +199,7 @@ CREATE TABLE `manual_returns` (
 
 CREATE TABLE `media_assets` (
   `id` int(10) UNSIGNED NOT NULL,
-  `file_name` varchar(255) DEFAULT NULL,
-  `original_name` varchar(255) DEFAULT NULL,
+  `title` varchar(255) DEFAULT NULL,
   `main_path` varchar(255) DEFAULT NULL,
   `thumbnail_path` varchar(255) DEFAULT NULL,
   `status` enum('PENDING','PROCESSING','COMPLETED','FAILED') DEFAULT 'PENDING',
@@ -210,7 +209,9 @@ CREATE TABLE `media_assets` (
   `uploader_id` int(10) UNSIGNED DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `tags` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`tags`))
+  `tags` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`tags`)),
+  `hash` varchar(64) DEFAULT NULL,
+  `duplicate_of` int(10) UNSIGNED DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -298,8 +299,7 @@ CREATE TABLE `products` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `is_package` tinyint(1) NOT NULL DEFAULT 0,
-  `weight` decimal(10,0) DEFAULT 0 COMMENT 'Berat produk (gram)',
-  `image_path` varchar(255) DEFAULT NULL COMMENT 'Path ke file gambar produk'
+  `weight` decimal(10,0) DEFAULT 0 COMMENT 'Berat produk (gram)'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -329,8 +329,6 @@ CREATE TABLE `product_images` (
   `id` int(11) UNSIGNED NOT NULL,
   `product_id` int(11) UNSIGNED NOT NULL,
   `media_id` int(10) UNSIGNED DEFAULT NULL,
-  `image_path` varchar(255) DEFAULT NULL,
-  `thumbnail_path` varchar(255) DEFAULT NULL,
   `is_primary` tinyint(1) DEFAULT 0 COMMENT '1 = Gambar Utama, 0 = Galeri',
   `sort_order` int(11) DEFAULT 0 COMMENT 'Urutan tampilan',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
@@ -584,7 +582,9 @@ ALTER TABLE `manual_returns`
 -- Indexes for table `media_assets`
 --
 ALTER TABLE `media_assets`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `idx_media_hash_unique` (`hash`),
+  ADD KEY `fk_media_duplicate` (`duplicate_of`);
 
 --
 -- Indexes for table `package_components`
@@ -915,6 +915,12 @@ ALTER TABLE `import_jobs`
 ALTER TABLE `manual_returns`
   ADD CONSTRAINT `manual_returns_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `manual_returns_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `media_assets`
+--
+ALTER TABLE `media_assets`
+  ADD CONSTRAINT `fk_media_duplicate` FOREIGN KEY (`duplicate_of`) REFERENCES `media_assets` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `package_components`

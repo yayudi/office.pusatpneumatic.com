@@ -2,7 +2,7 @@
 import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
 
 export function useInfiniteScroll(sourceArray, options = {}) {
-  const { step = 12, rootMargin = '200px' } = options
+  const { step = 24, rootMargin = '600px' } = options
 
   const displayedCount = ref(step)
   const loaderRef = ref(null)
@@ -35,14 +35,13 @@ export function useInfiniteScroll(sourceArray, options = {}) {
       (entries) => {
         const entry = entries[0]
         if (entry.isIntersecting && hasMore.value) {
-          setTimeout(() => {
-            loadMore()
-          }, 300)
+          // Dihapus timeout 300ms agar load instan
+          loadMore()
         }
       },
       {
         rootMargin,
-        threshold: 0.1,
+        threshold: 0, // Trigger sedini mungkin
       },
     )
 

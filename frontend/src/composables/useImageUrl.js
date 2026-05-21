@@ -8,10 +8,10 @@ import { useAuthStore } from '@/stores/auth.js'
  * MediaInfoModal, and MediaLightbox.
  */
 
-const apiBaseUrl = apiClient.defaults.baseURL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
+const baseUrl = apiClient.defaults.baseURL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
 
 /** Backend root URL (without /api suffix) */
-export const backendUrl = apiBaseUrl.replace(/\/api\/?$/, '')
+export const backendUrl = baseUrl.replace(/\/api\/?$/, '')
 
 /**
  * Resolve any relative image path into a full URL.
@@ -24,7 +24,7 @@ export const resolveUrl = (path) => {
   const cleanPath = path.startsWith('/') ? path.substring(1) : path
   const prefix = cleanPath.startsWith('uploads/') ? '' : 'uploads/'
   const url = `${backendUrl}/${prefix}${cleanPath}`
-  
+
   // Ambil token dari store (bypass reactivity jika dijalankan diluar setup, pinia sudah terinisialisasi)
   try {
     const auth = useAuthStore()
