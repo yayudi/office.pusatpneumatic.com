@@ -13,6 +13,7 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
 import { formatNumber, formatCurrency } from '@/utils/formatters.js'
+import { useDownloadStore } from '@/stores/downloadStore.js'
 
 // Lazy load heavy chart components based on active tab
 const StockMovementStats = defineAsyncComponent(() => import('@/components/stats/StockMovementStats.vue'))
@@ -22,6 +23,7 @@ const TimePerformanceStats = defineAsyncComponent(() => import('@/components/sta
 const ShopPerformanceStats = defineAsyncComponent(() => import('@/components/stats/ShopPerformanceStats.vue'))
 
 const masterData = useMasterDataStore()
+const downloadStore = useDownloadStore()
 
 const { toast } = useToast()
 const isSidebarOpen = ref(false)
@@ -139,7 +141,7 @@ async function loadHistory() {
   try {
     const response = await getUserExportJobs()
     if (response.success) {
-      jobHistory.value = response.data
+      jobHistory.value = response.data.filter(job => job.type === 'STOCK_REPORT')
     }
   } catch (error) {
     console.error('Gagal memuat riwayat:', error)
@@ -211,6 +213,9 @@ async function handleRequestExport() {
 
     // Muat ulang riwayat untuk melihat status PENDING
     loadHistory()
+    
+    // Mulai polling di Global Download Manager
+    downloadStore.startPolling()
   } catch (error) {
     toast(error.message || 'Gagal membuat permintaan.', 'error')
   } finally {

@@ -11,7 +11,7 @@ import Logger from "../utils/logger.js";
  * 3. Validate Component SKUs exist.
  * 4. Replace components (DELETE old -> INSERT new).
  */
-export const processPackageImport = async (filePath, jobId, updateProgress) => {
+export const processPackageImport = async (filePath, jobId, updateProgress, userId) => {
   Logger.info(`Processing file: ${filePath}`, "PACKAGE_IMPORT");
   let connection;
   const errors = [];
@@ -90,16 +90,31 @@ export const processPackageImport = async (filePath, jobId, updateProgress) => {
       }
 
       if (hasComponentError) continue;
-      if (componentsToInsert.length === 0) {
-        errors.push(`Row ${row.number}: Tidak ada komponen valid.`);
+
+      const packageName = row.getCell(2).text?.trim();
+      const packagePrice = row.getCell(3).value;
+
+      if (componentsToInsert.length === 0 && !packageName && (packagePrice === null || packagePrice === undefined || packagePrice === "")) {
+        errors.push(`Row ${row.number}: Tidak ada komponen valid atau data harga/nama untuk diupdate.`);
         continue;
       }
 
-      // Transaction: Replace Components
+      // Transaction: Replace Components and Update Product
       try {
         await connection.beginTransaction();
-        await productRepo.deleteComponents(connection, packageId);
-        await productRepo.insertComponents(connection, packageId, componentsToInsert);
+
+        const updatePayload = {};
+        if (packageName) updatePayload.name = packageName;
+        if (packagePrice !== null && packagePrice !== undefined && packagePrice !== "") updatePayload.price = packagePrice;
+
+        if (Object.keys(updatePayload).length > 0) {
+          await productRepo.updateProductTransaction(connection, packageId, updatePayload, [], userId);
+        }
+
+        if (componentsToInsert.length > 0) {
+          await productRepo.deleteComponents(connection, packageId);
+          await productRepo.insertComponents(connection, packageId, componentsToInsert);
+        }
 
         await connection.commit();
         successCount++;

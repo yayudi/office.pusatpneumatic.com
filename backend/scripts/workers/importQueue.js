@@ -49,7 +49,7 @@ async function cleanupStuckJobs(connection) {
                  updated_at = NOW()
              WHERE status = 'PROCESSING'
              AND updated_at < NOW() - INTERVAL ? MINUTE`,
-      [JOB_TIMEOUT_MINUTES]
+      [JOB_TIMEOUT_MINUTES],
     );
     if (result.affectedRows > 0) {
       Logger.warn(`🧹 Membersihkan ${result.affectedRows} job yang macet/zombie.`, "IMPORT_WORKER");
@@ -109,8 +109,10 @@ async function generateErrorFile(originalFilePath, errors, headerRowIndex = 1, j
       if (e.row) errorMap.set(e.row, e.message);
     });
 
-    Logger.info(`Generate Error File: ${errors.length} total errors, ${errorMap.size} mapped to rows.`, "IMPORT_WORKER");
-
+    Logger.info(
+      `Generate Error File: ${errors.length} total errors, ${errorMap.size} mapped to rows.`,
+      "IMPORT_WORKER",
+    );
 
     let targetRowIdx = 2;
     const sortedRowIndices = Array.from(errorMap.keys()).sort((a, b) => a - b);
@@ -220,7 +222,7 @@ export const importQueue = async () => {
     const updateJobProgress = async (processed, total) => {
       try {
         await jobRepo.updateProgress(connection, jobId, processed, total);
-      } catch (e) { }
+      } catch (e) {}
     };
 
     const isDryRun = job.job_type.endsWith("_DRY_RUN");
@@ -250,7 +252,7 @@ export const importQueue = async () => {
         updateJobProgress,
         isDryRun,
         jobOptions.purpose,
-        jobOptions.shopName
+        jobOptions.shopName,
       );
 
       const logicErrors = [];
@@ -268,8 +270,9 @@ export const importQueue = async () => {
       processStats = stats;
 
       const modeText = isDryRun ? "[SIMULASI] " : "";
-      logSummary = `${modeText}Selesai ${source}. DB Update: ${syncResult.updatedCount || 0
-        } Invoice.`;
+      logSummary = `${modeText}Selesai ${source}. DB Update: ${
+        syncResult.updatedCount || 0
+      } Invoice.`;
     } else if (realJobType === "ADJUST_STOCK") {
       const result = await stockImportService.processStockImport(
         connection,
@@ -277,7 +280,7 @@ export const importQueue = async () => {
         job.user_id,
         job.original_filename,
         updateJobProgress,
-        isDryRun
+        isDryRun,
       );
       logSummary = result.logSummary;
       errors = (result.errors || []).map((e) => ({ row: e.row, message: e.message }));
@@ -290,12 +293,15 @@ export const importQueue = async () => {
         job.original_filename,
         updateJobProgress,
         isDryRun,
-        jobOptions
+        jobOptions,
       );
       logSummary = result.logSummary;
       errors = result.errors || [];
       processStats = result.stats || {};
-    } else if (realJobType === "BATCH_EDIT_PRODUCT" || job.job_type === "BATCH_EDIT_PRODUCT_DRY_RUN") {
+    } else if (
+      realJobType === "BATCH_EDIT_PRODUCT" ||
+      job.job_type === "BATCH_EDIT_PRODUCT_DRY_RUN"
+    ) {
       const result = await productImportService.processProductImport(
         connection,
         absoluteFilePath,
@@ -303,7 +309,7 @@ export const importQueue = async () => {
         job.original_filename,
         updateJobProgress,
         isDryRun,
-        jobOptions
+        jobOptions,
       );
 
       logSummary = result.logSummary;
@@ -321,20 +327,24 @@ export const importQueue = async () => {
       const result = await processPackageImport(
         absoluteFilePath,
         jobId,
-        updateJobProgress
+        updateJobProgress,
+        job.user_id,
       );
       // Package Import returns { successCount, errors }
       logSummary = `Selesai Import Paket. Berhasil: ${result.successCount}.`;
-      errors = (result.errors || []).map(e => ({
-        row: 0, // Simplified for now as errors are strings
-        message: e
-      }));
+      errors = (result.errors || []).map(e => {
+        const match = typeof e === "string" ? e.match(/^Row (\d+):\s*(.*)/) : null;
+        return {
+          row: match ? parseInt(match[1], 10) : 0,
+          message: match ? match[2] : e
+        };
+      });
       processStats = { success: result.successCount };
     } else if (realJobType === "IMPORT_STOCK_INBOUND") {
       const result = await stockImportService.processStockInboundImport(
         jobId,
         absoluteFilePath,
-        job.user_id
+        job.user_id,
       );
       // Stock Import returns { success: boolean, count: number, errors: [] }
       if (result.success) {
@@ -350,7 +360,7 @@ export const importQueue = async () => {
       const result = await scheduleImportService.processScheduleImport(
         jobId,
         absoluteFilePath,
-        job.user_id
+        job.user_id,
       );
       if (result.success) {
         logSummary = `Selesai Import Jadwal. Berhasil: ${result.count} data.`;
@@ -378,7 +388,7 @@ export const importQueue = async () => {
                  log_summary = ?,
                  updated_at = NOW()
              WHERE id = ?`,
-        [nextOptionsStr, pauseMsg, jobId]
+        [nextOptionsStr, pauseMsg, jobId],
       );
       Logger.info(`Job ${jobId} PAUSED (Resumable). Next offset saved.`, "IMPORT_WORKER");
       return;
@@ -407,7 +417,14 @@ export const importQueue = async () => {
         timestamp: new Date().toISOString(),
         summary: logSummary,
         download_url: downloadUrl,
-        errors: errors.length > 50 ? errors.slice(0, 50).concat([{ message: `... and ${errors.length - 50} more errors. See download file.` }]) : errors,
+        errors:
+          errors.length > 50
+            ? errors
+                .slice(0, 50)
+                .concat([
+                  { message: `... and ${errors.length - 50} more errors. See download file.` },
+                ])
+            : errors,
       };
       errorLogJSON = JSON.stringify(payload);
     } catch (e) {
@@ -425,7 +442,7 @@ export const importQueue = async () => {
     if (fs.existsSync(absoluteFilePath)) {
       try {
         fs.unlinkSync(absoluteFilePath);
-      } catch (err) { }
+      } catch (err) {}
     }
 
     Logger.info(`Job ${jobId} Finished: ${finalStatus} (DryRun: ${isDryRun})`, "IMPORT_WORKER");
@@ -436,7 +453,7 @@ export const importQueue = async () => {
       try {
         const jobQuery = await connection.query(
           "SELECT retry_count FROM import_jobs WHERE id = ?",
-          [jobId]
+          [jobId],
         );
         const currentRetry = jobQuery[0][0]?.retry_count || 0;
 
@@ -447,7 +464,7 @@ export const importQueue = async () => {
           await jobRepo.failImportJob(
             connection,
             jobId,
-            `CRASH: ${error.message.substring(0, 255)}`
+            `CRASH: ${error.message.substring(0, 255)}`,
           );
         }
       } catch (e) {

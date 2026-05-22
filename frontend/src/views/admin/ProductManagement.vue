@@ -5,6 +5,7 @@ import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import axios from '@/api/axios.js'
 import debounce from 'lodash/debounce'
+import { useDownloadStore } from '@/stores/downloadStore.js'
 
 // Components
 import BatchEditModal from '@/components/products/BatchEditModal.vue'
@@ -14,6 +15,7 @@ import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import ProductTable from '@/components/products/ProductTable.vue'
 import ProductImageModal from '@/components/products/ProductImageModal.vue'
+import PwaUpdatePrompt from '@/components/ui/PwaUpdatePrompt.vue'
 
 const { toast } = useToast()
 
@@ -60,6 +62,7 @@ const pagination = reactive({
 })
 
 const selectionCount = computed(() => selectedIds.value.size)
+const downloadStore = useDownloadStore()
 
 // Export State
 const isExporting = ref(false)
@@ -236,7 +239,8 @@ const handleExport = async ({ format }) => {
     const response = await axios.get('/products/export', { params })
 
     if (response.data.success) {
-      toast('Permintaan export diterima. Silakan cek menu Laporan Saya.', 'success')
+      toast('Permintaan export produk diterima.', 'success')
+      downloadStore.startPolling()
     }
   } catch (err) {
     console.error(err)
@@ -252,7 +256,10 @@ const handleImport = async (formData) => {
     await axios.post('/products/batch/product-update', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
-    toast('File diunggah. Buka kembali Batch Edit > Tab Riwayat & Log untuk memantau status.', 'info')
+    toast(
+      'File diunggah. Buka kembali Batch Edit > Tab Riwayat & Log untuk memantau status.',
+      'info',
+    )
     showBatchEditModal.value = false
     fetchProducts()
   } catch (err) {
@@ -320,16 +327,20 @@ watch(Slash, (pressed) => {
         </div>
         <div class="flex flex-wrap gap-3">
           <!-- Tombol Batch Edit -->
-          <button @click="showBatchEditModal = true"
+          <button
+            @click="showBatchEditModal = true"
             class="px-5 py-2.5 bg-secondary hover:bg-secondary/80 text-text rounded-xl shadow-md font-medium flex items-center gap-2 transition-all border border-secondary/30"
-            title="Edit produk secara massal (Export & Import)">
+            title="Edit produk secara massal (Export & Import)"
+          >
             <font-awesome-icon icon="fa-solid fa-pen-to-square" />
             <span class="hidden sm:inline">Batch Edit</span>
           </button>
 
           <!-- Tombol Tambah Produk -->
-          <button @click="openAddModal"
-            class="px-5 py-2.5 bg-primary hover:bg-primary/90 text-secondary rounded-xl shadow-lg font-bold flex items-center gap-2 transition-transform hover:-translate-y-0.5">
+          <button
+            @click="openAddModal"
+            class="px-5 py-2.5 bg-primary hover:bg-primary/90 text-secondary rounded-xl shadow-lg font-bold flex items-center gap-2 transition-transform hover:-translate-y-0.5"
+          >
             <font-awesome-icon icon="fa-solid fa-plus" />
             <span>Tambah</span>
           </button>
@@ -340,31 +351,42 @@ watch(Slash, (pressed) => {
       <BaseFilterPanel>
         <template #filters>
           <!-- Filter Tipe Produk -->
-          <div class="flex bg-background rounded-xl p-1 border border-secondary/10 shrink-0 overflow-x-auto">
-            <button @click="filterType = 'all'"
+          <div
+            class="flex bg-background rounded-xl p-1 border border-secondary/10 shrink-0 overflow-x-auto"
+          >
+            <button
+              @click="filterType = 'all'"
               class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2"
-              :class="filterType === 'all'
-                ? 'bg-secondary/10 text-text shadow-sm'
-                : 'text-text/50 hover:text-text hover:bg-secondary/5'
-                ">
+              :class="
+                filterType === 'all'
+                  ? 'bg-secondary/10 text-text shadow-sm'
+                  : 'text-text/50 hover:text-text hover:bg-secondary/5'
+              "
+            >
               <font-awesome-icon icon="fa-solid fa-layer-group" />
               <span>Semua Tipe</span>
             </button>
-            <button @click="filterType = 'single'"
+            <button
+              @click="filterType = 'single'"
               class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2"
-              :class="filterType === 'single'
-                ? 'bg-primary/10 text-primary shadow-sm'
-                : 'text-text/50 hover:text-primary hover:bg-primary/5'
-                ">
+              :class="
+                filterType === 'single'
+                  ? 'bg-primary/10 text-primary shadow-sm'
+                  : 'text-text/50 hover:text-primary hover:bg-primary/5'
+              "
+            >
               <font-awesome-icon icon="fa-solid fa-box" />
               <span>Satuan</span>
             </button>
-            <button @click="filterType = 'package'"
+            <button
+              @click="filterType = 'package'"
               class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2"
-              :class="filterType === 'package'
-                ? 'bg-accent/10 text-accent shadow-sm'
-                : 'text-text/50 hover:text-accent hover:bg-accent/5'
-                ">
+              :class="
+                filterType === 'package'
+                  ? 'bg-accent/10 text-accent shadow-sm'
+                  : 'text-text/50 hover:text-accent hover:bg-accent/5'
+              "
+            >
               <font-awesome-icon icon="fa-solid fa-boxes-stacked" />
               <span>Paket</span>
             </button>
@@ -372,24 +394,44 @@ watch(Slash, (pressed) => {
 
           <!-- Filter Status -->
           <div class="shrink-0 w-full sm:w-44">
-            <BaseSelect v-model="filterStatus" :options="statusOptions" label="label" track-by="id"
-              placeholder="Semua Status" :searchable="false" emit-value clearable clear-value="all" />
+            <BaseSelect
+              v-model="filterStatus"
+              :options="statusOptions"
+              label="label"
+              track-by="id"
+              placeholder="Semua Status"
+              :searchable="false"
+              emit-value
+              clearable
+              clear-value="all"
+            />
           </div>
 
           <!-- Search Group -->
           <div class="flex flex-col sm:flex-row flex-1 gap-2 lg:ml-auto">
             <div class="shrink-0 w-full sm:w-28">
-              <BaseSelect v-model="searchBy" :options="searchByOptions" label="label" track-by="id" placeholder="Cari"
-                :searchable="false" emit-value />
+              <BaseSelect
+                v-model="searchBy"
+                :options="searchByOptions"
+                label="label"
+                track-by="id"
+                placeholder="Cari"
+                :searchable="false"
+                emit-value
+              />
             </div>
 
             <div class="relative flex-1">
               <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-text/40">
                 <font-awesome-icon icon="fa-solid fa-search" />
               </span>
-              <input id="global-search-input" v-model="searchQuery" type="text"
+              <input
+                id="global-search-input"
+                v-model="searchQuery"
+                type="text"
                 :placeholder="`Cari ${searchBy === 'sku' ? 'SKU' : 'Nama'}...`"
-                class="w-full pl-9 pr-4 py-2.5 bg-background border border-secondary/20 rounded-xl focus:outline-none focus:border-primary text-text text-sm placeholder-text/30 transition-all shadow-sm" />
+                class="w-full pl-9 pr-4 py-2.5 bg-background border border-secondary/20 rounded-xl focus:outline-none focus:border-primary text-text text-sm placeholder-text/30 transition-all shadow-sm"
+              />
             </div>
           </div>
         </template>
@@ -397,55 +439,98 @@ watch(Slash, (pressed) => {
     </div>
 
     <!-- TABLE COMPONENT -->
-    <ProductTable :products="products" :loading="loading" :pagination="pagination" :selectedIds="selectedIds"
-      :sortBy="sortBy" :sortOrder="sortOrder" @sort="handleSort" @changePage="handleChangePage"
-      @update:limit="handleUpdateLimit" @toggleSelection="toggleSelection" @toggleSelectAll="toggleSelectAll"
-      @edit="openEditModal" @restore="handleRestore" @delete="handleDelete" @view-image="openImageModal" />
+    <ProductTable
+      :products="products"
+      :loading="loading"
+      :pagination="pagination"
+      :selectedIds="selectedIds"
+      :sortBy="sortBy"
+      :sortOrder="sortOrder"
+      @sort="handleSort"
+      @changePage="handleChangePage"
+      @update:limit="handleUpdateLimit"
+      @toggleSelection="toggleSelection"
+      @toggleSelectAll="toggleSelectAll"
+      @edit="openEditModal"
+      @restore="handleRestore"
+      @delete="handleDelete"
+      @view-image="openImageModal"
+    />
 
     <!-- FLOATING ACTION BAR -->
     <Transition name="slide-up">
-      <div v-if="selectedIds.size > 0"
-        class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-background border border-secondary/20 shadow-2xl rounded-2xl px-6 py-3 flex items-center gap-6 z-40 text-sm">
+      <div
+        v-if="selectedIds.size > 0"
+        class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-background border border-secondary/20 shadow-2xl rounded-2xl px-6 py-3 flex items-center gap-6 z-40 text-sm"
+      >
         <div class="flex items-center gap-2 text-text font-bold border-r border-secondary/10 pr-6">
-          <span class="bg-primary/10 text-primary w-6 h-6 flex items-center justify-center rounded-full text-xs">{{
-            selectionCount }}</span>
+          <span
+            class="bg-primary/10 text-primary w-6 h-6 flex items-center justify-center rounded-full text-xs"
+            >{{ selectionCount }}</span
+          >
           <span>Dipilih</span>
         </div>
         <div class="flex items-center gap-3">
-          <button @click="handleBulkPrintLabel"
-            class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-secondary/10 text-text/80 hover:text-primary font-medium">
+          <button
+            @click="handleBulkPrintLabel"
+            class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-secondary/10 text-text/80 hover:text-primary font-medium"
+          >
             <font-awesome-icon icon="fa-solid fa-print" /> Cetak Label
           </button>
-          <button v-if="filterStatus === 'archived'" @click="performBulkAction('restore')"
+          <button
+            v-if="filterStatus === 'archived'"
+            @click="performBulkAction('restore')"
             class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-success/10 text-success font-bold"
-            :disabled="isProcessingBulk">
+            :disabled="isProcessingBulk"
+          >
             <font-awesome-icon icon="fa-solid fa-rotate-left" :spin="isProcessingBulk" />
             Pulihkan
           </button>
-          <button v-else @click="performBulkAction('archive')"
+          <button
+            v-else
+            @click="performBulkAction('archive')"
             class="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-danger/10 text-danger font-bold"
-            :disabled="isProcessingBulk">
+            :disabled="isProcessingBulk"
+          >
             <font-awesome-icon icon="fa-solid fa-box-archive" :spin="isProcessingBulk" />
             Arsipkan
           </button>
         </div>
-        <button @click="selectedIds.clear()" class="ml-2 text-text/40 hover:text-text text-xl leading-none"
-          title="Batalkan Pilihan">
+        <button
+          @click="selectedIds.clear()"
+          class="ml-2 text-text/40 hover:text-text text-xl leading-none"
+          title="Batalkan Pilihan"
+        >
           &times;
         </button>
       </div>
     </Transition>
 
     <!-- MODALS -->
-    <ProductFormModal :show="showProductForm" :mode="productFormMode" :product-data="selectedProduct"
-      @close="showProductForm = false" @refresh="handleProductSaved" />
+    <ProductFormModal
+      :show="showProductForm"
+      :mode="productFormMode"
+      :product-data="selectedProduct"
+      @close="showProductForm = false"
+      @refresh="handleProductSaved"
+    />
 
-    <ProductImageModal :show="showImageModal" :product-data="selectedImageProduct" @close="showImageModal = false"
-      @refresh="handleImageSaved" />
+    <ProductImageModal
+      :show="showImageModal"
+      :product-data="selectedImageProduct"
+      @close="showImageModal = false"
+      @refresh="handleImageSaved"
+    />
 
     <!-- Batch Edit Modal -->
-    <BatchEditModal :is-open="showBatchEditModal" :is-exporting="isExporting" :is-importing="false"
-      @close="showBatchEditModal = false" @export="handleExport" @import="handleImport" />
+    <BatchEditModal
+      :is-open="showBatchEditModal"
+      :is-exporting="isExporting"
+      :is-importing="false"
+      @close="showBatchEditModal = false"
+      @export="handleExport"
+      @import="handleImport"
+    />
   </div>
 
   <!-- GLOBAL COMPONENTS -->

@@ -1,5 +1,10 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
+import axios from '@/api/axios.js'
+import dayjs from 'dayjs'
+
+import Modal from '@/components/ui/Modal.vue'
+import Tabs from '@/components/ui/Tabs.vue'
 import ImportJobHistory from '@/components/shared/ImportJobHistory.vue'
 
 const props = defineProps({
@@ -11,12 +16,82 @@ const props = defineProps({
 const emit = defineEmits(['close', 'export', 'import'])
 
 // Tabs
-const activeTab = ref('export') // 'export' | 'import'
+const activeTab = ref('export')
+const tabOptions = [
+  { value: 'export', label: '1. Download', icon: 'fa-solid fa-download' },
+  { value: 'import', label: '2. Upload', icon: 'fa-solid fa-upload' },
+  { value: 'logs', label: '3. Riwayat & Log', icon: 'fa-solid fa-history' }
+]
+
 const exportFormat = ref('xlsx')
 const fileInput = ref(null)
 const selectedFile = ref(null)
 const isDryRun = ref(false)
 
+// --- Export Jobs Polling Logic ---
+const exportJobs = ref([])
+const loadingExports = ref(false)
+let exportPollInterval = null
+
+const fetchExportJobs = async () => {
+  if (exportJobs.value.length === 0) loadingExports.value = true
+  try {
+    const res = await axios.get('/reports/my-jobs')
+    if (res.data.success) {
+      exportJobs.value = res.data.data.filter(job => job.type === 'EXPORT_PACKAGES').slice(0, 5) // Show top 5
+    }
+  } catch (err) {
+    console.error('Failed to fetch export jobs', err)
+  } finally {
+    loadingExports.value = false
+  }
+}
+
+watch(activeTab, (newVal) => {
+  if (newVal === 'export') {
+    fetchExportJobs()
+    exportPollInterval = setInterval(fetchExportJobs, 5000)
+  } else {
+    if (exportPollInterval) clearInterval(exportPollInterval)
+  }
+})
+
+watch(() => props.isOpen, (newVal) => {
+  if (newVal && activeTab.value === 'export') {
+    fetchExportJobs()
+    exportPollInterval = setInterval(fetchExportJobs, 5000)
+  } else {
+    if (exportPollInterval) clearInterval(exportPollInterval)
+  }
+})
+
+onUnmounted(() => {
+  if (exportPollInterval) clearInterval(exportPollInterval)
+})
+
+const formatStatus = (status) => {
+  const map = {
+    'PENDING': 'Menunggu',
+    'PROCESSING': 'Memproses',
+    'COMPLETED': 'Selesai',
+    'FAILED': 'Gagal'
+  }
+  return map[status] || status
+}
+
+const getStatusClass = (status) => {
+  const map = {
+    'PENDING': 'bg-warning/10 text-warning',
+    'PROCESSING': 'bg-accent/10 text-accent animate-pulse',
+    'COMPLETED': 'bg-success/10 text-success',
+    'FAILED': 'bg-danger/10 text-danger'
+  }
+  return map[status] || 'bg-secondary/10 text-text/60'
+}
+
+const formatDate = (date) => dayjs(date).format('DD MMM YYYY, HH:mm')
+
+// Actions
 const handleExport = () => {
   emit('export', { format: exportFormat.value })
 }
@@ -51,162 +126,172 @@ const close = () => {
 </script>
 
 <template>
-  <div v-if="isOpen"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-    <div
-      class="bg-[hsl(var(--color-background))] text-[hsl(var(--color-text))] rounded-xl shadow-2xl w-full max-w-2xl p-0 overflow-hidden border border-[hsl(var(--color-secondary))/0.3] flex flex-col md:flex-row h-[600px] md:h-[500px]">
-      <!-- SIDEBAR -->
-      <div
-        class="w-full md:w-1/3 bg-[hsl(var(--color-secondary))/0.05] p-6 border-r border-[hsl(var(--color-secondary))/0.1]">
-        <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
-          <font-awesome-icon icon="fa-solid fa-boxes-stacked" />
-          Batch Edit Paket
-        </h3>
-
-        <div class="space-y-2">
-          <button @click="activeTab = 'export'"
-            class="w-full text-left px-4 py-3 rounded-lg font-medium transition-all flex items-center gap-3"
-            :class="activeTab === 'export' ? 'bg-[hsl(var(--color-primary))/0.1] text-[hsl(var(--color-primary))] border border-[hsl(var(--color-primary))/0.2]' : 'hover:bg-[hsl(var(--color-secondary))/0.1] opacity-70'">
-            <font-awesome-icon icon="fa-solid fa-download" />
-            <span>1. Download Data</span>
-          </button>
-
-          <button @click="activeTab = 'import'"
-            class="w-full text-left px-4 py-3 rounded-lg font-medium transition-all flex items-center gap-3"
-            :class="activeTab === 'import' ? 'bg-[hsl(var(--color-primary))/0.1] text-[hsl(var(--color-primary))] border border-[hsl(var(--color-primary))/0.2]' : 'hover:bg-[hsl(var(--color-secondary))/0.1] opacity-70'">
-            <font-awesome-icon icon="fa-solid fa-upload" />
-            <span>2. Upload Revisi</span>
-          </button>
-          <button @click="activeTab = 'logs'"
-            class="w-full text-left px-4 py-3 rounded-lg font-medium transition-all flex items-center gap-3"
-            :class="activeTab === 'logs' ? 'bg-[hsl(var(--color-primary))/0.1] text-[hsl(var(--color-primary))] border border-[hsl(var(--color-primary))/0.2]' : 'hover:bg-[hsl(var(--color-secondary))/0.1] opacity-70'">
-            <font-awesome-icon icon="fa-solid fa-history" />
-            <span>3. Riwayat & Log</span>
-          </button>
-        </div>
-
-        <div class="mt-8 text-xs opacity-60 leading-relaxed">
-          <div v-if="activeTab === 'export'">
-            <p class="font-bold mb-1">Struktur CSV/Excel:</p>
-            <ul class="list-disc list-inside space-y-1">
-              <li>SKU, Name, Price (Standard)</li>
-              <li><strong>Component_N</strong>: SKU Komponen</li>
-              <li><strong>Qty_N</strong>: Jumlah Komponen</li>
-            </ul>
-          </div>
-          <div v-else-if="activeTab === 'import'">
-            <p class="font-bold mb-1">Step 2:</p>
-            Upload file yang sudah diedit untuk mengupdate komposisi paket.
-          </div>
-          <div v-else>
-            <p class="font-bold mb-1">Step 3:</p>
-            Pantau status upload dan error log jika ada masalah pada baris tertentu.
-          </div>
-        </div>
+  <Modal :show="isOpen" @close="close" title="Batch Edit Paket" maxWidth="max-w-3xl">
+    <div class="flex flex-col h-[600px] md:h-[550px]">
+      
+      <!-- TABS -->
+      <div class="mb-6 shrink-0 mt-2">
+        <Tabs :tabs="tabOptions" v-model="activeTab" class="w-full shadow-sm" />
       </div>
 
-      <!-- MAIN CONTENT -->
-      <div class="w-full md:w-2/3 p-6 relative flex flex-col">
-        <button @click="close"
-          class="absolute top-4 right-4 text-[hsl(var(--color-text))] opacity-30 hover:opacity-100 text-2xl leading-none z-10">
-          &times;
-        </button>
-
+      <!-- MAIN CONTENT AREA -->
+      <div class="flex-1 overflow-hidden flex flex-col">
+        
         <!-- STEP 1: EXPORT -->
-        <div v-if="activeTab === 'export'" class="flex-1 flex flex-col">
-          <h4 class="text-lg font-bold mb-1">Download Data Paket</h4>
-          <p class="text-sm opacity-60 mb-6">Pilih format file.</p>
+        <div v-if="activeTab === 'export'" class="flex-1 flex flex-col h-full overflow-hidden">
+          <p class="text-sm text-text/70 mb-4 shrink-0 font-medium">Download data terbaru untuk diedit. Sistem akan otomatis meratakan (flatten) komponen paket ke dalam kolom.</p>
 
-          <div class="grid grid-cols-2 gap-4 mb-6">
+          <div class="grid grid-cols-2 gap-4 mb-6 shrink-0">
             <label
-              class="flex items-center gap-3 p-4 border rounded-xl cursor-pointer transition-all hover:bg-[hsl(var(--color-secondary))/0.1]"
-              :class="exportFormat === 'xlsx' ? 'border-[hsl(var(--color-success))] bg-[hsl(var(--color-success))/0.05]' : 'border-[hsl(var(--color-secondary))/0.3]'">
+              class="flex items-center gap-4 p-4 border-2 rounded-2xl cursor-pointer transition-all hover:bg-success/5 hover:border-success/50"
+              :class="exportFormat === 'xlsx' ? 'border-success bg-success/5 shadow-sm' : 'border-secondary/20 bg-background'">
               <input type="radio" v-model="exportFormat" value="xlsx" class="hidden" />
-              <font-awesome-icon icon="fa-solid fa-file-excel" class="text-2xl text-[hsl(var(--color-success))]" />
+              <div class="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center shrink-0">
+                <font-awesome-icon icon="fa-solid fa-file-excel" class="text-2xl text-success" />
+              </div>
               <div>
-                <div class="font-bold">Excel (.xlsx)</div>
-                <div class="text-xs opacity-60">Komponen Kolom</div>
+                <div class="font-bold text-text text-sm">Excel (.xlsx)</div>
+                <div class="text-[11px] text-text/50 font-medium mt-0.5">Komponen Kolom</div>
               </div>
             </label>
 
-            <!-- CSV Option (Disabled for Package to avoid complexity if wanted, but Plan said support both. Let's support both) -->
             <label
-              class="flex items-center gap-3 p-4 border rounded-xl cursor-pointer transition-all hover:bg-[hsl(var(--color-secondary))/0.1]"
-              :class="exportFormat === 'csv' ? 'border-[hsl(var(--color-primary))] bg-[hsl(var(--color-primary))/0.05]' : 'border-[hsl(var(--color-secondary))/0.3]'">
+              class="flex items-center gap-4 p-4 border-2 rounded-2xl cursor-pointer transition-all hover:bg-primary/5 hover:border-primary/50"
+              :class="exportFormat === 'csv' ? 'border-primary bg-primary/5 shadow-sm' : 'border-secondary/20 bg-background'">
               <input type="radio" v-model="exportFormat" value="csv" class="hidden" />
-              <font-awesome-icon icon="fa-solid fa-file-csv" class="text-2xl text-[hsl(var(--color-primary))]" />
+              <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <font-awesome-icon icon="fa-solid fa-file-csv" class="text-2xl text-primary" />
+              </div>
               <div>
-                <div class="font-bold">CSV (.csv)</div>
-                <div class="text-xs opacity-60">Standard</div>
+                <div class="font-bold text-text text-sm">CSV (.csv)</div>
+                <div class="text-[11px] text-text/50 font-medium mt-0.5">Standard</div>
               </div>
             </label>
           </div>
 
-          <div class="mt-auto">
+          <!-- LIST EXPORT JOBS -->
+          <div class="flex-1 overflow-y-auto mb-6 scrollbar-thin border-2 border-secondary/10 rounded-2xl p-4 bg-secondary/5 flex flex-col">
+            <h5 class="font-bold text-sm mb-4 text-text flex items-center gap-2 shrink-0">
+              <font-awesome-icon icon="fa-solid fa-clock-rotate-left" class="text-primary" />
+              Riwayat Ekspor (File Siap Diunduh)
+            </h5>
+            
+            <div v-if="loadingExports && exportJobs.length === 0" class="flex-1 flex flex-col items-center justify-center text-text/40">
+              <font-awesome-icon icon="fa-solid fa-circle-notch" spin size="2x" />
+              <p class="mt-3 text-xs font-medium">Memuat riwayat...</p>
+            </div>
+            
+            <div v-else-if="exportJobs.length === 0" class="flex-1 flex flex-col items-center justify-center">
+              <div class="w-16 h-16 bg-secondary/20 rounded-full flex items-center justify-center mb-3">
+                <font-awesome-icon icon="fa-solid fa-folder-open" class="text-2xl text-text/30" />
+              </div>
+              <p class="text-sm text-text/60 font-medium">Belum ada file ekspor terbaru.</p>
+            </div>
+            
+            <div v-else class="space-y-3 shrink-0">
+              <div v-for="job in exportJobs" :key="job.id" class="flex items-center justify-between p-3.5 border border-secondary/20 rounded-xl bg-background hover:border-primary/30 transition-colors shadow-sm group">
+                <div>
+                  <div class="flex items-center gap-2.5 mb-1.5">
+                    <span class="px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-widest" :class="getStatusClass(job.status)">
+                      {{ formatStatus(job.status) }}
+                    </span>
+                    <span class="text-xs text-text/50 font-medium flex items-center gap-1">
+                      <font-awesome-icon icon="fa-regular fa-clock" />
+                      {{ formatDate(job.created_at) }}
+                    </span>
+                  </div>
+                  <p v-if="job.status === 'FAILED'" class="text-xs text-danger font-bold flex items-center gap-1">
+                    <font-awesome-icon icon="fa-solid fa-circle-exclamation" />
+                    {{ job.error_message || 'Gagal mengekspor data' }}
+                  </p>
+                  <p v-else class="text-xs text-text/80 font-bold flex items-center gap-1.5">
+                    <font-awesome-icon icon="fa-solid fa-file-lines" class="text-text/40" />
+                    Data Master Paket ({{ job.filters ? (JSON.parse(job.filters).format || 'xlsx').toUpperCase() : 'XLSX' }})
+                  </p>
+                </div>
+                
+                <a v-if="job.status === 'COMPLETED' && job.download_url" :href="job.download_url" target="_blank"
+                  class="shrink-0 px-4 py-2 bg-primary/10 text-primary hover:bg-primary hover:text-secondary rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-transparent hover:shadow-md hover:-translate-y-0.5">
+                  <font-awesome-icon icon="fa-solid fa-download" /> Unduh
+                </a>
+                <div v-else-if="job.status === 'PROCESSING' || job.status === 'PENDING'" class="shrink-0 px-4 py-2 text-text/40 flex items-center gap-2">
+                   <font-awesome-icon icon="fa-solid fa-circle-notch" spin />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-auto shrink-0">
             <button @click="handleExport" :disabled="isExporting"
-              class="w-full px-5 py-3 bg-[hsl(var(--color-secondary))] text-[hsl(var(--color-text))] rounded-xl font-bold hover:bg-[hsl(var(--color-secondary))/0.8] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex justify-center items-center gap-2 border border-[hsl(var(--color-secondary))/0.4]">
+              class="w-full px-5 py-4 bg-primary text-secondary rounded-2xl font-bold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20 transition-all flex justify-center items-center gap-2 text-[15px]">
               <font-awesome-icon v-if="isExporting" icon="fa-solid fa-spinner" spin />
-              <span>{{ isExporting ? 'Sedang Memproses...' : 'Download File Ekspor' }}</span>
+              <font-awesome-icon v-else icon="fa-solid fa-file-export" />
+              <span>{{ isExporting ? 'Sedang Memproses...' : 'Buat Permintaan Ekspor Baru' }}</span>
             </button>
-            <p class="text-xs text-center mt-3 opacity-50">Sistem akan otomatis meratakan (flatten) komponen paket ke
-              dalam kolom.</p>
+            <p class="text-xs text-center mt-3.5 text-text/50 font-medium">Sistem akan memproses file di latar belakang. Anda dapat memantau statusnya di kotak riwayat di atas.</p>
           </div>
         </div>
 
         <!-- STEP 2: IMPORT -->
-        <div v-if="activeTab === 'import'" class="flex-1 flex flex-col">
-          <h4 class="text-lg font-bold mb-1">Upload Revisi Paket</h4>
-          <p class="text-sm opacity-60 mb-6">Upload file untuk mengupdate komposisi paket.</p>
+        <div v-if="activeTab === 'import'" class="flex-1 flex flex-col h-full overflow-hidden">
+          <p class="text-sm text-text/70 mb-4 shrink-0 font-medium">Upload file master paket yang sudah Anda edit. Sistem akan memperbarui komposisi paket secara massal.</p>
 
           <div
-            class="flex-1 border-2 border-dashed border-[hsl(var(--color-secondary))] rounded-xl flex flex-col items-center justify-center p-6 text-center cursor-pointer hover:border-[hsl(var(--color-primary))] hover:bg-[hsl(var(--color-primary))/0.05] transition-all group relative mb-4"
+            class="flex-1 border-2 border-dashed border-secondary/40 rounded-3xl flex flex-col items-center justify-center p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all group relative mb-6"
             @click="$refs.fileInput.click()" @dragover.prevent @drop.prevent="handleDrop">
             <input type="file" ref="fileInput" class="hidden" accept=".csv, .xlsx, .xls" @change="handleFileSelect" />
 
-            <div v-if="selectedFile" class="z-10">
-              <font-awesome-icon icon="fa-solid fa-file-circle-check"
-                class="text-5xl mb-4 text-[hsl(var(--color-success))]" />
-              <p class="font-bold text-lg max-w-[200px] truncate mx-auto">{{ selectedFile.name }}</p>
-              <p class="text-sm opacity-60 mt-1">{{ (selectedFile.size / 1024).toFixed(1) }} KB</p>
-              <div class="mt-4 px-3 py-1 bg-[hsl(var(--color-background))] rounded-full text-xs border inline-block">
-                Klik untuk ganti</div>
+            <div v-if="selectedFile" class="z-10 flex flex-col items-center">
+              <div class="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mb-5 text-success shadow-inner">
+                <font-awesome-icon icon="fa-solid fa-file-circle-check" class="text-4xl" />
+              </div>
+              <p class="font-bold text-lg text-text max-w-[250px] truncate">{{ selectedFile.name }}</p>
+              <p class="text-sm text-text/50 mt-1 font-medium">{{ (selectedFile.size / 1024).toFixed(1) }} KB</p>
+              <div class="mt-6 px-5 py-2 bg-background rounded-full text-xs font-bold text-text/70 border border-secondary/20 shadow-sm group-hover:text-primary group-hover:border-primary/30 transition-colors">
+                Klik untuk mengganti file
+              </div>
             </div>
 
-            <div v-else class="z-10">
-              <font-awesome-icon icon="fa-solid fa-cloud-arrow-up"
-                class="text-5xl mb-4 text-[hsl(var(--color-text))] opacity-20 group-hover:text-[hsl(var(--color-primary))] group-hover:opacity-100 transition-all" />
-              <p class="font-medium">Klik atau Drag file ke sini</p>
+            <div v-else class="z-10 flex flex-col items-center">
+              <div class="w-24 h-24 bg-secondary/10 rounded-full flex items-center justify-center mb-5 text-text/30 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300">
+                <font-awesome-icon icon="fa-solid fa-cloud-arrow-up" class="text-5xl group-hover:-translate-y-1 transition-transform" />
+              </div>
+              <p class="font-bold text-text text-lg mb-1.5">Pilih File atau Drag & Drop</p>
+              <p class="text-sm text-text/50 font-medium">Mendukung file format .xlsx, .xls, dan .csv</p>
             </div>
           </div>
 
           <!-- Dry Run Option -->
-          <div
-            class="flex items-center gap-3 p-2 mb-4 rounded-lg hover:bg-[hsl(var(--color-secondary))/0.05] transition-colors cursor-pointer"
-            @click="isDryRun = !isDryRun">
-            <div class="relative flex items-center">
-              <input type="checkbox" v-model="isDryRun"
-                class="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-[hsl(var(--color-secondary))] checked:bg-[hsl(var(--color-primary))] checked:border-transparent transition-all" />
-              <font-awesome-icon icon="fa-solid fa-check"
-                class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-secondary opacity-0 peer-checked:opacity-100 text-xs pointer-events-none" />
+          <label class="shrink-0 mb-6 bg-warning/5 border border-warning/20 rounded-2xl p-4 flex items-start gap-4 cursor-pointer hover:bg-warning/10 transition-colors">
+            <div class="pt-0.5">
+              <div class="relative flex items-center justify-center w-5 h-5 border-2 rounded-md border-warning bg-background transition-colors" :class="isDryRun ? 'bg-warning border-warning' : ''">
+                <input type="checkbox" v-model="isDryRun" class="hidden" />
+                <font-awesome-icon v-if="isDryRun" icon="fa-solid fa-check" class="text-xs text-white" />
+              </div>
             </div>
-            <label class="text-sm cursor-pointer select-none flex-1">
-              Test Import (Dry Run) <span class="opacity-50 ml-1">- Cek validitas komponen</span>
-            </label>
-          </div>
+            <div class="flex-1">
+              <h6 class="font-bold text-sm text-text">Test Import (Dry Run)</h6>
+              <p class="text-xs text-text/70 mt-1.5 leading-relaxed font-medium">Sistem akan melakukan simulasi upload untuk mengecek validitas komponen dan menampilkan error jika ada, <strong>tanpa menyimpan perubahan apapun</strong> ke database.</p>
+            </div>
+          </label>
 
-          <button @click="handleImport" :disabled="!selectedFile || isImporting"
-            class="w-full px-5 py-3 bg-[hsl(var(--color-primary))] text-secondary rounded-xl font-bold hover:bg-[hsl(var(--color-primary))/0.9] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[hsl(var(--color-primary))/0.3] flex justify-center items-center gap-2 transition-all">
-            <font-awesome-icon v-if="isImporting" icon="fa-solid fa-spinner" spin />
-            <span>{{ isImporting ? 'Mengunggah...' : 'Update Paket' }}</span>
-          </button>
+          <div class="mt-auto shrink-0">
+            <button @click="handleImport" :disabled="!selectedFile || isImporting"
+              class="w-full px-5 py-4 bg-primary text-secondary rounded-2xl font-bold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20 flex justify-center items-center gap-2 transition-all text-[15px]">
+              <font-awesome-icon v-if="isImporting" icon="fa-solid fa-spinner" spin />
+              <font-awesome-icon v-else icon="fa-solid fa-upload" />
+              <span>{{ isImporting ? 'Mengunggah...' : 'Update Paket' }}</span>
+            </button>
+          </div>
         </div>
 
         <!-- STEP 3: LOGS -->
-        <div v-if="activeTab === 'logs'" class="flex-1 flex flex-col h-full overflow-hidden">
-          <ImportJobHistory :job-types="['IMPORT_PACKAGES']" />
+        <div v-if="activeTab === 'logs'" class="flex-1 flex flex-col h-full overflow-hidden bg-secondary/5 rounded-2xl border border-secondary/10 p-3">
+          <!-- We use IMPORT_PACKAGES as well as IMPORT_PACKAGES_DRY_RUN if it exists -->
+          <ImportJobHistory :job-types="['IMPORT_PACKAGES', 'IMPORT_PACKAGES_DRY_RUN']" />
         </div>
 
       </div>
     </div>
-  </div>
+  </Modal>
 </template>

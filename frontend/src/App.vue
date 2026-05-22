@@ -9,6 +9,7 @@ import { registerToast } from '@/composables/useToast.js'
 import { useTheme } from '@/composables/useTheme'
 import PwaUpdatePrompt from '@/components/ui/PwaUpdatePrompt.vue'
 import PwaInstallBanner from '@/components/ui/PwaInstallBanner.vue'
+import GlobalDownloadManager from '@/components/shared/GlobalDownloadManager.vue'
 import { useMobile } from '@/composables/useMobile.js'
 
 const router = useRouter()
@@ -40,6 +41,7 @@ function handleLogout() {
     <PwaInstallBanner />
 
     <AppHeader v-if="showHeader" @logout="handleLogout" />
+    <GlobalDownloadManager v-if="showHeader" />
     <main class="container mx-auto mt-12" :class="isMobile ? 'px-3 py-2' : 'p-4'">
       <RouterView />
     </main>

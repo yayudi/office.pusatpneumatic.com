@@ -10,7 +10,7 @@ export const processProductImport = async (
   originalFilename,
   updateProgressCallback,
   isDryRun = false,
-  options = {}
+  options = {},
 ) => {
   let logSummary = "";
   const logicErrors = [];
@@ -28,7 +28,7 @@ export const processProductImport = async (
 
   Logger.info(
     `Processing: ${originalFilename} (DryRun: ${isDryRun}) start: ${startIndex}`,
-    "PRODUCT_IMPORT_SERVICE"
+    "PRODUCT_IMPORT_SERVICE",
   );
 
   try {
@@ -74,11 +74,18 @@ export const processProductImport = async (
         if (productExists) {
           // --- UPDATE SCENARIO ---
           const payload = {
-            name: csvItem.name !== undefined ? csvItem.name : dbProduct.name,
-            price: csvItem.price !== undefined ? csvItem.price : dbProduct.price,
-            weight: csvItem.weight !== undefined ? csvItem.weight : dbProduct.weight,
+            name: csvItem.name || dbProduct.name,
+            price:
+              csvItem.price !== undefined && csvItem.price !== "" ? csvItem.price : dbProduct.price,
+            weight:
+              csvItem.weight !== undefined && csvItem.weight !== ""
+                ? csvItem.weight
+                : dbProduct.weight,
             is_package: 0,
-            is_active: csvItem.is_active,
+            is_active:
+              csvItem.is_active !== undefined && csvItem.is_active !== ""
+                ? csvItem.is_active
+                : dbProduct.is_active,
           };
 
           // [PHASE 1] SAFETY GUARD: Reject Package Updates via Batch Edit
@@ -98,12 +105,17 @@ export const processProductImport = async (
               dbProduct.id,
               payload,
               [],
-              userId
+              userId,
             );
 
             // Handle status aktif/nonaktif khusus
-            if (csvItem.is_active !== undefined) {
-              await productRepo.updateProductStatus(connection, dbProduct.id, !!csvItem.is_active);
+            if (csvItem.is_active !== undefined && csvItem.is_active !== "") {
+              const isActiveBool =
+                csvItem.is_active === 1 ||
+                csvItem.is_active === "1" ||
+                csvItem.is_active === true ||
+                csvItem.is_active === "true";
+              await productRepo.updateProductStatus(connection, dbProduct.id, isActiveBool);
             }
           }
           updatedCount++;
