@@ -56,8 +56,8 @@
   --color-primary: 180 70 40; /* Pirus/hijau oasis */
   --color-secondary: 38 78 90; /* Pasir hangat */
   --color-accent: 30 95 55; /* Oranye matahari terbenam */
-  --color-success: 180 70 40; /* Pirus (sama dengan primary) */
-  --color-warning: 40 80 60; /* Emas */
+  --color-success: 180 75 45; /* Pirus */
+  --color-warning: 37 77 57; /* Emas */
   --color-danger: 15 80 50; /* Merah tanah liat */
 }
 
@@ -129,7 +129,7 @@
   --color-secondary: 150 50 80; /* Hijau mint pucat */
   --color-accent: 200 90 65; /* Biru permen */
   --color-success: 140 70 60; /* Hijau permen */
-  --color-warning: 50 90 65; /* Kuning permen */
+  --color-warning: 45 85 60; /* Kuning permen */
   --color-danger: 0 80 70; /* Merah permen */
 }
 

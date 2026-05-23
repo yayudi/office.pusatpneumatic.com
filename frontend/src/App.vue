@@ -19,7 +19,7 @@ const { initTheme } = useTheme()
 const { isMobile } = useMobile()
 
 const toastComponentRef = ref(null)
-const showHeader = computed(() => route.name !== 'Login')
+const showHeader = computed(() => route.name && route.name !== 'Login' && auth.isAuthenticated)
 
 onMounted(() => {
   initTheme()

@@ -1,260 +1,28 @@
+// backend/router/admin.js
 import express from "express";
-import bcrypt from "bcryptjs";
-import db from "../config/db.js";
-import { createLog } from "../repositories/systemLogRepository.js";
-import Logger from "../utils/logger.js";
+import * as adminController from "../controllers/adminController.js";
 
 const router = express.Router();
 
-// GET /api/admin/users - Mendapatkan semua user
-router.get("/", async (req, res) => {
-  try {
-    const query = `
-      SELECT u.id, u.username, u.nickname, u.role_id, r.name AS role_name, u.shift_id, s.name AS shift_name, u.exclude_from_attendance
-      FROM users u
-      LEFT JOIN roles r ON u.role_id = r.id
-      LEFT JOIN shifts s ON u.shift_id = s.id
-      WHERE u.is_active = 1
-      ORDER BY u.username ASC
-    `;
-    const [users] = await db.query(query);
-    res.json({ success: true, users });
-  } catch (err) {
-    Logger.error("Error fetching users", err, "ADMIN_ROUTER");
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-});
+// GET  /api/admin/users          - Mendapatkan semua user
+router.get("/", adminController.getUsers);
 
-router.post("/", async (req, res) => {
-  Logger.info("Menerima request POST untuk membuat pengguna baru...", "ADMIN_ROUTER");
-  const { username, password, role_id, nickname, shift_id } = req.body;
+// POST /api/admin/users          - Membuat user baru
+router.post("/", adminController.createUser);
 
-  // Validasi input
-  if (!username || !password || !role_id) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Semua field (username, password, role) wajib diisi." });
-  }
+// GET  /api/admin/users/roles    - Mendapatkan semua role
+router.get("/roles", adminController.getRoles);
 
-  try {
-    // Hash password sebelum disimpan
-    const hashedPassword = await bcrypt.hash(password, 10);
+// PUT  /api/admin/users/:id      - Update data user
+router.put("/:id", adminController.updateUser);
 
-    // Simpan ke database
-    const [result] = await db.query(
-      "INSERT INTO users (username, password_hash, role_id, nickname, shift_id) VALUES (?, ?, ?, ?, ?)",
-      [username, hashedPassword, role_id, nickname || null, shift_id || null]
-    );
+// DELETE /api/admin/users/:id    - Soft delete user
+router.delete("/:id", adminController.deleteUser);
 
-    const newUser = {
-      id: result.insertId,
-      username,
-      nickname,
-      role_id,
-      shift_id
-    };
+// GET  /api/admin/users/:id/locations  - Mengambil lokasi user
+router.get("/:id/locations", adminController.getUserLocations);
 
-    // LOGGING
-    const adminId = req.user.id;
-    await createLog(db, {
-      userId: adminId,
-      action: "CREATE",
-      targetType: "USER",
-      targetId: String(result.insertId),
-      changes: { username, role_id, nickname, shift_id },
-      ip: req.ip,
-      userAgent: req.headers["user-agent"],
-    });
-
-    res.status(201).json({ success: true, message: "Pengguna berhasil dibuat.", data: newUser });
-  } catch (error) {
-    if (error.code === "ER_DUP_ENTRY") {
-      return res.status(409).json({ success: false, message: "Username sudah digunakan." });
-    }
-    Logger.error("Error creating user", error, "ADMIN_ROUTER");
-    res.status(500).json({ success: false, message: "Gagal membuat pengguna." });
-  }
-});
-
-// GET /api/admin/users/roles - Mendapatkan semua role yang tersedia
-router.get("/roles", async (req, res) => {
-  try {
-    const [roles] = await db.query("SELECT id, name FROM roles ORDER BY name ASC");
-    res.json({ success: true, roles });
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-});
-
-// PUT /api/admin/users/:id - Mengupdate role user
-router.put("/:id", async (req, res) => {
-  const { id } = req.params;
-  const { username, nickname, newPassword, role_id, shift_id, exclude_from_attendance } = req.body;
-
-  // Validasi dasar
-  if (!username || !role_id) {
-    return res.status(400).json({ success: false, message: "Username dan role wajib diisi." });
-  }
-
-  try {
-    const updateFields = [];
-    const updateValues = [];
-
-    // Bangun query secara dinamis
-    updateFields.push("username = ?");
-    updateValues.push(username);
-
-    updateFields.push("nickname = ?");
-    updateValues.push(nickname || null);
-
-    updateFields.push("role_id = ?");
-    updateValues.push(role_id);
-
-    updateFields.push("shift_id = ?");
-    updateValues.push(shift_id || null);
-
-    if (exclude_from_attendance !== undefined) {
-      updateFields.push("exclude_from_attendance = ?");
-      updateValues.push(exclude_from_attendance ? 1 : 0);
-    }
-
-    // Hanya update password jika diisi
-    if (newPassword) {
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-      updateFields.push("password_hash = ?");
-      updateValues.push(hashedPassword);
-    }
-
-    const query = `UPDATE users SET ${updateFields.join(", ")} WHERE id = ?`;
-    updateValues.push(id);
-
-    await db.query(query, updateValues);
-
-    // LOGGING
-    const adminId = req.user.id;
-    await createLog(db, {
-      userId: adminId,
-      action: "UPDATE",
-      targetType: "USER",
-      targetId: String(id),
-      changes: {
-        note: "Updated User Profile",
-        updates: { username, nickname, role_id, shift_id, exclude_from_attendance, passwordChanged: !!newPassword }
-      },
-      ip: req.ip,
-      userAgent: req.headers["user-agent"],
-    });
-    res.json({ success: true, message: "Data pengguna berhasil diperbarui." });
-  } catch (error) {
-    if (error.code === "ER_DUP_ENTRY") {
-      return res
-        .status(409)
-        .json({ success: false, message: `Username '${username}' sudah digunakan.` });
-    }
-    Logger.error("Error updating user", error, "ADMIN_ROUTER");
-    res.status(500).json({ success: false, message: "Gagal memperbarui data pengguna." });
-  }
-});
-
-// DELETE /api/admin/users/:id - Menghapus user
-router.delete("/:id", async (req, res) => {
-  const { id } = req.params;
-
-  // Pencegahan agar admin tidak bisa menghapus dirinya sendiri
-  if (parseInt(id, 10) === req.user.id) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Anda tidak bisa menghapus akun Anda sendiri." });
-  }
-
-  try {
-    await db.query("UPDATE users SET is_active = 0 WHERE id = ?", [id]);
-
-    // LOGGING
-    await createLog(db, {
-      userId: req.user.id,
-      action: "DELETE",
-      targetType: "USER",
-      targetId: String(id),
-      changes: { note: "Deleted User" },
-      ip: req.ip,
-      userAgent: req.headers["user-agent"],
-    });
-    res.json({ success: true, message: "User berhasil dihapus." });
-  } catch (err) {
-    Logger.error("Error deleting user", err, "ADMIN_ROUTER");
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-});
-
-/**
- * --- ENDPOINT BARU ---
- * GET /api/admin/users/:id/locations
- * Mengambil ID lokasi yang diizinkan untuk pengguna tertentu.
- */
-router.get("/:id/locations", async (req, res) => {
-  const { id } = req.params;
-  try {
-    const [rows] = await db.query("SELECT location_id FROM user_locations WHERE user_id = ?", [id]);
-    const locationIds = rows.map((row) => row.location_id);
-    res.json({ success: true, data: locationIds });
-  } catch (error) {
-    Logger.error("Error fetching user locations", error, "ADMIN_ROUTER");
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-});
-
-/**
- * --- ENDPOINT BARU ---
- * PUT /api/admin/users/:id/locations
- * Mengatur atau memperbarui izin lokasi untuk pengguna tertentu.
- */
-router.put("/:id/locations", async (req, res) => {
-  const { id } = req.params;
-  const { locationIds } = req.body; // Harapkan sebuah array ID lokasi, e.g., [1, 5, 12]
-
-  if (!Array.isArray(locationIds)) {
-    return res.status(400).json({ success: false, message: "Input harus berupa array ID lokasi." });
-  }
-
-  let connection;
-  try {
-    connection = await db.getConnection();
-    await connection.beginTransaction();
-    await connection.query("DELETE FROM user_locations WHERE user_id = ?", [id]);
-
-    if (locationIds.length > 0) {
-      const values = locationIds.map((locationId) => [id, locationId]);
-      await connection.query("INSERT INTO user_locations (user_id, location_id) VALUES ?", [
-        values,
-      ]);
-    }
-
-    // LOGGING
-    await createLog(connection, {
-      userId: req.user.id,
-      action: "UPDATE",
-      targetType: "USER",
-      targetId: String(id),
-      changes: { note: "Updated User Locations", locationIds },
-      ip: req.ip,
-      userAgent: req.headers["user-agent"],
-    });
-
-    await connection.commit();
-    res.json({ success: true, message: "Izin lokasi pengguna berhasil diperbarui." });
-  } catch (error) {
-    if (connection) await connection.rollback();
-    if (error.code === "ER_NO_REFERENCED_ROW_2") {
-      return res
-        .status(400)
-        .json({ success: false, message: "Satu atau lebih ID lokasi tidak valid." });
-    }
-    Logger.error("Error updating user locations", error, "ADMIN_ROUTER");
-    res.status(500).json({ success: false, message: "Server error" });
-  } finally {
-    if (connection) connection.release();
-  }
-});
+// PUT  /api/admin/users/:id/locations  - Update lokasi user
+router.put("/:id/locations", adminController.updateUserLocations);
 
 export default router;

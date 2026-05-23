@@ -46,8 +46,8 @@ instance.interceptors.response.use(
       const { status } = error.response
 
       // Token Expired / Tidak Valid (401)
-      // -> HANYA Logout jika statusnya 401
-      if (status === 401) {
+      // -> HANYA Logout jika statusnya 401 dan BUKAN request dari login
+      if (status === 401 && !error.config.url.includes('/auth/login')) {
         authStore.logout()
         // Tampilkan Toast "Sesi expired"
         toast('Sesi telah berakhir, silakan login kembali.', 'error')

@@ -3,6 +3,7 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import db from "../config/db.js";
+import { createLog } from "../repositories/systemLogRepository.js";
 import Logger from "../utils/logger.js";
 
 const router = express.Router();
@@ -60,6 +61,17 @@ router.post("/login", async (req, res) => {
       role_id: user.role_id,
       permissions: permissions,
     };
+
+    // LOGGING
+    await createLog(db, {
+      userId: user.id,
+      action: "LOGIN",
+      targetType: "USER",
+      targetId: String(user.id),
+      changes: { note: "User logged in via Web" },
+      ip: req.ip,
+      userAgent: req.headers["user-agent"] || "Unknown"
+    });
 
     // JWT_SECRET dari .env
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1d" });
