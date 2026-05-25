@@ -4,6 +4,7 @@ import fs from "fs";
 import ExcelJS from "exceljs";
 import { fileURLToPath } from "url"; // Added for robust path resolving
 import { sanitizeExcel } from "../../utils/ExcelSanitizer.js";
+import { normalizeHeader, getSafeStr } from "../../utils/workerHelpers.js";
 import Logger from "../../utils/logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -38,13 +39,7 @@ export class BaseParser {
   }
 
   _normalizeHeaderClean(val) {
-    if (!val) return "";
-    return String(val)
-      .toLowerCase()
-      .replace(/\u00A0/g, " ")
-      .replace(/[^\w\s]/gi, "")
-      .replace(/\s+/g, " ")
-      .trim();
+    return normalizeHeader(val);
   }
 
   async run() {
@@ -319,15 +314,6 @@ export class BaseParser {
   }
 
   _getCellValue(cell) {
-    let val = cell.value;
-    if (val && typeof val === "object") {
-      if (val.text) val = val.text;
-      else if (val.richText) val = val.richText.map((t) => t.text).join("");
-      else if (val.result) val = val.result;
-    }
-    if (val === null || val === undefined) return "";
-    return String(val)
-      .trim()
-      .replace(/^\uFEFF/, "");
+    return getSafeStr(cell);
   }
 }

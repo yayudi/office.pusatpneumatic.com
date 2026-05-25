@@ -3,9 +3,9 @@
 import db from "../../config/db.js";
 import fs from "fs";
 import path from "path";
-import ExcelJS from "exceljs";
 import { fileURLToPath } from "url";
 import Logger from "../../utils/logger.js";
+import { ensureDirectoryExists, generateErrorFile } from "../../utils/workerHelpers.js";
 
 // SERVICES
 import { ParserEngine } from "../../services/parsers/ParserEngine.js";
@@ -30,141 +30,7 @@ const EXPORT_DIR = path.join(__dirname, "..", "..", "uploads", "exports");
 const MAX_RETRIES = 3;
 const JOB_TIMEOUT_MINUTES = 5;
 
-if (!fs.existsSync(EXPORT_DIR)) {
-  try {
-    fs.mkdirSync(EXPORT_DIR, { recursive: true });
-  } catch (err) {
-    Logger.error("Gagal membuat direktori export", err, "IMPORT_WORKER");
-  }
-}
-
-// --- HELPER FUNCTIONS ---
-
-async function cleanupStuckJobs(connection) {
-  try {
-    const [result] = await connection.query(
-      `UPDATE import_jobs
-             SET status = 'FAILED',
-                 log_summary = CONCAT(COALESCE(log_summary, ''), ' [SYSTEM: Job Killed due to timeout/crash]'),
-                 updated_at = NOW()
-             WHERE status = 'PROCESSING'
-             AND updated_at < NOW() - INTERVAL ? MINUTE`,
-      [JOB_TIMEOUT_MINUTES],
-    );
-    if (result.affectedRows > 0) {
-      Logger.warn(`🧹 Membersihkan ${result.affectedRows} job yang macet/zombie.`, "IMPORT_WORKER");
-    }
-  } catch (e) {
-    Logger.error("Gagal menjalankan cleanup", e, "IMPORT_WORKER");
-  }
-}
-
-async function generateErrorFile(originalFilePath, errors, headerRowIndex = 1, jobId) {
-  try {
-    // Cek file
-    if (!fs.existsSync(originalFilePath)) return null;
-
-    const originalWorkbook = new ExcelJS.Workbook();
-    const ext = path.extname(originalFilePath).toLowerCase();
-
-    // Setup options
-    const readOptions = {
-      parserOptions: {
-        delimiter: ",",
-        quote: '"',
-        relax_column_count: true,
-        cast: false,
-        map: (val) => val,
-      },
-      map: (val) => val,
-    };
-
-    if (ext === ".csv") {
-      await originalWorkbook.csv.readFile(originalFilePath, readOptions);
-    } else {
-      await originalWorkbook.xlsx.readFile(originalFilePath);
-    }
-
-    const originalSheet = originalWorkbook.worksheets[0];
-    if (!originalSheet) return null;
-
-    const errorWorkbook = new ExcelJS.Workbook();
-    const errorSheet = errorWorkbook.addWorksheet("Perbaikan Data");
-
-    const headerRow = originalSheet.getRow(headerRowIndex);
-    errorSheet.getRow(1).values = headerRow.values;
-
-    const errorColIdx = headerRow.cellCount + 1;
-    const errorHeaderCell = errorSheet.getRow(1).getCell(errorColIdx);
-    errorHeaderCell.value = "SYSTEM ERROR MESSAGE";
-    errorHeaderCell.font = { color: { argb: "FFFFFFFF" }, bold: true };
-    errorHeaderCell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FFCC0000" },
-    };
-
-    const errorMap = new Map();
-    errors.forEach((e) => {
-      if (e.row) errorMap.set(e.row, e.message);
-    });
-
-    Logger.info(
-      `Generate Error File: ${errors.length} total errors, ${errorMap.size} mapped to rows.`,
-      "IMPORT_WORKER",
-    );
-
-    let targetRowIdx = 2;
-    const sortedRowIndices = Array.from(errorMap.keys()).sort((a, b) => a - b);
-
-    sortedRowIndices.forEach((sourceRowIdx) => {
-      const msg = errorMap.get(sourceRowIdx);
-      const sourceRow = originalSheet.getRow(sourceRowIdx);
-      const targetRow = errorSheet.getRow(targetRowIdx);
-
-      sourceRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-        let safeValue = cell.value;
-        if (safeValue !== null && safeValue !== undefined) {
-          safeValue = String(safeValue);
-        }
-        const targetCell = targetRow.getCell(colNumber);
-        targetCell.value = safeValue;
-        targetCell.numFmt = "@";
-      });
-
-      const errorCell = targetRow.getCell(errorColIdx);
-      errorCell.value = msg;
-
-      if (msg && msg.includes("⚠️")) {
-        errorCell.font = { color: { argb: "FF777777" }, italic: true };
-      } else {
-        errorCell.font = { color: { argb: "FFFF0000" }, bold: true };
-      }
-
-      targetRow.commit();
-      targetRowIdx++;
-    });
-
-    const filename = `error_fix_job_${jobId}_${Date.now()}.xlsx`;
-    const outputPath = path.join(EXPORT_DIR, filename);
-
-    await errorWorkbook.xlsx.writeFile(outputPath);
-    return `/uploads/exports/${filename}`;
-  } catch (err) {
-    Logger.error("Failed to generate error file", err, "IMPORT_WORKER");
-    return null;
-  }
-}
-
-function isRetriableError(error) {
-  const msg = (error.message || "").toLowerCase();
-  if (msg.includes("deadlock") || msg.includes("lock wait timeout")) return true;
-  if (msg.includes("connection lost") || msg.includes("econreset") || msg.includes("etimedout"))
-    return true;
-  if (msg.includes("protocol_connection_lost")) return true;
-  if (msg.includes("too many connections")) return true;
-  return false;
-}
+ensureDirectoryExists(EXPORT_DIR);
 
 // --- MAIN WORKER LOGIC ---
 
@@ -176,7 +42,7 @@ export const importQueue = async () => {
     connection = await db.getConnection();
 
     // 0. SELF-HEALING
-    await cleanupStuckJobs(connection);
+    await jobRepo.timeoutStuckImportJobs(connection, JOB_TIMEOUT_MINUTES);
 
     // 1. Ambil Job
     const job = await jobRepo.getPendingImportJob(connection);
@@ -406,9 +272,7 @@ export const importQueue = async () => {
 
     let downloadUrl = null;
     if (errors.length > 0) {
-      // Note: generateErrorFile mungkin tidak sempurna untuk file absensi karena struktur headernya beda,
-      // tapi kita biarkan saja sebagai best effort.
-      downloadUrl = await generateErrorFile(absoluteFilePath, errors, headerRowIndex, jobId);
+      downloadUrl = await generateErrorFile(absoluteFilePath, errors, headerRowIndex, jobId, EXPORT_DIR);
     }
 
     let errorLogJSON = null;

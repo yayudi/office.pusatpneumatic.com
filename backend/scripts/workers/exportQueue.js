@@ -4,6 +4,8 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import Logger from "../../utils/logger.js";
+import { ensureDirectoryExists } from "../../utils/workerHelpers.js";
+import { getFormattedDateTime } from "../../services/helpers/sharedHelpers.js";
 
 // REPOSITORIES
 import * as jobRepo from "../../repositories/jobRepository.js";
@@ -22,24 +24,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const EXPORT_DIR_PATH = path.join(__dirname, "..", "..", "uploads", "exports", "stocks");
 
-if (!fs.existsSync(EXPORT_DIR_PATH)) {
-  try {
-    fs.mkdirSync(EXPORT_DIR_PATH, { recursive: true });
-  } catch (err) {
-    Logger.error("GAGAL membuat folder ekspor", err, "EXPORT_WORKER");
-  }
-}
-
-const getFormattedDateTime = () => {
-  const now = new Date();
-  return `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, "0")}-${now
-    .getDate()
-    .toString()
-    .padStart(2, "0")}_${now.getHours().toString().padStart(2, "0")}-${now
-      .getMinutes()
-      .toString()
-      .padStart(2, "0")}`;
-};
+ensureDirectoryExists(EXPORT_DIR_PATH, "EXPORT_WORKER");
 
 export const processQueue = async () => {
   let connection;

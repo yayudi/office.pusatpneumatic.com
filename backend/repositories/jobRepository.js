@@ -125,6 +125,18 @@ export const failImportJob = async (connection, jobId, summary) => {
   );
 };
 
+export const timeoutStuckImportJobs = async (connection, timeoutMinutes) => {
+  return connection.query(
+    `UPDATE import_jobs
+      SET status = 'FAILED',
+          log_summary = CONCAT(COALESCE(log_summary, ''), ' [SYSTEM: Job Killed due to timeout/crash]'),
+          updated_at = NOW()
+      WHERE status = 'PROCESSING'
+      AND updated_at < NOW() - INTERVAL ? MINUTE`,
+    [timeoutMinutes]
+  );
+};
+
 // ============================================================================
 // EXPORT JOBS
 // ============================================================================
