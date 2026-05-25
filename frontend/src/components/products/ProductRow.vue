@@ -13,7 +13,7 @@ const props = defineProps({
   isSelected: Boolean,
 })
 
-const emit = defineEmits(['toggle-selection', 'edit', 'restore', 'delete'])
+defineEmits(['toggle-selection', 'edit', 'restore', 'delete', 'view-image'])
 
 // Helper Image URL
 const imageUrl = computed(() => resolveProductImageUrl(props.product))

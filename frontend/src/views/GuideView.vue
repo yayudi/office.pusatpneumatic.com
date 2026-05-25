@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import Tabs from '@/components/ui/Tabs.vue'
+import BaseTabs from '@/components/ui/BaseTabs.vue'
 import api from '@/api/axios'
 import { useAuthStore } from '@/stores/auth'
 
@@ -126,7 +126,7 @@ const faqCategories = [
 
       <!-- Tab Navigation -->
       <div class="mb-8">
-        <Tabs :tabs="tabs" v-model="activeTab" />
+        <BaseTabs :tabs="tabs" v-model="activeTab" />
       </div>
 
       <!-- TAB CONTENT: FITUR (TIMELINE) -->

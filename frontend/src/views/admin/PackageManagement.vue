@@ -193,7 +193,7 @@ const performBulkAction = async (actionType) => {
     toast(`Berhasil memproses ${ids.length} paket.`, 'success')
     selectedIds.value.clear()
     fetchProducts()
-  } catch (err) {
+  } catch {
     toast('Terjadi kesalahan saat batch processing.', 'error')
   } finally {
     isProcessingBulk.value = false

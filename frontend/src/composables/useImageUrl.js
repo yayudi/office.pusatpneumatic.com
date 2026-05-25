@@ -8,7 +8,8 @@ import { useAuthStore } from '@/stores/auth.js'
  * MediaInfoModal, and MediaLightbox.
  */
 
-const baseUrl = apiClient.defaults.baseURL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
+const baseUrl =
+  apiClient.defaults.baseURL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
 
 /** Backend root URL (without /api suffix) */
 export const backendUrl = baseUrl.replace(/\/api\/?$/, '')
@@ -31,7 +32,7 @@ export const resolveUrl = (path) => {
     if (auth.token) {
       return `${url}?token=${auth.token}`
     }
-  } catch (e) {
+  } catch {
     // Abaikan error jika dipanggil sebelum pinia siap (misal saat boot)
   }
   return url

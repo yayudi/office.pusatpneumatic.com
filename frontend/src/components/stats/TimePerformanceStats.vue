@@ -6,7 +6,7 @@ import { useTheme } from '@/composables/useTheme.js';
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import BaseSelect from '@/components/ui/BaseSelect.vue';
-import { getStockMovementStatistics, getStockTimelineStatistics } from '@/api/helpers/statistics.js';
+import { getStockMovementStatistics } from '@/api/helpers/statistics.js';
 import { useMasterDataStore } from '@/stores/masterData';
 
 const masterData = useMasterDataStore();

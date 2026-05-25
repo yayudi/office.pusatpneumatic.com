@@ -1,7 +1,7 @@
 <!-- frontend/src/components/ui/HotkeyCheatSheet.vue -->
 <script setup>
 import { isCheatSheetOpen } from '@/composables/useAppHotkeys'
-import Modal from '@/components/ui/Modal.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 
 const globalHotkeys = [
   { keys: ['Alt', '1'], desc: 'Buka Modul WMS' },
@@ -30,7 +30,7 @@ function close() {
 </script>
 
 <template>
-  <Modal :show="isCheatSheetOpen" @close="close" maxWidth="max-w-2xl">
+  <BaseModal :show="isCheatSheetOpen" @close="close" maxWidth="max-w-2xl">
     <template #title>
       <h2 class="text-xl font-bold text-primary flex items-center gap-2 -mt-1">
         <font-awesome-icon icon="fa-solid fa-keyboard" />
@@ -71,7 +71,7 @@ function close() {
         </div>
       </section>
     </div>
-  </Modal>
+  </BaseModal>
 </template>
 
 <style scoped>

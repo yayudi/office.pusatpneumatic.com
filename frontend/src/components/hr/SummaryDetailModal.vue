@@ -2,7 +2,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { formatJamMenit } from "@/api/helpers/time.js";
-import Modal from '@/components/ui/Modal.vue';
+import BaseModal from '@/components/ui/BaseModal.vue';
 
 const props = defineProps({
   summary: { type: Object, required: true },
@@ -84,7 +84,7 @@ watch(weeklyDetails, (newDetails) => {
 </script>
 
 <template>
-  <Modal :show="true" @close="emit('close')" maxWidth="max-w-lg">
+  <BaseModal :show="true" @close="emit('close')" maxWidth="max-w-lg">
     <template #title>
       <div class="-mt-1">
         <h3 class="text-xl font-bold text-text">{{ summary.nama }}</h3>
@@ -163,5 +163,5 @@ watch(weeklyDetails, (newDetails) => {
           </div>
         </section>
       </div>
-  </Modal>
+  </BaseModal>
 </template>

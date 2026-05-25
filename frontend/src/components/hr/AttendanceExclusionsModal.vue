@@ -1,7 +1,7 @@
 <!-- frontend/src/components/hr/AttendanceExclusionsModal.vue -->
 <script setup>
 import { ref, watch, computed } from 'vue'
-import Modal from '@/components/ui/Modal.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 import { useMasterDataStore } from '@/stores/masterData'
 
 const masterData = useMasterDataStore()
@@ -82,7 +82,7 @@ async function toggleExclusion(user) {
 </script>
 
 <template>
-  <Modal :show="isOpen" @close="$emit('close')" title="Pengecualian Absen">
+  <BaseModal :show="isOpen" @close="$emit('close')" title="Pengecualian Absen">
     <div class="space-y-4">
       <div class="text-sm text-text/80 mb-4 bg-primary/10 p-3 rounded-lg border border-primary/20">
         <font-awesome-icon icon="fa-solid fa-circle-info" class="text-primary mr-2" />
@@ -143,5 +143,5 @@ async function toggleExclusion(user) {
         Tutup
       </button>
     </template>
-  </Modal>
+  </BaseModal>
 </template>

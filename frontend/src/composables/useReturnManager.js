@@ -50,7 +50,7 @@ export function useReturnManager() {
       if (locations.value.length === 0) {
         await fetchLocations()
       }
-    } catch (error) {
+    } catch {
       toast('Gagal memuat data retur', 'error')
     } finally {
       isLoading.value = false

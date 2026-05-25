@@ -4,7 +4,7 @@ import { ref, watch, computed } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import { updateUser } from '@/api/helpers/admin.js'
-import Modal from '@/components/ui/Modal.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 
 const props = defineProps({
@@ -72,7 +72,7 @@ watch(Alt_S, (pressed) => {
 </script>
 
 <template>
-  <Modal :show="props.show" @close="emit('close')" :title="`Edit Pengguna: ${user?.username}`">
+  <BaseModal :show="props.show" @close="emit('close')" :title="`Edit Pengguna: ${user?.username}`">
     <div v-if="user" class="p-6 space-y-4">
       <div>
         <label class="block text-sm font-medium text-text/80 mb-1">Username</label>
@@ -112,7 +112,7 @@ watch(Alt_S, (pressed) => {
       </div>
     </template>
 
-  </Modal>
+  </BaseModal>
 </template>
 
 <style lang="postcss" scoped>

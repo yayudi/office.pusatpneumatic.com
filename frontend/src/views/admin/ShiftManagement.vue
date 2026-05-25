@@ -4,7 +4,6 @@ import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import { fetchShifts } from '@/api/helpers/admin.js'
 import ShiftFormModal from '@/components/shifts/ShiftFormModal.vue'
-import TableSkeleton from '@/components/ui/TableSkeleton.vue'
 import axios from '@/api/axios'
 
 const shifts = ref([])
@@ -19,7 +18,7 @@ const getShifts = async () => {
   try {
     const data = await fetchShifts()
     shifts.value = data
-  } catch (error) {
+  } catch {
     toast('Gagal memuat data shift', 'error')
   } finally {
     loading.value = false
@@ -43,7 +42,7 @@ const deleteShift = async (id) => {
     await axios.delete(`/shifts/${id}`)
     toast('Shift dihapus', 'success')
     getShifts()
-  } catch (error) {
+  } catch {
     toast('Gagal menghapus shift', 'error')
   }
 }
@@ -74,8 +73,10 @@ watch(Alt_N, (pressed) => {
       <font-awesome-icon icon="fa-solid fa-clock" />
       <span>Manajemen Shift</span>
     </h2>
-    <button @click="openCreate"
-      class="bg-primary text-secondary text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2">
+    <button
+      @click="openCreate"
+      class="bg-primary text-secondary text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
+    >
       <font-awesome-icon icon="fa-solid fa-plus" />
       <span>Tambah Shift</span>
     </button>
@@ -88,12 +89,16 @@ watch(Alt_N, (pressed) => {
   </div>
 
   <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    <div v-for="shift in shifts" :key="shift.id"
-      class="bg-secondary/10 border border-secondary/20 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-
+    <div
+      v-for="shift in shifts"
+      :key="shift.id"
+      class="bg-secondary/10 border border-secondary/20 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group"
+    >
       <!-- Default Badge -->
-      <div v-if="shift.is_default"
-        class="absolute top-0 right-0 bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-bl-lg">
+      <div
+        v-if="shift.is_default"
+        class="absolute top-0 right-0 bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-bl-lg"
+      >
         DEFAULT
       </div>
 
@@ -107,30 +112,44 @@ watch(Alt_N, (pressed) => {
         </div>
 
         <div class="flex gap-2">
-          <button @click="openEdit(shift)" class="p-2 text-primary hover:bg-primary/5 rounded-lg transition-colors"
-            title="Edit Shift">
+          <button
+            @click="openEdit(shift)"
+            class="p-2 text-primary hover:bg-primary/5 rounded-lg transition-colors"
+            title="Edit Shift"
+          >
             <font-awesome-icon icon="fa-solid fa-pen" />
           </button>
-          <button @click="deleteShift(shift.id)" class="p-2 text-danger hover:bg-danger/5 rounded-lg transition-colors"
-            title="Hapus Shift">
+          <button
+            @click="deleteShift(shift.id)"
+            class="p-2 text-danger hover:bg-danger/5 rounded-lg transition-colors"
+            title="Hapus Shift"
+          >
             <font-awesome-icon icon="fa-solid fa-trash" />
           </button>
         </div>
       </div>
 
-      <div class="flex items-center gap-4 bg-secondary/20 p-3 rounded-lg border border-secondary/10">
+      <div
+        class="flex items-center gap-4 bg-secondary/20 p-3 rounded-lg border border-secondary/10"
+      >
         <div class="text-center">
           <div class="text-xs text-text/60 uppercase font-semibold">Masuk</div>
-          <div class="text-lg font-mono font-bold text-primary">{{ shift.start_time.slice(0, 5) }}</div>
+          <div class="text-lg font-mono font-bold text-primary">
+            {{ shift.start_time.slice(0, 5) }}
+          </div>
         </div>
         <div class="h-8 w-px bg-secondary/20"></div>
         <div class="text-center">
           <div class="text-xs text-text/60 uppercase font-semibold">Pulang</div>
-          <div class="text-lg font-mono font-bold text-primary">{{ shift.end_time.slice(0, 5) }}</div>
+          <div class="text-lg font-mono font-bold text-primary">
+            {{ shift.end_time.slice(0, 5) }}
+          </div>
         </div>
         <div class="flex-1 text-right">
-          <span v-if="shift.flexible_minutes > 0"
-            class="text-xs font-medium text-success bg-success/10 px-2 py-1 rounded">
+          <span
+            v-if="shift.flexible_minutes > 0"
+            class="text-xs font-medium text-success bg-success/10 px-2 py-1 rounded"
+          >
             Flex {{ shift.flexible_minutes }}m
           </span>
           <span v-else class="text-xs font-medium text-text/60 bg-secondary/10 px-2 py-1 rounded">
@@ -138,7 +157,6 @@ watch(Alt_N, (pressed) => {
           </span>
         </div>
       </div>
-
     </div>
   </div>
 
@@ -147,5 +165,10 @@ watch(Alt_N, (pressed) => {
   </div>
 
   <!-- Modal -->
-  <ShiftFormModal :show="isModalOpen" :shift="selectedShift" @close="isModalOpen = false" @updated="getShifts" />
+  <ShiftFormModal
+    :show="isModalOpen"
+    :shift="selectedShift"
+    @close="isModalOpen = false"
+    @updated="getShifts"
+  />
 </template>

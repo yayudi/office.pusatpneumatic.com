@@ -1,7 +1,7 @@
 <!-- frontend\src\components\picking\PickingListDetailsModal.vue -->
 <script setup>
 import { ref, watch } from 'vue'
-import Modal from '@/components/ui/Modal.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 import { useToast } from '@/composables/useToast.js'
 import { fetchPickingDetails } from '@/api/helpers/picking.js' // Helper baru
 import { useMobile } from '@/composables/useMobile.js'
@@ -37,7 +37,7 @@ async function loadDetails() {
       items.value = [] // Set array kosong jika format salah
       throw new Error(response.message || 'Format data detail tidak sesuai.')
     }
-  } catch (err) {
+  } catch {
     error.value = 'Gagal memuat detail item.'
     toast(error.value, 'error')
   } finally {
@@ -68,10 +68,13 @@ function handleVoid() {
 </script>
 
 <template>
-  <Modal :show="show" @close="emit('close')" :title="`Detail Picking List #${item?.id}`">
+  <BaseModal :show="show" @close="emit('close')" :title="`Detail Picking List #${item?.id}`">
     <div class="space-y-4">
       <!-- Informasi Header -->
-      <div v-if="item" class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm bg-secondary/10 p-3 rounded-lg">
+      <div
+        v-if="item"
+        class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm bg-secondary/10 p-3 rounded-lg"
+      >
         <div>
           <div class="text-xs text-text/70">Waktu Proses</div>
           <div class="font-semibold">{{ new Date(item.created_at).toLocaleString('id-ID') }}</div>
@@ -95,7 +98,10 @@ function handleVoid() {
           Tidak ada detail item.
         </div>
         <table v-else class="text-xs" :class="isMobile ? 'w-full block' : 'min-w-full'">
-          <thead class="bg-secondary/10 uppercase text-text/70 z-10" :class="isMobile ? 'hidden' : 'sticky top-0'">
+          <thead
+            class="bg-secondary/10 uppercase text-text/70 z-10"
+            :class="isMobile ? 'hidden' : 'sticky top-0'"
+          >
             <tr>
               <th class="p-2 text-left">SKU</th>
               <th class="p-2 text-left">Nama Produk</th>
@@ -104,18 +110,50 @@ function handleVoid() {
           </thead>
           <tbody :class="isMobile ? 'block' : 'divide-y divide-secondary/20'">
             <!-- Loop 'itemDetail' agar tidak konflik nama dengan prop 'item' -->
-            <tr v-for="itemDetail in items" :key="itemDetail.sku" class="transition-colors"
-              :class="isMobile ? 'block mb-3 p-3 bg-background/50 rounded-xl border border-secondary/20 shadow-sm' : ''">
-              <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'">
-                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">SKU</span>
+            <tr
+              v-for="itemDetail in items"
+              :key="itemDetail.sku"
+              class="transition-colors"
+              :class="
+                isMobile
+                  ? 'block mb-3 p-3 bg-background/50 rounded-xl border border-secondary/20 shadow-sm'
+                  : ''
+              "
+            >
+              <td
+                :class="
+                  isMobile
+                    ? 'flex justify-between items-center py-1.5 border-b border-secondary/10'
+                    : 'p-2 font-mono'
+                "
+              >
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
+                  >SKU</span
+                >
                 <span class="font-mono">{{ itemDetail.sku }}</span>
               </td>
-              <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2'">
-                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Produk</span>
+              <td
+                :class="
+                  isMobile
+                    ? 'flex justify-between items-center py-1.5 border-b border-secondary/10'
+                    : 'p-2'
+                "
+              >
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
+                  >Produk</span
+                >
                 <span>{{ itemDetail.name }}</span>
               </td>
-              <td :class="isMobile ? 'flex justify-between items-center py-1.5' : 'p-2 text-center font-bold'">
-                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Jumlah</span>
+              <td
+                :class="
+                  isMobile
+                    ? 'flex justify-between items-center py-1.5'
+                    : 'p-2 text-center font-bold'
+                "
+              >
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
+                  >Jumlah</span
+                >
                 <span class="font-bold">{{ itemDetail.qty }}</span>
               </td>
             </tr>
@@ -125,16 +163,21 @@ function handleVoid() {
     </div>
 
     <template #footer>
-      <button @click="emit('close')"
-        class="px-4 py-2 bg-secondary/30 text-text/90 rounded-lg text-sm font-semibold hover:bg-secondary/40">
+      <button
+        @click="emit('close')"
+        class="px-4 py-2 bg-secondary/30 text-text/90 rounded-lg text-sm font-semibold hover:bg-secondary/40"
+      >
         Tutup
       </button>
       <div class="flex-grow"></div>
       <!-- Tombol Void hanya muncul jika statusnya COMPLETED -->
-      <button v-if="item?.status === 'COMPLETED'" @click="handleVoid"
-        class="px-4 py-2 bg-accent text-secondary rounded-lg text-sm font-semibold hover:bg-accent/90">
+      <button
+        v-if="item?.status === 'COMPLETED'"
+        @click="handleVoid"
+        class="px-4 py-2 bg-accent text-secondary rounded-lg text-sm font-semibold hover:bg-accent/90"
+      >
         Batalkan Transaksi (Void)
       </button>
     </template>
-  </Modal>
+  </BaseModal>
 </template>

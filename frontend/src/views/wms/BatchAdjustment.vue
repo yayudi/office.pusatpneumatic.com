@@ -9,7 +9,6 @@ import {
   requestAdjustmentUpload,
   getImportJobs,
 } from '@/api/helpers/stock.js'
-import { useAuthStore } from '@/stores/auth.js'
 import api from '@/api/axios.js'
 import { useMobile } from '@/composables/useMobile.js'
 
@@ -19,7 +18,6 @@ import ProductSearchAddForm from '@/components/batch/ProductSearchAddForm.vue'
 import BatchItemList from '@/components/batch/BatchItemList.vue'
 
 const { toast } = useToast()
-const auth = useAuthStore()
 const { isMobile } = useMobile()
 
 // --- STATE UTAMA ---
@@ -42,7 +40,7 @@ onMounted(async () => {
   try {
     myLocations.value = await fetchMyLocations()
     await loadImportHistory()
-  } catch (error) {
+  } catch {
     toast('Gagal memuat data awal.', 'error')
   } finally {
     isLoading.value = false
@@ -231,36 +229,55 @@ watch(Alt_S, (pressed) => {
 
     <div class="bg-background rounded-xl shadow-md border border-secondary/20 p-6 space-y-6">
       <div class="flex justify-center p-1 bg-secondary/10 rounded-lg max-w-md mx-auto">
-        <button @click="inputMode = 'manual'"
-          class="flex-1 py-2 px-4 rounded-md text-sm font-bold transition-all duration-200" :class="inputMode === 'manual'
-            ? 'bg-primary text-secondary shadow-md'
-            : 'text-text/60 hover:bg-secondary/20 hover:text-text'
-            ">
+        <button
+          @click="inputMode = 'manual'"
+          class="flex-1 py-2 px-4 rounded-md text-sm font-bold transition-all duration-200"
+          :class="
+            inputMode === 'manual'
+              ? 'bg-primary text-secondary shadow-md'
+              : 'text-text/60 hover:bg-secondary/20 hover:text-text'
+          "
+        >
           <font-awesome-icon icon="fa-solid fa-pencil" class="mr-2" />
           Input Manual
         </button>
-        <button @click="inputMode = 'upload'"
-          class="flex-1 py-2 px-4 rounded-md text-sm font-bold transition-all duration-200" :class="inputMode === 'upload'
-            ? 'bg-primary text-secondary shadow-md'
-            : 'text-text/60 hover:bg-secondary/20 hover:text-text'
-            ">
+        <button
+          @click="inputMode = 'upload'"
+          class="flex-1 py-2 px-4 rounded-md text-sm font-bold transition-all duration-200"
+          :class="
+            inputMode === 'upload'
+              ? 'bg-primary text-secondary shadow-md'
+              : 'text-text/60 hover:bg-secondary/20 hover:text-text'
+          "
+        >
           <font-awesome-icon icon="fa-solid fa-file-excel" class="mr-2" />
           Upload Excel
         </button>
       </div>
 
       <div v-if="inputMode === 'manual'" class="space-y-6 animate-fade-in">
-        <BatchAdjustmentHeader v-model:adjustmentLocation="adjustmentLocation" v-model:notes="notes"
-          :my-locations="myLocations" :is-loading="isLoading" />
+        <BatchAdjustmentHeader
+          v-model:adjustmentLocation="adjustmentLocation"
+          v-model:notes="notes"
+          :my-locations="myLocations"
+          :is-loading="isLoading"
+        />
 
-        <ProductSearchAddForm active-tab="ADJUSTMENT" :search-location-id="batchSearchLocationId"
-          :disabled="!isBatchLocationSelected || isLoading" @add-product="handleAddProduct" />
+        <ProductSearchAddForm
+          active-tab="ADJUSTMENT"
+          :search-location-id="batchSearchLocationId"
+          :disabled="!isBatchLocationSelected || isLoading"
+          @add-product="handleAddProduct"
+        />
 
         <BatchItemList :items="batchList" active-tab="ADJUSTMENT" @remove-item="removeFromBatch" />
 
         <div class="flex justify-end pt-6 border-t border-secondary/20">
-          <button @click="submitBatch" :disabled="!isBatchLocationSelected || batchList.length === 0 || isLoading"
-            class="px-6 py-3 bg-primary text-secondary rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]">
+          <button
+            @click="submitBatch"
+            :disabled="!isBatchLocationSelected || batchList.length === 0 || isLoading"
+            class="px-6 py-3 bg-primary text-secondary rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
+          >
             <font-awesome-icon v-if="isLoading" icon="fa-solid fa-spinner" class="animate-spin" />
             <font-awesome-icon v-else icon="fa-solid fa-paper-plane" />
             <span>{{ isLoading ? 'Memproses...' : 'Submit Batch Adjustment' }}</span>
@@ -270,7 +287,8 @@ watch(Alt_S, (pressed) => {
 
       <div v-if="inputMode === 'upload'" class="space-y-6 animate-fade-in">
         <div
-          class="p-4 bg-primary/10 border border-primary/20 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+          class="p-4 bg-primary/10 border border-primary/20 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4"
+        >
           <div class="flex items-center gap-3">
             <div class="bg-primary/20 p-2 rounded-full text-primary">
               <font-awesome-icon icon="fa-solid fa-circle-info" />
@@ -280,9 +298,16 @@ watch(Alt_S, (pressed) => {
             </span>
           </div>
 
-          <button @click="downloadTemplate" :disabled="isDownloading"
-            class="px-4 py-2 bg-primary text-secondary rounded-lg text-sm font-bold hover:bg-primary/90 flex items-center gap-2 disabled:opacity-50 transition-all whitespace-nowrap shadow-sm">
-            <font-awesome-icon v-if="isDownloading" icon="fa-solid fa-spinner" class="animate-spin" />
+          <button
+            @click="downloadTemplate"
+            :disabled="isDownloading"
+            class="px-4 py-2 bg-primary text-secondary rounded-lg text-sm font-bold hover:bg-primary/90 flex items-center gap-2 disabled:opacity-50 transition-all whitespace-nowrap shadow-sm"
+          >
+            <font-awesome-icon
+              v-if="isDownloading"
+              icon="fa-solid fa-spinner"
+              class="animate-spin"
+            />
             <font-awesome-icon v-else icon="fa-solid fa-download" />
             <span>{{ isDownloading ? 'Mengunduh...' : 'Unduh Template' }}</span>
           </button>
@@ -293,9 +318,13 @@ watch(Alt_S, (pressed) => {
             <label for="upload-notes" class="block text-xs font-bold text-text/60 uppercase mb-1.5">
               Catatan/Alasan Penyesuaian
             </label>
-            <textarea id="upload-notes" v-model="notes" rows="2"
+            <textarea
+              id="upload-notes"
+              v-model="notes"
+              rows="2"
               class="w-full p-3 border border-secondary/30 rounded-lg bg-background text-sm focus:ring-1 focus:ring-primary/50 focus:border-primary outline-none transition-colors placeholder:text-text/30"
-              placeholder="Contoh: Stock Opname Bulanan Gudang A..."></textarea>
+              placeholder="Contoh: Stock Opname Bulanan Gudang A..."
+            ></textarea>
           </div>
 
           <div>
@@ -303,17 +332,25 @@ watch(Alt_S, (pressed) => {
               Pilih File Penyesuaian (.xlsx)
             </label>
             <div class="relative group">
-              <input type="file" :key="uploadInputKey" id="file-upload" @change="handleFileSelect"
+              <input
+                type="file"
+                :key="uploadInputKey"
+                id="file-upload"
+                @change="handleFileSelect"
                 accept=".xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                class="w-full text-sm text-text/70 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 file:transition-colors cursor-pointer border border-secondary/30 rounded-lg bg-background" />
+                class="w-full text-sm text-text/70 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 file:transition-colors cursor-pointer border border-secondary/30 rounded-lg bg-background"
+              />
             </div>
             <p class="text-[10px] text-text/40 mt-1.5 italic">
               *Hanya format .xlsx yang didukung. Maksimal ukuran file 5MB.
             </p>
           </div>
 
-          <button @click="handleUploadAdjustment" :disabled="isUploading || !selectedFile || !notes.trim()"
-            class="w-full px-4 py-3 bg-primary text-secondary rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98] mt-2">
+          <button
+            @click="handleUploadAdjustment"
+            :disabled="isUploading || !selectedFile || !notes.trim()"
+            class="w-full px-4 py-3 bg-primary text-secondary rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98] mt-2"
+          >
             <font-awesome-icon v-if="isUploading" icon="fa-solid fa-spinner" class="animate-spin" />
             <font-awesome-icon v-else icon="fa-solid fa-cloud-arrow-up" />
             <span>{{ isUploading ? 'Mengunggah...' : 'Unggah dan Proses File' }}</span>
@@ -323,14 +360,23 @@ watch(Alt_S, (pressed) => {
         <div class="mt-8">
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-sm font-bold text-text/70 uppercase tracking-wide">Riwayat Impor</h3>
-            <button @click="loadImportHistory" :disabled="isImportHistoryLoading"
-              class="text-xs text-primary font-bold hover:text-primary/80 disabled:opacity-50 flex items-center gap-1.5 transition-colors">
-              <font-awesome-icon icon="fa-solid fa-rotate" :class="{ 'animate-spin': isImportHistoryLoading }" />
+            <button
+              @click="loadImportHistory"
+              :disabled="isImportHistoryLoading"
+              class="text-xs text-primary font-bold hover:text-primary/80 disabled:opacity-50 flex items-center gap-1.5 transition-colors"
+            >
+              <font-awesome-icon
+                icon="fa-solid fa-rotate"
+                :class="{ 'animate-spin': isImportHistoryLoading }"
+              />
               Refresh
             </button>
           </div>
           <div class="overflow-hidden border border-secondary/20 rounded-xl shadow-sm">
-            <table class="divide-y divide-secondary/10" :class="isMobile ? 'w-full block' : 'min-w-full'">
+            <table
+              class="divide-y divide-secondary/10"
+              :class="isMobile ? 'w-full block' : 'min-w-full'"
+            >
               <thead :class="isMobile ? 'hidden' : 'bg-secondary/10'">
                 <tr>
                   <th class="px-4 py-3 text-left text-xs font-bold text-text/60 uppercase">
@@ -343,11 +389,16 @@ watch(Alt_S, (pressed) => {
                   <th class="px-4 py-3 text-left text-xs font-bold text-text/60 uppercase">Log</th>
                 </tr>
               </thead>
-              <tbody class="bg-background" :class="isMobile ? 'block' : 'divide-y divide-secondary/10'">
+              <tbody
+                class="bg-background"
+                :class="isMobile ? 'block' : 'divide-y divide-secondary/10'"
+              >
                 <tr v-if="importJobHistory.length === 0 && !isImportHistoryLoading">
                   <td colspan="4" class="px-4 py-8 text-sm text-text/40 text-center italic">
-                    <font-awesome-icon icon="fa-solid fa-clock-rotate-left"
-                      class="mb-2 text-xl opacity-20 block mx-auto" />
+                    <font-awesome-icon
+                      icon="fa-solid fa-clock-rotate-left"
+                      class="mb-2 text-xl opacity-20 block mx-auto"
+                    />
                     Belum ada riwayat impor.
                   </td>
                 </tr>
@@ -357,10 +408,26 @@ watch(Alt_S, (pressed) => {
                     Memuat data...
                   </td>
                 </tr>
-                <tr v-for="job in importJobHistory" :key="job.id" class="transition-colors"
-                  :class="isMobile ? 'block mb-4 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4' : 'hover:bg-secondary/5'">
-                  <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-4 py-3 text-xs text-text'">
-                    <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Tanggal</span>
+                <tr
+                  v-for="job in importJobHistory"
+                  :key="job.id"
+                  class="transition-colors"
+                  :class="
+                    isMobile
+                      ? 'block mb-4 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4'
+                      : 'hover:bg-secondary/5'
+                  "
+                >
+                  <td
+                    :class="
+                      isMobile
+                        ? 'flex justify-between items-center py-2 border-b border-secondary/10'
+                        : 'px-4 py-3 text-xs text-text'
+                    "
+                  >
+                    <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
+                      >Tanggal</span
+                    >
                     <div class="flex flex-col" :class="isMobile ? 'items-end' : ''">
                       <div class="font-medium">
                         {{ new Date(job.created_at).toLocaleDateString('id-ID') }}
@@ -370,27 +437,58 @@ watch(Alt_S, (pressed) => {
                       </div>
                     </div>
                   </td>
-                  <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-4 py-3 text-xs text-text/80 font-mono'">
-                    <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">File</span>
+                  <td
+                    :class="
+                      isMobile
+                        ? 'flex justify-between items-center py-2 border-b border-secondary/10'
+                        : 'px-4 py-3 text-xs text-text/80 font-mono'
+                    "
+                  >
+                    <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
+                      >File</span
+                    >
                     <span class="font-mono text-xs">{{ job.original_filename }}</span>
                   </td>
-                  <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-4 py-3 text-xs'">
-                    <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Status</span>
-                    <span v-if="job.status === 'COMPLETED'"
-                      class="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold bg-success/10 text-success border border-success/20">
+                  <td
+                    :class="
+                      isMobile
+                        ? 'flex justify-between items-center py-2 border-b border-secondary/10'
+                        : 'px-4 py-3 text-xs'
+                    "
+                  >
+                    <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
+                      >Status</span
+                    >
+                    <span
+                      v-if="job.status === 'COMPLETED'"
+                      class="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold bg-success/10 text-success border border-success/20"
+                    >
                       <font-awesome-icon icon="fa-solid fa-check" /> Selesai
                     </span>
-                    <span v-else-if="job.status === 'FAILED'"
-                      class="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold bg-danger/10 text-danger border border-danger/20">
+                    <span
+                      v-else-if="job.status === 'FAILED'"
+                      class="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold bg-danger/10 text-danger border border-danger/20"
+                    >
                       <font-awesome-icon icon="fa-solid fa-xmark" /> Gagal
                     </span>
-                    <span v-else
-                      class="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold bg-warning/10 text-warning border border-warning/20">
+                    <span
+                      v-else
+                      class="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold bg-warning/10 text-warning border border-warning/20"
+                    >
                       <font-awesome-icon icon="fa-solid fa-spinner" spin /> {{ job.status }}
                     </span>
                   </td>
-                  <td :class="isMobile ? 'flex justify-between items-center py-2' : 'px-4 py-3 text-xs text-text/60 max-w-[200px] truncate'" :title="job.log_summary">
-                    <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Log</span>
+                  <td
+                    :class="
+                      isMobile
+                        ? 'flex justify-between items-center py-2'
+                        : 'px-4 py-3 text-xs text-text/60 max-w-[200px] truncate'
+                    "
+                    :title="job.log_summary"
+                  >
+                    <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
+                      >Log</span
+                    >
                     <span class="text-text/60 text-xs">{{ job.log_summary || '-' }}</span>
                   </td>
                 </tr>

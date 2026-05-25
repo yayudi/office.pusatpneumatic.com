@@ -1,7 +1,7 @@
 <!-- frontend/src/components/wms/shared/HistoryModal.vue -->
 <script setup>
 import { ref, watch, computed } from 'vue'
-import Modal from '@/components/ui/Modal.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
 import { fetchStockHistory, fetchAllLocations } from '@/api/helpers/stock.js'
@@ -52,7 +52,7 @@ const paginationData = computed(() => ({
   page: pagination.value.page || 1,
   limit: pagination.value.limit || 10,
   total: pagination.value.total || 0,
-  totalPages: Math.ceil((pagination.value.total || 0) / (pagination.value.limit || 10)) || 1
+  totalPages: Math.ceil((pagination.value.total || 0) / (pagination.value.limit || 10)) || 1,
 }))
 
 async function loadHistory(page) {
@@ -60,11 +60,19 @@ async function loadHistory(page) {
   loading.value = true
   error.value = null
   try {
-    const response = await fetchStockHistory(props.product.id, page, movementType.value, startDate.value, endDate.value, locationId.value, userFilter.value)
+    const response = await fetchStockHistory(
+      props.product.id,
+      page,
+      movementType.value,
+      startDate.value,
+      endDate.value,
+      locationId.value,
+      userFilter.value,
+    )
     history.value = response.data
     pagination.value = response.pagination
     currentPage.value = response.pagination.page
-  } catch (err) {
+  } catch {
     error.value = 'Gagal memuat riwayat stok.'
   } finally {
     loading.value = false
@@ -94,26 +102,45 @@ watch(
 </script>
 
 <template>
-  <Modal :show="show" @close="emit('close')" :title="`Riwayat Stok: ${product?.name}`" maxWidth="max-w-4xl">
-    <div class="px-4 py-3 grid gap-2 items-center border-b border-secondary/20 bg-background/50"
-      :class="isMobile ? 'grid-cols-2' : 'grid-cols-4'">
-      <select v-model="movementType"
-        class="w-full bg-background border border-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow">
+  <BaseModal
+    :show="show"
+    @close="emit('close')"
+    :title="`Riwayat Stok: ${product?.name}`"
+    maxWidth="max-w-4xl"
+  >
+    <div
+      class="px-4 py-3 grid gap-2 items-center border-b border-secondary/20 bg-background/50"
+      :class="isMobile ? 'grid-cols-2' : 'grid-cols-4'"
+    >
+      <select
+        v-model="movementType"
+        class="w-full bg-background border border-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
+      >
         <option v-for="type in movementTypes" :key="type.value" :value="type.value">
           {{ type.label }}
         </option>
       </select>
-      <select v-model="locationId"
-        class="w-full bg-background border border-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow">
+      <select
+        v-model="locationId"
+        class="w-full bg-background border border-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
+      >
         <option value="all">Semua Lokasi</option>
         <option v-for="loc in locations" :key="loc.id" :value="loc.id">
           {{ loc.code || loc.name }}
         </option>
       </select>
-      <input type="text" v-model="userFilter" placeholder="Cari user..."
-        class="w-full bg-background border border-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow" />
-      <DateRangeFilter v-model:startDate="startDate" v-model:endDate="endDate" class="w-full"
-        :align="isMobile ? 'left' : 'right'" />
+      <input
+        type="text"
+        v-model="userFilter"
+        placeholder="Cari user..."
+        class="w-full bg-background border border-secondary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
+      />
+      <DateRangeFilter
+        v-model:startDate="startDate"
+        v-model:endDate="endDate"
+        class="w-full"
+        :align="isMobile ? 'left' : 'right'"
+      />
     </div>
     <div class="max-h-[70vh] overflow-y-auto">
       <div v-if="loading" class="text-center p-8">Memuat riwayat...</div>
@@ -122,7 +149,10 @@ watch(
         Tidak ada riwayat pergerakan.
       </div>
       <table v-else class="text-sm" :class="isMobile ? 'w-full block' : 'min-w-full'">
-        <thead class="bg-secondary/10 text-xs uppercase text-text/70" :class="isMobile ? 'hidden' : ''">
+        <thead
+          class="bg-secondary/10 text-xs uppercase text-text/70"
+          :class="isMobile ? 'hidden' : ''"
+        >
           <tr>
             <th class="p-2 text-left">Tanggal</th>
             <th class="p-2 text-left">Tipe</th>
@@ -134,38 +164,88 @@ watch(
           </tr>
         </thead>
         <tbody :class="isMobile ? 'block' : 'divide-y divide-secondary/20'">
-          <tr v-for="item in history" :key="item.id" class="transition-colors"
-            :class="isMobile ? 'block mb-3 p-3 bg-background/50 rounded-xl border border-secondary/20 shadow-sm' : 'hover:bg-primary/5'">
+          <tr
+            v-for="item in history"
+            :key="item.id"
+            class="transition-colors"
+            :class="
+              isMobile
+                ? 'block mb-3 p-3 bg-background/50 rounded-xl border border-secondary/20 shadow-sm'
+                : 'hover:bg-primary/5'
+            "
+          >
             <td
-              :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 whitespace-nowrap'">
-              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Tanggal</span>
+              :class="
+                isMobile
+                  ? 'flex justify-between items-center py-1.5 border-b border-secondary/10'
+                  : 'p-2 whitespace-nowrap'
+              "
+            >
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
+                >Tanggal</span
+              >
               <span>{{ new Date(item.created_at).toLocaleString('id-ID') }}</span>
             </td>
-            <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2'">
+            <td
+              :class="
+                isMobile
+                  ? 'flex justify-between items-center py-1.5 border-b border-secondary/10'
+                  : 'p-2'
+              "
+            >
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Tipe</span>
               <span>{{ item.movement_type }}</span>
             </td>
             <td
-              :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 text-center font-bold'">
-              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Jumlah</span>
+              :class="
+                isMobile
+                  ? 'flex justify-between items-center py-1.5 border-b border-secondary/10'
+                  : 'p-2 text-center font-bold'
+              "
+            >
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
+                >Jumlah</span
+              >
               <span class="font-bold">{{ item.quantity }}</span>
             </td>
             <td
-              :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'">
+              :class="
+                isMobile
+                  ? 'flex justify-between items-center py-1.5 border-b border-secondary/10'
+                  : 'p-2 font-mono'
+              "
+            >
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Dari</span>
               <span class="font-mono">{{ item.from_location || '-' }}</span>
             </td>
             <td
-              :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'">
+              :class="
+                isMobile
+                  ? 'flex justify-between items-center py-1.5 border-b border-secondary/10'
+                  : 'p-2 font-mono'
+              "
+            >
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Ke</span>
               <span class="font-mono">{{ item.to_location || '-' }}</span>
             </td>
-            <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2'">
+            <td
+              :class="
+                isMobile
+                  ? 'flex justify-between items-center py-1.5 border-b border-secondary/10'
+                  : 'p-2'
+              "
+            >
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Oleh</span>
               <span>{{ item.user }}</span>
             </td>
-            <td :class="isMobile ? 'flex justify-between items-center py-1.5' : 'p-2 text-xs text-text/80'">
-              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Catatan</span>
+            <td
+              :class="
+                isMobile ? 'flex justify-between items-center py-1.5' : 'p-2 text-xs text-text/80'
+              "
+            >
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
+                >Catatan</span
+              >
               <span class="text-xs text-text/80">{{ item.notes }}</span>
             </td>
           </tr>
@@ -175,8 +255,12 @@ watch(
 
     <template v-if="pagination.total > pagination.limit" #footer>
       <div class="w-full">
-        <BasePagination :pagination="paginationData" :show-limit-picker="false" @changePage="(p) => loadHistory(p)" />
+        <BasePagination
+          :pagination="paginationData"
+          :show-limit-picker="false"
+          @changePage="(p) => loadHistory(p)"
+        />
       </div>
     </template>
-  </Modal>
+  </BaseModal>
 </template>

@@ -1,9 +1,8 @@
 <script setup>
 import { ref } from 'vue'
-import { RouterView, useRoute } from 'vue-router'
+import { RouterView } from 'vue-router'
 
 const isSidebarOpen = ref(false)
-const route = useRoute()
 </script>
 
 <template>

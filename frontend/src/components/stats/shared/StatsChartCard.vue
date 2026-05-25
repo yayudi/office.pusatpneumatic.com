@@ -14,11 +14,6 @@ defineProps({
   minHeight: {
     type: String,
     default: '400px'
-  },
-  // Class overrides for specific grid needs
-  class: {
-    type: String,
-    default: ''
   }
 });
 </script>
@@ -27,7 +22,6 @@ defineProps({
   <div 
     class="bg-background border border-secondary p-5 rounded-xl shadow-sm flex flex-col"
     :style="{ minHeight }"
-    :class="class"
   >
     <div class="mb-4">
       <h4 class="font-bold text-text text-sm">{{ title }}</h4>

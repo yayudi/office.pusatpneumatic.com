@@ -9,7 +9,7 @@ import { useMasterDataStore } from '@/stores/masterData'
 const masterData = useMasterDataStore()
 import UserLocationModal from '@/components/users/locationModal.vue'
 import UserEditModal from '@/components/users/EditModal.vue'
-import Modal from '@/components/ui/Modal.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
 import { useMobile } from '@/composables/useMobile.js'
@@ -221,7 +221,7 @@ onMounted(fetchData)
     @close="isEditModalOpen = false" @updated="fetchData" />
 
   <!-- Modal Konfirmasi Hapus -->
-  <Modal :show="isDeleteConfirmOpen" @close="isDeleteConfirmOpen = false" title="Konfirmasi Hapus">
+  <BaseModal :show="isDeleteConfirmOpen" @close="isDeleteConfirmOpen = false" title="Konfirmasi Hapus">
     <div class="text-center space-y-4">
       <div class="mx-auto w-14 h-14 rounded-full bg-danger/10 flex items-center justify-center">
         <font-awesome-icon icon="fa-solid fa-triangle-exclamation" class="text-danger text-2xl" />
@@ -241,10 +241,10 @@ onMounted(fetchData)
         <span>Hapus</span>
       </button>
     </template>
-  </Modal>
+  </BaseModal>
 
   <!-- Modal untuk Tambah Pengguna -->
-  <Modal :show="isCreateModalOpen" @close="isCreateModalOpen = false" title="Tambah Pengguna Baru">
+  <BaseModal :show="isCreateModalOpen" @close="isCreateModalOpen = false" title="Tambah Pengguna Baru">
     <form @submit.prevent="handleCreateUser" class="p-6 space-y-4">
       <div>
         <label for="username" class="block text-sm font-medium text-text/80 mb-1">Username</label>
@@ -284,7 +284,7 @@ onMounted(fetchData)
         <span>Simpan</span>
       </button>
     </template>
-  </Modal>
+  </BaseModal>
 </template>
 
 <style scoped>

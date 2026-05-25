@@ -56,7 +56,7 @@ export const useAuthStore = defineStore('auth', () => {
         const response = await api.get('/user/profile')
         setUser(response.data.user)
       } catch (error) {
-        clearToken()
+        clearToken(error)
       } finally {
         isLoadingUser.value = false
       }

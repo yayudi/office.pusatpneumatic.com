@@ -1,4 +1,4 @@
-import { hitungDendaTelat, isWeekend } from '@/api/helpers/attendance.js'
+import { hitungDendaTelat } from '@/api/helpers/attendance.js'
 import {
   JAM_KERJA_MULAI,
   JAM_KERJA_SELESAI,
@@ -31,7 +31,7 @@ export function calculateSummaryForUser(user, year, month, globalInfo, auth) {
 
   // loop per hari untuk hitung durasi kerja, telat, early, lembur, denda
   const days = Array.isArray(user.logs) ? user.logs : []
-  days.forEach((day, idx) => {
+  days.forEach((day) => {
     if (!day || day.isEmpty || day.status === 2 || day.status === 3) {
       return
     }
@@ -71,8 +71,10 @@ export function calculateSummaryForUser(user, year, month, globalInfo, auth) {
 
     const jamKerjaEnd = isSat ? JAM_KERJA_SELESAI_SABTU : JAM_KERJA_SELESAI
 
-    const totalBreaks = day.breaks.reduce((total, currentBreak) => total + currentBreak.duration, 0)
-    const durasi = jamKeluar - jamMasuk
+    const dailyBreaks = day.breaks.reduce((total, currentBreak) => total + currentBreak.duration, 0)
+    totalBreaks += dailyBreaks
+    
+    const durasi = (jamKeluar - jamMasuk) - dailyBreaks
 
     totalWork += durasi
     // Telat

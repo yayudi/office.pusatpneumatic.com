@@ -23,19 +23,7 @@ const selectedLog = ref(null) // Defined correctly now
 const visibleLimit = ref(50)
 const tableContainer = ref(null)
 
-// HELPER FUNCTIONS (Moved up before usage)
-function getStatusText(status) {
-  switch (status) {
-    case 1:
-      return 'Tidak Hadir'
-    case 2:
-      return 'Libur'
-    case 3:
-      return 'Data Tidak Lengkap'
-    default:
-      return ''
-  }
-}
+
 
 function formatRow(log, nama) {
   let ket = ''

@@ -1,7 +1,7 @@
 <!-- frontend\src\components\picking\PickingUploadForm.vue -->
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import Tabs from '@/components/ui/Tabs.vue'
+import BaseTabs from '@/components/ui/BaseTabs.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import { useToast } from '@/composables/useToast.js'
 import axios from '@/api/axios.js'
@@ -186,7 +186,7 @@ async function triggerUpload() {
     <!-- Source Tabs -->
     <div>
       <label class="block text-[10px] font-bold uppercase text-text/40 mb-2 tracking-wider">Sumber Data</label>
-      <Tabs :tabs="tabs" v-model:model-value="selectedSource" class="w-full mb-2" />
+      <BaseTabs :tabs="tabs" v-model:model-value="selectedSource" class="w-full mb-2" />
       <div v-if="selectedSource === 'Offline'" class="w-full animate-fade-in origin-left mb-2">
         <BaseSelect v-model="selectedPurpose" :options="purposeOptions" placeholder="Pilih Lokasi Stok" track-by="id"
           emit-value />

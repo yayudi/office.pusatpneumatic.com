@@ -69,7 +69,6 @@ export function normalizeLogs(allUsers, logRows, holidayMap, arg4, arg5) {
     const daysInMonth = new Date(year, month, 0).getDate()
 
     for (let day = 1; day <= daysInMonth; day++) {
-      const d = new Date(year, month - 1, day)
       // Adjust timezone offset (simple heuristic for local YYYY-MM-DD construction)
       const ymd = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
       dateList.push(ymd)

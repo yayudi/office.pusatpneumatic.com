@@ -1,11 +1,7 @@
-<!-- frontend\src\views\Stats.vue -->
+<!-- frontend\src\views\stats\StatsView.vue -->
 <script setup>
 import { ref, onMounted, computed, watch, defineAsyncComponent } from 'vue'
-import {
-  fetchKpiSummary,
-  requestExportStock,
-  getUserExportJobs,
-} from '@/api/helpers/stats.js'
+import { fetchKpiSummary, requestExportStock, getUserExportJobs } from '@/api/helpers/stats.js'
 import { useMasterDataStore } from '@/stores/masterData'
 import { useToast } from '@/composables/useToast.js'
 import SearchInput from '@/components/ui/SearchInput.vue'
@@ -16,11 +12,21 @@ import { formatNumber, formatCurrency } from '@/utils/formatters.js'
 import { useDownloadStore } from '@/stores/downloadStore.js'
 
 // Lazy load heavy chart components based on active tab
-const StockMovementStats = defineAsyncComponent(() => import('@/components/stats/StockMovementStats.vue'))
-const StockTimelineFull = defineAsyncComponent(() => import('@/components/stats/StockTimelineFull.vue'))
-const InventoryValueStats = defineAsyncComponent(() => import('@/components/stats/InventoryValueStats.vue'))
-const TimePerformanceStats = defineAsyncComponent(() => import('@/components/stats/TimePerformanceStats.vue'))
-const ShopPerformanceStats = defineAsyncComponent(() => import('@/components/stats/ShopPerformanceStats.vue'))
+const StockMovementStats = defineAsyncComponent(
+  () => import('@/components/stats/StockMovementStats.vue'),
+)
+const StockTimelineFull = defineAsyncComponent(
+  () => import('@/components/stats/StockTimelineFull.vue'),
+)
+const InventoryValueStats = defineAsyncComponent(
+  () => import('@/components/stats/InventoryValueStats.vue'),
+)
+const TimePerformanceStats = defineAsyncComponent(
+  () => import('@/components/stats/TimePerformanceStats.vue'),
+)
+const ShopPerformanceStats = defineAsyncComponent(
+  () => import('@/components/stats/ShopPerformanceStats.vue'),
+)
 
 const masterData = useMasterDataStore()
 const downloadStore = useDownloadStore()
@@ -99,7 +105,7 @@ const reportsMenu = [
     key: 'sku-audit',
     label: 'Audit SKU',
     group: 'Audit & Lainnya',
-    icon: 'fa-solid fa-search'
+    icon: 'fa-solid fa-search',
   },
   {
     key: 'export-stock',
@@ -141,7 +147,7 @@ async function loadHistory() {
   try {
     const response = await getUserExportJobs()
     if (response.success) {
-      jobHistory.value = response.data.filter(job => job.type === 'STOCK_REPORT')
+      jobHistory.value = response.data.filter((job) => job.type === 'STOCK_REPORT')
     }
   } catch (error) {
     console.error('Gagal memuat riwayat:', error)
@@ -161,19 +167,19 @@ onMounted(() => {
 
 const purposeOptions = computed(() => [
   { id: '', label: '-- Semua Tujuan --' },
-  ...(reportFilters.value?.purposes || []).map(p => ({ id: p, label: p }))
+  ...(reportFilters.value?.purposes || []).map((p) => ({ id: p, label: p })),
 ])
 
 const typeOptions = [
   { id: '', label: 'Semua' },
   { id: '0', label: 'Tunggal' },
-  { id: '1', label: 'Paket' }
+  { id: '1', label: 'Paket' },
 ]
 
 const stockStatusOptions = [
   { id: 'positive', label: 'Positif' },
   { id: 'negative', label: 'Minus' },
-  { id: 'all', label: 'Semua' }
+  { id: 'all', label: 'Semua' },
 ]
 
 const availableBuildings = computed(() => {
@@ -213,7 +219,7 @@ async function handleRequestExport() {
 
     // Muat ulang riwayat untuk melihat status PENDING
     loadHistory()
-    
+
     // Mulai polling di Global Download Manager
     downloadStore.startPolling()
   } catch (error) {
@@ -224,8 +230,11 @@ async function handleRequestExport() {
 }
 
 function formatJobType(type) {
-  if (!type) return '-';
-  return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+  if (!type) return '-'
+  return type
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
 }
 
 // Removed locale formatters as they are now imported from utils
@@ -234,41 +243,57 @@ function formatJobType(type) {
 <template>
   <div class="flex font-sans text-text">
     <!-- Mobile Backdrop -->
-    <div v-if="isSidebarOpen" @click="isSidebarOpen = false"
-      class="fixed inset-0 bg-black/50 z-20 md:hidden backdrop-blur-sm"></div>
+    <div
+      v-if="isSidebarOpen"
+      @click="isSidebarOpen = false"
+      class="fixed inset-0 bg-black/50 z-20 md:hidden backdrop-blur-sm"
+    ></div>
 
     <!-- Sidebar -->
     <aside
       class="fixed md:sticky top-12 bottom-0 left-0 md:h-[calc(95vh-3rem)] z-50 w-64 bg-background border-r border-secondary/20 transform transition-transform duration-300 ease-in-out flex flex-col shadow-lg md:shadow-none overflow-y-auto"
-      :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'">
+      :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
+    >
       <!-- Logo / Header -->
-      <div class="p-6 border-b border-secondary/20 flex justify-between items-center bg-secondary/5">
+      <div
+        class="p-6 border-b border-secondary/20 flex justify-between items-center bg-secondary/5"
+      >
         <h2 class="text-xl font-bold text-text flex items-center gap-3">
           <font-awesome-icon icon="fa-solid fa-chart-simple" class="text-primary" />
           <span>Statistik</span>
         </h2>
         <!-- Close button for mobile -->
-        <button @click="isSidebarOpen = false"
-          class="md:hidden text-text/60 hover:text-danger p-1 rounded-md transition-colors">
+        <button
+          @click="isSidebarOpen = false"
+          class="md:hidden text-text/60 hover:text-danger p-1 rounded-md transition-colors"
+        >
           <font-awesome-icon icon="fa-solid fa-xmark" size="lg" />
         </button>
       </div>
 
       <!-- Navigation -->
       <nav class="flex-1 space-y-1 overflow-y-auto mt-[-2vh]">
-        <div v-for="groupName in ['Overview', 'Laporan Utama', 'Audit & Lainnya']" :key="groupName"
-          class="border-t border-secondary py-4 pr-6">
+        <div
+          v-for="groupName in ['Overview', 'Laporan Utama', 'Audit & Lainnya']"
+          :key="groupName"
+          class="border-t border-secondary py-4 pr-6"
+        >
           <h4 class="text-xs font-bold text-text/40 uppercase tracking-wider mb-2 px-3">
             {{ groupName }}
           </h4>
           <div class="space-y-1">
-            <a v-for="item in reportsMenu.filter((m) => m.group === groupName)" :key="item.key" href="#" @click.prevent="
-              activeReport = item.key;
-            isSidebarOpen = false
-              " class="flex items-center ml-5 px-3 py-2.5 text-sm font-medium rounded-lg transition-all" :class="activeReport === item.key
-                ? 'bg-primary/10 text-primary shadow-sm font-bold ring-1 ring-primary/20'
-                : 'text-text/70 hover:bg-secondary/20 hover:text-text'
-                ">
+            <a
+              v-for="item in reportsMenu.filter((m) => m.group === groupName)"
+              :key="item.key"
+              href="#"
+              @click.prevent="((activeReport = item.key), (isSidebarOpen = false))"
+              class="flex items-center ml-5 px-3 py-2.5 text-sm font-medium rounded-lg transition-all"
+              :class="
+                activeReport === item.key
+                  ? 'bg-primary/10 text-primary shadow-sm font-bold ring-1 ring-primary/20'
+                  : 'text-text/70 hover:bg-secondary/20 hover:text-text'
+              "
+            >
               <div class="w-6 flex justify-center mr-2">
                 <font-awesome-icon :icon="item.icon" />
               </div>
@@ -283,26 +308,38 @@ function formatJobType(type) {
     <div class="flex-1 flex flex-col min-w-0 transition-all duration-300">
       <!-- Mobile Header -->
       <header
-        class="md:hidden h-16 bg-background/80 backdrop-blur-md border-b border-secondary/20 flex items-center justify-between px-4 sticky top-0 z-25 shadow-sm">
-        <button @click="isSidebarOpen = !isSidebarOpen"
-          class="p-2 -ml-2 text-text/70 hover:text-primary rounded-lg hover:bg-secondary/10 transition-colors">
+        class="md:hidden h-16 bg-background/80 backdrop-blur-md border-b border-secondary/20 flex items-center justify-between px-4 sticky top-0 z-25 shadow-sm"
+      >
+        <button
+          @click="isSidebarOpen = !isSidebarOpen"
+          class="p-2 -ml-2 text-text/70 hover:text-primary rounded-lg hover:bg-secondary/10 transition-colors"
+        >
           <font-awesome-icon icon="fa-solid fa-bars" size="lg" />
         </button>
         <span class="font-bold text-text truncate">Statistik & Laporan</span>
-        <div class="w-8"></div> <!-- Spacer -->
+        <div class="w-8"></div>
+        <!-- Spacer -->
       </header>
 
       <!-- Page Content -->
       <main class="flex-1 p-4 md:ml-8 w-full">
         <div class="w-full md:w-auto mx-auto">
           <div
-            class="bg-background rounded-xl shadow-md border border-secondary/20 p-6 min-h-[calc(50vh+20rem)] relative overflow-visible animate-fade-in">
+            class="bg-background rounded-xl shadow-md border border-secondary/20 p-6 min-h-[calc(50vh+20rem)] relative overflow-visible animate-fade-in"
+          >
             <div v-if="isLoading" class="flex flex-col items-center justify-center h-80">
-              <font-awesome-icon icon="fa-solid fa-circle-notch" spin class="text-primary text-4xl mb-3" />
+              <font-awesome-icon
+                icon="fa-solid fa-circle-notch"
+                spin
+                class="text-primary text-4xl mb-3"
+              />
               <span class="text-text/50 font-medium">Memuat Data...</span>
             </div>
 
-            <div v-else-if="errorMessage" class="flex flex-col items-center justify-center h-80 text-danger">
+            <div
+              v-else-if="errorMessage"
+              class="flex flex-col items-center justify-center h-80 text-danger"
+            >
               <div class="bg-danger/10 p-4 rounded-full mb-3">
                 <font-awesome-icon icon="fa-solid fa-triangle-exclamation" class="text-3xl" />
               </div>
@@ -368,11 +405,26 @@ function formatJobType(type) {
               </div>
 
               <KeepAlive>
-                <StockMovementStats v-if="activeReport === 'stock-movement'" class="animate-fade-in" />
-                <StockTimelineFull v-else-if="activeReport === 'stock-timeline'" class="animate-fade-in" />
-                <InventoryValueStats v-else-if="activeReport === 'inventory-value'" class="animate-fade-in" />
-                <TimePerformanceStats v-else-if="activeReport === 'time-performance'" class="animate-fade-in" />
-                <ShopPerformanceStats v-else-if="activeReport === 'channel-performance'" class="animate-fade-in" />
+                <StockMovementStats
+                  v-if="activeReport === 'stock-movement'"
+                  class="animate-fade-in"
+                />
+                <StockTimelineFull
+                  v-else-if="activeReport === 'stock-timeline'"
+                  class="animate-fade-in"
+                />
+                <InventoryValueStats
+                  v-else-if="activeReport === 'inventory-value'"
+                  class="animate-fade-in"
+                />
+                <TimePerformanceStats
+                  v-else-if="activeReport === 'time-performance'"
+                  class="animate-fade-in"
+                />
+                <ShopPerformanceStats
+                  v-else-if="activeReport === 'channel-performance'"
+                  class="animate-fade-in"
+                />
               </KeepAlive>
 
               <div v-if="activeReport === 'export-stock'" class="animate-fade-in">
@@ -390,38 +442,64 @@ function formatJobType(type) {
                         <div class="space-y-5 w-full">
                           <div>
                             <label class="label-input">Cari Produk</label>
-                            <SearchInput id="search-filter" v-model="selectedFilters.searchQuery"
-                              placeholder="Cari SKU atau Nama Produk..." />
+                            <SearchInput
+                              id="search-filter"
+                              v-model="selectedFilters.searchQuery"
+                              placeholder="Cari SKU atau Nama Produk..."
+                            />
                           </div>
 
                           <div>
                             <label class="label-input">Gedung</label>
-                            <BaseSelect v-model="selectedFilters.building" :options="availableBuildings"
-                              :multiple="true" placeholder="Semua Gedung" />
+                            <BaseSelect
+                              v-model="selectedFilters.building"
+                              :options="availableBuildings"
+                              :multiple="true"
+                              placeholder="Semua Gedung"
+                            />
                           </div>
 
                           <div>
                             <label class="label-input">Tujuan</label>
-                            <BaseSelect v-model="selectedFilters.purpose" :options="purposeOptions" emitValue
-                              :searchable="false" />
+                            <BaseSelect
+                              v-model="selectedFilters.purpose"
+                              :options="purposeOptions"
+                              emitValue
+                              :searchable="false"
+                            />
                           </div>
 
                           <div class="grid grid-cols-2 gap-3">
                             <div>
                               <label class="label-input">Tipe</label>
-                              <BaseSelect v-model="selectedFilters.isPackage" :options="typeOptions" emitValue
-                                :searchable="false" />
+                              <BaseSelect
+                                v-model="selectedFilters.isPackage"
+                                :options="typeOptions"
+                                emitValue
+                                :searchable="false"
+                              />
                             </div>
                             <div>
                               <label class="label-input">Status Stok</label>
-                              <BaseSelect v-model="selectedFilters.stockStatus" :options="stockStatusOptions" emitValue
-                                :searchable="false" />
+                              <BaseSelect
+                                v-model="selectedFilters.stockStatus"
+                                :options="stockStatusOptions"
+                                emitValue
+                                :searchable="false"
+                              />
                             </div>
                           </div>
 
-                          <button @click="handleRequestExport" :disabled="isRequesting"
-                            class="w-full py-3 bg-primary text-secondary rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]">
-                            <font-awesome-icon v-if="isRequesting" icon="fa-solid fa-circle-notch" spin />
+                          <button
+                            @click="handleRequestExport"
+                            :disabled="isRequesting"
+                            class="w-full py-3 bg-primary text-secondary rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
+                          >
+                            <font-awesome-icon
+                              v-if="isRequesting"
+                              icon="fa-solid fa-circle-notch"
+                              spin
+                            />
                             <font-awesome-icon v-else icon="fa-solid fa-file-export" />
                             <span>{{ isRequesting ? 'Memproses...' : 'Generate Laporan' }}</span>
                           </button>
@@ -435,64 +513,99 @@ function formatJobType(type) {
                       <h4 class="text-sm font-bold text-text/70 uppercase tracking-wide">
                         Riwayat Generate
                       </h4>
-                      <button @click="loadHistory" :disabled="isHistoryLoading"
-                        class="text-xs text-primary font-bold hover:text-primary/80 disabled:opacity-50 flex items-center gap-1.5 transition-colors">
-                        <font-awesome-icon icon="fa-solid fa-rotate" :class="{ 'animate-spin': isHistoryLoading }" />
+                      <button
+                        @click="loadHistory"
+                        :disabled="isHistoryLoading"
+                        class="text-xs text-primary font-bold hover:text-primary/80 disabled:opacity-50 flex items-center gap-1.5 transition-colors"
+                      >
+                        <font-awesome-icon
+                          icon="fa-solid fa-rotate"
+                          :class="{ 'animate-spin': isHistoryLoading }"
+                        />
                         Refresh
                       </button>
                     </div>
 
                     <div
-                      class="bg-background border border-secondary/20 rounded-xl overflow-hidden shadow-md overflow-x-auto overflow-y-auto relative custom-scrollbar max-h-[400px]">
+                      class="bg-background border border-secondary/20 rounded-xl overflow-hidden shadow-md overflow-x-auto overflow-y-auto relative custom-scrollbar max-h-[400px]"
+                    >
                       <table class="w-full text-left text-sm min-w-[500px] border-collapse">
                         <thead
-                          class="sticky top-0 z-50 bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary">
+                          class="sticky top-0 z-50 bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary"
+                        >
                           <tr>
                             <th
-                              class="px-3 py-3 font-bold text-xs text-text/60 uppercase sticky left-0 z-10 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                              Nama File</th>
+                              class="px-3 py-3 font-bold text-xs text-text/60 uppercase sticky left-0 z-10 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]"
+                            >
+                              Nama File
+                            </th>
                             <th
-                              class="px-3 py-3 font-bold text-xs text-text/60 uppercase sticky left-0 z-10 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                              Waktu</th>
+                              class="px-3 py-3 font-bold text-xs text-text/60 uppercase sticky left-0 z-10 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]"
+                            >
+                              Waktu
+                            </th>
                             <th
-                              class="px-3 py-3 font-bold text-xs text-text/60 uppercase sticky left-0 z-10 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                              Tipe</th>
-                            <th class="px-3 py-3 font-bold text-xs text-text/60 uppercase border-b border-secondary/10">
-                              Status</th>
+                              class="px-3 py-3 font-bold text-xs text-text/60 uppercase sticky left-0 z-10 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]"
+                            >
+                              Tipe
+                            </th>
                             <th
-                              class="px-3 py-3 font-bold text-xs text-text/60 uppercase text-right border-b border-secondary/10 sticky right-0 z-30 bg-background/95 backdrop-blur-md shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                              class="px-3 py-3 font-bold text-xs text-text/60 uppercase border-b border-secondary/10"
+                            >
+                              Status
+                            </th>
+                            <th
+                              class="px-3 py-3 font-bold text-xs text-text/60 uppercase text-right border-b border-secondary/10 sticky right-0 z-30 bg-background/95 backdrop-blur-md shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]"
+                            >
                               Aksi
                             </th>
                           </tr>
                         </thead>
-                        <TransitionGroup tag="tbody" name="list" class="divide-y divide-secondary/5 relative">
+                        <TransitionGroup
+                          tag="tbody"
+                          name="list"
+                          class="divide-y divide-secondary/5 relative"
+                        >
                           <template v-if="isHistoryLoading && jobHistory.length === 0">
                             <TableSkeleton v-for="n in 3" :key="`skeleton-${n}`" />
                           </template>
 
                           <tr v-else-if="jobHistory.length === 0" key="empty">
-                            <td colspan="3" class="px-6 py-12 text-sm text-text/40 text-center italic">
-                              <font-awesome-icon icon="fa-solid fa-clock-rotate-left"
-                                class="mb-3 text-3xl opacity-20 block mx-auto" />
+                            <td
+                              colspan="3"
+                              class="px-6 py-12 text-sm text-text/40 text-center italic"
+                            >
+                              <font-awesome-icon
+                                icon="fa-solid fa-clock-rotate-left"
+                                class="mb-3 text-3xl opacity-20 block mx-auto"
+                              />
                               Belum ada riwayat permintaan.
                             </td>
                           </tr>
 
-                          <tr v-else v-for="job in jobHistory" :key="job.id"
-                            class="hover:bg-secondary/5 transition-colors group relative">
+                          <tr
+                            v-else
+                            v-for="job in jobHistory"
+                            :key="job.id"
+                            class="hover:bg-secondary/5 transition-colors group relative"
+                          >
                             <td
-                              class="px-2 py-1 text-text text-xs sticky left-0 bg-background group-hover:bg-secondary/5 transition-colors shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                              class="px-2 py-1 text-text text-xs sticky left-0 bg-background group-hover:bg-secondary/5 transition-colors shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]"
+                            >
                               <div class="flex flex-col">
                                 <span class="font-bold text-sm">{{ job.file_path }}</span>
                               </div>
                             </td>
                             <td
-                              class="px-2 py-1 text-text text-xs sticky left-0 bg-background group-hover:bg-secondary/5 transition-colors shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+                              class="px-2 py-1 text-text text-xs sticky left-0 bg-background group-hover:bg-secondary/5 transition-colors shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]"
+                            >
                               <div class="flex flex-col">
-                                <span class="font-bold text-sm">{{ new Date(job.created_at).toLocaleDateString('id-ID')
+                                <span class="font-bold text-sm">{{
+                                  new Date(job.created_at).toLocaleDateString('id-ID')
                                 }}</span>
-                                <span class="text-text/40 text-[10px]">{{ new
-                                  Date(job.created_at).toLocaleTimeString('id-ID') }}</span>
+                                <span class="text-text/40 text-[10px]">{{
+                                  new Date(job.created_at).toLocaleTimeString('id-ID')
+                                }}</span>
                               </div>
                             </td>
                             <td class="px-2 py-1">
@@ -501,39 +614,60 @@ function formatJobType(type) {
                               </div>
                             </td>
                             <td class="px-2 py-1">
-                              <span v-if="job.status === 'PENDING'"
+                              <span
+                                v-if="job.status === 'PENDING'"
                                 class="inline-flex items-center gap-1.5 justify-center align-center w-full py-1 rounded-full text-[10px] font-bold bg-warning/10 text-warning border border-warning/20"
-                                title="Menunggu">
+                                title="Menunggu"
+                              >
                                 <font-awesome-icon icon="fa-solid fa-clock" class="animate-ping" />
                               </span>
-                              <span v-if="job.status === 'COMPLETED'"
+                              <span
+                                v-if="job.status === 'COMPLETED'"
                                 class="inline-flex items-center gap-1.5 justify-center align-center w-full py-1 rounded-full text-[10px] font-bold bg-success/10 text-success border border-success/20"
-                                title="Selesai">
+                                title="Selesai"
+                              >
                                 <font-awesome-icon icon="fa-solid fa-check" />
                               </span>
-                              <span v-else-if="job.status === 'FAILED'"
+                              <span
+                                v-else-if="job.status === 'FAILED'"
                                 class="inline-flex items-center gap-1.5 justify-center align-center w-full py-1 rounded-full text-[10px] font-bold bg-danger/10 text-danger border border-danger/20"
-                                :title="job.error_message" title="Gagal">
+                                :title="job.error_message || Gagal"
+                              >
                                 <font-awesome-icon icon="fa-solid fa-xmark" />
                               </span>
-                              <span v-else-if="job.status === 'PROCESSING'"
+                              <span
+                                v-else-if="job.status === 'PROCESSING'"
                                 class="inline-flex items-center gap-1.5 justify-center align-center w-full py-1 rounded-full text-[10px] font-bold bg-warning/10 text-warning border border-warning/20"
-                                title="Proses">
-                                <span class="w-1.5 h-1.5 rounded-full bg-current animate-ping"></span>
+                                title="Proses"
+                              >
+                                <span
+                                  class="w-1.5 h-1.5 rounded-full bg-current animate-ping"
+                                ></span>
                               </span>
                             </td>
                             <td
-                              class="px-2 py-1 text-right sticky right-0 bg-background group-hover:bg-secondary/5 transition-colors shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-                              <a v-if="job.status === 'COMPLETED'" :href="job.download_url" download
-                                class="inline-flex items-center align-center justify-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-bold w-full hover:bg-primary hover:text-secondary transition-all shadow-sm">
+                              class="px-2 py-1 text-right sticky right-0 bg-background group-hover:bg-secondary/5 transition-colors shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]"
+                            >
+                              <a
+                                v-if="job.status === 'COMPLETED'"
+                                :href="job.download_url"
+                                download
+                                class="inline-flex items-center align-center justify-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-bold w-full hover:bg-primary hover:text-secondary transition-all shadow-sm"
+                              >
                                 <font-awesome-icon icon="fa-solid fa-download" />
                               </a>
-                              <span v-else-if="job.status === 'FAILED'"
+                              <span
+                                v-else-if="job.status === 'FAILED'"
                                 class="text-xs text-danger/60 bg-re align-center justify-center italic cursor-help underline decoration-dotted"
-                                :title="job.error_message">
+                                :title="job.error_message"
+                              >
                                 Error
                               </span>
-                              <span v-else class="text-xs text-text/30 align-center justify-center italic"> Menunggu...
+                              <span
+                                v-else
+                                class="text-xs text-text/30 align-center justify-center italic"
+                              >
+                                Menunggu...
                               </span>
                             </td>
                           </tr>
@@ -546,9 +680,23 @@ function formatJobType(type) {
 
               <!-- Attendance Stats Section -->
               <div
-                v-if="!['overview', 'stock-movement', 'stock-timeline', 'inventory-value', 'time-performance', 'export-stock', 'channel-performance'].includes(activeReport)"
-                class="flex flex-col items-center justify-center h-80 text-text/30">
-                <font-awesome-icon icon="fa-solid fa-screwdriver-wrench" class="text-4xl mb-3 opacity-20" />
+                v-if="
+                  ![
+                    'overview',
+                    'stock-movement',
+                    'stock-timeline',
+                    'inventory-value',
+                    'time-performance',
+                    'export-stock',
+                    'channel-performance',
+                  ].includes(activeReport)
+                "
+                class="flex flex-col items-center justify-center h-80 text-text/30"
+              >
+                <font-awesome-icon
+                  icon="fa-solid fa-screwdriver-wrench"
+                  class="text-4xl mb-3 opacity-20"
+                />
                 <h3 class="text-lg font-medium italic">Laporan ini sedang dalam pengembangan.</h3>
                 <p class="text-sm">Silakan kembali lagi nanti.</p>
               </div>
@@ -557,8 +705,6 @@ function formatJobType(type) {
         </div>
       </main>
     </div>
-
-
   </div>
 </template>
 

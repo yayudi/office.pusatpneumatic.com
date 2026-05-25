@@ -1,5 +1,5 @@
 // frontend/src/composables/usePickingFilters.js
-import { reactive, watch, computed } from 'vue'
+import { reactive, computed } from 'vue'
 import debounce from 'lodash/debounce'
 
 export function usePickingFilters(initialState = {}, emitChangeFn = null) {
@@ -64,6 +64,6 @@ export function usePickingFilters(initialState = {}, emitChangeFn = null) {
     hasActiveFilters,
     clearFilters,
     onSearchInput,
-    onSelectChange
+    onSelectChange,
   }
 }

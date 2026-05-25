@@ -58,7 +58,7 @@ const props = defineProps({
   placeholderValues: {
     type: Array,
     default: () => [null, '', 'all'],
-  }
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'search-change'])
@@ -80,11 +80,11 @@ const { floatingStyles } = useFloating(triggerRef, dropdownRef, {
     size({
       apply({ rects, elements }) {
         Object.assign(elements.floating.style, {
-          width: `${rects.reference.width}px`
+          width: `${rects.reference.width}px`,
         })
-      }
-    })
-  ]
+      },
+    }),
+  ],
 })
 
 // --- COMPUTED ---
@@ -95,7 +95,7 @@ const displayValue = computed(() => {
     return props.modelValue[props.label]
   }
   if (props.emitValue) {
-    const matched = props.options.find(opt => {
+    const matched = props.options.find((opt) => {
       if (typeof opt === 'object') return opt[props.trackBy] === props.modelValue
       return opt === props.modelValue
     })
@@ -146,8 +146,7 @@ function toggle() {
 
 function open() {
   isOpen.value = true
-  if (!props.internalSearch) {
-  } else {
+  if (props.internalSearch) {
     searchQuery.value = ''
   }
   nextTick(() => {
@@ -201,7 +200,7 @@ function removeTag(item, event) {
 }
 
 function findIndex(array, val) {
-  return array.findIndex(item => {
+  return array.findIndex((item) => {
     if (typeof item === 'object' && typeof val === 'object' && props.trackBy) {
       if (item[props.trackBy] !== undefined) {
         return item[props.trackBy] === val[props.trackBy]
@@ -228,7 +227,7 @@ function isSelected(option) {
 function selectAll() {
   if (!props.multiple) return
   const current = Array.isArray(props.modelValue) ? [...props.modelValue] : []
-  filteredOptions.value.forEach(opt => {
+  filteredOptions.value.forEach((opt) => {
     const val = getOptionValue(opt)
     if (findIndex(current, val) === -1) {
       current.push(val)
@@ -275,12 +274,17 @@ onUnmounted(() => {
 <template>
   <div ref="containerRef" class="relative text-left font-sans h-[42px] shadow-sm rounded-lg">
     <!-- TRIGGER AREA -->
-    <div ref="triggerRef" @click="toggle"
+    <div
+      ref="triggerRef"
+      @click="toggle"
       class="w-full min-h-[42px] px-2 bg-background border rounded-lg cursor-pointer flex flex-wrap gap-1 items-center transition-all shadow-sm"
       :class="[
-        isOpen ? 'border-primary ring-1 ring-primary' : 'border-secondary/50 hover:border-primary/50',
-        disabled ? 'opacity-50 cursor-not-allowed bg-secondary/10' : ''
-      ]">
+        isOpen
+          ? 'border-primary ring-1 ring-primary'
+          : 'border-secondary/50 hover:border-primary/50',
+        disabled ? 'opacity-50 cursor-not-allowed bg-secondary/10' : '',
+      ]"
+    >
       <!-- Loading Indicator -->
       <div v-if="loading" class="absolute right-8 top-1/2 -translate-y-1/2">
         <font-awesome-icon icon="fa-solid fa-spinner" class="animate-spin text-primary text-xs" />
@@ -288,95 +292,158 @@ onUnmounted(() => {
 
       <!-- Multiple: Tags -->
       <template v-if="multiple && selectedItems.length > 0">
-        <div v-for="item in selectedItems" :key="typeof item === 'object' ? item[trackBy] : item"
-          class="bg-primary/10 text-primary border border-primary/20 text-xs px-2 py-0.5 rounded-md flex items-center gap-1 select-none">
+        <div
+          v-for="item in selectedItems"
+          :key="typeof item === 'object' ? item[trackBy] : item"
+          class="bg-primary/10 text-primary border border-primary/20 text-xs px-2 py-0.5 rounded-md flex items-center gap-1 select-none"
+        >
           <span>{{
-            (typeof item === 'object') ? item[label] :
-              (props.emitValue ? (options.find(o => (typeof o === 'object' ? o[trackBy] === item : o === item))?.[label]
-                || item) : item)
+            typeof item === 'object'
+              ? item[label]
+              : props.emitValue
+                ? options.find((o) => (typeof o === 'object' ? o[trackBy] === item : o === item))?.[
+                    label
+                  ] || item
+                : item
           }}</span>
-          <span @click="(e) => removeTag(item, e)" class="cursor-pointer hover:text-primary/70 font-bold">&times;</span>
+          <span
+            @click="(e) => removeTag(item, e)"
+            class="cursor-pointer hover:text-primary/70 font-bold"
+            >&times;</span
+          >
         </div>
       </template>
 
       <!-- Single: Display Value / Placeholder -->
-      <span v-else-if="!multiple" class="text-sm truncate pr-2 flex-grow select-none"
-        :class="isPlaceholderState ? 'text-text/40 font-normal' : 'text-text font-medium'">
-        {{ (isPlaceholderState && (!displayValue || displayValue === modelValue)) ? placeholder : (displayValue ||
-          placeholder) }}
+      <span
+        v-else-if="!multiple"
+        class="text-sm truncate pr-2 flex-grow select-none"
+        :class="isPlaceholderState ? 'text-text/40 font-normal' : 'text-text font-medium'"
+      >
+        {{
+          isPlaceholderState && (!displayValue || displayValue === modelValue)
+            ? placeholder
+            : displayValue || placeholder
+        }}
       </span>
 
       <!-- Placeholder for Multiple -->
-      <span v-if="multiple && selectedItems.length === 0" class="text-sm text-text/40 truncate flex-grow select-none">
+      <span
+        v-if="multiple && selectedItems.length === 0"
+        class="text-sm text-text/40 truncate flex-grow select-none"
+      >
         {{ placeholder }}
       </span>
 
       <!-- Action Icons -->
       <div class="ml-auto pl-1 flex items-center gap-1">
         <!-- Clear Button -->
-        <font-awesome-icon v-if="clearable && !isPlaceholderState && !disabled" icon="fa-solid fa-xmark"
+        <font-awesome-icon
+          v-if="clearable && !isPlaceholderState && !disabled"
+          icon="fa-solid fa-xmark"
           class="text-[13px] text-text/40 hover:text-danger cursor-pointer transition-colors py-1"
-          @click.stop="handleClear" title="Bersihkan" />
+          @click.stop="handleClear"
+          title="Bersihkan"
+        />
         <!-- Icon Chevron -->
-        <font-awesome-icon v-else icon="fa-solid fa-chevron-down"
-          class="text-xs text-text/40 transition-transform duration-200" :class="{ 'rotate-180': isOpen }" />
+        <font-awesome-icon
+          v-else
+          icon="fa-solid fa-chevron-down"
+          class="text-xs text-text/40 transition-transform duration-200"
+          :class="{ 'rotate-180': isOpen }"
+        />
       </div>
     </div>
 
     <!-- DROPDOWN MENU (TELEPORTED) -->
     <Teleport to="body">
-      <transition enter-active-class="transition-opacity duration-150 ease-out" enter-from-class="opacity-0"
-        enter-to-class="opacity-100" leave-active-class="transition-opacity duration-100 ease-in"
-        leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-if="isOpen" ref="dropdownRef" :style="floatingStyles"
-          class="z-[9999] bg-background border border-secondary/20 rounded-lg shadow-xl overflow-hidden text-sm">
+      <transition
+        enter-active-class="transition-opacity duration-150 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition-opacity duration-100 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="isOpen"
+          ref="dropdownRef"
+          :style="floatingStyles"
+          class="z-[9999] bg-background border border-secondary/20 rounded-lg shadow-xl overflow-hidden text-sm"
+        >
           <!-- Search Input -->
           <div v-if="searchable" class="p-2 border-b border-secondary/10 bg-secondary/5">
             <div class="relative">
-              <font-awesome-icon icon="fa-solid fa-magnifying-glass"
-                class="absolute left-3 top-1/2 -translate-y-1/2 text-text/30 text-xs" />
-              <input ref="inputRef" v-model="searchQuery" type="text" placeholder="Cari..."
+              <font-awesome-icon
+                icon="fa-solid fa-magnifying-glass"
+                class="absolute left-3 top-1/2 -translate-y-1/2 text-text/30 text-xs"
+              />
+              <input
+                ref="inputRef"
+                v-model="searchQuery"
+                type="text"
+                placeholder="Cari..."
                 class="w-full pl-8 pr-3 py-1.5 text-xs bg-background border border-secondary/20 rounded-md focus:outline-none focus:border-primary text-text placeholder:text-text/30"
-                @keydown.esc="close" />
+                @keydown.esc="close"
+              />
             </div>
           </div>
 
           <!-- Multiple Selection Action Buttons -->
-          <div v-if="multiple"
-            class="p-2 border-b border-secondary/10 bg-background flex flex-wrap gap-1 justify-between items-center text-xs">
-            <button @click.stop="selectAll"
-              class="text-primary hover:text-primary/80 font-semibold px-2 py-1 rounded hover:bg-primary/10 transition-colors">
+          <div
+            v-if="multiple"
+            class="p-2 border-b border-secondary/10 bg-background flex flex-wrap gap-1 justify-between items-center text-xs"
+          >
+            <button
+              @click.stop="selectAll"
+              class="text-primary hover:text-primary/80 font-semibold px-2 py-1 rounded hover:bg-primary/10 transition-colors"
+            >
               <font-awesome-icon icon="fa-solid fa-check-double" class="mr-1" /> Pilih Semua
             </button>
-            <button @click.stop="clearSelection"
-              class="text-danger hover:text-danger/80 font-semibold px-2 py-1 rounded hover:bg-danger/10 transition-colors">
+            <button
+              @click.stop="clearSelection"
+              class="text-danger hover:text-danger/80 font-semibold px-2 py-1 rounded hover:bg-danger/10 transition-colors"
+            >
               <font-awesome-icon icon="fa-solid fa-eraser" class="mr-1" /> Bersihkan
             </button>
           </div>
 
           <!-- Options List (Multiple as Chip Cloud) -->
-          <div v-if="multiple"
-            class="max-h-[300px] overflow-y-auto custom-scrollbar p-3 flex flex-wrap gap-1 items-start content-start">
+          <div
+            v-if="multiple"
+            class="max-h-[300px] overflow-y-auto custom-scrollbar p-3 flex flex-wrap gap-1 items-start content-start"
+          >
             <div v-if="loading" class="w-full text-center text-text/60 italic text-xs py-2">
               Memuat data...
             </div>
-            <div v-else-if="filteredOptions.length === 0" class="w-full text-center text-text/40 italic text-xs py-2">
+            <div
+              v-else-if="filteredOptions.length === 0"
+              class="w-full text-center text-text/40 italic text-xs py-2"
+            >
               <slot name="noResult">Tidak ada opsi ditemukan.</slot>
             </div>
-            <button v-else v-for="(option, index) in filteredOptions"
-              :key="typeof option === 'object' ? option[trackBy] : index" @click.stop="select(option)"
+            <button
+              v-else
+              v-for="(option, index) in filteredOptions"
+              :key="typeof option === 'object' ? option[trackBy] : index"
+              @click.stop="select(option)"
               class="px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all shadow-sm flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-primary/50"
               :class="[
                 isSelected(option)
                   ? 'bg-primary text-secondary border border-transparent hover:brightness-110'
-                  : 'bg-secondary/10 text-text border border-secondary/30 hover:bg-secondary/20'
-              ]">
+                  : 'bg-secondary/10 text-text border border-secondary/30 hover:bg-secondary/20',
+              ]"
+            >
               <span class="truncate max-w-[200px] text-left">
                 <slot name="option" :option="option" :selected="isSelected(option)">
                   {{ typeof option === 'object' ? option[label] : option }}
                 </slot>
               </span>
-              <font-awesome-icon v-if="isSelected(option)" icon="fa-solid fa-check" class="text-[10px]" />
+              <font-awesome-icon
+                v-if="isSelected(option)"
+                icon="fa-solid fa-check"
+                class="text-[10px]"
+              />
               <font-awesome-icon v-else icon="fa-solid fa-plus" class="text-[10px]" />
             </button>
           </div>
@@ -386,18 +453,25 @@ onUnmounted(() => {
             <li v-if="loading" class="px-3 py-4 text-center text-text/60 italic text-xs">
               Memuat data...
             </li>
-            <li v-else-if="filteredOptions.length === 0" class="px-3 py-4 text-center text-text/40 italic text-xs">
+            <li
+              v-else-if="filteredOptions.length === 0"
+              class="px-3 py-4 text-center text-text/40 italic text-xs"
+            >
               <slot name="noResult">Tidak ada opsi ditemukan.</slot>
             </li>
 
-            <li v-else v-for="(option, index) in filteredOptions"
-              :key="typeof option === 'object' ? option[trackBy] : index" @mousedown.prevent.stop="select(option)"
+            <li
+              v-else
+              v-for="(option, index) in filteredOptions"
+              :key="typeof option === 'object' ? option[trackBy] : index"
+              @mousedown.prevent.stop="select(option)"
               class="px-3 py-2 rounded-md cursor-pointer flex justify-between items-center transition-colors group"
               :class="[
                 isSelected(option)
                   ? 'bg-primary/10 text-primary font-bold'
-                  : 'text-text hover:bg-secondary/10'
-              ]">
+                  : 'text-text hover:bg-secondary/10',
+              ]"
+            >
               <!-- Slot for Custom Option Content -->
               <div class="flex-1 w-full truncate text-left">
                 <slot name="option" :option="option" :selected="isSelected(option)">
@@ -406,7 +480,11 @@ onUnmounted(() => {
               </div>
 
               <!-- Checkmark for Selected -->
-              <font-awesome-icon v-if="isSelected(option)" icon="fa-solid fa-check" class="text-xs ml-2" />
+              <font-awesome-icon
+                v-if="isSelected(option)"
+                icon="fa-solid fa-check"
+                class="text-xs ml-2"
+              />
             </li>
 
             <slot name="afterOptions"></slot>

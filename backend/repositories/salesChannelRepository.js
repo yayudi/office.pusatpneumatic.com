@@ -60,13 +60,13 @@ export const update = async (connection, id, channel) => {
 };
 
 /**
- * Menghapus saluran (Soft delete / Hard delete).
- * Di sini kita menggunakan Hard Delete untuk contoh CRUD.
+ * Menghapus saluran (Soft delete).
+ * Melakukan soft delete dengan mengubah is_active = 0.
  * @param {Object} connection 
  * @param {number} id 
  * @returns {Promise<boolean>}
  */
 export const remove = async (connection, id) => {
-  const [result] = await connection.query('DELETE FROM sales_channels WHERE id = ?', [id]);
+  const [result] = await connection.query('UPDATE sales_channels SET is_active = 0 WHERE id = ?', [id]);
   return result.affectedRows > 0;
 };

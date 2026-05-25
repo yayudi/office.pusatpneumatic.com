@@ -3,10 +3,10 @@
 import { ref, watch, onMounted, computed, defineAsyncComponent } from 'vue'
 import { startOfMonth, endOfMonth, format } from 'date-fns'
 import { useAuthStore } from '@/stores/auth'
-import Tabs from '@/components/ui/Tabs.vue'
+import BaseTabs from '@/components/ui/BaseTabs.vue'
 import FilterBar from '@/components/ui/FilterBar.vue'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
-import Modal from '@/components/ui/Modal.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 
 // Lazy load tab components
@@ -265,7 +265,7 @@ function handleExportExcel() {
       leave-to-class="transform -translate-y-4 opacity-0 max-h-0">
       <div v-show="isHeaderExpanded" class="overflow-hidden py-2 px-1 sm:px-0">
         <div class="flex flex-col md:flex-row mx-auto justify-center items-center gap-3">
-          <Tabs :tabs="[
+          <BaseTabs :tabs="[
             { label: 'Statistik', value: 'statistik' },
             { label: 'Ringkasan', value: 'summary' },
             { label: 'Detail Log', value: 'detail' },
@@ -380,7 +380,7 @@ function handleExportExcel() {
   </main>
 
   <!-- MODAL UPLOAD -->
-  <Modal :show="isUploadModalOpen" @close="isUploadModalOpen = false" title="Upload File Absensi">
+  <BaseModal :show="isUploadModalOpen" @close="isUploadModalOpen = false" title="Upload File Absensi">
     <!-- Menggunakan Component UploadForm Baru dengan Drag Drop & Dry Run -->
     <UploadForm @submit="handleUpload" :loading="isUploading" accept=".csv" submit-label="Mulai Import"
       :show-dry-run="true" />
@@ -391,7 +391,7 @@ function handleExportExcel() {
         Tutup
       </button>
     </template>
-  </Modal>
+  </BaseModal>
 
   <!-- MODAL PENGECUALIAN ABSEN -->
   <AttendanceExclusionsModal :is-open="isExclusionsModalOpen" @close="isExclusionsModalOpen = false"

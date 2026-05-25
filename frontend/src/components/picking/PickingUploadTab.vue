@@ -6,7 +6,7 @@ import { getImportJobs, cancelImportJob } from '@/api/helpers/stock.js'
 import PickingUploadForm from './PickingUploadForm.vue'
 
 const { toast } = useToast()
-const emit = defineEmits(['view-errors', 'switch-tab'])
+defineEmits(['view-errors', 'switch-tab'])
 
 // --- STATE HISTORY TABLE ---
 const importJobHistory = ref([])

@@ -1,5 +1,5 @@
 <template>
-  <Modal :show="isOpen" @close="close" title="Import Jadwal Shift">
+  <BaseModal :show="isOpen" @close="close" title="Import Jadwal Shift">
     <div class="space-y-5">
       <!-- Info Box -->
       <div class="bg-primary/10 text-primary p-4 rounded-lg text-sm border border-primary/20">
@@ -10,7 +10,10 @@
           <li>Pastikan nama shift sesuai dengan Master Shift.</li>
         </ul>
         <div class="mt-3 pt-3 border-t border-primary/20">
-          <button @click="downloadTemplate" class="font-bold hover:underline inline-flex items-center gap-1">
+          <button
+            @click="downloadTemplate"
+            class="font-bold hover:underline inline-flex items-center gap-1"
+          >
             <font-awesome-icon icon="fa-solid fa-download" /> Download Template (Excel)
           </button>
         </div>
@@ -19,13 +22,23 @@
       <!-- File Input -->
       <div
         class="border-2 border-dashed border-secondary/50 rounded-xl p-8 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all group"
-        @click="$refs.fileInput.click()" @dragover.prevent @drop.prevent="handleDrop">
-
-        <input type="file" ref="fileInput" class="hidden" accept=".xlsx, .xls, .csv" @change="handleFileSelect" />
+        @click="$refs.fileInput.click()"
+        @dragover.prevent
+        @drop.prevent="handleDrop"
+      >
+        <input
+          type="file"
+          ref="fileInput"
+          class="hidden"
+          accept=".xlsx, .xls, .csv"
+          @change="handleFileSelect"
+        />
 
         <div v-if="!selectedFile">
-          <font-awesome-icon icon="fa-solid fa-cloud-arrow-up"
-            class="text-4xl mb-3 text-text opacity-30 group-hover:text-primary group-hover:opacity-100 transition-all" />
+          <font-awesome-icon
+            icon="fa-solid fa-cloud-arrow-up"
+            class="text-4xl mb-3 text-text opacity-30 group-hover:text-primary group-hover:opacity-100 transition-all"
+          />
           <p class="font-medium">Klik untuk upload file Excel</p>
           <p class="text-xs opacity-50 mt-1">atau drag & drop file ke sini</p>
         </div>
@@ -33,12 +46,17 @@
         <div v-else>
           <font-awesome-icon icon="fa-solid fa-file-excel" class="text-4xl mb-3 text-success" />
           <p class="font-bold text-lg truncate px-4">{{ selectedFile.name }}</p>
-          <p class="text-xs opacity-60 mt-1">Ukuran: {{ (selectedFile.size / 1024).toFixed(2) }} KB</p>
+          <p class="text-xs opacity-60 mt-1">
+            Ukuran: {{ (selectedFile.size / 1024).toFixed(2) }} KB
+          </p>
         </div>
       </div>
 
       <!-- Error Message -->
-      <div v-if="errorMessage" class="bg-danger/10 text-danger px-4 py-3 rounded-lg text-sm flex items-start gap-3">
+      <div
+        v-if="errorMessage"
+        class="bg-danger/10 text-danger px-4 py-3 rounded-lg text-sm flex items-start gap-3"
+      >
         <font-awesome-icon icon="fa-solid fa-circle-exclamation" class="mt-0.5 shrink-0" />
         <span>{{ errorMessage }}</span>
       </div>
@@ -47,28 +65,35 @@
     <!-- Footer -->
     <template #footer>
       <div class="flex justify-end gap-3 w-full">
-        <button @click="close"
-          class="px-4 py-2 rounded-lg font-medium text-text opacity-70 hover:opacity-100 hover:bg-secondary/10 transition-all">Batal</button>
-        <button @click="upload" :disabled="!selectedFile || isLoading"
-          class="px-5 py-2 bg-primary text-secondary rounded-lg shadow-lg shadow-primary/30 font-bold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2">
+        <button
+          @click="close"
+          class="px-4 py-2 rounded-lg font-medium text-text opacity-70 hover:opacity-100 hover:bg-secondary/10 transition-all"
+        >
+          Batal
+        </button>
+        <button
+          @click="upload"
+          :disabled="!selectedFile || isLoading"
+          class="px-5 py-2 bg-primary text-secondary rounded-lg shadow-lg shadow-primary/30 font-bold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+        >
           <font-awesome-icon v-if="isLoading" icon="fa-solid fa-spinner" spin />
           <font-awesome-icon v-else icon="fa-solid fa-file-import" />
           <span>{{ isLoading ? 'Mengunggah...' : 'Mulai Import' }}</span>
         </button>
       </div>
     </template>
-  </Modal>
+  </BaseModal>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { uploadScheduleImport } from '@/api/helpers/schedule.js'
 import { useToast } from '@/composables/useToast.js'
-import Modal from '@/components/ui/Modal.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 import axios from '@/api/axios'
 
-const props = defineProps({
-  isOpen: Boolean
+defineProps({
+  isOpen: Boolean,
 })
 
 const emit = defineEmits(['close', 'success'])
@@ -89,7 +114,7 @@ const downloadTemplate = async () => {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-  } catch (error) {
+  } catch {
     toast('Gagal download template', 'error')
   }
 }

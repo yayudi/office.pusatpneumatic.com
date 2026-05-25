@@ -3,10 +3,9 @@
 import { ref, watch, onMounted } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
 import debounce from 'lodash/debounce'
-import Modal from '@/components/ui/Modal.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 import axios from '@/api/axios.js'
 import { useToast } from '@/composables/useToast.js'
-import { formatCurrency } from '@/utils/formatters.js'
 import ProductHistoryList from '@/components/products/ProductHistoryList.vue'
 import { useMobile } from '@/composables/useMobile.js'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
@@ -349,14 +348,14 @@ async function handleSubmit() {
 const { Alt_S } = useMagicKeys()
 
 watch(Alt_S, (pressed) => {
-  if (pressed && props.show && !loading.value && !fetchLoading.value && !duplicateStatus.sku.exists && !duplicateStatus.name.exists) {
+  if (pressed && props.show && !loading.value && !fetchLoading.value && !duplicateStatus.value.sku.exists && !duplicateStatus.value.name.exists) {
     handleSubmit()
   }
 })
 </script>
 
 <template>
-  <Modal :show="show" @close="$emit('close')" maxWidth="max-w-2xl">
+  <BaseModal :show="show" @close="$emit('close')" maxWidth="max-w-2xl">
     <template #title>
       {{ mode === 'create' ? 'Tambah Produk Baru' : 'Edit Produk' }}
     </template>
@@ -597,7 +596,7 @@ watch(Alt_S, (pressed) => {
         </button>
       </div>
     </template>
-  </Modal>
+  </BaseModal>
 </template>
 
 <style scoped>

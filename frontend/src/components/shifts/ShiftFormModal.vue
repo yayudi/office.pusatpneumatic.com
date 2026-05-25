@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
-import Modal from '@/components/ui/Modal.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 import axios from '@/api/axios'
 
 const props = defineProps({
@@ -98,7 +98,7 @@ watch(Alt_S, (pressed) => {
 </script>
 
 <template>
-  <Modal :show="props.show" @close="emit('close')" :title="props.shift ? 'Edit Shift' : 'Tambah Shift Baru'">
+  <BaseModal :show="props.show" @close="emit('close')" :title="props.shift ? 'Edit Shift' : 'Tambah Shift Baru'">
     <div class="p-6 space-y-4">
       <div>
         <label class="block text-sm font-medium text-text/80 mb-1">Nama Shift</label>
@@ -153,7 +153,7 @@ watch(Alt_S, (pressed) => {
         <span>Simpan</span>
       </button>
     </template>
-  </Modal>
+  </BaseModal>
 </template>
 
 <style lang="postcss" scoped>

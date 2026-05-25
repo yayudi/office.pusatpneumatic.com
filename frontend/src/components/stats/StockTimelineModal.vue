@@ -1,6 +1,6 @@
 <script setup>
 import StockTimelineSlider from './StockTimelineSlider.vue';
-import Modal from '@/components/ui/Modal.vue';
+import BaseModal from '@/components/ui/BaseModal.vue';
 
 defineProps({
   show: {
@@ -18,7 +18,7 @@ defineEmits(['close']);
 
 <template>
   <Teleport to="body">
-    <Modal :show="show" @close="$emit('close')" maxWidth="max-w-3xl">
+    <BaseModal :show="show" @close="$emit('close')" maxWidth="max-w-3xl">
       <template #title>
         <div class="flex items-center gap-2 -mt-1">
           <font-awesome-icon icon="fa-solid fa-clock-rotate-left" class="text-primary text-sm" />
@@ -30,6 +30,6 @@ defineEmits(['close']);
       <div class="-mx-6 px-4">
         <StockTimelineSlider v-if="productId" :productId="productId" :buildings="[]" />
       </div>
-    </Modal>
+    </BaseModal>
   </Teleport>
 </template>

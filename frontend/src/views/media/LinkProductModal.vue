@@ -1,124 +1,139 @@
 <script setup>
-import { ref, watch, onMounted } from 'vue';
-import Modal from '@/components/ui/Modal.vue';
-import axios from '@/api/axios';
-import debounce from 'lodash/debounce';
+import { ref, watch } from 'vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
+import axios from '@/api/axios'
+import debounce from 'lodash/debounce'
 
 const props = defineProps({
   show: Boolean,
-  selectedMediaIds: Array
-});
+  selectedMediaIds: Array,
+})
 
-const emit = defineEmits(['close', 'linked']);
+const emit = defineEmits(['close', 'linked'])
 
-const searchQuery = ref('');
-const searchResults = ref([]);
-const isSearching = ref(false);
-const isSubmitting = ref(false);
-const selectedProducts = ref([]);
+const searchQuery = ref('')
+const searchResults = ref([])
+const isSearching = ref(false)
+const isSubmitting = ref(false)
+const selectedProducts = ref([])
 
 const debouncedSearch = debounce(async (query) => {
   try {
-    const res = await axios.get(`/products/search?q=${encodeURIComponent(query)}`);
-    searchResults.value = res.data;
+    const res = await axios.get(`/products/search?q=${encodeURIComponent(query)}`)
+    searchResults.value = res.data
   } catch (error) {
-    console.error('Search error', error);
+    console.error('Search error', error)
   } finally {
-    isSearching.value = false;
+    isSearching.value = false
   }
-}, 400);
+}, 400)
 
 watch(searchQuery, (newVal) => {
   if (!newVal || newVal.length < 2) {
-    searchResults.value = [];
-    debouncedSearch.cancel();
-    return;
+    searchResults.value = []
+    debouncedSearch.cancel()
+    return
   }
-  isSearching.value = true;
-  debouncedSearch(newVal);
-});
+  isSearching.value = true
+  debouncedSearch(newVal)
+})
 
-watch(() => props.show, (newVal) => {
-  if (!newVal) {
-    searchResults.value = [];
-    selectedProducts.value = [];
-  }
-});
+watch(
+  () => props.show,
+  (newVal) => {
+    if (!newVal) {
+      searchResults.value = []
+      selectedProducts.value = []
+    }
+  },
+)
 
 const toggleProduct = (prod) => {
-  const isSelected = selectedProducts.value.some(p => p.id === prod.id);
+  const isSelected = selectedProducts.value.some((p) => p.id === prod.id)
   if (isSelected) {
-    selectedProducts.value = selectedProducts.value.filter(p => p.id !== prod.id);
+    selectedProducts.value = selectedProducts.value.filter((p) => p.id !== prod.id)
   } else {
-    selectedProducts.value.push(prod);
+    selectedProducts.value.push(prod)
   }
-};
+}
 
 const removeProduct = (productId) => {
-  selectedProducts.value = selectedProducts.value.filter(p => p.id !== productId);
-};
+  selectedProducts.value = selectedProducts.value.filter((p) => p.id !== productId)
+}
 
 const submitAll = async () => {
-  if (isSubmitting.value || selectedProducts.value.length === 0) return;
+  if (isSubmitting.value || selectedProducts.value.length === 0) return
 
-  isSubmitting.value = true;
-  let successCount = 0;
-  let failCount = 0;
+  isSubmitting.value = true
+  let successCount = 0
+  let failCount = 0
 
   try {
-    const promises = selectedProducts.value.map(prod =>
-      axios.post(`/products/${prod.id}/link-media`, {
-        mediaIds: props.selectedMediaIds
-      }).then(() => successCount++)
-        .catch(err => {
-          console.error(`Gagal menghubungkan ke produk ${prod.sku}`, err);
-          failCount++;
+    const promises = selectedProducts.value.map((prod) =>
+      axios
+        .post(`/products/${prod.id}/link-media`, {
+          mediaIds: props.selectedMediaIds,
         })
-    );
+        .then(() => successCount++)
+        .catch((err) => {
+          console.error(`Gagal menghubungkan ke produk ${prod.sku}`, err)
+          failCount++
+        }),
+    )
 
     // Resolve all promises concurrently without failing fast
-    await Promise.allSettled(promises);
+    await Promise.allSettled(promises)
 
     if (failCount > 0) {
-      alert(`Berhasil: ${successCount} produk. Gagal: ${failCount} produk.`);
+      alert(`Berhasil: ${successCount} produk. Gagal: ${failCount} produk.`)
     }
 
-    emit('linked');
-    isSubmitting.value = false; // Harus di set false sebelum memanggil close() karena close() punya guard
-    close();
-  } catch (error) {
-    alert('Terjadi kesalahan fatal saat menyematkan produk.');
-    isSubmitting.value = false;
+    emit('linked')
+    isSubmitting.value = false // Harus di set false sebelum memanggil close() karena close() punya guard
+    close()
+  } catch {
+    alert('Terjadi kesalahan fatal saat menyematkan produk.')
+    isSubmitting.value = false
   }
-};
+}
 
 const close = () => {
-  if (isSubmitting.value) return;
-  emit('close');
-};
+  if (isSubmitting.value) return
+  emit('close')
+}
 </script>
 
 <template>
-  <Modal :show="show" @close="close" maxWidth="max-w-lg">
+  <BaseModal :show="show" @close="close" maxWidth="max-w-lg">
     <template #title>
       <div class="-mt-1">
         <h3 class="text-lg font-bold text-text">Tautkan ke Produk</h3>
-        <p class="text-xs text-text/60 mt-1 font-normal">Pilih produk tujuan untuk {{ selectedMediaIds?.length || 0 }}
-          gambar.</p>
+        <p class="text-xs text-text/60 mt-1 font-normal">
+          Pilih produk tujuan untuk {{ selectedMediaIds?.length || 0 }} gambar.
+        </p>
       </div>
     </template>
 
     <div class="flex-1 min-h-[300px]">
       <!-- Selected Products Preview -->
       <div v-if="selectedProducts.length > 0" class="mb-4">
-        <label class="block text-sm font-semibold text-text/80 mb-2">Produk Terpilih ({{ selectedProducts.length
-        }})</label>
+        <label class="block text-sm font-semibold text-text/80 mb-2"
+          >Produk Terpilih ({{ selectedProducts.length }})</label
+        >
         <div class="flex flex-wrap gap-2 p-3 bg-secondary/10 rounded-lg border border-secondary/20">
-          <div v-for="prod in selectedProducts" :key="prod.id"
-            class="badge bg-primary/10 text-primary border-primary rounded-md gap-1 py-1 px-2 flex items-center">
-            <span class="max-w-[150px] truncate text-xs font-bold" :title="prod.name">{{ prod.sku }}</span>
-            <button @click="removeProduct(prod.id)" class="text-primary hover:text-danger ml-1 transition-colors"
-              :disabled="isSubmitting">
+          <div
+            v-for="prod in selectedProducts"
+            :key="prod.id"
+            class="badge bg-primary/10 text-primary border-primary rounded-md gap-1 py-1 px-2 flex items-center"
+          >
+            <span class="max-w-[150px] truncate text-xs font-bold" :title="prod.name">{{
+              prod.sku
+            }}</span>
+            <button
+              @click="removeProduct(prod.id)"
+              class="text-primary hover:text-danger ml-1 transition-colors"
+              :disabled="isSubmitting"
+            >
               <font-awesome-icon icon="fa-solid fa-times" />
             </button>
           </div>
@@ -127,42 +142,82 @@ const close = () => {
 
       <label class="block text-sm font-semibold text-text/80 mb-2">Cari Produk (SKU / Nama)</label>
       <div class="relative">
-        <input type="text" v-model="searchQuery" placeholder="Ketik minimal 2 huruf..."
+        <input
+          type="text"
+          v-model="searchQuery"
+          placeholder="Ketik minimal 2 huruf..."
           class="input input-bordered w-full bg-background text-text border-secondary focus:border-primary focus:ring-1 focus:ring-primary pl-10"
-          :disabled="isSubmitting" />
-        <font-awesome-icon icon="fa-solid fa-search" class="absolute left-4 top-1/2 -translate-y-1/2 text-text/40" />
+          :disabled="isSubmitting"
+        />
+        <font-awesome-icon
+          icon="fa-solid fa-search"
+          class="absolute left-4 top-1/2 -translate-y-1/2 text-text/40"
+        />
       </div>
 
       <div v-if="isSearching" class="text-center py-8">
         <font-awesome-icon icon="fa-solid fa-circle-notch" spin class="text-primary text-2xl" />
       </div>
 
-      <div v-else-if="searchQuery.length >= 2 && searchResults.length === 0" class="text-center py-8 text-text/50">
+      <div
+        v-else-if="searchQuery.length >= 2 && searchResults.length === 0"
+        class="text-center py-8 text-text/50"
+      >
         Tidak ada produk yang cocok.
       </div>
 
       <div v-else-if="searchResults.length > 0" class="mt-4 flex flex-col gap-2">
-        <button v-for="prod in searchResults" :key="prod.id" @click="toggleProduct(prod)"
+        <button
+          v-for="prod in searchResults"
+          :key="prod.id"
+          @click="toggleProduct(prod)"
           class="flex items-center justify-between p-3 rounded-lg border transition-colors text-left"
-          :class="selectedProducts.find(p => p.id === prod.id) ? 'border-primary bg-primary/10' : 'border-secondary/20 hover:border-primary/50 hover:bg-primary/5'"
-          :disabled="isSubmitting">
+          :class="
+            selectedProducts.find((p) => p.id === prod.id)
+              ? 'border-primary bg-primary/10'
+              : 'border-secondary/20 hover:border-primary/50 hover:bg-primary/5'
+          "
+          :disabled="isSubmitting"
+        >
           <div class="flex flex-col">
             <div class="flex items-center gap-2">
-              <span class="font-bold text-sm"
-                :class="selectedProducts.find(p => p.id === prod.id) ? 'text-primary' : 'text-text'">{{ prod.sku
-                }}</span>
-              <span v-if="prod.is_active === 0"
-                class="text-[10px] bg-danger/10 text-danger px-2 py-0.5 rounded font-bold">Arsip</span>
+              <span
+                class="font-bold text-sm"
+                :class="
+                  selectedProducts.find((p) => p.id === prod.id) ? 'text-primary' : 'text-text'
+                "
+                >{{ prod.sku }}</span
+              >
+              <span
+                v-if="prod.is_active === 0"
+                class="text-[10px] bg-danger/10 text-danger px-2 py-0.5 rounded font-bold"
+                >Arsip</span
+              >
             </div>
-            <span class="text-sm mt-1"
-              :class="selectedProducts.find(p => p.id === prod.id) ? 'text-primary/80' : 'text-text/80'">{{ prod.name
-              }}</span>
+            <span
+              class="text-sm mt-1"
+              :class="
+                selectedProducts.find((p) => p.id === prod.id) ? 'text-primary/80' : 'text-text/80'
+              "
+              >{{ prod.name }}</span
+            >
           </div>
-          <div class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full transition-colors"
-            :class="selectedProducts.find(p => p.id === prod.id) ? 'bg-primary text-background' : 'bg-secondary/30 text-text/30'">
+          <div
+            class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full transition-colors"
+            :class="
+              selectedProducts.find((p) => p.id === prod.id)
+                ? 'bg-primary text-background'
+                : 'bg-secondary/30 text-text/30'
+            "
+          >
             <font-awesome-icon
-              :icon="selectedProducts.find(p => p.id === prod.id) ? 'fa-solid fa-check' : 'fa-solid fa-plus'"
-              class="text-xs" />
+              :icon="
+                selectedProducts.find((p) => p.id === prod.id)
+                  ? 'fa-solid fa-check'
+                  : 'fa-solid fa-plus'
+              "
+              class="text-xs"
+            />
           </div>
         </button>
       </div>
@@ -176,18 +231,22 @@ const close = () => {
     <!-- Footer / Actions -->
     <template #footer>
       <div class="flex justify-end gap-2">
-        <button @click="close"
+        <button
+          @click="close"
           class="px-4 py-2 rounded-lg text-text border border-secondary hover:bg-secondary transition-colors"
-          :disabled="isSubmitting">
+          :disabled="isSubmitting"
+        >
           Batal
         </button>
-        <button @click="submitAll"
+        <button
+          @click="submitAll"
           class="px-4 py-2 rounded-lg bg-primary text-background font-bold hover:bg-accent transition-colors flex items-center gap-2 min-w-[120px] justify-center"
-          :disabled="isSubmitting || selectedProducts.length === 0">
+          :disabled="isSubmitting || selectedProducts.length === 0"
+        >
           <font-awesome-icon v-if="isSubmitting" icon="fa-solid fa-spinner" spin />
           <span v-else>Tautkan ({{ selectedProducts.length }})</span>
         </button>
       </div>
     </template>
-  </Modal>
+  </BaseModal>
 </template>

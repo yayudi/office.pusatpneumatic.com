@@ -1,7 +1,7 @@
 <!-- frontend\src\components\picking\JobErrorModal.vue -->
 <script setup>
 import { ref, watch, computed } from 'vue'
-import Modal from '@/components/ui/Modal.vue' // Import Modal Generic Anda
+import BaseModal from '@/components/ui/BaseModal.vue' // Import Modal Generic Anda
 
 const props = defineProps({
   show: Boolean,
@@ -34,12 +34,16 @@ watch(
       if (typeof raw === 'string') {
         try {
           raw = JSON.parse(raw)
-        } catch (e) { }
+        } catch {
+          // Fallback if not JSON string
+        }
       }
       if (typeof raw === 'string') {
         try {
           raw = JSON.parse(raw)
-        } catch (e) { }
+        } catch {
+          // Fallback if not JSON string
+        }
       }
 
       // Mapping Data
@@ -62,7 +66,7 @@ function close() {
 </script>
 
 <template>
-  <Modal :show="show" @close="close" :title="`Laporan Error: ${filename}`">
+  <BaseModal :show="show" @close="close" :title="`Laporan Error: ${filename}`">
     <div class="flex flex-col gap-6 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
       <div v-if="downloadUrl" class="bg-warning/10 border border-warning/20 rounded-xl p-4 flex flex-col gap-3">
         <div class="flex items-start gap-3">
@@ -130,5 +134,5 @@ function close() {
         Tutup
       </button>
     </template>
-  </Modal>
+  </BaseModal>
 </template>

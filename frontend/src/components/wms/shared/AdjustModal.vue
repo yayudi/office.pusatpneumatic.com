@@ -1,7 +1,7 @@
 <!-- frontend\src\components\WmsAdjustModal.vue -->
 <script setup>
 import { ref, watch } from 'vue'
-import Modal from '@/components/ui/Modal.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 
 const props = defineProps({
@@ -53,7 +53,7 @@ function handleConfirm() {
 </script>
 
 <template>
-  <Modal :show="show" @close="emit('close')" title="Penyesuaian Stok">
+  <BaseModal :show="show" @close="emit('close')" title="Penyesuaian Stok">
     <div v-if="product" class="space-y-4">
       <p class="text-sm text-text/80">
         Anda akan menyesuaikan stok produk: <strong class="text-text">{{ product.name }}</strong>
@@ -91,5 +91,5 @@ function handleConfirm() {
         Konfirmasi Penyesuaian
       </button>
     </template>
-  </Modal>
+  </BaseModal>
 </template>

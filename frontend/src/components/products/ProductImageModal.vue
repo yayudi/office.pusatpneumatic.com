@@ -11,7 +11,7 @@ import MediaActionBar from '@/components/common/MediaActionBar.vue'
 import MediaLightbox from '@/components/common/MediaLightbox.vue'
 import ImageCropperModal from '@/views/media/ImageCropperModal.vue'
 import { autoCropCenter } from '@/utils/imageCropper.js'
-import Modal from '@/components/ui/Modal.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 
 const props = defineProps({
   show: Boolean,
@@ -27,17 +27,16 @@ const loading = ref(false)
 const fetching = ref(false)
 const selectedImages = ref([])
 const existingImages = ref([])
-const isCompressing = ref(false)
 const isLightboxOpen = ref(false)
 const lightboxIndex = ref(0)
 
 /** Map existingImages to the shape MediaLightbox expects */
 const lightboxImages = computed(() =>
-  existingImages.value.map(img => ({
+  existingImages.value.map((img) => ({
     main_path: img.image_path,
     thumbnail_path: img.thumbnail_path || img.image_path,
     title: img.title || 'Gambar Produk',
-  }))
+  })),
 )
 
 const canUpload = computed(() => authStore.hasPermission('product.image.upload'))
@@ -76,7 +75,7 @@ const handlePaste = (event) => {
   }
 
   if (validFiles.length > 0) {
-    validFiles.forEach(file => {
+    validFiles.forEach((file) => {
       file.preview = URL.createObjectURL(file)
       selectedImages.value.push(file)
     })
@@ -100,26 +99,26 @@ watch(
       existingImages.value = []
       fetchImages()
     }
-  }
+  },
 )
 
 const fileTitles = ref([])
 const uploadTagsStr = ref('')
 
-const stripExtension = (filename) => filename.replace(/\.[^/.]+$/, '');
+const stripExtension = (filename) => filename.replace(/\.[^/.]+$/, '')
 
 async function handleImageUpload(event) {
   const files = Array.from(event.target.files)
   if (files.length === 0) return
 
-  const validFiles = files.filter(f => f.type.match('image.*'))
+  const validFiles = files.filter((f) => f.type.match('image.*'))
   if (validFiles.length < files.length) {
     toast('Beberapa file bukan gambar dan diabaikan.', 'warning')
   }
 
   if (validFiles.length === 0) return
 
-  validFiles.forEach(file => {
+  validFiles.forEach((file) => {
     file.preview = URL.createObjectURL(file)
     selectedImages.value.push(file)
     fileTitles.value.push(stripExtension(file.name))
@@ -140,11 +139,11 @@ const autoCropAll = async () => {
   autoCropAllProcessing.value = true
   try {
     const newFiles = await autoCropCenter(selectedImages.value)
-    newFiles.forEach(f => f.preview = URL.createObjectURL(f))
+    newFiles.forEach((f) => (f.preview = URL.createObjectURL(f)))
     selectedImages.value = newFiles
   } catch (error) {
-    console.error("Auto crop failed:", error)
-    toast("Gagal melakukan auto-crop.", "error")
+    console.error('Auto crop failed:', error)
+    toast('Gagal melakukan auto-crop.', 'error')
   } finally {
     autoCropAllProcessing.value = false
   }
@@ -167,21 +166,40 @@ const handleCroppedSave = (newFile) => {
   }
 }
 
-const genericKeywords = ['image', 'images', 'gambar', 'img', 'photo', 'pic', 'untitled', 'whatsapp image', 'telegram', 'screenshot', 'screen shot', 'capture', 'dcim', 'picture', 'snip'];
+const genericKeywords = [
+  'image',
+  'images',
+  'gambar',
+  'img',
+  'photo',
+  'pic',
+  'untitled',
+  'whatsapp image',
+  'telegram',
+  'screenshot',
+  'screen shot',
+  'capture',
+  'dcim',
+  'picture',
+  'snip',
+]
 const isGenericTitle = (title) => {
-  if (!title || !title.trim()) return true;
-  const lower = title.toLowerCase();
-  return genericKeywords.some(kw => lower.includes(kw));
+  if (!title || !title.trim()) return true
+  const lower = title.toLowerCase()
+  return genericKeywords.some((kw) => lower.includes(kw))
 }
 
 async function saveNewImages() {
   if (selectedImages.value.length === 0) return
 
   // Validasi judul generik
-  const invalidIndex = fileTitles.value.findIndex(t => isGenericTitle(t));
+  const invalidIndex = fileTitles.value.findIndex((t) => isGenericTitle(t))
   if (invalidIndex !== -1) {
-    toast(`Silakan ubah nama file "${fileTitles.value[invalidIndex]}" menjadi lebih deskriptif.`, 'warning');
-    return;
+    toast(
+      `Silakan ubah nama file "${fileTitles.value[invalidIndex]}" menjadi lebih deskriptif.`,
+      'warning',
+    )
+    return
   }
 
   loading.value = true
@@ -194,7 +212,7 @@ async function saveNewImages() {
   if (uploadTagsStr.value.trim()) {
     formData.append('tags', uploadTagsStr.value.trim())
   }
-  formData.append('products', JSON.stringify([props.productData.id]));
+  formData.append('products', JSON.stringify([props.productData.id]))
 
   try {
     const { data } = await axios.post(`/media/upload`, formData, {
@@ -215,7 +233,7 @@ async function saveNewImages() {
       }, 1500)
     }
   } catch (error) {
-    const errData = error.response?.data;
+    const errData = error.response?.data
     if (errData?.error_code === 'DUPLICATE_MEDIA') {
       toast(`Duplikat: ${errData.message} (ID aset: ${errData.duplicateOf})`, 'warning')
     } else {
@@ -268,11 +286,13 @@ const getImageUrl = resolveUrl
 </script>
 
 <template>
-  <Modal :show="show" @close="$emit('close')" maxWidth="max-w-4xl">
+  <BaseModal :show="show" @close="$emit('close')" maxWidth="max-w-4xl">
     <template #title>
       <div class="-mt-1">
         <h3 class="font-bold text-lg text-text">Galeri Produk</h3>
-        <p class="text-xs text-text/60 font-mono font-normal mt-1">{{ productData.sku }} - {{ productData.name }}</p>
+        <p class="text-xs text-text/60 font-mono font-normal mt-1">
+          {{ productData.sku }} - {{ productData.name }}
+        </p>
       </div>
     </template>
 
@@ -289,34 +309,50 @@ const getImageUrl = resolveUrl
             <span class="text-xs text-text/50">{{ existingImages.length }} gambar</span>
           </div>
 
-          <div v-if="existingImages.length === 0"
-            class="p-8 border-2 border-dashed border-secondary/20 rounded-xl flex flex-col items-center text-text/30 bg-secondary/5">
+          <div
+            v-if="existingImages.length === 0"
+            class="p-8 border-2 border-dashed border-secondary/20 rounded-xl flex flex-col items-center text-text/30 bg-secondary/5"
+          >
             <font-awesome-icon icon="fa-solid fa-images" class="text-4xl mb-2" />
             <span class="text-sm font-medium">Belum ada foto produk.</span>
           </div>
 
           <div v-else class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            <MediaCard v-for="(img, index) in existingImages" :key="img.id" :image-url="getImageUrl(img.image_path)"
-              :image-id="img.id" :display-name="img.title || 'Gambar Produk'"
-              @click="isLightboxOpen = true; lightboxIndex = index">
-
+            <MediaCard
+              v-for="(img, index) in existingImages"
+              :key="img.id"
+              :image-url="getImageUrl(img.image_path)"
+              :image-id="img.id"
+              :display-name="img.title || 'Gambar Produk'"
+              @click="((isLightboxOpen = true), (lightboxIndex = index))"
+            >
               <template #badges>
-                <div v-if="img.is_primary"
-                  class="absolute top-2 left-2 bg-primary text-background text-[10px] font-bold px-2 py-0.5 rounded shadow-sm z-10 flex items-center gap-1">
+                <div
+                  v-if="img.is_primary"
+                  class="absolute top-2 left-2 bg-primary text-background text-[10px] font-bold px-2 py-0.5 rounded shadow-sm z-10 flex items-center gap-1"
+                >
                   <font-awesome-icon icon="fa-solid fa-star" /> Utama
                 </div>
               </template>
 
               <template #actions>
                 <MediaActionBar :image-url="getImageUrl(img.image_path)" :filename="img.title">
-                  <button v-if="!img.is_primary && canUpload" @click.stop="setPrimary(img.id)" :disabled="loading"
+                  <button
+                    v-if="!img.is_primary && canUpload"
+                    @click.stop="setPrimary(img.id)"
+                    :disabled="loading"
                     class="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-lg"
-                    title="Jadikan Utama">
+                    title="Jadikan Utama"
+                  >
                     <font-awesome-icon icon="fa-solid fa-star" />
                   </button>
-                  <button v-if="canDelete" @click.stop="deleteImage(img.id)" :disabled="loading"
+                  <button
+                    v-if="canDelete"
+                    @click.stop="deleteImage(img.id)"
+                    :disabled="loading"
                     class="flex h-8 w-8 items-center justify-center rounded-full bg-danger text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-lg"
-                    title="Hapus Gambar">
+                    title="Hapus Gambar"
+                  >
                     <font-awesome-icon icon="fa-solid fa-trash" />
                   </button>
                 </MediaActionBar>
@@ -327,8 +363,12 @@ const getImageUrl = resolveUrl
         <div v-if="canUpload" class="border-t border-secondary/10 pt-6">
           <div class="flex justify-between items-center mb-3">
             <h4 class="font-bold text-text/80 text-sm uppercase tracking-wide">Upload Baru</h4>
-            <button v-if="selectedImages.length > 0" @click="autoCropAll" :disabled="autoCropAllProcessing"
-              class="px-3 py-1 text-xs rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-2 font-medium">
+            <button
+              v-if="selectedImages.length > 0"
+              @click="autoCropAll"
+              :disabled="autoCropAllProcessing"
+              class="px-3 py-1 text-xs rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-2 font-medium"
+            >
               <font-awesome-icon v-if="autoCropAllProcessing" icon="fa-solid fa-spinner" spin />
               <font-awesome-icon v-else icon="fa-solid fa-crop-simple" />
               Auto 1:1 Semua
@@ -336,54 +376,83 @@ const getImageUrl = resolveUrl
           </div>
           <div class="flex flex-col gap-4">
             <label
-              class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-primary/30 rounded-xl cursor-pointer bg-primary/5 hover:bg-primary/10 transition-colors group">
+              class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-primary/30 rounded-xl cursor-pointer bg-primary/5 hover:bg-primary/10 transition-colors group"
+            >
               <div
-                class="flex flex-col items-center justify-center pt-5 pb-6 text-primary group-hover:scale-105 transition-transform">
+                class="flex flex-col items-center justify-center pt-5 pb-6 text-primary group-hover:scale-105 transition-transform"
+              >
                 <font-awesome-icon icon="fa-solid fa-cloud-arrow-up" class="text-3xl mb-2" />
                 <p class="text-sm font-bold">Klik untuk pilih gambar</p>
-                <p class="text-xs opacity-70">Bisa pilih banyak sekaligus atau tekan <strong>CTRL+V</strong> untuk
-                  paste (Max
-                  5MB)</p>
+                <p class="text-xs opacity-70">
+                  Bisa pilih banyak sekaligus atau tekan <strong>CTRL+V</strong> untuk paste (Max
+                  5MB)
+                </p>
               </div>
               <!-- Input Multiple -->
-              <input type="file" @change="handleImageUpload" accept="image/*" class="hidden" multiple
-                :disabled="loading" />
+              <input
+                type="file"
+                @change="handleImageUpload"
+                accept="image/*"
+                class="hidden"
+                multiple
+                :disabled="loading"
+              />
             </label>
             <div v-if="selectedImages.length > 0" class="flex flex-col gap-3 animate-slide-up">
               <!-- File Item List with Title Edit -->
               <div class="flex flex-col gap-2">
-                <div v-for="(file, idx) in selectedImages" :key="idx"
-                  class="flex flex-col md:flex-row gap-3 items-start md:items-center p-3 bg-secondary/5 rounded-lg border border-secondary/20 hover:border-primary/30 transition-colors">
-                  
+                <div
+                  v-for="(file, idx) in selectedImages"
+                  :key="idx"
+                  class="flex flex-col md:flex-row gap-3 items-start md:items-center p-3 bg-secondary/5 rounded-lg border border-secondary/20 hover:border-primary/30 transition-colors"
+                >
                   <!-- Thumbnail & Base actions -->
                   <div class="flex items-center gap-3 w-full md:w-auto shrink-0">
-                    <div class="relative w-16 h-16 rounded overflow-hidden bg-background border border-secondary/10 group">
+                    <div
+                      class="relative w-16 h-16 rounded overflow-hidden bg-background border border-secondary/10 group"
+                    >
                       <img :src="file.preview" class="w-full h-full object-cover" />
-                      <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 backdrop-blur-[2px]">
-                        <button @click.prevent="openCropper(idx)"
+                      <div
+                        class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 backdrop-blur-[2px]"
+                      >
+                        <button
+                          @click.prevent="openCropper(idx)"
                           class="w-6 h-6 rounded-full bg-primary text-background flex items-center justify-center hover:scale-110 transition-transform shadow-lg"
-                          title="Crop Gambar">
+                          title="Crop Gambar"
+                        >
                           <font-awesome-icon icon="fa-solid fa-crop-simple" class="text-[10px]" />
                         </button>
                       </div>
                     </div>
                     <div class="flex flex-col flex-1 min-w-0">
-                      <span class="text-xs font-bold text-text truncate" :title="file.name">{{ file.name }}</span>
-                      <span class="text-[10px] text-text/50">{{ (file.size / 1024).toFixed(1) }} KB</span>
+                      <span class="text-xs font-bold text-text truncate" :title="file.name">{{
+                        file.name
+                      }}</span>
+                      <span class="text-[10px] text-text/50"
+                        >{{ (file.size / 1024).toFixed(1) }} KB</span
+                      >
                     </div>
                   </div>
 
                   <!-- Title Input & Delete -->
                   <div class="flex items-center gap-2 w-full md:w-auto md:flex-1 mt-2 md:mt-0">
                     <div class="flex-1 relative">
-                      <font-awesome-icon icon="fa-solid fa-pen" class="absolute left-3 top-1/2 -translate-y-1/2 text-text/30 text-xs" />
-                      <input type="text" v-model="fileTitles[idx]"
+                      <font-awesome-icon
+                        icon="fa-solid fa-pen"
+                        class="absolute left-3 top-1/2 -translate-y-1/2 text-text/30 text-xs"
+                      />
+                      <input
+                        type="text"
+                        v-model="fileTitles[idx]"
                         class="w-full bg-background border border-secondary/20 rounded pl-8 pr-3 py-1.5 text-xs text-text focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-                        placeholder="Ubah judul gambar..." />
+                        placeholder="Ubah judul gambar..."
+                      />
                     </div>
-                    <button @click.prevent="removeSelectedImage(idx)"
+                    <button
+                      @click.prevent="removeSelectedImage(idx)"
                       class="shrink-0 w-8 h-8 rounded-full bg-danger/10 text-danger flex items-center justify-center hover:bg-danger hover:text-white transition-colors"
-                      title="Batal Unggah">
+                      title="Batal Unggah"
+                    >
                       <font-awesome-icon icon="fa-solid fa-times" />
                     </button>
                   </div>
@@ -393,19 +462,31 @@ const getImageUrl = resolveUrl
               <!-- Bulk Tags -->
               <div class="mt-2 flex items-center gap-3">
                 <font-awesome-icon icon="fa-solid fa-tags" class="text-primary/50" />
-                <input type="text" v-model="uploadTagsStr"
+                <input
+                  type="text"
+                  v-model="uploadTagsStr"
                   class="flex-1 bg-background border border-secondary/20 rounded px-3 py-1.5 text-xs text-text focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-                  placeholder="Tambahkan tag (pisahkan dengan koma). Contoh: depan, atas, merah" />
+                  placeholder="Tambahkan tag (pisahkan dengan koma). Contoh: depan, atas, merah"
+                />
               </div>
 
               <div class="flex justify-end gap-3 mt-4 border-t border-secondary/10 pt-4">
-                <button @click="selectedImages = []; fileTitles = []"
-                  class="px-4 py-2 text-text/60 font-bold hover:bg-secondary/10 rounded-lg text-sm transition-colors">
+                <button
+                  @click="((selectedImages = []), (fileTitles = []))"
+                  class="px-4 py-2 text-text/60 font-bold hover:bg-secondary/10 rounded-lg text-sm transition-colors"
+                >
                   Batal
                 </button>
-                <button @click="saveNewImages" :disabled="loading"
-                  class="px-6 py-2 bg-primary hover:bg-primary-dark text-secondary font-bold rounded-lg shadow-lg flex items-center gap-2 transition-all active:scale-95">
-                  <font-awesome-icon v-if="loading" icon="fa-solid fa-spinner" class="animate-spin" />
+                <button
+                  @click="saveNewImages"
+                  :disabled="loading"
+                  class="px-6 py-2 bg-primary hover:bg-primary-dark text-secondary font-bold rounded-lg shadow-lg flex items-center gap-2 transition-all active:scale-95"
+                >
+                  <font-awesome-icon
+                    v-if="loading"
+                    icon="fa-solid fa-spinner"
+                    class="animate-spin"
+                  />
                   <span v-else>Simpan ({{ selectedImages.length }})</span>
                 </button>
               </div>
@@ -414,12 +495,20 @@ const getImageUrl = resolveUrl
         </div>
       </div>
     </div>
-  </Modal>
-  <MediaLightbox :show="isLightboxOpen" :images="lightboxImages" :initialIndex="lightboxIndex"
-    @close="isLightboxOpen = false" />
+  </BaseModal>
+  <MediaLightbox
+    :show="isLightboxOpen"
+    :images="lightboxImages"
+    :initialIndex="lightboxIndex"
+    @close="isLightboxOpen = false"
+  />
 
-  <ImageCropperModal :show="isCropperOpen" :file="currentEditFile" @close="isCropperOpen = false"
-    @save="handleCroppedSave" />
+  <ImageCropperModal
+    :show="isCropperOpen"
+    :file="currentEditFile"
+    @close="((isCropperOpen = false), (currentEditIndex = -1), (currentEditFile = null))"
+    @save="handleCroppedSave"
+  />
 </template>
 
 <style scoped>

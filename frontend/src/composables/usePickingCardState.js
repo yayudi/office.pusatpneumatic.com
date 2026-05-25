@@ -31,7 +31,7 @@ export function usePickingCardState(props, authStore) {
     if (props.inv.locations) {
       Object.values(props.inv.locations).forEach((items) => {
         items.forEach((i) => {
-          if (i.location_code && props.validateStock(i)) {
+          if (props.validateStock(i)) {
             validItems.push(i.id)
           }
         })

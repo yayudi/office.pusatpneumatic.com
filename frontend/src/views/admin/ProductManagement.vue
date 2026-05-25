@@ -15,7 +15,6 @@ import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import ProductTable from '@/components/products/ProductTable.vue'
 import ProductImageModal from '@/components/products/ProductImageModal.vue'
-import PwaUpdatePrompt from '@/components/ui/PwaUpdatePrompt.vue'
 
 const { toast } = useToast()
 
@@ -211,7 +210,7 @@ const performBulkAction = async (actionType) => {
     toast(`Berhasil memproses ${ids.length} produk.`, 'success')
     selectedIds.value.clear()
     fetchProducts()
-  } catch (err) {
+  } catch {
     toast('Terjadi kesalahan saat batch processing.', 'error')
   } finally {
     isProcessingBulk.value = false

@@ -4,7 +4,7 @@ import VueApexCharts from 'vue3-apexcharts'
 import { calculateSummaryForUser } from '@/api/helpers/summary.js'
 import { useAuthStore } from '@/stores/auth.js'
 import { formatJamMenit } from '@/api/helpers/time.js'
-import Modal from '@/components/ui/Modal.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 
 const props = defineProps({
   users: {
@@ -549,7 +549,7 @@ const userOvertimeChartOptions = computed(() => ({
   </div>
 
   <!-- User Detail Modal -->
-  <Modal :show="!!selectedUser" @close="selectedUser = null" maxWidth="max-w-4xl">
+  <BaseModal :show="!!selectedUser" @close="selectedUser = null" maxWidth="max-w-4xl">
     <template #title>
       <div class="-mt-1">
         <h4 class="text-xl font-bold text-text">{{ selectedUser?.nama }}</h4>
@@ -598,7 +598,7 @@ const userOvertimeChartOptions = computed(() => ({
         </div>
       </div>
     </div>
-  </Modal>
+  </BaseModal>
 </template>
 
 <style scoped>

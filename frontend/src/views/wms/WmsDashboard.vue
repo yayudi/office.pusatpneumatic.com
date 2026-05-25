@@ -1,4 +1,4 @@
-<!-- frontend\src\views\wms\Dashboard.vue -->
+<!-- frontend\src\views\wms\WmsDashboard.vue -->
 <script setup>
 import axios from '@/api/axios.js'
 import { ref, watch, computed } from 'vue'
@@ -23,7 +23,6 @@ const {
   activeView,
   displayedProducts,
   loading,
-  isLoadingMore,
   isBackgroundLoading,
   error,
   loader,
@@ -46,7 +45,6 @@ const {
   availableColumns,
   toggleColumn,
   resetAndRefetch,
-  fetchProducts,
 } = useWms()
 
 const auth = useAuthStore()
@@ -70,7 +68,7 @@ const masterData = useMasterDataStore()
 async function loadCategories() {
   try {
     const categories = await masterData.getCategories()
-    categoryOptions.value = categories.map(c => ({ id: c.id, label: c.name }))
+    categoryOptions.value = categories.map((c) => ({ id: c.id, label: c.name }))
   } catch (error) {
     console.error('Failed to load categories', error)
   }
@@ -89,7 +87,6 @@ onMounted(() => {
 // Image Modal State
 const isImageModalOpen = ref(false)
 const selectedImageProduct = ref(null)
-
 
 const warehouseViews = [
   { label: 'Semua', value: 'all' },
@@ -220,17 +217,18 @@ async function handleAdjustConfirm(payload) {
   }
 }
 
-
 const { Slash, Escape } = useMagicKeys()
 
 const anyModalOpen = computed(() => {
-  return isHistoryModalOpen.value ||
+  return (
+    isHistoryModalOpen.value ||
     isTransferModalOpen.value ||
     isUploadModalOpen.value ||
     isAdjustModalOpen.value ||
     isProductFormOpen.value ||
     isSimulationModalOpen.value ||
     isImageModalOpen.value
+  )
 })
 
 watch(Slash, (pressed) => {
@@ -250,7 +248,9 @@ watch(Escape, (pressed) => {
 </script>
 
 <template>
-  <div class="mb-2 lg:mb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+  <div
+    class="mb-2 lg:mb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+  >
     <h2 class="text-2xl font-bold text-text flex items-center gap-3">
       <font-awesome-icon icon="fa-solid fa-warehouse" class="text-primary" />
       <span>Warehouse Management</span>
@@ -258,31 +258,43 @@ watch(Escape, (pressed) => {
 
     <div
       class="bg-secondary/35 p-1.5 rounded-xl border border-secondary/20 shadow-sm flex gap-3 overflow-x-auto max-w-full items-center"
-      :class="isMobile ? 'grid grid-cols-2 justify-center text-center w-full' : ''">
-      <router-link v-if="auth.hasPermission('perform-batch-movement')" to="/wms/actions/batch-movement"
+      :class="isMobile ? 'grid grid-cols-2 justify-center text-center w-full' : ''"
+    >
+      <router-link
+        v-if="auth.hasPermission('perform-batch-movement')"
+        to="/wms/actions/batch-movement"
         class="px-4 py-2 text-sm font-bold text-accent hover:bg-accent/10 rounded-lg transition-all flex items-center gap-2 justify-center whitespace-nowrap"
-        title="Pindah Stok Antar Lokasi">
+        title="Pindah Stok Antar Lokasi"
+      >
         <font-awesome-icon icon="fa-solid fa-boxes-stacked" />
         <span>Pindah</span>
       </router-link>
       <div v-if="!isMobile" class="w-px h-6 bg-primary"></div>
-      <router-link v-if="auth.hasPermission('manage-stock-adjustment')" to="/wms/actions/batch-adjustment"
+      <router-link
+        v-if="auth.hasPermission('manage-stock-adjustment')"
+        to="/wms/actions/batch-adjustment"
         class="px-4 py-2 text-sm font-bold text-warning hover:bg-warning/10 rounded-lg transition-all flex items-center gap-2 justify-center whitespace-nowrap"
-        title="Stock Opname / Penyesuaian">
+        title="Stock Opname / Penyesuaian"
+      >
         <font-awesome-icon icon="fa-solid fa-calculator" />
         <span>Opname</span>
       </router-link>
       <div v-if="!isMobile" class="w-px h-6 bg-primary"></div>
-      <router-link v-if="auth.hasPermission('manage-stock-adjustment')" to="/wms/actions/return"
+      <router-link
+        v-if="auth.hasPermission('manage-stock-adjustment')"
+        to="/wms/actions/return"
         class="px-4 py-2 text-sm font-bold text-danger hover:bg-danger/10 rounded-lg transition-all flex items-center gap-2 justify-center whitespace-nowrap"
-        title="Validasi Barang Retur">
+        title="Validasi Barang Retur"
+      >
         <font-awesome-icon icon="fa-solid fa-rotate-left" />
         <span>Retur</span>
       </router-link>
       <div v-if="!isMobile" class="w-px h-6 bg-primary"></div>
-      <button @click="isSimulationModalOpen = true"
+      <button
+        @click="isSimulationModalOpen = true"
         class="px-4 py-2 text-sm font-bold text-success hover:bg-success/10 rounded-lg transition-all flex items-center gap-2 justify-center whitespace-nowrap"
-        title="Simulasi Harga & Berat">
+        title="Simulasi Harga & Berat"
+      >
         <font-awesome-icon icon="fa-solid fa-calculator" />
         <span>Simulasi</span>
       </button>
@@ -290,16 +302,33 @@ watch(Escape, (pressed) => {
   </div>
 
   <!-- Panel Kontrol Utama -->
-  <div class="bg-secondary/35 rounded-xl shadow-lg border border-secondary/20 p-3 lg:p-6 space-y-2 w-full">
-    <WmsControlPanel class="sticky top-14" :search-placeholder="searchPlaceholder" :search-tabs="searchTabs"
-      :warehouse-views="warehouseViews" :building-filter-options="buildingFilterOptions"
-      :floor-filter-options="floorFilterOptions" :category-filter-options="categoryOptions"
-      :is-auto-refetching="isAutoRefetching" @search="handleSearchInput" @toggle-refetch="toggleAutoRefetch"
-      v-model:search-by="searchBy" v-model:searchValue="searchTerm" v-model:active-view="activeView"
-      v-model:stock-status-filter="stockStatusFilter" v-model:product-type-filter="productTypeFilter"
-      v-model:selected-building="selectedBuilding" v-model:selected-floor="selectedFloor"
-      v-model:selected-category="selectedCategory" v-model:mobileLayout="mobileLayout"
-      :available-columns="availableColumns" :visible-columns="visibleColumns" @toggle-column="toggleColumn" />
+  <div
+    class="bg-secondary/35 rounded-xl shadow-lg border border-secondary/20 p-3 lg:p-6 space-y-2 w-full"
+  >
+    <WmsControlPanel
+      class="sticky top-14"
+      :search-placeholder="searchPlaceholder"
+      :search-tabs="searchTabs"
+      :warehouse-views="warehouseViews"
+      :building-filter-options="buildingFilterOptions"
+      :floor-filter-options="floorFilterOptions"
+      :category-filter-options="categoryOptions"
+      :is-auto-refetching="isAutoRefetching"
+      @search="handleSearchInput"
+      @toggle-refetch="toggleAutoRefetch"
+      v-model:search-by="searchBy"
+      v-model:searchValue="searchTerm"
+      v-model:active-view="activeView"
+      v-model:stock-status-filter="stockStatusFilter"
+      v-model:product-type-filter="productTypeFilter"
+      v-model:selected-building="selectedBuilding"
+      v-model:selected-floor="selectedFloor"
+      v-model:selected-category="selectedCategory"
+      v-model:mobileLayout="mobileLayout"
+      :available-columns="availableColumns"
+      :visible-columns="visibleColumns"
+      @toggle-column="toggleColumn"
+    />
 
     <div v-if="loading" class="text-center py-16">
       <font-awesome-icon icon="fa-solid fa-spinner" class="animate-spin text-primary text-3xl" />
@@ -313,16 +342,31 @@ watch(Escape, (pressed) => {
     </div>
 
     <div v-else class="overflow-x-auto">
-      <WmsProductTable :products="displayedProducts" :active-view="activeView" :sort-by="sortBy" :sort-order="sortOrder"
-        :loading="loading" :mobile-layout="mobileLayout" @copy="copyToClipboard" @openTransfer="openTransferModal"
-        @openAdjust="openAdjustModal" @openHistory="openHistoryModal" @openEdit="openEditProductModal"
-        @delete="handleDeleteProduct" @sort="handleSort" :visible-columns="visibleColumns" @view-image="openImageModal">
+      <WmsProductTable
+        :products="displayedProducts"
+        :active-view="activeView"
+        :sort-by="sortBy"
+        :sort-order="sortOrder"
+        :loading="loading"
+        :mobile-layout="mobileLayout"
+        @copy="copyToClipboard"
+        @openTransfer="openTransferModal"
+        @openAdjust="openAdjustModal"
+        @openHistory="openHistoryModal"
+        @openEdit="openEditProductModal"
+        @delete="handleDeleteProduct"
+        @sort="handleSort"
+        :visible-columns="visibleColumns"
+        @view-image="openImageModal"
+      >
         <template #footer>
           <div ref="loader" class="text-center pt-6 pb-2">
             <span v-if="displayedProducts.length === 0 && !loading" class="text-text/50 text-sm">
               -- Tidak ada produk yang cocok --
             </span>
-            <span v-else-if="hasMoreData" class="text-text/50 text-sm"> Memuat lebih banyak... </span>
+            <span v-else-if="hasMoreData" class="text-text/50 text-sm">
+              Memuat lebih banyak...
+            </span>
             <span v-else class="text-text/50 text-sm"> -- Akhir dari daftar -- </span>
           </div>
         </template>
@@ -332,30 +376,51 @@ watch(Escape, (pressed) => {
 
   <!-- Silent Update Indicator -->
   <transition name="fade">
-    <div v-if="isBackgroundLoading"
-      class="fixed bottom-6 right-6 z-50 bg-background/80 backdrop-blur-md border border-primary/20 text-primary px-4 py-2 rounded-full text-xs font-bold shadow-xl flex items-center gap-2 pointer-events-none">
+    <div
+      v-if="isBackgroundLoading"
+      class="fixed bottom-6 right-6 z-50 bg-background/80 backdrop-blur-md border border-primary/20 text-primary px-4 py-2 rounded-full text-xs font-bold shadow-xl flex items-center gap-2 pointer-events-none"
+    >
       <font-awesome-icon icon="fa-solid fa-sync" class="animate-spin" />
       <span>Mengupdate Data...</span>
     </div>
   </transition>
 
-  <WmsTransferModal :show="isTransferModalOpen" :product="selectedProduct" :locations="allLocations" @close="closeModal"
-    @confirm="handleTransferConfirm" />
+  <WmsTransferModal
+    :show="isTransferModalOpen"
+    :product="selectedProduct"
+    :locations="allLocations"
+    @close="closeModal"
+    @confirm="handleTransferConfirm"
+  />
 
-  <WmsAdjustModal :show="isAdjustModalOpen" :product="selectedProduct" :locations="allLocations" @close="closeModal"
-    @confirm="handleAdjustConfirm" />
+  <WmsAdjustModal
+    :show="isAdjustModalOpen"
+    :product="selectedProduct"
+    :locations="allLocations"
+    @close="closeModal"
+    @confirm="handleAdjustConfirm"
+  />
 
   <WmsHistoryModal :show="isHistoryModalOpen" :product="selectedProduct" @close="closeModal" />
 
   <!-- Master Data Modal -->
-  <WmsProductFormModal :show="isProductFormOpen" :mode="productFormMode" :product-data="selectedProduct"
-    @close="closeModal" @refresh="handleProductSaved" />
+  <WmsProductFormModal
+    :show="isProductFormOpen"
+    :mode="productFormMode"
+    :product-data="selectedProduct"
+    @close="closeModal"
+    @refresh="handleProductSaved"
+  />
 
   <SalesSimulationModal :show="isSimulationModalOpen" @close="isSimulationModalOpen = false" />
 
   <!-- Image Modal -->
-  <ProductImageModal :show="isImageModalOpen" :product-data="selectedImageProduct" @close="isImageModalOpen = false"
-    @refresh="resetAndRefetch" />
+  <ProductImageModal
+    :show="isImageModalOpen"
+    :product-data="selectedImageProduct"
+    @close="isImageModalOpen = false"
+    @refresh="resetAndRefetch"
+  />
 </template>
 
 <style scoped>

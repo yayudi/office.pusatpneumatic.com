@@ -1,45 +1,38 @@
 <script setup>
-import { ref, watch, onMounted, computed, onUnmounted } from 'vue';
-import { startOfMonth, endOfMonth, format } from 'date-fns';
-import { useAuthStore } from '@/stores/auth';
-import { useToast } from '@/composables/useToast.js';
-import { useTheme } from '@/composables/useTheme.js';
-import FilterBar from '@/components/ui/FilterBar.vue';
-import DateRangeFilter from '@/components/ui/DateRangeFilter.vue';
-import StockTimelineModal from '@/components/stats/StockTimelineModal.vue';
-import { getStockMovementStatistics, getStockTimelineStatistics, requestStockTimelineExport } from '@/api/helpers/statistics.js';
-import { requestStatisticExport } from '@/api/helpers/exportStats.js';
-import { useMasterDataStore } from '@/stores/masterData';
-import SearchInput from '@/components/ui/SearchInput.vue';
-import Tabs from '@/components/ui/Tabs.vue';
-import BaseSelect from '@/components/ui/BaseSelect.vue';
-import VueApexCharts from 'vue3-apexcharts';
-import { useStatsTable } from '@/composables/useStatsTable.js';
-import StatsChartCard from './shared/StatsChartCard.vue';
-import StatsFilterBar from './shared/StatsFilterBar.vue';
+import { ref, onMounted, computed } from 'vue'
+import { startOfMonth, endOfMonth, format } from 'date-fns'
+import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast.js'
+import { useTheme } from '@/composables/useTheme.js'
+import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
+import StockTimelineModal from '@/components/stats/StockTimelineModal.vue'
+import { getStockMovementStatistics } from '@/api/helpers/statistics.js'
+import { requestStatisticExport } from '@/api/helpers/exportStats.js'
+import { useMasterDataStore } from '@/stores/masterData'
+import SearchInput from '@/components/ui/SearchInput.vue'
+import BaseTabs from '@/components/ui/BaseTabs.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
+import VueApexCharts from 'vue3-apexcharts'
+import { useStatsTable } from '@/composables/useStatsTable.js'
+import StatsChartCard from './shared/StatsChartCard.vue'
+import StatsFilterBar from './shared/StatsFilterBar.vue'
 
-const authStore = useAuthStore();
-const masterData = useMasterDataStore();
-const { toast } = useToast();
+const authStore = useAuthStore()
+const masterData = useMasterDataStore()
+const { toast } = useToast()
 
-const isDataLoading = ref(false);
-const isExporting = ref(false);
-const showTimelineModal = ref(false);
-const selectedProductId = ref(null);
-const showAdvancedFilters = ref(false);
-const statisticsList = ref([]);
-const viewMode = ref('table');
-const chartMaxCap = ref(10);
+const isDataLoading = ref(false)
+const isExporting = ref(false)
+const showTimelineModal = ref(false)
+const selectedProductId = ref(null)
+const statisticsList = ref([])
+const viewMode = ref('table')
+const chartMaxCap = ref(10)
 
-const {
-  sortKey,
-  sortDesc,
-  displayedData,
-  visibleData,
-  sortBy,
-  getSortIcon,
-  handleTableScroll
-} = useStatsTable(statisticsList, { initialSortKey: 'total_sold' });
+const { displayedData, visibleData, sortBy, getSortIcon, handleTableScroll } = useStatsTable(
+  statisticsList,
+  { initialSortKey: 'total_sold' },
+)
 
 const filterValues = ref({
   startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
@@ -48,13 +41,13 @@ const filterValues = ref({
   status: 'all',
   movement: 'all',
   building: [],
-  categoryId: 'all'
-});
+  categoryId: 'all',
+})
 
 const reportFilters = ref({
   allBuildings: [],
-  allCategories: []
-});
+  allCategories: [],
+})
 
 const stockStatusOptions = [
   { id: 'all', label: 'Semua' },
@@ -63,156 +56,185 @@ const stockStatusOptions = [
   { id: 'critical', label: 'Kritis (Restock)' },
   { id: 'overstock', label: 'Overstock' },
   { id: 'empty', label: 'Stok Kosong' },
-  { id: 'negative', label: 'Stok Minus' }
-];
+  { id: 'negative', label: 'Stok Minus' },
+]
 
 const movementOptions = [
   { id: 'all', label: 'Semua' },
   { id: 'active', label: 'Satu / Lebih Transaksi' },
-  { id: 'dead', label: 'Dead Stock (Tidak ada transaksi)' }
-];
+  { id: 'dead', label: 'Dead Stock (Tidak ada transaksi)' },
+]
 
 const chartMaxCapOptions = [
   { id: 5, label: 'Top 5' },
   { id: 10, label: 'Top 10' },
   { id: 25, label: 'Top 25' },
-  { id: 50, label: 'Top 50' }
-];
+  { id: 50, label: 'Top 50' },
+]
 
-const { themeColors, isDarkTheme } = useTheme();
+const { themeColors, isDarkTheme } = useTheme()
 
 onMounted(async () => {
   try {
-    const res = await masterData.getReportFilters();
+    const res = await masterData.getReportFilters()
     if (res && res.allBuildings) {
-      reportFilters.value.allBuildings = res.allBuildings;
+      reportFilters.value.allBuildings = res.allBuildings
     }
 
-    const categories = await masterData.getCategories();
+    const categories = await masterData.getCategories()
     reportFilters.value.allCategories = [
       { id: 'all', label: 'Semua Kategori' },
-      ...categories.map(c => ({ id: c.id, label: c.name }))
-    ];
+      ...categories.map((c) => ({ id: c.id, label: c.name })),
+    ]
   } catch (error) {
-    console.error("Gagal memuat filter laporan", error);
+    console.error('Gagal memuat filter laporan', error)
   }
 
-  fetchStatistics();
-});
+  fetchStatistics()
+})
 
-const canView = computed(() => authStore.user?.permissions?.includes('statistic.stock.view') || authStore.user?.permissions?.includes('manage-all'));
-const canExport = computed(() => authStore.user?.permissions?.includes('statistic.stock.export') || authStore.user?.permissions?.includes('manage-all'));
+const canExport = computed(
+  () =>
+    authStore.user?.permissions?.includes('statistic.stock.export') ||
+    authStore.user?.permissions?.includes('manage-all'),
+)
 
 const openTimelineInvestigation = (productId) => {
-  selectedProductId.value = productId;
-  showTimelineModal.value = true;
-};
+  selectedProductId.value = productId
+  showTimelineModal.value = true
+}
 
 const fetchStatistics = async () => {
-  if (!filterValues.value.startDate || !filterValues.value.endDate) return;
-  isDataLoading.value = true;
+  if (!filterValues.value.startDate || !filterValues.value.endDate) return
+  isDataLoading.value = true
   try {
-    const response = await getStockMovementStatistics(filterValues.value);
-    const payload = response?.data || response; // Ambil properti data asli dari Controller
+    const response = await getStockMovementStatistics(filterValues.value)
+    const payload = response?.data || response // Ambil properti data asli dari Controller
 
     if (payload && !Array.isArray(payload) && payload.summary) {
-      statisticsList.value = payload.summary || [];
+      statisticsList.value = payload.summary || []
     } else {
-      statisticsList.value = Array.isArray(payload) ? payload : [];
+      statisticsList.value = Array.isArray(payload) ? payload : []
     }
   } catch (error) {
-    toast(error.message || 'Gagal mengambil data statistik', 'error');
+    toast(error.message || 'Gagal mengambil data statistik', 'error')
   } finally {
-    isDataLoading.value = false;
+    isDataLoading.value = false
   }
-};
+}
 
 const handleExport = async () => {
-  if (!filterValues.value.startDate || !filterValues.value.endDate) return;
-  isExporting.value = true;
+  if (!filterValues.value.startDate || !filterValues.value.endDate) return
+  isExporting.value = true
   try {
-    const data = await requestStatisticExport(filterValues.value);
+    const data = await requestStatisticExport(filterValues.value)
     if (data.success) {
-      toast(data.message || 'Sedang memproses export ke background', 'success');
+      toast(data.message || 'Sedang memproses export ke background', 'success')
     }
   } catch (error) {
-    toast(error.message || 'Gagal request export', 'error');
+    toast(error.message || 'Gagal request export', 'error')
   } finally {
-    isExporting.value = false;
+    isExporting.value = false
   }
-};
+}
 
 const getStatusClass = (status) => {
   switch (status) {
     case 'NEGATIVE':
-      return 'bg-accent/10 border-accent/20 text-accent';
+      return 'bg-accent/10 border-accent/20 text-accent'
     case 'EMPTY':
-      return 'bg-text/10 border-text/20 text-text';
+      return 'bg-text/10 border-text/20 text-text'
     case 'CRITICAL':
-      return 'bg-danger/10 border-danger/20 text-danger';
+      return 'bg-danger/10 border-danger/20 text-danger'
     case 'WARNING':
-      return 'bg-warning/10 border-warning/20 text-warning';
+      return 'bg-warning/10 border-warning/20 text-warning'
     case 'SAFE':
-      return 'bg-success/10 border-success/20 text-success';
+      return 'bg-success/10 border-success/20 text-success'
     case 'OVERSTOCK':
-      return 'bg-primary/10 border-primary/20 text-primary';
+      return 'bg-primary/10 border-primary/20 text-primary'
     default:
-      return 'bg-secondary/10 border-secondary/20 text-text/40';
+      return 'bg-secondary/10 border-secondary/20 text-text/40'
   }
-};
+}
 
 const getStatusLabel = (status) => {
   switch (status) {
-    case 'CRITICAL': return 'Kritis';
-    case 'WARNING': return 'Warning';
-    case 'SAFE': return 'Aman';
-    case 'OVERSTOCK': return 'Overstock';
-    case 'EMPTY': return 'Kosong';
-    case 'NEGATIVE': return 'Minus';
-    default: return status;
+    case 'CRITICAL':
+      return 'Kritis'
+    case 'WARNING':
+      return 'Warning'
+    case 'SAFE':
+      return 'Aman'
+    case 'OVERSTOCK':
+      return 'Overstock'
+    case 'EMPTY':
+      return 'Kosong'
+    case 'NEGATIVE':
+      return 'Minus'
+    default:
+      return status
   }
-};
+}
 
 const chartStatusSeries = computed(() => {
-  let safe = 0, warning = 0, critical = 0, overstock = 0, empty = 0, negative = 0;
-  statisticsList.value.forEach(item => {
-    if (item.status === 'SAFE') safe++;
-    else if (item.status === 'WARNING') warning++;
-    else if (item.status === 'CRITICAL') critical++;
-    else if (item.status === 'OVERSTOCK') overstock++;
-    else if (item.status === 'EMPTY') empty++;
-    else if (item.status === 'NEGATIVE') negative++;
-    else safe++; // fallback to safe if status is not recognized
-  });
-  return [safe, warning, critical, overstock, empty, negative];
-});
+  let safe = 0,
+    warning = 0,
+    critical = 0,
+    overstock = 0,
+    empty = 0,
+    negative = 0
+  statisticsList.value.forEach((item) => {
+    if (item.status === 'SAFE') safe++
+    else if (item.status === 'WARNING') warning++
+    else if (item.status === 'CRITICAL') critical++
+    else if (item.status === 'OVERSTOCK') overstock++
+    else if (item.status === 'EMPTY') empty++
+    else if (item.status === 'NEGATIVE') negative++
+    else safe++ // fallback to safe if status is not recognized
+  })
+  return [safe, warning, critical, overstock, empty, negative]
+})
 
 const applyFilters = () => {
-  fetchStatistics();
-};
+  fetchStatistics()
+}
 
-const labelColor = computed(() => themeColors.value.text);
+const labelColor = computed(() => themeColors.value.text)
 
 const chartStatusOptions = computed(() => ({
   chart: { type: 'donut', background: 'transparent' },
   labels: ['Aman', 'Warning', 'Kritis', 'Overstock', 'Kosong', 'Minus'],
-  colors: [themeColors.value.success, themeColors.value.warning, themeColors.value.danger, themeColors.value.primary, themeColors.value.text, themeColors.value.accent],
+  colors: [
+    themeColors.value.success,
+    themeColors.value.warning,
+    themeColors.value.danger,
+    themeColors.value.primary,
+    themeColors.value.text,
+    themeColors.value.accent,
+  ],
   theme: { mode: isDarkTheme.value ? 'dark' : 'light' },
   plotOptions: { pie: { donut: { size: '70%' }, expandOnClick: false } },
   dataLabels: { enabled: false },
   legend: { position: 'bottom', labels: { colors: labelColor.value } },
-  stroke: { show: false }
-}));
+  stroke: { show: false },
+}))
 
 const chartTopSalesSeries = computed(() => {
-  const sorted = [...statisticsList.value].sort((a, b) => b.total_sold - a.total_sold).slice(0, chartMaxCap.value);
-  return [{ name: 'Keluar (Out)', data: sorted.map(i => i.total_sold) }];
-});
+  const sorted = [...statisticsList.value]
+    .sort((a, b) => b.total_sold - a.total_sold)
+    .slice(0, chartMaxCap.value)
+  return [{ name: 'Keluar (Out)', data: sorted.map((i) => i.total_sold) }]
+})
 const chartTopSalesOptions = computed(() => {
-  const sorted = [...statisticsList.value].sort((a, b) => b.total_sold - a.total_sold).slice(0, chartMaxCap.value);
+  const sorted = [...statisticsList.value]
+    .sort((a, b) => b.total_sold - a.total_sold)
+    .slice(0, chartMaxCap.value)
   return {
     chart: { type: 'bar', background: 'transparent', toolbar: { show: false } },
-    xaxis: { categories: sorted.map(i => i.sku), labels: { style: { colors: labelColor.value, cssClass: 'text-[10px]' } } },
+    xaxis: {
+      categories: sorted.map((i) => i.sku),
+      labels: { style: { colors: labelColor.value, cssClass: 'text-[10px]' } },
+    },
     yaxis: { labels: { style: { colors: labelColor.value } } },
     colors: [themeColors.value.primary],
     plotOptions: { bar: { borderRadius: 4, columnWidth: '60%' } },
@@ -222,26 +244,33 @@ const chartTopSalesOptions = computed(() => {
       theme: isDarkTheme.value ? 'dark' : 'light',
       x: {
         formatter: function (val) {
-          const product = statisticsList.value.find(p => p.sku === val);
-          return product ? product.name : val;
-        }
-      }
-    }
-  };
-});
+          const product = statisticsList.value.find((p) => p.sku === val)
+          return product ? product.name : val
+        },
+      },
+    },
+  }
+})
 
 const chartSlowMovingSeries = computed(() => {
-  const validData = statisticsList.value.filter(i => i.current_stock > 0);
-  const sorted = validData.sort((a, b) => b.current_stock - a.current_stock).slice(0, chartMaxCap.value);
-  return [{ name: 'Sisa Stok Aktual', data: sorted.map(i => i.current_stock) }];
-});
+  const validData = statisticsList.value.filter((i) => i.current_stock > 0)
+  const sorted = validData
+    .sort((a, b) => b.current_stock - a.current_stock)
+    .slice(0, chartMaxCap.value)
+  return [{ name: 'Sisa Stok Aktual', data: sorted.map((i) => i.current_stock) }]
+})
 const chartSlowMovingOptions = computed(() => {
-  const validData = statisticsList.value.filter(i => i.current_stock > 0);
-  const sorted = validData.sort((a, b) => b.current_stock - a.current_stock).slice(0, chartMaxCap.value);
+  const validData = statisticsList.value.filter((i) => i.current_stock > 0)
+  const sorted = validData
+    .sort((a, b) => b.current_stock - a.current_stock)
+    .slice(0, chartMaxCap.value)
   return {
     chart: { type: 'bar', background: 'transparent', toolbar: { show: false } },
     plotOptions: { bar: { horizontal: true, borderRadius: 4 } },
-    xaxis: { categories: sorted.map(i => i.sku), labels: { style: { colors: labelColor.value } } },
+    xaxis: {
+      categories: sorted.map((i) => i.sku),
+      labels: { style: { colors: labelColor.value } },
+    },
     yaxis: { labels: { style: { colors: labelColor.value, cssClass: 'text-[10px]' } } },
     colors: [themeColors.value.warning],
     theme: { mode: isDarkTheme.value ? 'dark' : 'light' },
@@ -250,59 +279,72 @@ const chartSlowMovingOptions = computed(() => {
       theme: isDarkTheme.value ? 'dark' : 'light',
       x: {
         formatter: function (val) {
-          const product = statisticsList.value.find(p => p.sku === val);
-          return product ? product.name : val;
-        }
-      }
-    }
-  };
-});
+          const product = statisticsList.value.find((p) => p.sku === val)
+          return product ? product.name : val
+        },
+      },
+    },
+  }
+})
 
 const chartActivitySeries = computed(() => {
   const sorted = [...statisticsList.value]
-    .sort((a, b) => (b.total_sold + b.total_inbound) - (a.total_sold + a.total_inbound))
-    .slice(0, chartMaxCap.value);
+    .sort((a, b) => b.total_sold + b.total_inbound - (a.total_sold + a.total_inbound))
+    .slice(0, chartMaxCap.value)
   return [
-    { name: 'Mutasi Keluar', data: sorted.map(i => i.total_sold) },
-    { name: 'Mutasi Masuk', data: sorted.map(i => i.total_inbound) }
-  ];
-});
+    { name: 'Mutasi Keluar', data: sorted.map((i) => i.total_sold) },
+    { name: 'Mutasi Masuk', data: sorted.map((i) => i.total_inbound) },
+  ]
+})
 const chartActivityOptions = computed(() => {
   const sorted = [...statisticsList.value]
-    .sort((a, b) => (b.total_sold + b.total_inbound) - (a.total_sold + a.total_inbound))
-    .slice(0, chartMaxCap.value);
+    .sort((a, b) => b.total_sold + b.total_inbound - (a.total_sold + a.total_inbound))
+    .slice(0, chartMaxCap.value)
   return {
     chart: { type: 'area', background: 'transparent', stacked: false, toolbar: { show: false } },
     stroke: { curve: 'smooth', width: 2 },
-    xaxis: { categories: sorted.map(i => i.sku), labels: { style: { colors: labelColor.value, cssClass: 'text-[10px]' } } },
+    xaxis: {
+      categories: sorted.map((i) => i.sku),
+      labels: { style: { colors: labelColor.value, cssClass: 'text-[10px]' } },
+    },
     yaxis: { labels: { style: { colors: labelColor.value } } },
     colors: [themeColors.value.danger, themeColors.value.success],
     theme: { mode: isDarkTheme.value ? 'dark' : 'light' },
     legend: { labels: { colors: labelColor.value } },
     dataLabels: { enabled: false },
-    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
+    fill: {
+      type: 'gradient',
+      gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] },
+    },
     tooltip: {
       theme: isDarkTheme.value ? 'dark' : 'light',
       x: {
         formatter: function (val) {
-          const product = statisticsList.value.find(p => p.sku === val);
-          return product ? product.name : val;
-        }
-      }
-    }
-  };
-});
+          const product = statisticsList.value.find((p) => p.sku === val)
+          return product ? product.name : val
+        },
+      },
+    },
+  }
+})
 
 const chartFastMovingSeries = computed(() => {
-  const sorted = [...statisticsList.value].sort((a, b) => b.avg_daily_sales - a.avg_daily_sales).slice(0, chartMaxCap.value);
-  return [{ name: 'Rata-rata Keluar', data: sorted.map(i => i.avg_daily_sales) }];
-});
+  const sorted = [...statisticsList.value]
+    .sort((a, b) => b.avg_daily_sales - a.avg_daily_sales)
+    .slice(0, chartMaxCap.value)
+  return [{ name: 'Rata-rata Keluar', data: sorted.map((i) => i.avg_daily_sales) }]
+})
 const chartFastMovingOptions = computed(() => {
-  const sorted = [...statisticsList.value].sort((a, b) => b.avg_daily_sales - a.avg_daily_sales).slice(0, chartMaxCap.value);
+  const sorted = [...statisticsList.value]
+    .sort((a, b) => b.avg_daily_sales - a.avg_daily_sales)
+    .slice(0, chartMaxCap.value)
   return {
     chart: { type: 'bar', background: 'transparent', toolbar: { show: false } },
     plotOptions: { bar: { borderRadius: 4, columnWidth: '60%' } },
-    xaxis: { categories: sorted.map(i => i.sku), labels: { style: { colors: labelColor.value, cssClass: 'text-[10px]' } } },
+    xaxis: {
+      categories: sorted.map((i) => i.sku),
+      labels: { style: { colors: labelColor.value, cssClass: 'text-[10px]' } },
+    },
     yaxis: { labels: { style: { colors: labelColor.value } } },
     colors: [themeColors.value.accent],
     theme: { mode: isDarkTheme.value ? 'dark' : 'light' },
@@ -311,26 +353,37 @@ const chartFastMovingOptions = computed(() => {
       theme: isDarkTheme.value ? 'dark' : 'light',
       x: {
         formatter: function (val) {
-          const product = statisticsList.value.find(p => p.sku === val);
-          return product ? product.name : val;
-        }
-      }
-    }
-  };
-});
+          const product = statisticsList.value.find((p) => p.sku === val)
+          return product ? product.name : val
+        },
+      },
+    },
+  }
+})
 
 const chartUrgentRestockSeries = computed(() => {
-  const validData = statisticsList.value.filter(i => i.days_of_inventory !== null && i.days_of_inventory > 0 && i.days_of_inventory < 90);
-  const sorted = validData.sort((a, b) => a.days_of_inventory - b.days_of_inventory).slice(0, chartMaxCap.value);
-  return [{ name: 'Sisa Umur Stok (Hari)', data: sorted.map(i => i.days_of_inventory) }];
-});
+  const validData = statisticsList.value.filter(
+    (i) => i.days_of_inventory !== null && i.days_of_inventory > 0 && i.days_of_inventory < 90,
+  )
+  const sorted = validData
+    .sort((a, b) => a.days_of_inventory - b.days_of_inventory)
+    .slice(0, chartMaxCap.value)
+  return [{ name: 'Sisa Umur Stok (Hari)', data: sorted.map((i) => i.days_of_inventory) }]
+})
 const chartUrgentRestockOptions = computed(() => {
-  const validData = statisticsList.value.filter(i => i.days_of_inventory !== null && i.days_of_inventory > 0 && i.days_of_inventory < 90);
-  const sorted = validData.sort((a, b) => a.days_of_inventory - b.days_of_inventory).slice(0, chartMaxCap.value);
+  const validData = statisticsList.value.filter(
+    (i) => i.days_of_inventory !== null && i.days_of_inventory > 0 && i.days_of_inventory < 90,
+  )
+  const sorted = validData
+    .sort((a, b) => a.days_of_inventory - b.days_of_inventory)
+    .slice(0, chartMaxCap.value)
   return {
     chart: { type: 'bar', background: 'transparent', toolbar: { show: false } },
     plotOptions: { bar: { horizontal: true, borderRadius: 4 } },
-    xaxis: { categories: sorted.map(i => i.sku), labels: { style: { colors: labelColor.value } } },
+    xaxis: {
+      categories: sorted.map((i) => i.sku),
+      labels: { style: { colors: labelColor.value } },
+    },
     yaxis: { labels: { style: { colors: labelColor.value, cssClass: 'text-[10px]' } } },
     colors: [themeColors.value.danger],
     theme: { mode: isDarkTheme.value ? 'dark' : 'light' },
@@ -339,23 +392,23 @@ const chartUrgentRestockOptions = computed(() => {
       theme: isDarkTheme.value ? 'dark' : 'light',
       x: {
         formatter: function (val) {
-          const product = statisticsList.value.find(p => p.sku === val);
-          return product ? product.name : val;
-        }
-      }
-    }
-  };
-});
+          const product = statisticsList.value.find((p) => p.sku === val)
+          return product ? product.name : val
+        },
+      },
+    },
+  }
+})
 
 const chartFlowBalanceSeries = computed(() => {
-  let totalIn = 0;
-  let totalOut = 0;
-  statisticsList.value.forEach(item => {
-    totalIn += Number(item.total_inbound) || 0;
-    totalOut += Number(item.total_sold) || 0;
-  });
-  return [totalIn, totalOut];
-});
+  let totalIn = 0
+  let totalOut = 0
+  statisticsList.value.forEach((item) => {
+    totalIn += Number(item.total_inbound) || 0
+    totalOut += Number(item.total_sold) || 0
+  })
+  return [totalIn, totalOut]
+})
 const chartFlowBalanceOptions = computed(() => ({
   chart: { type: 'donut', background: 'transparent' },
   labels: ['Total Mutasi Masuk (Inbound)', 'Total Mutasi Keluar (Out/Terjual)'],
@@ -364,28 +417,33 @@ const chartFlowBalanceOptions = computed(() => ({
   plotOptions: { pie: { donut: { size: '70%' }, expandOnClick: false } },
   dataLabels: { enabled: false },
   legend: { position: 'bottom', labels: { colors: labelColor.value } },
-  stroke: { show: false }
-}));
+  stroke: { show: false },
+}))
 
 const chartScatterSeries = computed(() => {
-  const safeData = [];
-  const warningData = [];
-  const criticalData = [];
-  const overstockData = [];
-  const emptyData = [];
-  const negativeData = [];
+  const safeData = []
+  const warningData = []
+  const criticalData = []
+  const overstockData = []
+  const emptyData = []
+  const negativeData = []
 
-  const source = statisticsList.value.slice(0, chartMaxCap.value > 25 ? chartMaxCap.value : 50);
+  const source = statisticsList.value.slice(0, chartMaxCap.value > 25 ? chartMaxCap.value : 50)
 
-  source.forEach(item => {
-    const point = { x: item.current_stock, y: parseFloat(item.avg_daily_sales) || 0, sku: item.sku, name: item.name };
-    if (item.status === 'SAFE') safeData.push(point);
-    else if (item.status === 'WARNING') warningData.push(point);
-    else if (item.status === 'CRITICAL') criticalData.push(point);
-    else if (item.status === 'OVERSTOCK') overstockData.push(point);
-    else if (item.status === 'EMPTY') emptyData.push(point);
-    else if (item.status === 'NEGATIVE') negativeData.push(point);
-  });
+  source.forEach((item) => {
+    const point = {
+      x: item.current_stock,
+      y: parseFloat(item.avg_daily_sales) || 0,
+      sku: item.sku,
+      name: item.name,
+    }
+    if (item.status === 'SAFE') safeData.push(point)
+    else if (item.status === 'WARNING') warningData.push(point)
+    else if (item.status === 'CRITICAL') criticalData.push(point)
+    else if (item.status === 'OVERSTOCK') overstockData.push(point)
+    else if (item.status === 'EMPTY') emptyData.push(point)
+    else if (item.status === 'NEGATIVE') negativeData.push(point)
+  })
 
   return [
     { name: 'Kritis', data: criticalData },
@@ -393,27 +451,45 @@ const chartScatterSeries = computed(() => {
     { name: 'Warning', data: warningData },
     { name: 'Overstock', data: overstockData },
     { name: 'Kosong', data: emptyData },
-    { name: 'Minus', data: negativeData }
-  ];
-});
+    { name: 'Minus', data: negativeData },
+  ]
+})
 
 const chartScatterOptions = computed(() => ({
-  chart: { type: 'scatter', background: 'transparent', toolbar: { show: false }, zoom: { type: 'xy' } },
-  colors: [themeColors.value.danger, themeColors.value.success, themeColors.value.warning, themeColors.value.primary, themeColors.value.text, themeColors.value.accent],
+  chart: {
+    type: 'scatter',
+    background: 'transparent',
+    toolbar: { show: false },
+    zoom: { type: 'xy' },
+  },
+  colors: [
+    themeColors.value.danger,
+    themeColors.value.success,
+    themeColors.value.warning,
+    themeColors.value.primary,
+    themeColors.value.text,
+    themeColors.value.accent,
+  ],
   xaxis: {
-    title: { text: 'Sisa Stok Faktual (Pcs)', style: { color: labelColor.value, fontSize: '12px' } },
-    labels: { style: { colors: labelColor.value } }
+    title: {
+      text: 'Sisa Stok Faktual (Pcs)',
+      style: { color: labelColor.value, fontSize: '12px' },
+    },
+    labels: { style: { colors: labelColor.value } },
   },
   yaxis: {
-    title: { text: 'Rata-Rata Keluar per Hari', style: { color: labelColor.value, fontSize: '12px' } },
-    labels: { style: { colors: labelColor.value } }
+    title: {
+      text: 'Rata-Rata Keluar per Hari',
+      style: { color: labelColor.value, fontSize: '12px' },
+    },
+    labels: { style: { colors: labelColor.value } },
   },
   theme: { mode: isDarkTheme.value ? 'dark' : 'light' },
   legend: { position: 'top', labels: { colors: labelColor.value } },
   tooltip: {
     theme: isDarkTheme.value ? 'dark' : 'light',
-    custom: function ({ series, seriesIndex, dataPointIndex, w }) {
-      const data = w.globals.initialSeries[seriesIndex].data[dataPointIndex];
+    custom: function ({ seriesIndex, dataPointIndex, w }) {
+      const data = w.globals.initialSeries[seriesIndex].data[dataPointIndex]
       return `<div class="p-3 bg-background border border-secondary text-text text-xs rounded shadow-lg min-w-[200px]">
         <strong class="text-sm border-b border-secondary pb-1 mb-2 block">${data.sku}</strong>
         <span class="text-text/70 mb-2 block whitespace-normal leading-tight">${data.name}</span>
@@ -423,41 +499,66 @@ const chartScatterOptions = computed(() => ({
         <div class="flex justify-between items-center bg-primary/10 p-1.5 mt-1 rounded">
           <span class="text-primary">Laju Keluar Harian:</span> <b class="text-primary">${data.y}</b>
         </div>
-      </div>`;
-    }
-  }
-}));
+      </div>`
+    },
+  },
+}))
 </script>
 
 <template>
   <div class="space-y-6">
     <div
-      class="mb-6 border-b border-secondary/20 pb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      class="mb-6 border-b border-secondary/20 pb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+    >
       <div>
         <h3 class="text-lg font-bold text-text">Pergerakan Stok</h3>
-        <p class="text-sm text-text/50 mt-1">Data penjualan, inbound, dan estimasi waktu sisa stok berdasarkan rata-rata
-          harian.</p>
+        <p class="text-sm text-text/50 mt-1">
+          Data penjualan, inbound, dan estimasi waktu sisa stok berdasarkan rata-rata harian.
+        </p>
       </div>
 
-      <Tabs v-model="viewMode"
-        :tabs="[{ label: 'Tabel Data', value: 'table' }, { label: 'Grafik & Insight', value: 'chart' }]" />
+      <BaseTabs
+        v-model="viewMode"
+        :tabs="[
+          { label: 'Tabel Data', value: 'table' },
+          { label: 'Grafik & Insight', value: 'chart' },
+        ]"
+      />
     </div>
     <!-- Filter Controls -->
-    <StatsFilterBar :loading="isDataLoading" @apply="applyFilters"
-      :hasActiveAdvancedFilters="!!filterValues.building.length || filterValues.status !== 'all' || filterValues.movement !== 'all'">
+    <StatsFilterBar
+      :loading="isDataLoading"
+      @apply="applyFilters"
+      :hasActiveAdvancedFilters="
+        !!filterValues.building.length ||
+        filterValues.status !== 'all' ||
+        filterValues.movement !== 'all'
+      "
+    >
       <template #main>
         <div class="w-full sm:w-auto shrink-0">
-          <DateRangeFilter v-model:startDate="filterValues.startDate" v-model:endDate="filterValues.endDate"
-            align="left" class="w-full sm:w-auto" />
+          <DateRangeFilter
+            v-model:startDate="filterValues.startDate"
+            v-model:endDate="filterValues.endDate"
+            align="left"
+            class="w-full sm:w-auto"
+          />
         </div>
         <div class="flex-1 w-full sm:w-auto min-w-[200px]">
-          <SearchInput v-model="filterValues.searchQuery" placeholder="Cari SKU atau Nama Produk..." />
+          <SearchInput
+            v-model="filterValues.searchQuery"
+            placeholder="Cari SKU atau Nama Produk..."
+          />
         </div>
       </template>
 
       <template #actions>
-        <button v-if="canExport" @click="handleExport" :disabled="isExporting"
-          class="h-[42px] px-4 flex items-center justify-center gap-2 border border-secondary rounded-lg text-sm font-semibold text-text/70 hover:bg-secondary/10 transition-colors bg-background flex-1 lg:flex-none">
+        <button
+          v-if="canExport"
+          @click="handleExport"
+          :disabled="isExporting"
+          class="h-[42px] px-4 flex items-center justify-center gap-2 border border-secondary rounded-lg text-sm font-semibold text-text/70 hover:bg-secondary/10 transition-colors bg-background flex-1 lg:flex-none"
+        >
           <font-awesome-icon v-if="isExporting" icon="fa-solid fa-circle-notch" spin />
           <font-awesome-icon v-else icon="fa-solid fa-file-export" />
           <span>Export</span>
@@ -467,24 +568,42 @@ const chartScatterOptions = computed(() => ({
       <template #advanced>
         <div>
           <label class="block text-xs font-semibold text-text/60 mb-2">Lokasi / Gedung</label>
-          <BaseSelect v-model="filterValues.building" :options="reportFilters.allBuildings" :multiple="true"
-            placeholder="Semua Gedung" />
+          <BaseSelect
+            v-model="filterValues.building"
+            :options="reportFilters.allBuildings"
+            :multiple="true"
+            placeholder="Semua Gedung"
+          />
         </div>
 
         <div>
           <label class="block text-xs font-semibold text-text/60 mb-2">Status Stok</label>
-          <BaseSelect v-model="filterValues.status" :options="stockStatusOptions" emitValue :searchable="false" />
+          <BaseSelect
+            v-model="filterValues.status"
+            :options="stockStatusOptions"
+            emitValue
+            :searchable="false"
+          />
         </div>
 
         <div>
           <label class="block text-xs font-semibold text-text/60 mb-2">Aktivitas Transaksi</label>
-          <BaseSelect v-model="filterValues.movement" :options="movementOptions" emitValue :searchable="false" />
+          <BaseSelect
+            v-model="filterValues.movement"
+            :options="movementOptions"
+            emitValue
+            :searchable="false"
+          />
         </div>
 
         <div>
           <label class="block text-xs font-semibold text-text/60 mb-2">Kategori Produk</label>
-          <BaseSelect v-model="filterValues.categoryId" :options="reportFilters.allCategories" emitValue
-            :searchable="true" />
+          <BaseSelect
+            v-model="filterValues.categoryId"
+            :options="reportFilters.allCategories"
+            emitValue
+            :searchable="true"
+          />
         </div>
       </template>
     </StatsFilterBar>
@@ -492,79 +611,115 @@ const chartScatterOptions = computed(() => ({
     <!-- Main Content Layout -->
     <div class="flex flex-col lg:flex-row gap-6 items-start">
       <!-- Table Section -->
-      <main class="flex-1 w-full min-w-0 bg-background border border-secondary rounded-xl overflow-hidden shadow-sm"
-        v-if="viewMode === 'table'">
+      <main
+        class="flex-1 w-full min-w-0 bg-background border border-secondary rounded-xl overflow-hidden shadow-sm"
+        v-if="viewMode === 'table'"
+      >
         <div class="overflow-auto max-h-[650px] custom-scrollbar" @scroll="handleTableScroll">
           <table class="w-full text-left text-sm whitespace-nowrap">
             <thead
-              class="bg-background border-b border-secondary sticky top-0 z-10 after:absolute after:inset-0 after:bg-secondary/20 after:-z-10">
+              class="bg-background border-b border-secondary sticky top-0 z-10 after:absolute after:inset-0 after:bg-secondary/20 after:-z-10"
+            >
               <tr>
-                <th @click="sortBy('sku')"
-                  class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 relative">
+                <th
+                  @click="sortBy('sku')"
+                  class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 relative"
+                >
                   <div class="flex items-center gap-2">
                     SKU
                     <font-awesome-icon :icon="getSortIcon('sku')" class="text-xs opacity-50" />
                   </div>
                 </th>
-                <th @click="sortBy('name')"
-                  class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 w-full min-w-[250px]">
+                <th
+                  @click="sortBy('name')"
+                  class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 w-full min-w-[250px]"
+                >
                   <div class="flex items-center gap-2">
                     Nama Produk
                     <font-awesome-icon :icon="getSortIcon('name')" class="text-xs opacity-50" />
                   </div>
                 </th>
-                <th @click="sortBy('total_sold')"
-                  class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40">
+                <th
+                  @click="sortBy('total_sold')"
+                  class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40"
+                >
                   <div class="flex items-center gap-2">
                     Out
-                    <font-awesome-icon :icon="getSortIcon('total_sold')" class="text-xs opacity-50" />
+                    <font-awesome-icon
+                      :icon="getSortIcon('total_sold')"
+                      class="text-xs opacity-50"
+                    />
                   </div>
                 </th>
-                <th @click="sortBy('total_inbound')"
-                  class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40">
+                <th
+                  @click="sortBy('total_inbound')"
+                  class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40"
+                >
                   <div class="flex items-center gap-2">
                     Inbound
-                    <font-awesome-icon :icon="getSortIcon('total_inbound')" class="text-xs opacity-50" />
+                    <font-awesome-icon
+                      :icon="getSortIcon('total_inbound')"
+                      class="text-xs opacity-50"
+                    />
                   </div>
                 </th>
-                <th @click="sortBy('current_stock')"
-                  class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40">
+                <th
+                  @click="sortBy('current_stock')"
+                  class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40"
+                >
                   <div class="flex items-center gap-2">
                     Sisa Stok
-                    <font-awesome-icon :icon="getSortIcon('current_stock')" class="text-xs opacity-50" />
+                    <font-awesome-icon
+                      :icon="getSortIcon('current_stock')"
+                      class="text-xs opacity-50"
+                    />
                   </div>
                 </th>
-                <th @click="sortBy('avg_daily_sales')"
-                  class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40">
+                <th
+                  @click="sortBy('avg_daily_sales')"
+                  class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40"
+                >
                   <div class="flex items-center gap-2">
                     Avg. Out
-                    <font-awesome-icon :icon="getSortIcon('avg_daily_sales')" class="text-xs opacity-50" />
+                    <font-awesome-icon
+                      :icon="getSortIcon('avg_daily_sales')"
+                      class="text-xs opacity-50"
+                    />
                   </div>
                 </th>
-                <th @click="sortBy('days_of_inventory')"
-                  class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40">
+                <th
+                  @click="sortBy('days_of_inventory')"
+                  class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40"
+                >
                   <div class="flex items-center gap-2">
                     Ketahanan
-                    <font-awesome-icon :icon="getSortIcon('days_of_inventory')" class="text-xs opacity-50" />
+                    <font-awesome-icon
+                      :icon="getSortIcon('days_of_inventory')"
+                      class="text-xs opacity-50"
+                    />
                   </div>
                 </th>
-                <th @click="sortBy('status')"
-                  class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 text-center">
+                <th
+                  @click="sortBy('status')"
+                  class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 text-center"
+                >
                   <div class="flex justify-center items-center gap-2">
                     Stat
                     <font-awesome-icon :icon="getSortIcon('status')" class="text-xs opacity-50" />
                   </div>
                 </th>
-                <th class="px-4 py-4 font-semibold text-text/80 text-center">
-                  Aksi
-                </th>
+                <th class="px-4 py-4 font-semibold text-text/80 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-secondary/20">
               <template v-if="isDataLoading">
                 <tr>
                   <td colspan="9" class="text-center py-16 text-text/60">
-                    <font-awesome-icon icon="fa-solid fa-circle-notch" spin class="text-3xl mb-4 text-primary" />
+                    <font-awesome-icon
+                      icon="fa-solid fa-circle-notch"
+                      spin
+                      class="text-3xl mb-4 text-primary"
+                    />
                     <p class="font-medium">Memuat data statistik...</p>
                   </td>
                 </tr>
@@ -572,48 +727,75 @@ const chartScatterOptions = computed(() => ({
               <template v-else-if="displayedData.length === 0">
                 <tr>
                   <td colspan="9" class="text-center py-16 text-text/60">
-                    <font-awesome-icon icon="fa-solid fa-folder-open" class="text-3xl mb-4 opacity-50" />
+                    <font-awesome-icon
+                      icon="fa-solid fa-folder-open"
+                      class="text-3xl mb-4 opacity-50"
+                    />
                     <p class="font-medium">Tidak ada data untuk saringan ini.</p>
                   </td>
                 </tr>
               </template>
               <template v-else>
-                <tr v-for="item in visibleData" :key="item.sku" class="hover:bg-secondary/10 transition-colors">
-                  <td class="px-4 py-2 font-medium text-text bg-background/50 border-r border-secondary/10 w-auto">{{
-                    item.sku
-                  }}</td>
+                <tr
+                  v-for="item in visibleData"
+                  :key="item.sku"
+                  class="hover:bg-secondary/10 transition-colors"
+                >
+                  <td
+                    class="px-4 py-2 font-medium text-text bg-background/50 border-r border-secondary/10 w-auto"
+                  >
+                    {{ item.sku }}
+                  </td>
                   <td class="px-4 py-2 w-full">
-                    <div class="whitespace-normal leading-relaxed pr-4 text-text/90" :title="item.name">{{ item.name }}
+                    <div
+                      class="whitespace-normal leading-relaxed pr-4 text-text/90"
+                      :title="item.name"
+                    >
+                      {{ item.name }}
                     </div>
                   </td>
                   <td class="px-4 py-2 text-text/90 font-medium whitespace-nowrap">
-                    {{ item.total_sold }} <span v-if="item.total_sold > 0" class="text-danger text-[10px] ml-1"></span>
+                    {{ item.total_sold }}
+                    <span v-if="item.total_sold > 0" class="text-danger text-[10px] ml-1"></span>
                   </td>
                   <td class="px-4 py-2 text-success font-medium whitespace-nowrap">
-                    {{ item.total_inbound }} <span v-if="item.total_inbound > 0"
-                      class="text-success text-[10px] ml-1"></span>
+                    {{ item.total_inbound }}
+                    <span
+                      v-if="item.total_inbound > 0"
+                      class="text-success text-[10px] ml-1"
+                    ></span>
                   </td>
-                  <td class="px-4 py-2 font-bold" :class="item.current_stock < 0 ? 'text-danger' : 'text-text'">
+                  <td
+                    class="px-4 py-2 font-bold"
+                    :class="item.current_stock < 0 ? 'text-danger' : 'text-text'"
+                  >
                     {{ item.current_stock }}
                   </td>
-                  <td class="px-4 py-2 text-text/80 font-medium tracking-wide whitespace-nowrap">{{ item.avg_daily_sales
-                    }}</td>
+                  <td class="px-4 py-2 text-text/80 font-medium tracking-wide whitespace-nowrap">
+                    {{ item.avg_daily_sales }}
+                  </td>
                   <td class="px-4 py-2 font-medium whitespace-nowrap">
-                    <span v-if="item.days_of_inventory === null || item.days_of_inventory < 0"
-                      class="text-text/30 font-bold tracking-widest">---</span>
+                    <span
+                      v-if="item.days_of_inventory === null || item.days_of_inventory < 0"
+                      class="text-text/30 font-bold tracking-widest"
+                      >---</span
+                    >
                     <span v-else>{{ item.days_of_inventory }}</span>
                   </td>
                   <td class="px-4 py-2 text-center min-w-[120px]">
                     <span
                       class="px-3 py-1.5 rounded-full text-[10px] font-bold border block text-center uppercase tracking-wider"
-                      :class="getStatusClass(item.status)">
+                      :class="getStatusClass(item.status)"
+                    >
                       {{ getStatusLabel(item.status) }}
                     </span>
                   </td>
                   <td class="px-4 py-2 text-center">
-                    <button @click="openTimelineInvestigation(item.product_id)"
+                    <button
+                      @click="openTimelineInvestigation(item.product_id)"
                       class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-secondary/20 hover:bg-primary/10 hover:border-primary/30 hover:text-primary text-text/50 transition-all"
-                      title="Investigasi Timeline Stok">
+                      title="Investigasi Timeline Stok"
+                    >
                       <font-awesome-icon icon="fa-solid fa-clock-rotate-left" />
                     </button>
                   </td>
@@ -629,78 +811,142 @@ const chartScatterOptions = computed(() => ({
         <div class="flex justify-end mb-4 animate-fade-in" v-if="statisticsList.length > 0">
           <div class="flex items-center gap-3 w-48">
             <span class="text-sm font-semibold text-text/70 whitespace-nowrap">Data Teratas:</span>
-            <BaseSelect v-model="chartMaxCap" :options="chartMaxCapOptions" emitValue :searchable="false" />
+            <BaseSelect
+              v-model="chartMaxCap"
+              :options="chartMaxCapOptions"
+              emitValue
+              :searchable="false"
+            />
           </div>
         </div>
 
         <!-- Chart Dashboard -->
-        <div class="grid grid-cols-1 gap-6 animate-fade-in md:pb-12" v-if="statisticsList.length > 0">
-
+        <div
+          class="grid grid-cols-1 gap-6 animate-fade-in md:pb-12"
+          v-if="statisticsList.length > 0"
+        >
           <!-- Card: Status Distribusi -->
           <StatsChartCard title="Distribusi Status Stok">
-            <VueApexCharts width="100%" height="300" type="donut" :options="chartStatusOptions"
-              :series="chartStatusSeries" />
+            <VueApexCharts
+              width="100%"
+              height="300"
+              type="donut"
+              :options="chartStatusOptions"
+              :series="chartStatusSeries"
+            />
           </StatsChartCard>
 
           <!-- Card: Top Sales -->
           <StatsChartCard :title="`Top ${chartMaxCap} Barang Paling Sering Keluar (Mutasi Out)`">
-            <VueApexCharts width="100%" height="300" type="bar" :options="chartTopSalesOptions"
-              :series="chartTopSalesSeries" />
+            <VueApexCharts
+              width="100%"
+              height="300"
+              type="bar"
+              :options="chartTopSalesOptions"
+              :series="chartTopSalesSeries"
+            />
           </StatsChartCard>
 
           <!-- Card: Aktivitas Tertinggi -->
           <StatsChartCard title="Volume Aktivitas: Masuk VS Keluar (Top {{ chartMaxCap }})">
-            <VueApexCharts width="100%" height="300" type="area" :options="chartActivityOptions"
-              :series="chartActivitySeries" />
+            <VueApexCharts
+              width="100%"
+              height="300"
+              type="area"
+              :options="chartActivityOptions"
+              :series="chartActivitySeries"
+            />
           </StatsChartCard>
 
           <!-- Card: Dead / Slow Stock -->
-          <StatsChartCard :title="`Top ${chartMaxCap} Sisa Stok Menumpuk Terbanyak (Overstock / Slow)`">
-            <VueApexCharts width="100%" height="300" type="bar" :options="chartSlowMovingOptions"
-              :series="chartSlowMovingSeries" />
+          <StatsChartCard
+            :title="`Top ${chartMaxCap} Sisa Stok Menumpuk Terbanyak (Overstock / Slow)`"
+          >
+            <VueApexCharts
+              width="100%"
+              height="300"
+              type="bar"
+              :options="chartSlowMovingOptions"
+              :series="chartSlowMovingSeries"
+            />
           </StatsChartCard>
 
           <!-- Card: Fast Moving -->
-          <StatsChartCard :title="`Top ${chartMaxCap} Laju Penjualan Terkencang (Fast-Moving)`"
-            subtitle="Mengurutkan barang berdasarkan rata-rata mutasi keluar harian tertinggi.">
-            <VueApexCharts width="100%" height="300" type="bar" :options="chartFastMovingOptions"
-              :series="chartFastMovingSeries" />
+          <StatsChartCard
+            :title="`Top ${chartMaxCap} Laju Penjualan Terkencang (Fast-Moving)`"
+            subtitle="Mengurutkan barang berdasarkan rata-rata mutasi keluar harian tertinggi."
+          >
+            <VueApexCharts
+              width="100%"
+              height="300"
+              type="bar"
+              :options="chartFastMovingOptions"
+              :series="chartFastMovingSeries"
+            />
           </StatsChartCard>
 
           <!-- Card: Urgent Restock -->
-          <StatsChartCard :title="`Top ${chartMaxCap} Prioritas Restock Darurat (Kritis)`"
-            subtitle='Mengurutkan barang berdasarkan sisa "hari" stok terpendek sebelum habis sepenuhnya.'>
-            <VueApexCharts width="100%" height="300" type="bar" :options="chartUrgentRestockOptions"
-              :series="chartUrgentRestockSeries" />
+          <StatsChartCard
+            :title="`Top ${chartMaxCap} Prioritas Restock Darurat (Kritis)`"
+            subtitle='Mengurutkan barang berdasarkan sisa "hari" stok terpendek sebelum habis sepenuhnya.'
+          >
+            <VueApexCharts
+              width="100%"
+              height="300"
+              type="bar"
+              :options="chartUrgentRestockOptions"
+              :series="chartUrgentRestockSeries"
+            />
           </StatsChartCard>
 
           <!-- Card: Flow Balance -->
-          <StatsChartCard title="Rasio Volume Mutasi Gudang Total (In vs Out)"
-            subtitle="Menjumlahkan seluruh kuantitas Inbound vs Pengeluaran dalam periode filter ini.">
-            <VueApexCharts width="100%" height="300" type="donut" :options="chartFlowBalanceOptions"
-              :series="chartFlowBalanceSeries" />
+          <StatsChartCard
+            title="Rasio Volume Mutasi Gudang Total (In vs Out)"
+            subtitle="Menjumlahkan seluruh kuantitas Inbound vs Pengeluaran dalam periode filter ini."
+          >
+            <VueApexCharts
+              width="100%"
+              height="300"
+              type="donut"
+              :options="chartFlowBalanceOptions"
+              :series="chartFlowBalanceSeries"
+            />
           </StatsChartCard>
 
           <!-- Card: Scatter Analysis -->
-          <StatsChartCard title="Kuadran Analisis Gudang (Sisa Stok vs Laju Penjualan)"
+          <StatsChartCard
+            title="Kuadran Analisis Gudang (Sisa Stok vs Laju Penjualan)"
             subtitle="Titik di kanan bawah berarti Kritis (Stok sedikit, keluar sangat kencang). Titik di kiri atas berarti Dead Stock (Terlalu banyak stok, tidak bergerak)."
-            minHeight="500px">
-            <VueApexCharts width="100%" height="400" type="scatter" :options="chartScatterOptions"
-              :series="chartScatterSeries" />
+            minHeight="500px"
+          >
+            <VueApexCharts
+              width="100%"
+              height="400"
+              type="scatter"
+              :options="chartScatterOptions"
+              :series="chartScatterSeries"
+            />
           </StatsChartCard>
         </div>
 
-        <div v-else
-          class="bg-background border border-secondary rounded-xl p-16 flex flex-col items-center justify-center text-center shadow-sm">
+        <div
+          v-else
+          class="bg-background border border-secondary rounded-xl p-16 flex flex-col items-center justify-center text-center shadow-sm"
+        >
           <font-awesome-icon icon="fa-solid fa-chart-pie" class="text-4xl mb-4 text-text/30" />
           <h4 class="font-bold text-text text-lg">Tidak ada data visualisasi</h4>
-          <p class="text-text/60 mt-2 text-sm max-w-sm">Jalankan filter dan dapatkan hasil pencarian untuk mulai melihat
-            dan
-            menganalisis statistik berbentuk grafik.</p>
+          <p class="text-text/60 mt-2 text-sm max-w-sm">
+            Jalankan filter dan dapatkan hasil pencarian untuk mulai melihat dan menganalisis
+            statistik berbentuk grafik.
+          </p>
         </div>
       </main>
     </div>
 
-    <StockTimelineModal :show="showTimelineModal" :productId="selectedProductId" @close="showTimelineModal = false" />
+    <StockTimelineModal
+      :show="showTimelineModal"
+      :productId="selectedProductId"
+      @close="showTimelineModal = false"
+    />
   </div>
 </template>

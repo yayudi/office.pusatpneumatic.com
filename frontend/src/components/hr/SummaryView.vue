@@ -1,6 +1,6 @@
 <!-- frontend\src\components\SummaryView.vue -->
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useSummary } from '@/composables/useSummary.js'
 import { formatJamMenit } from '@/api/helpers/time.js'
 // ... import removed
@@ -45,26 +45,9 @@ const props = defineProps({
 
 const authStore = useAuthStore()
 
-const periodLabel = computed(() => {
-  if (props.startDate && props.endDate) {
-    if (props.startDate === props.endDate) {
-      return new Date(props.startDate).toLocaleDateString('id-ID', { dateStyle: 'long' })
-    }
-    const start = new Date(props.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
-    const end = new Date(props.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
-    return `${start} - ${end}`
-  }
-  if (props.year && props.month) {
-    return new Date(props.year, props.month - 1).toLocaleString('id-ID', { month: 'long', year: 'numeric' })
-  }
-  return '-'
-})
 const { summaries } = useSummary(props)
 const selectedSummary = ref(null)
 
-const gridClass = computed(() => {
-  return authStore.isAdmin ? 'md:grid-cols-7' : 'md:grid-cols-6'
-})
 
 function showDetails(summary) {
   selectedSummary.value = summary

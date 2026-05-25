@@ -1,7 +1,8 @@
 <script setup>
 import { ref, watch } from 'vue';
 import apiClient from '@/api/axios';
-import Modal from '@/components/ui/Modal.vue';
+import BaseModal from '@/components/ui/BaseModal.vue';
+import { useToast } from '@/composables/useToast.js';
 
 const props = defineProps({
   show: Boolean,
@@ -12,6 +13,7 @@ const emit = defineEmits(['close', 'updated']);
 
 const tagsInput = ref('');
 const isSubmitting = ref(false);
+const { toast } = useToast();
 
 watch(() => props.show, (newVal) => {
   if (newVal) {
@@ -37,11 +39,12 @@ const submitTags = async () => {
       const res = await apiClient.put(`/media/${id}/tags`, { tags: rawTags });
       if (res.data.success) successCount++;
     }
+    toast(`Berhasil memperbarui tag untuk ${successCount} gambar.`, 'success');
     emit('updated');
     close();
   } catch (error) {
     console.error(error);
-    alert("Terjadi kesalahan saat memperbarui sebagian tag.");
+    toast("Terjadi kesalahan saat memperbarui sebagian tag.", 'error');
     emit('updated');
     close();
   } finally {
@@ -56,7 +59,7 @@ const close = () => {
 </script>
 
 <template>
-  <Modal :show="show" @close="close" maxWidth="max-w-md">
+  <BaseModal :show="show" @close="close" maxWidth="max-w-md">
     <template #title>
       <div class="-mt-1">
         <h3 class="text-lg font-bold text-text">Label Masal (Tagging)</h3>
@@ -80,5 +83,5 @@ const close = () => {
         </button>
       </div>
     </template>
-  </Modal>
+  </BaseModal>
 </template>

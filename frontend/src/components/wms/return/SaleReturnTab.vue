@@ -3,8 +3,8 @@ import { onMounted, ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMagicKeys } from '@vueuse/core'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import Modal from '@/components/ui/Modal.vue'
-import Tabs from '@/components/ui/Tabs.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
+import BaseTabs from '@/components/ui/BaseTabs.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import { useReturnManager } from '@/composables/useReturnManager'
 import { formatDate } from '@/api/helpers/time'
@@ -139,7 +139,7 @@ watch(Slash, (pressed) => {
       <!-- Row 1: Tabs & Add Button -->
       <div class="flex flex-col md:flex-row justify-between gap-4 items-center">
         <div class="w-full md:w-auto">
-          <Tabs :tabs="tabList" v-model="activeTab" />
+          <BaseTabs :tabs="tabList" v-model="activeTab" />
         </div>
         <button @click="goToManualPage"
           class="btn-primary w-full md:w-auto text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all active:scale-95">
@@ -315,7 +315,7 @@ watch(Slash, (pressed) => {
     </div>
 
     <!-- Modal Proses Split (Dual Condition) -->
-    <Modal :show="showProcessModal" @close="showProcessModal = false" title="Validasi & Split Retur">
+    <BaseModal :show="showProcessModal" @close="showProcessModal = false" title="Validasi & Split Retur">
       <div class="space-y-5 text-text">
         <!-- Item Card Info -->
         <div class="bg-secondary/50 p-4 rounded-xl border border-secondary/20 flex gap-4">
@@ -409,7 +409,7 @@ watch(Slash, (pressed) => {
           <span>{{ isLoading ? 'Memproses...' : 'Simpan & Proses Retur' }}</span>
         </button>
       </div>
-    </Modal>
+    </BaseModal>
   </div>
 </template>
 

@@ -2,8 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import api from '@/api/axios.js'
-import { format } from 'date-fns'
-import Modal from '@/components/ui/Modal.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 
 const { toast } = useToast()
 const channels = ref([])
@@ -210,11 +209,9 @@ const handleDelete = async () => {
                   >
                     <font-awesome-icon icon="fa-solid fa-pen" class="text-xs" />
                   </button>
-                  <!--
                   <button @click="confirmDelete(item)" class="w-8 h-8 rounded bg-danger/10 text-danger hover:bg-danger/20 flex items-center justify-center transition-colors" title="Hapus">
                     <font-awesome-icon icon="fa-solid fa-trash" class="text-xs" />
                   </button>
-                  -->
                 </div>
               </td>
             </tr>
@@ -224,7 +221,7 @@ const handleDelete = async () => {
     </div>
 
     <!-- Form Modal -->
-    <Modal :show="isModalOpen" @close="closeModal" maxWidth="max-w-md" class="mt-[-10vh]">
+    <BaseModal :show="isModalOpen" @close="closeModal" maxWidth="max-w-md" class="mt-[-10vh]">
       <template #title>
         <div class="-mt-1">
           <h3 class="font-bold text-text">
@@ -307,7 +304,49 @@ const handleDelete = async () => {
           </button>
         </div>
       </template>
-    </Modal>
+    </BaseModal>
+
+    <!-- Delete Confirmation Modal -->
+    <BaseModal :show="isDeleteModalOpen" @close="isDeleteModalOpen = false" maxWidth="max-w-sm" class="mt-[-10vh]">
+      <template #title>Konfirmasi Hapus</template>
+      <div class="py-2">
+        <p class="text-sm text-text/80">
+          Apakah Anda yakin ingin menghapus saluran <span class="font-bold text-text">{{ itemToDelete?.name }}</span>?
+        </p>
+        <p class="text-xs text-text/50 mt-2">Data ini akan dinonaktifkan (soft delete) untuk menjaga integritas data riwayat penjualan.</p>
+      </div>
+      <template #footer>
+        <div class="flex justify-end gap-3 w-full">
+          <button @click="isDeleteModalOpen = false" class="px-4 py-2 text-sm font-bold text-text/60 hover:text-text transition-colors">
+            Batal
+          </button>
+          <button @click="handleDelete" class="px-6 py-2 bg-danger text-secondary text-sm font-bold rounded-lg hover:bg-danger/90 transition-colors">
+            Hapus
+          </button>
+        </div>
+      </template>
+    </BaseModal>
+
+    <!-- Delete Confirmation Modal -->
+    <BaseModal :show="isDeleteModalOpen" @close="isDeleteModalOpen = false" maxWidth="max-w-sm" class="mt-[-10vh]">
+      <template #title>Konfirmasi Hapus</template>
+      <div class="py-2">
+        <p class="text-sm text-text/80">
+          Apakah Anda yakin ingin menghapus saluran <span class="font-bold text-text">{{ itemToDelete?.name }}</span>?
+        </p>
+        <p class="text-xs text-text/50 mt-2">Data ini akan dinonaktifkan (soft delete) untuk menjaga integritas data riwayat penjualan.</p>
+      </div>
+      <template #footer>
+        <div class="flex justify-end gap-3 w-full">
+          <button @click="isDeleteModalOpen = false" class="px-4 py-2 text-sm font-bold text-text/60 hover:text-text transition-colors">
+            Batal
+          </button>
+          <button @click="handleDelete" class="px-6 py-2 bg-danger text-secondary text-sm font-bold rounded-lg hover:bg-danger/90 transition-colors">
+            Hapus
+          </button>
+        </div>
+      </template>
+    </BaseModal>
   </div>
 </template>
 

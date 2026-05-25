@@ -74,9 +74,9 @@ const sourceBgClass = computed(() => {
       <div class="flex items-start gap-3 pl-2 min-w-0 flex-1">
         <!-- MAIN CHECKBOX -->
         <div v-if="mode === 'picking'" class="pt-1"
-          :title="hasStockIssue ? 'Tidak bisa diproses. Selesaikan masalah stok terlebih dahulu.' : ''">
-          <input type="checkbox" :checked="isInvoiceSelected" @change="onToggleInvoice" :disabled="hasStockIssue"
-            class="w-5 h-5 rounded border-secondary/40 text-primary cursor-pointer accent-primary transition-all hover:scale-110 disabled:opacity-30 disabled:cursor-not-allowed" />
+          :title="hasStockIssue ? 'Ada masalah stok (Backorder/Stok Kurang). Backend akan mencari lokasi baru otomatis.' : ''">
+          <input type="checkbox" :checked="isInvoiceSelected" @change="onToggleInvoice"
+            class="w-5 h-5 rounded border-secondary/40 text-primary cursor-pointer accent-primary transition-all hover:scale-110" />
         </div>
 
         <!-- LOGO -->

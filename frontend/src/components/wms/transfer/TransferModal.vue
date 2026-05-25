@@ -1,7 +1,7 @@
 <!-- frontend\src\components\WMSTransferModal.vue -->
 <script setup>
 import { ref, watch } from 'vue'
-import Modal from '@/components/ui/Modal.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 
 const props = defineProps({
@@ -54,7 +54,7 @@ function handleConfirm() {
 </script>
 
 <template>
-  <Modal :show="show" @close="emit('close')" title="Transfer Stok">
+  <BaseModal :show="show" @close="emit('close')" title="Transfer Stok">
     <div v-if="product" class="space-y-4">
       <p class="text-sm text-text/80">
         Anda akan mentransfer produk: <strong class="text-text">{{ product.name }}</strong>
@@ -102,5 +102,5 @@ function handleConfirm() {
         Konfirmasi Transfer
       </button>
     </template>
-  </Modal>
+  </BaseModal>
 </template>

@@ -1,7 +1,6 @@
 <script setup>
-import { ref, onMounted, computed, watch, nextTick } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
-// FIX: Impor 'useToast'
 import { useToast } from '@/composables/useToast.js'
 import {
   fetchAllRoles,
@@ -12,7 +11,7 @@ import {
   updateRole,
   deleteRole,
 } from '@/api/helpers/roles.js' // Pastikan ini mengarah ke file helper yang benar
-import Modal from '@/components/ui/Modal.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 import { useMobile } from '@/composables/useMobile.js'
 
 // --- STATE ---
@@ -31,7 +30,6 @@ const isSaving = ref(false)
 const isRoleModalOpen = ref(false)
 const isEditingRole = ref(false)
 const roleForm = ref({ id: null, name: '', description: '' })
-const roleToDelete = ref(null)
 
 // --- COMPUTED ---
 
@@ -74,7 +72,7 @@ async function loadInitialData() {
       // Pilih peran pertama secara otomatis
       selectRole(roles[0])
     }
-  } catch (error) {
+  } catch {
     toast('Gagal memuat data peran & izin.', 'error')
   } finally {
     isLoadingRoles.value = false
@@ -99,7 +97,7 @@ async function selectRole(role) {
     const permissionIds = await fetchRolePermissions(role.id)
     selectedPermissionIds.value = permissionIds
     originalPermissionIds.value = [...permissionIds] // Simpan state asli
-  } catch (error) {
+  } catch {
     toast(`Gagal memuat izin untuk peran ${role.name}.`, 'error')
     selectedPermissionIds.value = []
     originalPermissionIds.value = []
@@ -117,7 +115,7 @@ async function handleSavePermissions() {
   try {
     await updateRolePermissions(selectedRole.value.id, selectedPermissionIds.value)
     originalPermissionIds.value = [...selectedPermissionIds.value] // Set state asli baru
-    toast(`Izin untuk peran ${selectedRole.name} berhasil diperbarui.`, 'success')
+    toast(`Izin untuk peran ${selectedRole.value.name} berhasil diperbarui.`, 'success')
   } catch (error) {
     toast(error.message || 'Gagal menyimpan perubahan izin.', 'error')
   } finally {
@@ -230,7 +228,12 @@ watch(Alt_N, (pressed) => {
 
 watch(Alt_S, (pressed) => {
   if (pressed) {
-    if (isRoleModalOpen.value && roleForm.value.name && roleForm.value.description && !isSaving.value) {
+    if (
+      isRoleModalOpen.value &&
+      roleForm.value.name &&
+      roleForm.value.description &&
+      !isSaving.value
+    ) {
       handleSaveRole()
     } else if (!isRoleModalOpen.value && selectedRole.value && isDirty.value && !isSaving.value) {
       handleSavePermissions()
@@ -250,8 +253,10 @@ watch(Alt_S, (pressed) => {
     <div class="md:col-span-1">
       <div class="flex justify-between items-center mb-2">
         <h3 class="font-semibold text-text">Daftar Peran</h3>
-        <button @click="openCreateRoleModal"
-          class="px-2 py-1 bg-primary text-secondary text-xs font-bold rounded-md hover:bg-primary/80 flex items-center gap-1">
+        <button
+          @click="openCreateRoleModal"
+          class="px-2 py-1 bg-primary text-secondary text-xs font-bold rounded-md hover:bg-primary/80 flex items-center gap-1"
+        >
           <font-awesome-icon icon="fa-solid fa-plus" />
           <span>Baru</span>
         </button>
@@ -259,27 +264,44 @@ watch(Alt_S, (pressed) => {
       <div v-if="isLoadingRoles" class="text-center text-text/60">Memuat peran...</div>
       <ul v-else class="space-y-1">
         <li v-for="role in allRoles" :key="role.id" class="group">
-          <button @click="selectRole(role)" :class="[
-            'w-full text-left px-3 py-2 rounded-md transition-colors text-sm flex justify-between items-center',
-            selectedRole?.id === role.id
-              ? 'bg-primary/10 text-primary font-semibold ring-1 ring-primary'
-              : 'text-text/80 hover:bg-secondary/20',
-          ]">
+          <button
+            @click="selectRole(role)"
+            :class="[
+              'w-full text-left px-3 py-2 rounded-md transition-colors text-sm flex justify-between items-center',
+              selectedRole?.id === role.id
+                ? 'bg-primary/10 text-primary font-semibold ring-1 ring-primary'
+                : 'text-text/80 hover:bg-secondary/20',
+            ]"
+          >
             <span class="flex-1 truncate pr-2">{{ role.name }}</span>
-            <div :class="[
-              'flex-shrink-0 space-x-2',
-              isMobile || selectedRole?.id === role.id
-                ? 'opacity-100'
-                : 'opacity-0 group-hover:opacity-100 transition-opacity',
-            ]">
-              <button @click.stop="openEditRoleModal(role)" class="text-xs font-semibold" :class="selectedRole?.id === role.id ? 'text-accent/70 hover:text-accent' : 'text-primary/70 hover:text-primary'
-                ">
+            <div
+              :class="[
+                'flex-shrink-0 space-x-2',
+                isMobile || selectedRole?.id === role.id
+                  ? 'opacity-100'
+                  : 'opacity-0 group-hover:opacity-100 transition-opacity',
+              ]"
+            >
+              <button
+                @click.stop="openEditRoleModal(role)"
+                class="text-xs font-semibold"
+                :class="
+                  selectedRole?.id === role.id
+                    ? 'text-accent/70 hover:text-accent'
+                    : 'text-primary/70 hover:text-primary'
+                "
+              >
                 <font-awesome-icon icon="fa-solid fa-edit" />
               </button>
-              <button @click.stop="handleDeleteRole(role)" class="text-xs font-semibold" :class="selectedRole?.id === role.id
-                ? 'text-danger/70 hover:text-danger'
-                : 'text-danger/70 hover:text-danger'
-                ">
+              <button
+                @click.stop="handleDeleteRole(role)"
+                class="text-xs font-semibold"
+                :class="
+                  selectedRole?.id === role.id
+                    ? 'text-danger/70 hover:text-danger'
+                    : 'text-danger/70 hover:text-danger'
+                "
+              >
                 <font-awesome-icon icon="fa-solid fa-trash" />
               </button>
             </div>
@@ -295,16 +317,20 @@ watch(Alt_S, (pressed) => {
       </div>
       <div v-else>
         <div
-          class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4 pb-4 border-b border-secondary/20">
+          class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4 pb-4 border-b border-secondary/20"
+        >
           <div>
             <h3 class="text-lg font-bold text-text">
               Izin untuk: <span class="text-primary">{{ selectedRole.name }}</span>
             </h3>
             <p class="text-sm text-text/60">{{ selectedRole.description }}</p>
           </div>
-          <button @click="handleSavePermissions" :disabled="isSaving || !isDirty"
+          <button
+            @click="handleSavePermissions"
+            :disabled="isSaving || !isDirty"
             class="px-4 py-2 bg-primary text-secondary text-sm font-semibold rounded-lg disabled:opacity-50 transition-all w-full sm:w-auto flex items-center justify-center gap-2"
-            :class="isDirty ? 'ring-2 ring-primary/50 ring-offset-2' : ''">
+            :class="isDirty ? 'ring-2 ring-primary/50 ring-offset-2' : ''"
+          >
             <font-awesome-icon v-if="isSaving" icon="fa-solid fa-spinner" spin />
             <font-awesome-icon v-else icon="fa-solid fa-save" />
             <span>{{ isSaving ? 'Menyimpan...' : 'Simpan Perubahan' }}</span>
@@ -314,19 +340,27 @@ watch(Alt_S, (pressed) => {
         <div v-if="isLoadingPermissions" class="text-center py-16">Memuat izin...</div>
         <div v-else class="space-y-6 custom-scrollbar max-h-[60vh] overflow-y-auto">
           <!-- v-for untuk Grup Izin -->
-          <div v-for="(permissionsInGroup, groupName) in groupedPermissions" :key="groupName"
-            class="border border-secondary/20 rounded-lg">
+          <div
+            v-for="(permissionsInGroup, groupName) in groupedPermissions"
+            :key="groupName"
+            class="border border-secondary/20 rounded-lg"
+          >
             <div
-              class="bg-secondary/10 px-4 py-2 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-secondary/20 gap-3">
+              class="bg-secondary/10 px-4 py-2 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-secondary/20 gap-3"
+            >
               <h4 class="font-bold text-text/90">{{ groupName }}</h4>
               <div class="flex gap-4 text-xs font-semibold">
-                <button @click="toggleGroup(groupName, true)"
-                  class="text-primary hover:underline flex items-center gap-1">
+                <button
+                  @click="toggleGroup(groupName, true)"
+                  class="text-primary hover:underline flex items-center gap-1"
+                >
                   <font-awesome-icon icon="fa-solid fa-check-double" />
                   <span>Pilih Semua</span>
                 </button>
-                <button @click="toggleGroup(groupName, false)"
-                  class="text-danger hover:underline flex items-center gap-1">
+                <button
+                  @click="toggleGroup(groupName, false)"
+                  class="text-danger hover:underline flex items-center gap-1"
+                >
                   <font-awesome-icon icon="fa-solid fa-times" />
                   <span>Batal Semua</span>
                 </button>
@@ -334,14 +368,24 @@ watch(Alt_S, (pressed) => {
             </div>
             <div class="p-4 space-y-3">
               <!-- v-for untuk setiap Izin dalam Grup -->
-              <div v-for="permission in permissionsInGroup" :key="permission.id"
-                class="flex items-start p-2 rounded-md hover:bg-secondary/10">
-                <input type="checkbox" :id="`perm-${permission.id}`" :value="permission.id"
+              <div
+                v-for="permission in permissionsInGroup"
+                :key="permission.id"
+                class="flex items-start p-2 rounded-md hover:bg-secondary/10"
+              >
+                <input
+                  type="checkbox"
+                  :id="`perm-${permission.id}`"
+                  :value="permission.id"
                   v-model="selectedPermissionIds"
-                  class="h-4 w-4 mt-1 rounded border-secondary/30 text-primary focus:ring-primary cursor-pointer" />
+                  class="h-4 w-4 mt-1 rounded border-secondary/30 text-primary focus:ring-primary cursor-pointer"
+                />
                 <div class="ml-3">
-                  <label :for="`perm-${permission.id}`"
-                    class="font-mono text-sm font-semibold text-text cursor-pointer">{{ permission.name }}</label>
+                  <label
+                    :for="`perm-${permission.id}`"
+                    class="font-mono text-sm font-semibold text-text cursor-pointer"
+                    >{{ permission.name }}</label
+                  >
                   <p class="text-xs text-text/70">{{ permission.description }}</p>
                 </div>
               </div>
@@ -353,37 +397,60 @@ watch(Alt_S, (pressed) => {
   </div>
 
   <!-- Modal untuk Tambah/Edit Peran -->
-  <Modal :show="isRoleModalOpen" @close="isRoleModalOpen = false"
-    :title="isEditingRole ? 'Edit Peran' : 'Buat Peran Baru'">
+  <BaseModal
+    :show="isRoleModalOpen"
+    @close="isRoleModalOpen = false"
+    :title="isEditingRole ? 'Edit Peran' : 'Buat Peran Baru'"
+  >
     <form @submit.prevent="handleSaveRole" class="p-6 space-y-4">
       <div>
         <label for="roleName" class="block text-sm font-medium text-text/80 mb-1">Nama Peran</label>
-        <input id="roleName" v-model="roleForm.name" type="text" required class="w-full input-field"
-          placeholder="e.g., supervisor_gudang" />
+        <input
+          id="roleName"
+          v-model="roleForm.name"
+          type="text"
+          required
+          class="w-full input-field"
+          placeholder="e.g., supervisor_gudang"
+        />
         <p class="text-xs text-text/60 mt-1">Gunakan huruf kecil dan underscore.</p>
       </div>
       <div>
         <label for="roleDesc" class="block text-sm font-medium text-text/80 mb-1">Deskripsi</label>
-        <input id="roleDesc" v-model="roleForm.description" type="text" required class="w-full input-field"
-          placeholder="e.g., Supervisor Gudang" />
+        <input
+          id="roleDesc"
+          v-model="roleForm.description"
+          type="text"
+          required
+          class="w-full input-field"
+          placeholder="e.g., Supervisor Gudang"
+        />
         <p class="text-xs text-text/60 mt-1">Deskripsi yang mudah dibaca.</p>
       </div>
     </form>
     <template #footer>
       <div class="flex gap-4 justify-center pb-6 px-4">
-        <button type="button" @click="isRoleModalOpen = false" class="btn-secondary flex items-center gap-2">
+        <button
+          type="button"
+          @click="isRoleModalOpen = false"
+          class="btn-secondary flex items-center gap-2"
+        >
           <font-awesome-icon icon="fa-solid fa-times" />
           <span>Batal</span>
         </button>
-        <button type="submit" @click="handleSaveRole" class="btn-primary flex items-center gap-2"
-          :disabled="isSaving || !roleForm.name || !roleForm.description">
+        <button
+          type="submit"
+          @click="handleSaveRole"
+          class="btn-primary flex items-center gap-2"
+          :disabled="isSaving || !roleForm.name || !roleForm.description"
+        >
           <font-awesome-icon v-if="isSaving" icon="fa-solid fa-spinner" spin />
           <font-awesome-icon v-else icon="fa-solid fa-save" />
           <span>{{ isSaving ? 'Menyimpan...' : 'Simpan' }}</span>
         </button>
       </div>
     </template>
-  </Modal>
+  </BaseModal>
 </template>
 
 <style lang="postcss" scoped>

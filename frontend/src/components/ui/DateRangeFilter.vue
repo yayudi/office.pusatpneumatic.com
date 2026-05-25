@@ -1,13 +1,13 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { format, subDays, startOfMonth, endOfMonth, parseISO } from 'date-fns'
+import { ref, computed, nextTick, watch } from 'vue'
+import { format, subDays, startOfMonth, parseISO } from 'date-fns'
 import { id } from 'date-fns/locale'
 import { useMobile } from '@/composables/useMobile'
 
 const props = defineProps({
   startDate: { type: String, default: null },
   endDate: { type: String, default: null },
-  align: { type: String, default: 'left' }
+  align: { type: String, default: 'left' },
 })
 
 const emit = defineEmits(['update:startDate', 'update:endDate', 'change'])
@@ -66,12 +66,12 @@ const updatePosition = () => {
   // Collision logic
   let useRight = props.align === 'right'
 
-  if (!useRight && (rect.left + popoverWidth > window.innerWidth - 16)) {
+  if (!useRight && rect.left + popoverWidth > window.innerWidth - 16) {
     // If left-aligned but overflows right edge
     useRight = true
   }
 
-  if (useRight && (rect.right - popoverWidth < 16)) {
+  if (useRight && rect.right - popoverWidth < 16) {
     // If right-aligned but overflows left edge
     useRight = false
   }
@@ -164,25 +164,40 @@ watch(isOpen, (val) => {
 <template>
   <div class="relative inline-block" ref="containerRef">
     <!-- Trigger Button -->
-    <button @click.stop="toggleDropdown" class="w-full flex items-center gap-2 px-4 py-2 bg-background border border-secondary rounded-lg hover:border-primary/50 hover:bg-secondary/5 transition-all text-sm font-medium text-text group whitespace-nowrap  focus:outline-none
-      focus:ring-2 focus:ring-primary/50" :class="{ 'border-primary ring-1 ring-primary/20': isOpen || startDate }">
-      <font-awesome-icon icon="fa-solid fa-calendar" class="text-text/50 group-hover:text-primary transition-colors" />
+    <button
+      @click.stop="toggleDropdown"
+      class="w-full flex items-center gap-2 px-4 py-2 bg-background border border-secondary rounded-lg hover:border-primary/50 hover:bg-secondary/5 transition-all text-sm font-medium text-text group whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-primary/50"
+      :class="{ 'border-primary ring-1 ring-primary/20': isOpen || startDate }"
+    >
+      <font-awesome-icon
+        icon="fa-solid fa-calendar"
+        class="text-text/50 group-hover:text-primary transition-colors"
+      />
       <span class="whitespace-nowrap w-full">{{ displayLabel }}</span>
-      <font-awesome-icon icon="fa-solid fa-chevron-down" class="text-xs text-text/30 ml-1 transition-transform"
-        :class="{ 'rotate-180': isOpen }" />
+      <font-awesome-icon
+        icon="fa-solid fa-chevron-down"
+        class="text-xs text-text/30 ml-1 transition-transform"
+        :class="{ 'rotate-180': isOpen }"
+      />
     </button>
 
     <!-- Popover via Teleport -->
     <Teleport to="body">
-      <div v-if="isOpen"
+      <div
+        v-if="isOpen"
         class="date-range-popover fixed z-[5000] w-auto min-w-[320px] max-w-[calc(100vw-32px)] md:max-w-[600px] bg-background border border-secondary/20 shadow-xl rounded-xl overflow-hidden flex flex-col md:flex-row ml-[-5vw] md:m-0"
-        :style="popoverStyle">
-
+        :style="popoverStyle"
+      >
         <!-- Sidebar / Presets -->
         <div
-          class="bg-secondary/5 border-b md:border-b-0 md:border-r border-secondary/20 p-2 grid grid-cols-2 gap-1 md:flex md:justify-start md:flex-col w-full md:w-[140px] overflow-x-auto md:overflow-visible">
-          <button v-for="(preset, idx) in presets" :key="idx" @click="selectPreset(preset)"
-            class="px-3 py-2 text-left text-primary text-xs font-medium rounded hover:bg-primary/10 hover:text-primary transition-colors whitespace-nowrap">
+          class="bg-secondary/5 border-b md:border-b-0 md:border-r border-secondary/20 p-2 grid grid-cols-2 gap-1 md:flex md:justify-start md:flex-col w-full md:w-[140px] overflow-x-auto md:overflow-visible"
+        >
+          <button
+            v-for="(preset, idx) in presets"
+            :key="idx"
+            @click="selectPreset(preset)"
+            class="px-3 py-2 text-left text-primary text-xs font-medium rounded hover:bg-primary/10 hover:text-primary transition-colors whitespace-nowrap"
+          >
             {{ preset.label }}
           </button>
         </div>
@@ -192,33 +207,50 @@ watch(isOpen, (val) => {
           <div class="flex flex-col gap-3 mb-4">
             <div class="flex flex-col gap-1">
               <div class="flex items-center justify-between">
-                <label class="text-[10px] uppercase text-text/60 font-semibold tracking-wider">Dari</label>
+                <label class="text-[10px] uppercase text-text/60 font-semibold tracking-wider"
+                  >Dari</label
+                >
               </div>
-              <input type="date" v-model="tempStart"
-                class="w-full px-3 py-2 bg-background border border-secondary/30 rounded-lg text-xs focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-text/30 text-text" />
+              <input
+                type="date"
+                v-model="tempStart"
+                class="w-full px-3 py-2 bg-background border border-secondary/30 rounded-lg text-xs focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-text/30 text-text"
+              />
             </div>
             <div class="flex flex-col gap-1">
               <div class="flex items-center justify-between">
-                <label class="text-[10px] uppercase text-text/60 font-semibold tracking-wider">Sampai</label>
+                <label class="text-[10px] uppercase text-text/60 font-semibold tracking-wider"
+                  >Sampai</label
+                >
               </div>
-              <input type="date" v-model="tempEnd" :min="tempStart"
-                class="w-full px-3 py-2 bg-background border border-secondary/30 rounded-lg text-xs focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-text/30 text-text" />
+              <input
+                type="date"
+                v-model="tempEnd"
+                :min="tempStart"
+                class="w-full px-3 py-2 bg-background border border-secondary/30 rounded-lg text-xs focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-text/30 text-text"
+              />
             </div>
           </div>
 
           <!-- Action Buttons -->
           <div class="flex justify-between items-center pt-3 border-t border-secondary/10">
-            <button @click="clearFilter"
-              class="text-xs text-danger/80 hover:text-danger font-medium px-2 py-1 rounded hover:bg-danger/5 transition-colors">
+            <button
+              @click="clearFilter"
+              class="text-xs text-danger/80 hover:text-danger font-medium px-2 py-1 rounded hover:bg-danger/5 transition-colors"
+            >
               Reset
             </button>
             <div class="flex gap-2">
-              <button @click="closeDropdown"
-                class="px-3 py-1.5 text-xs font-medium text-text/70 hover:bg-secondary/10 rounded-lg transition-colors border border-transparent">
+              <button
+                @click="closeDropdown"
+                class="px-3 py-1.5 text-xs font-medium text-text/70 hover:bg-secondary/10 rounded-lg transition-colors border border-transparent"
+              >
                 Batal
               </button>
-              <button @click="applyFilter"
-                class="px-3 py-1.5 text-xs font-bold text-background bg-primary hover:bg-primary-dark rounded-lg shadow-sm shadow-primary/30 transition-all hover:scale-[1.02]">
+              <button
+                @click="applyFilter"
+                class="px-3 py-1.5 text-xs font-bold text-background bg-primary hover:bg-primary-dark rounded-lg shadow-sm shadow-primary/30 transition-all hover:scale-[1.02]"
+              >
                 Terapkan
               </button>
             </div>

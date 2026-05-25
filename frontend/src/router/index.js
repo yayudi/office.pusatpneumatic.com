@@ -27,7 +27,7 @@ const routes = [
   {
     path: '/stats',
     name: 'Stats',
-    component: () => import('../views/user/StatsView.vue'),
+    component: () => import('../views/stats/StatsView.vue'),
     meta: { requiresAuth: true },
   },
 
@@ -48,7 +48,7 @@ const routes = [
   {
     path: '/wms',
     name: 'WMS',
-    component: () => import('../views/wms/Dashboard.vue'),
+    component: () => import('../views/wms/WmsDashboard.vue'),
     meta: { requiresAuth: true },
   },
   {
@@ -65,7 +65,7 @@ const routes = [
       {
         path: 'return',
         name: 'WMSReturnView',
-        component: () => import('../views/wms/Return.vue'),
+        component: () => import('../views/wms/WmsReturn.vue'),
         meta: { requiresPermission: 'manage-stock-adjustment' },
       },
       {

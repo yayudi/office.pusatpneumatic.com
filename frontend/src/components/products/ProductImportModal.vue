@@ -1,98 +1,130 @@
 <!-- frontend/src/components/product/PriceUpdateModal.vue -->
 <template>
-  <Modal :show="isOpen" @close="close" maxWidth="max-w-md">
+  <BaseModal :show="isOpen" @close="close" maxWidth="max-w-md">
     <template #title>Import Produk Massal</template>
 
-      <div class="space-y-5">
-        <div
-          class="bg-[hsl(var(--color-primary))/0.1] text-[hsl(var(--color-primary))] p-4 rounded-lg text-sm border border-[hsl(var(--color-primary))/0.2]">
-          <p class="font-bold mb-2 flex items-center gap-2">
-            <font-awesome-icon icon="fa-solid fa-file-csv" /> Format File
+    <div class="space-y-5">
+      <div
+        class="bg-[hsl(var(--color-primary))/0.1] text-[hsl(var(--color-primary))] p-4 rounded-lg text-sm border border-[hsl(var(--color-primary))/0.2]"
+      >
+        <p class="font-bold mb-2 flex items-center gap-2">
+          <font-awesome-icon icon="fa-solid fa-file-csv" /> Format File
+        </p>
+        <ul class="list-disc list-inside opacity-90 space-y-1">
+          <li>Gunakan file <b>CSV</b> atau <b>Excel (.xlsx)</b></li>
+          <li>Kolom wajib: <code>sku</code>, <code>name</code></li>
+          <li>
+            Kolom opsional: <code>price</code>, <code>weight</code>, <code>is_package</code>,
+            <code>is_active</code>
+          </li>
+          <li class="mt-1 text-xs opacity-80">
+            *Jika SKU sudah ada, data produk akan di-update. Jika belum, akan dibuat produk baru.
+          </li>
+        </ul>
+        <div class="mt-3 pt-3 border-t border-[hsl(var(--color-primary))/0.2]">
+          <a
+            href="#"
+            @click.prevent="downloadTemplate"
+            class="font-bold hover:underline inline-flex items-center gap-1"
+          >
+            <font-awesome-icon icon="fa-solid fa-download" /> Download Template
+          </a>
+        </div>
+      </div>
+
+      <div
+        class="border-2 border-dashed border-[hsl(var(--color-secondary))] rounded-xl p-8 text-center cursor-pointer hover:border-[hsl(var(--color-primary))] hover:bg-[hsl(var(--color-primary))/0.05] transition-all group"
+        @click="$refs.fileInput.click()"
+        @dragover.prevent
+        @drop.prevent="handleDrop"
+      >
+        <input
+          type="file"
+          ref="fileInput"
+          class="hidden"
+          accept=".csv, .xlsx, .xls"
+          @change="handleFileSelect"
+        />
+
+        <div v-if="!selectedFile">
+          <font-awesome-icon
+            icon="fa-solid fa-cloud-arrow-up"
+            class="text-4xl mb-3 text-[hsl(var(--color-text))] opacity-30 group-hover:text-[hsl(var(--color-primary))] group-hover:opacity-100 transition-all"
+          />
+          <p class="font-medium">Klik untuk upload file</p>
+          <p class="text-xs opacity-50 mt-1">atau drag & drop file ke sini</p>
+        </div>
+
+        <div v-else>
+          <font-awesome-icon
+            icon="fa-solid fa-file-excel"
+            class="text-4xl mb-3 text-[hsl(var(--color-success))]"
+          />
+          <p class="font-bold text-lg truncate px-4">{{ selectedFile.name }}</p>
+          <p class="text-xs opacity-60 mt-1">
+            Ukuran: {{ (selectedFile.size / 1024).toFixed(2) }} KB
           </p>
-          <ul class="list-disc list-inside opacity-90 space-y-1">
-            <li>Gunakan file <b>CSV</b> atau <b>Excel (.xlsx)</b></li>
-            <li>Kolom wajib: <code>sku</code>, <code>name</code></li>
-            <li>
-              Kolom opsional: <code>price</code>, <code>weight</code>, <code>is_package</code>,
-              <code>is_active</code>
-            </li>
-            <li class="mt-1 text-xs opacity-80">
-              *Jika SKU sudah ada, data produk akan di-update. Jika belum, akan dibuat produk baru.
-            </li>
-          </ul>
-          <div class="mt-3 pt-3 border-t border-[hsl(var(--color-primary))/0.2]">
-            <a href="#" @click.prevent="downloadTemplate"
-              class="font-bold hover:underline inline-flex items-center gap-1">
-              <font-awesome-icon icon="fa-solid fa-download" /> Download Template
-            </a>
-          </div>
-        </div>
-
-        <div
-          class="border-2 border-dashed border-[hsl(var(--color-secondary))] rounded-xl p-8 text-center cursor-pointer hover:border-[hsl(var(--color-primary))] hover:bg-[hsl(var(--color-primary))/0.05] transition-all group"
-          @click="$refs.fileInput.click()" @dragover.prevent @drop.prevent="handleDrop">
-          <input type="file" ref="fileInput" class="hidden" accept=".csv, .xlsx, .xls" @change="handleFileSelect" />
-
-          <div v-if="!selectedFile">
-            <font-awesome-icon icon="fa-solid fa-cloud-arrow-up"
-              class="text-4xl mb-3 text-[hsl(var(--color-text))] opacity-30 group-hover:text-[hsl(var(--color-primary))] group-hover:opacity-100 transition-all" />
-            <p class="font-medium">Klik untuk upload file</p>
-            <p class="text-xs opacity-50 mt-1">atau drag & drop file ke sini</p>
-          </div>
-
-          <div v-else>
-            <font-awesome-icon icon="fa-solid fa-file-excel" class="text-4xl mb-3 text-[hsl(var(--color-success))]" />
-            <p class="font-bold text-lg truncate px-4">{{ selectedFile.name }}</p>
-            <p class="text-xs opacity-60 mt-1">
-              Ukuran: {{ (selectedFile.size / 1024).toFixed(2) }} KB
-            </p>
-          </div>
-        </div>
-
-        <div
-          class="flex items-center gap-3 p-3 rounded-lg hover:bg-[hsl(var(--color-secondary))/0.05] transition-colors cursor-pointer"
-          @click="isDryRun = !isDryRun">
-          <div class="relative flex items-center">
-            <input type="checkbox" id="dryRun" v-model="isDryRun"
-              class="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-[hsl(var(--color-secondary))] checked:bg-[hsl(var(--color-primary))] checked:border-transparent transition-all" />
-            <font-awesome-icon icon="fa-solid fa-check"
-              class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-secondary opacity-0 peer-checked:opacity-100 text-xs pointer-events-none" />
-          </div>
-          <label class="text-sm cursor-pointer select-none flex-1">
-            <span class="font-bold block">Mode Simulasi (Dry Run)</span>
-            <span class="text-xs opacity-60">Cek error tanpa mengubah data database.</span>
-          </label>
-        </div>
-
-        <div v-if="errorMessage"
-          class="bg-[hsl(var(--color-danger))/0.1] text-[hsl(var(--color-danger))] px-4 py-3 rounded-lg text-sm flex items-start gap-3">
-          <font-awesome-icon icon="fa-solid fa-circle-exclamation" class="mt-0.5 shrink-0" />
-          <span>{{ errorMessage }}</span>
         </div>
       </div>
 
-      <div class="mt-8 flex justify-end gap-3 pb-2">
-        <button @click="close"
-          class="px-5 py-2.5 rounded-lg font-medium text-[hsl(var(--color-text))] opacity-70 hover:opacity-100 hover:bg-[hsl(var(--color-secondary))/0.1] transition-all flex items-center gap-2">
-          <font-awesome-icon icon="fa-solid fa-times" />
-          Batal
-        </button>
-        <button @click="upload" :disabled="!selectedFile || isLoading"
-          class="px-5 py-2.5 bg-[hsl(var(--color-primary))] text-background rounded-lg shadow-lg shadow-[hsl(var(--color-primary))/0.3] font-bold hover:bg-[hsl(var(--color-primary))/0.9] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all flex items-center gap-2">
-          <font-awesome-icon v-if="isLoading" icon="fa-solid fa-spinner" spin />
-          <font-awesome-icon v-else icon="fa-solid fa-file-import" />
-          <span>{{ isLoading ? 'Mengunggah...' : 'Mulai Import' }}</span>
-        </button>
+      <div
+        class="flex items-center gap-3 p-3 rounded-lg hover:bg-[hsl(var(--color-secondary))/0.05] transition-colors cursor-pointer"
+        @click="isDryRun = !isDryRun"
+      >
+        <div class="relative flex items-center">
+          <input
+            type="checkbox"
+            id="dryRun"
+            v-model="isDryRun"
+            class="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-[hsl(var(--color-secondary))] checked:bg-[hsl(var(--color-primary))] checked:border-transparent transition-all"
+          />
+          <font-awesome-icon
+            icon="fa-solid fa-check"
+            class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-secondary opacity-0 peer-checked:opacity-100 text-xs pointer-events-none"
+          />
+        </div>
+        <label class="text-sm cursor-pointer select-none flex-1">
+          <span class="font-bold block">Mode Simulasi (Dry Run)</span>
+          <span class="text-xs opacity-60">Cek error tanpa mengubah data database.</span>
+        </label>
       </div>
-  </Modal>
+
+      <div
+        v-if="errorMessage"
+        class="bg-[hsl(var(--color-danger))/0.1] text-[hsl(var(--color-danger))] px-4 py-3 rounded-lg text-sm flex items-start gap-3"
+      >
+        <font-awesome-icon icon="fa-solid fa-circle-exclamation" class="mt-0.5 shrink-0" />
+        <span>{{ errorMessage }}</span>
+      </div>
+    </div>
+
+    <div class="mt-8 flex justify-end gap-3 pb-2">
+      <button
+        @click="close"
+        class="px-5 py-2.5 rounded-lg font-medium text-[hsl(var(--color-text))] opacity-70 hover:opacity-100 hover:bg-[hsl(var(--color-secondary))/0.1] transition-all flex items-center gap-2"
+      >
+        <font-awesome-icon icon="fa-solid fa-times" />
+        Batal
+      </button>
+      <button
+        @click="upload"
+        :disabled="!selectedFile || isLoading"
+        class="px-5 py-2.5 bg-[hsl(var(--color-primary))] text-background rounded-lg shadow-lg shadow-[hsl(var(--color-primary))/0.3] font-bold hover:bg-[hsl(var(--color-primary))/0.9] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all flex items-center gap-2"
+      >
+        <font-awesome-icon v-if="isLoading" icon="fa-solid fa-spinner" spin />
+        <font-awesome-icon v-else icon="fa-solid fa-file-import" />
+        <span>{{ isLoading ? 'Mengunggah...' : 'Mulai Import' }}</span>
+      </button>
+    </div>
+  </BaseModal>
 </template>
 
 <script setup>
-import Modal from '@/components/ui/Modal.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 import { ref } from 'vue'
 import { uploadPriceUpdate } from '../../api/helpers/products'
 
-const props = defineProps({
+defineProps({
   isOpen: Boolean,
 })
 

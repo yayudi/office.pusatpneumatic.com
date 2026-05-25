@@ -1,4 +1,4 @@
-<!-- frontend\src\views\wms\Return.vue -->
+<!-- frontend\src\views\wms\WmsReturn.vue -->
 <script setup>
 import SaleReturnTab from '@/components/wms/return/SaleReturnTab.vue'
 </script>

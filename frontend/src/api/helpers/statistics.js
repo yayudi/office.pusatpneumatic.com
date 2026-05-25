@@ -20,33 +20,6 @@ export const getStockMovementStatistics = async (filters) => {
   }
 };
 
-export const getStockTimelineStatistics = async (filters) => {
-  try {
-    const { data } = await api.get('/statistics/stock-timeline', {
-      params: filters
-    });
-    return data;
-  } catch (error) {
-    if (error.response?.data?.message) {
-      throw new Error(error.response.data.message);
-    }
-    throw error;
-  }
-};
-
-export const requestStockTimelineExport = async (filters) => {
-  try {
-    const { data } = await api.get('/statistics/stock-timeline/export', {
-      params: filters
-    });
-    return data;
-  } catch (error) {
-    if (error.response?.data?.message) {
-      throw new Error(error.response.data.message);
-    }
-    throw error;
-  }
-};
 
 /**
  * Fetch inventory value statistics

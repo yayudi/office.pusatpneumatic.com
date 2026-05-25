@@ -1,15 +1,13 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
-import { format } from 'date-fns'
-import { id } from 'date-fns/locale'
 import axios from '@/api/axios'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
-import Modal from '@/components/ui/Modal.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 
 const props = defineProps({
   isOpen: Boolean,
-  logData: Object
+  logData: Object,
 })
 
 const emit = defineEmits(['close', 'update'])
@@ -18,40 +16,46 @@ const form = ref({
   status: 'HADIR',
   timeIn: '',
   timeOut: '',
-  notes: ''
+  notes: '',
 })
 
 const isLoading = ref(false)
 const errorMsg = ref('')
 
 // Initialize form when logData changes
-watch(() => props.logData, (newVal) => {
-  if (newVal) {
-    // Determine status from existing data
-    let currentStatus = 'HADIR'
+watch(
+  () => props.logData,
+  (newVal) => {
+    if (newVal) {
+      // Determine status from existing data
+      let currentStatus = 'HADIR'
 
-    if (newVal.dbStatus) {
-      currentStatus = newVal.dbStatus
-    } else {
-      // Fallback logic
-      if (newVal.status === 4) currentStatus = 'SAKIT'
-      else if (newVal.status === 5) currentStatus = 'IZIN'
-      else if (newVal.status === 1 || newVal.status === 2) currentStatus = 'ALPHA'
-      else if (newVal.status === 0 || newVal.status === 3) currentStatus = 'HADIR'
-    }
+      if (newVal.dbStatus) {
+        currentStatus = newVal.dbStatus
+      } else {
+        // Fallback logic
+        if (newVal.status === 4) currentStatus = 'SAKIT'
+        else if (newVal.status === 5) currentStatus = 'IZIN'
+        else if (newVal.status === 1 || newVal.status === 2) currentStatus = 'ALPHA'
+        else if (newVal.status === 0 || newVal.status === 3) currentStatus = 'HADIR'
+      }
 
-    form.value = {
-      status: currentStatus,
-      timeIn: newVal.jamMasuk ? minutesToTimeStr(newVal.jamMasuk) : '',
-      timeOut: newVal.jamKeluar ? minutesToTimeStr(newVal.jamKeluar) : '',
-      notes: newVal.notes || '' // No need to replace regex anymore
+      form.value = {
+        status: currentStatus,
+        timeIn: newVal.jamMasuk ? minutesToTimeStr(newVal.jamMasuk) : '',
+        timeOut: newVal.jamKeluar ? minutesToTimeStr(newVal.jamKeluar) : '',
+        notes: newVal.notes || '', // No need to replace regex anymore
+      }
     }
-  }
-}, { immediate: true })
+  },
+  { immediate: true },
+)
 
 function minutesToTimeStr(minutes) {
   if (minutes === null || minutes === undefined) return ''
-  const h = Math.floor(minutes / 60).toString().padStart(2, '0')
+  const h = Math.floor(minutes / 60)
+    .toString()
+    .padStart(2, '0')
   const m = (minutes % 60).toString().padStart(2, '0')
   return `${h}:${m}`
 }
@@ -84,7 +88,7 @@ async function handleSave() {
       status: form.value.status,
       timeIn: form.value.timeIn,
       timeOut: form.value.timeOut,
-      notes: form.value.notes
+      notes: form.value.notes,
     }
 
     const { data } = await axios.post('/attendance/update', payload)
@@ -112,7 +116,7 @@ watch(Alt_S, (pressed) => {
 </script>
 
 <template>
-  <Modal :show="isOpen" @close="$emit('close')" maxWidth="max-w-md">
+  <BaseModal :show="isOpen" @close="$emit('close')" maxWidth="max-w-md">
     <template #title>
       <div class="-mt-1">
         <h3 class="font-bold text-lg text-text">Edit Absensi</h3>
@@ -120,8 +124,10 @@ watch(Alt_S, (pressed) => {
     </template>
 
     <div class="space-y-4">
-      <div v-if="logData"
-        class="flex items-center justify-between text-sm bg-primary/5 p-3 rounded-lg border border-primary/10">
+      <div
+        v-if="logData"
+        class="flex items-center justify-between text-sm bg-primary/5 p-3 rounded-lg border border-primary/10"
+      >
         <div>
           <span class="block text-xs uppercase font-bold text-primary/70">Karyawan</span>
           <span class="font-medium text-text">{{ logData.nama }}</span>
@@ -135,28 +141,46 @@ watch(Alt_S, (pressed) => {
       <!-- Status -->
       <div>
         <label class="block text-xs font-bold uppercase text-text/50 mb-1">Status Kehadiran</label>
-        <BaseSelect v-model="form.status" :options="statusOptions" track-by="value" emit-value :searchable="false" />
+        <BaseSelect
+          v-model="form.status"
+          :options="statusOptions"
+          track-by="value"
+          emit-value
+          :searchable="false"
+        />
       </div>
 
       <!-- Times (Only if Hadir or maybe Partial) -->
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-xs font-bold uppercase text-text/50 mb-1">Jam Masuk</label>
-          <input type="time" v-model="form.timeIn"
-            class="w-full bg-background border border-secondary/20 rounded-lg px-3 py-2 text-text focus:outline-none focus:border-primary" />
+          <input
+            type="time"
+            v-model="form.timeIn"
+            class="w-full bg-background border border-secondary/20 rounded-lg px-3 py-2 text-text focus:outline-none focus:border-primary"
+          />
         </div>
         <div>
           <label class="block text-xs font-bold uppercase text-text/50 mb-1">Jam Keluar</label>
-          <input type="time" v-model="form.timeOut"
-            class="w-full bg-background border border-secondary/20 rounded-lg px-3 py-2 text-text focus:outline-none focus:border-primary" />
+          <input
+            type="time"
+            v-model="form.timeOut"
+            class="w-full bg-background border border-secondary/20 rounded-lg px-3 py-2 text-text focus:outline-none focus:border-primary"
+          />
         </div>
       </div>
 
       <!-- Notes -->
       <div>
-        <label class="block text-xs font-bold uppercase text-text/50 mb-1">Catatan / Keterangan</label>
-        <textarea v-model="form.notes" rows="3" placeholder="Contoh: Sakit tipes, Izin urus SIM..."
-          class="w-full bg-background border border-secondary/20 rounded-lg px-3 py-2 text-text focus:outline-none focus:border-primary"></textarea>
+        <label class="block text-xs font-bold uppercase text-text/50 mb-1"
+          >Catatan / Keterangan</label
+        >
+        <textarea
+          v-model="form.notes"
+          rows="3"
+          placeholder="Contoh: Sakit tipes, Izin urus SIM..."
+          class="w-full bg-background border border-secondary/20 rounded-lg px-3 py-2 text-text focus:outline-none focus:border-primary"
+        ></textarea>
       </div>
 
       <div v-if="errorMsg" class="text-xs text-danger font-bold bg-danger/10 p-2 rounded">
@@ -166,12 +190,17 @@ watch(Alt_S, (pressed) => {
 
     <template #footer>
       <div class="flex justify-end gap-3 w-full">
-        <button @click="$emit('close')"
-          class="px-4 py-2 text-sm font-bold text-text/60 hover:text-text hover:bg-secondary/10 rounded-lg transition-colors">
+        <button
+          @click="$emit('close')"
+          class="px-4 py-2 text-sm font-bold text-text/60 hover:text-text hover:bg-secondary/10 rounded-lg transition-colors"
+        >
           Batal
         </button>
-        <button @click="handleSave" :disabled="isLoading || !canSave"
-          class="px-4 py-2 text-sm font-bold text-background bg-primary hover:bg-primary/90 rounded-lg shadow-lg shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3">
+        <button
+          @click="handleSave"
+          :disabled="isLoading || !canSave"
+          class="px-4 py-2 text-sm font-bold text-background bg-primary hover:bg-primary/90 rounded-lg shadow-lg shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+        >
           <span v-if="isLoading" class="animate-spin text-background">
             <font-awesome-icon icon="fa-solid fa-spinner" />
           </span>
@@ -179,5 +208,5 @@ watch(Alt_S, (pressed) => {
         </button>
       </div>
     </template>
-  </Modal>
+  </BaseModal>
 </template>

@@ -1,13 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import axios from '@/api/axios.js'
-import { useToast } from '@/composables/useToast.js'
 
 export const useDownloadStore = defineStore('download', () => {
   const jobs = ref([])
   const isPolling = ref(false)
   const pollInterval = ref(null)
-  const { toast } = useToast()
 
   const pendingCount = ref(0)
   const isExpanded = ref(false) // For the UI widget

@@ -4,7 +4,7 @@ import { ref, onMounted, watch } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import axios from '@/api/axios.js'
-import Modal from '@/components/ui/Modal.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
 import { useMobile } from '@/composables/useMobile.js'
 
@@ -25,7 +25,7 @@ async function loadCategories() {
     if (data.success) {
       categories.value = data.data
     }
-  } catch (error) {
+  } catch {
     toast('Gagal memuat data kategori.', 'error')
   } finally {
     loading.value = false
@@ -102,26 +102,38 @@ watch(Alt_S, (pressed) => {
       <h2 class="text-2xl font-bold text-text">Manajemen Kategori</h2>
       <p class="text-sm text-text/50 mt-1">Kelola kategori produk untuk klasifikasi inventaris.</p>
     </div>
-    <button @click="openCreateModal"
-      class="bg-primary text-secondary text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 shadow-md shadow-primary/20">
+    <button
+      @click="openCreateModal"
+      class="bg-primary text-secondary text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 shadow-md shadow-primary/20"
+    >
       <font-awesome-icon icon="fa-solid fa-plus" />
       <span>Tambah Kategori</span>
     </button>
   </div>
 
   <div
-    class="bg-background shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(95vh]">
-    <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : 'min-w-[400px]'">
-      <thead class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5"
-        :class="isMobile ? 'hidden' : 'sticky top-0 z-30'">
+    class="bg-background shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(95vh]"
+  >
+    <table
+      class="w-full text-sm text-left text-text border-collapse"
+      :class="isMobile ? 'block' : 'min-w-[400px]'"
+    >
+      <thead
+        class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5"
+        :class="isMobile ? 'hidden' : 'sticky top-0 z-30'"
+      >
         <tr class="text-xs text-text/80 uppercase">
           <th class="px-6 py-3 border-b border-secondary/10 w-16 text-center">#</th>
           <th class="px-6 py-3 border-b border-secondary/10">Nama Kategori</th>
           <th class="px-6 py-3 text-center border-b border-secondary/10 w-32">Aksi</th>
         </tr>
       </thead>
-      <TransitionGroup tag="tbody" name="list" class="relative"
-        :class="isMobile ? 'block' : 'divide-y divide-secondary/5'">
+      <TransitionGroup
+        tag="tbody"
+        name="list"
+        class="relative"
+        :class="isMobile ? 'block' : 'divide-y divide-secondary/5'"
+      >
         <!-- Loading State -->
         <template v-if="loading">
           <TableSkeleton v-for="n in 5" :key="`skeleton-${n}`" />
@@ -134,25 +146,51 @@ watch(Alt_S, (pressed) => {
           </td>
         </tr>
 
-        <tr v-else v-for="(cat, index) in categories" :key="cat.id" class="transition-colors group relative"
-          :class="isMobile ? 'block mb-3 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4' : 'border-b border-secondary/20 hover:bg-secondary/5'">
-          <td class="text-text/40 font-mono text-xs"
-            :class="isMobile ? 'flex justify-between items-center py-2' : 'px-6 py-4 text-center'">
-            <span v-if="isMobile" class="text-text/60 text-xs uppercase font-sans font-semibold">#</span>
+        <tr
+          v-else
+          v-for="(cat, index) in categories"
+          :key="cat.id"
+          class="transition-colors group relative"
+          :class="
+            isMobile
+              ? 'block mb-3 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4'
+              : 'border-b border-secondary/20 hover:bg-secondary/5'
+          "
+        >
+          <td
+            class="text-text/40 font-mono text-xs"
+            :class="isMobile ? 'flex justify-between items-center py-2' : 'px-6 py-4 text-center'"
+          >
+            <span v-if="isMobile" class="text-text/60 text-xs uppercase font-sans font-semibold"
+              >#</span
+            >
             <span>{{ index + 1 }}</span>
           </td>
-          <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+          <td
+            :class="
+              isMobile
+                ? 'flex justify-between items-center py-2 border-b border-secondary/10'
+                : 'px-6 py-4'
+            "
+          >
             <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Nama</span>
             <span class="font-medium text-text">{{ cat.name }}</span>
           </td>
-          <td class="space-x-4" :class="isMobile ? 'flex justify-end items-center pt-3' : 'px-6 py-4 text-center'">
-            <button @click="openEditModal(cat)"
-              class="text-primary hover:text-primary/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105">
+          <td
+            class="space-x-4"
+            :class="isMobile ? 'flex justify-end items-center pt-3' : 'px-6 py-4 text-center'"
+          >
+            <button
+              @click="openEditModal(cat)"
+              class="text-primary hover:text-primary/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105"
+            >
               <font-awesome-icon icon="fa-solid fa-edit" />
               <span>Edit</span>
             </button>
-            <button @click="handleDelete(cat.id)"
-              class="text-danger hover:text-danger/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105">
+            <button
+              @click="handleDelete(cat.id)"
+              class="text-danger hover:text-danger/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105"
+            >
               <font-awesome-icon icon="fa-solid fa-trash" />
               <span>Hapus</span>
             </button>
@@ -163,22 +201,36 @@ watch(Alt_S, (pressed) => {
   </div>
 
   <!-- Modal untuk Tambah/Edit Kategori -->
-  <Modal :show="isModalOpen" @close="isModalOpen = false" :title="isEditing ? 'Edit Kategori' : 'Tambah Kategori Baru'">
+  <BaseModal
+    :show="isModalOpen"
+    @close="isModalOpen = false"
+    :title="isEditing ? 'Edit Kategori' : 'Tambah Kategori Baru'"
+  >
     <form @submit.prevent="handleSave" class="p-6 space-y-4">
       <div>
         <label class="block text-sm font-medium text-text/80 mb-1">Nama Kategori</label>
-        <input v-model="form.name" type="text" required class="w-full input-field" placeholder="Contoh: Pneumatic"
-          autofocus />
+        <input
+          v-model="form.name"
+          type="text"
+          required
+          class="w-full input-field"
+          placeholder="Contoh: Pneumatic"
+          autofocus
+        />
       </div>
     </form>
     <template #footer>
       <button type="button" @click="isModalOpen = false" class="btn-secondary">Batal</button>
       <button type="submit" @click="handleSave" :disabled="saving" class="btn-primary">
-        <font-awesome-icon v-if="saving" icon="fa-solid fa-circle-notch" class="animate-spin mr-1" />
+        <font-awesome-icon
+          v-if="saving"
+          icon="fa-solid fa-circle-notch"
+          class="animate-spin mr-1"
+        />
         Simpan
       </button>
     </template>
-  </Modal>
+  </BaseModal>
 </template>
 
 <style lang="postcss" scoped>

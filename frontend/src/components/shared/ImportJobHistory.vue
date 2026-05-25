@@ -4,8 +4,11 @@
     <!-- Header / Refresh -->
     <div class="flex justify-between items-center mb-4">
       <h4 class="font-semibold text-text text-sm">Riwayat Upload Terakhir</h4>
-      <button @click="fetchHistory" class="text-xs text-primary hover:underline flex items-center gap-1 mr-8"
-        :disabled="loading">
+      <button
+        @click="fetchHistory"
+        class="text-xs text-primary hover:underline flex items-center gap-1 mr-8"
+        :disabled="loading"
+      >
         <font-awesome-icon icon="fa-solid fa-sync" :spin="loading" />
         <span>Refresh</span>
       </button>
@@ -18,24 +21,34 @@
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="filteredJobs.length === 0"
-      class="text-center py-8 border border-dashed border-secondary/30 rounded-xl bg-secondary/5">
+    <div
+      v-else-if="filteredJobs.length === 0"
+      class="text-center py-8 border border-dashed border-secondary/30 rounded-xl bg-secondary/5"
+    >
       <font-awesome-icon icon="fa-solid fa-history" class="text-text/20 text-3xl mb-2" />
       <p class="text-sm text-text/60">Belum ada riwayat upload.</p>
     </div>
 
     <!-- List -->
     <div v-else class="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
-      <div v-for="job in filteredJobs" :key="job.id"
-        class="bg-background border border-secondary/20 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow">
+      <div
+        v-for="job in filteredJobs"
+        :key="job.id"
+        class="bg-background border border-secondary/20 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow"
+      >
         <div class="flex justify-between items-start mb-2">
           <div>
             <div class="flex items-center gap-2">
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
-                :class="getStatusClass(job.status)">
+              <span
+                class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
+                :class="getStatusClass(job.status)"
+              >
                 {{ formatStatus(job.status) }}
               </span>
-              <span v-if="getIsDryRun(job)" class="text-[10px] bg-secondary/20 text-text/60 px-1.5 rounded">
+              <span
+                v-if="getIsDryRun(job)"
+                class="text-[10px] bg-secondary/20 text-text/60 px-1.5 rounded"
+              >
                 TEST (DRY RUN)
               </span>
             </div>
@@ -46,9 +59,13 @@
           </div>
 
           <!-- Download Error Button -->
-          <a v-if="getErrorUrl(job)" :href="getErrorUrl(job)" target="_blank"
+          <a
+            v-if="getErrorUrl(job)"
+            :href="getErrorUrl(job)"
+            target="_blank"
             class="text-[10px] bg-danger/10 text-danger border border-danger/20 hover:bg-danger/20 px-2 py-1 rounded transition-colors flex items-center gap-1"
-            title="Download Laporan Error">
+            title="Download Laporan Error"
+          >
             <font-awesome-icon icon="fa-solid fa-download" />
             Detail Error
           </a>
@@ -56,12 +73,17 @@
 
         <div class="flex items-center gap-2 mb-1">
           <font-awesome-icon icon="fa-solid fa-file-excel" class="text-success text-xs" />
-          <span class="text-xs font-medium text-text truncate max-w-[200px]" :title="job.originalFilename">
+          <span
+            class="text-xs font-medium text-text truncate max-w-[200px]"
+            :title="job.originalFilename"
+          >
             {{ job.originalFilename }}
           </span>
         </div>
 
-        <p class="text-[11px] text-text/70 bg-secondary/10 p-2 rounded leading-relaxed border border-secondary/10">
+        <p
+          class="text-[11px] text-text/70 bg-secondary/10 p-2 rounded leading-relaxed border border-secondary/10"
+        >
           {{ job.summary || 'Tidak ada detail.' }}
         </p>
       </div>
@@ -78,12 +100,12 @@ const props = defineProps({
   // Array of Job Types to filter. If empty, shows all.
   jobTypes: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   autoRefreshInterval: {
     type: Number,
-    default: 5000 // 5 seconds
-  }
+    default: 5000, // 5 seconds
+  },
 })
 
 const jobs = ref([])
@@ -92,7 +114,7 @@ let intervalId = null
 
 const filteredJobs = computed(() => {
   if (props.jobTypes.length === 0) return jobs.value
-  return jobs.value.filter(j => props.jobTypes.includes(j.jobType))
+  return jobs.value.filter((j) => props.jobTypes.includes(j.jobType))
 })
 
 const formatDate = (date) => {
@@ -101,22 +123,22 @@ const formatDate = (date) => {
 
 const formatStatus = (status) => {
   const map = {
-    'PENDING': 'Menunggu',
-    'PROCESSING': 'Memproses',
-    'COMPLETED': 'Selesai',
-    'COMPLETED_WITH_ERRORS': 'Selesai (Partial)',
-    'FAILED': 'Gagal'
+    PENDING: 'Menunggu',
+    PROCESSING: 'Memproses',
+    COMPLETED: 'Selesai',
+    COMPLETED_WITH_ERRORS: 'Selesai (Partial)',
+    FAILED: 'Gagal',
   }
   return map[status] || status
 }
 
 const getStatusClass = (status) => {
   const map = {
-    'PENDING': 'bg-warning/10 text-warning',
-    'PROCESSING': 'bg-accent/10 text-accent animate-pulse',
-    'COMPLETED': 'bg-success/10 text-success',
-    'COMPLETED_WITH_ERRORS': 'bg-warning/10 text-warning',
-    'FAILED': 'bg-danger/10 text-danger'
+    PENDING: 'bg-warning/10 text-warning',
+    PROCESSING: 'bg-accent/10 text-accent animate-pulse',
+    COMPLETED: 'bg-success/10 text-success',
+    COMPLETED_WITH_ERRORS: 'bg-warning/10 text-warning',
+    FAILED: 'bg-danger/10 text-danger',
   }
   return map[status] || 'bg-secondary/10 text-text/60'
 }
@@ -142,7 +164,7 @@ const getErrorUrl = (job) => {
     baseUrl = baseUrl.replace(/\/$/, '')
 
     return `${baseUrl}${log.download_url}`
-  } catch (e) {
+  } catch {
     return null
   }
 }
