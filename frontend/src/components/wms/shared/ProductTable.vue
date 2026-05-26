@@ -339,40 +339,44 @@ onUnmounted(() => {
           v-else
           v-for="product in products"
           :key="product.id"
-          class="group relative transition-colors duration-500 md:table-row mb-2 bg-background md:bg-background border md:border-0 border-secondary/20 rounded-xl md:rounded-none shadow-sm md:shadow-none overflow-hidden"
+          class="group relative transition-colors duration-500 md:table-row mb-2 bg-background md:bg-background border md:border-0 border-secondary/20 rounded-xl md:rounded-none shadow-sm md:shadow-none overflow-hidden cursor-pointer"
           :class="[
             recentlyUpdatedProducts.has(product.id) ? 'bg-success/20' : 'md:hover:bg-secondary/20',
             mobileLayout === 'compact'
               ? 'grid grid-cols-[1fr_auto] gap-x-3 p-3 items-start'
               : 'grid grid-cols-2 gap-x-4 gap-y-2 p-3',
           ]"
+          @click="$emit('openEdit', product)"
         >
           <!-- IMAGE (Sticky Left) -->
           <td
-            class="hidden md:table-cell p-0 md:px-3 md:py-2 text-center whitespace-nowrap md:border-b border-secondary/10 md:border-secondary/80 md:sticky md:left-0 z-20 group-hover:bg-secondary/5 transition-colors md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] bg-background w-16"
+            class="hidden md:table-cell p-0 md:px-3 md:py-2 text-center whitespace-nowrap md:border-b border-secondary/10 md:border-secondary/80 md:sticky md:left-0 z-20 group-hover:bg-gradient-to-r group-hover:from-secondary/10 group-hover:to-secondary/10 transition-colors md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] bg-background w-16"
           >
-            <ProductThumbnail
-              :image-url="getImageUrl(product)"
-              @click="$emit('view-image', product)"
-            />
+            <div @click.stop>
+              <ProductThumbnail
+                :image-url="getImageUrl(product)"
+                @click="$emit('view-image', product)"
+              />
+            </div>
           </td>
 
           <!-- NAME (Sticky Left next to Image) -->
           <td
-            class="md:table-cell flex items-center justify-between p-0 md:px-3 md:py-2 whitespace-nowrap md:border-b border-secondary/10 md:border-secondary/80 md:sticky md:left-16 z-20 group-hover:bg-secondary/5 transition-colors md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] bg-background"
+            class="md:table-cell flex items-center justify-between p-0 md:px-3 md:py-2 whitespace-nowrap md:border-b border-secondary/10 md:border-secondary/80 md:sticky md:left-16 z-20 group-hover:bg-gradient-to-r group-hover:from-secondary/10 group-hover:to-secondary/10 transition-colors md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] bg-background"
             :class="mobileLayout === 'compact' ? 'col-span-1' : 'col-span-2'"
           >
             <div class="flex items-center gap-3 w-full overflow-hidden">
               <!-- Mobile Thumbnail -->
-              <ProductThumbnail
-                v-if="isMobile"
-                :image-url="getImageUrl(product)"
-                @click="$emit('view-image', product)"
-              />
+              <div @click.stop v-if="isMobile">
+                <ProductThumbnail
+                  :image-url="getImageUrl(product)"
+                  @click="$emit('view-image', product)"
+                />
+              </div>
               <div class="flex flex-col w-full overflow-hidden">
                 <div class="flex items-center gap-2 w-full">
                   <span
-                    @click="copyToClipboard(product.name, 'Nama Produk')"
+                    @click.stop="copyToClipboard(product.name, 'Nama Produk')"
                     class="font-bold text-text cursor-pointer hover:text-primary transition-colors truncate text-sm md:text-base w-full"
                     :title="product.name"
                   >
@@ -416,7 +420,7 @@ onUnmounted(() => {
             >
             <div class="text-left text-xs text-text/70 font-mono">
               <span
-                @click="copyToClipboard(product.sku, 'SKU')"
+                @click.stop="copyToClipboard(product.sku, 'SKU')"
                 class="cursor-pointer hover:text-primary bg-secondary/5 px-2 py-1 z-50 rounded border border-secondary/80 transition-colors"
               >
                 {{ product.sku }}
@@ -458,7 +462,7 @@ onUnmounted(() => {
               >Harga</span
             >
             <span
-              @click="copyToClipboard(product.price, 'Harga')"
+              @click.stop="copyToClipboard(product.price, 'Harga')"
               @mouseenter="showPriceTooltip($event, product)"
               @mouseleave="hidePriceTooltip"
               class="cursor-pointer hover:text-primary transition-colors"
@@ -478,7 +482,7 @@ onUnmounted(() => {
               },
               { 'hidden md:flex': mobileLayout === 'compact' },
             ]"
-            @click="toggleLocationTooltip($event, product)"
+            @click.stop="toggleLocationTooltip($event, product)"
           >
             <span class="md:hidden text-[10px] font-bold text-text/50 uppercase tracking-wide"
               >Lokasi</span
@@ -559,7 +563,7 @@ onUnmounted(() => {
 
           <!-- ACTIONS (Sticky Right) -->
           <td
-            class="hidden md:table-cell px-6 py-2 w-[80px] text-center md:sticky md:right-0 z-20 bg-background group-hover:bg-secondary/5 transition-colors shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)] border-b border-secondary/80"
+            class="hidden md:table-cell px-6 py-2 w-[80px] text-center md:sticky md:right-0 z-20 bg-background group-hover:bg-gradient-to-r group-hover:from-secondary/10 group-hover:to-secondary/10 transition-colors shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)] border-b border-secondary/80"
           >
             <div class="flex justify-center items-center relative">
               <button
@@ -581,6 +585,7 @@ onUnmounted(() => {
       :show="isLocationTooltipVisible"
       :reference-el="locationTargetRef"
       title="Detail Lokasi"
+      interactive
     >
       <ul class="space-y-1.5">
         <li
@@ -603,6 +608,7 @@ onUnmounted(() => {
       :reference-el="packageTargetRef"
       title="Komponen Paket"
       :loading="isLoadingComponents"
+      interactive
     >
       <div v-if="localComponents && localComponents.length > 0">
         <ul class="space-y-2">
@@ -617,7 +623,11 @@ onUnmounted(() => {
               {{ comp.quantity || comp.quantity_per_package }}x
             </div>
             <div class="flex flex-col min-w-0">
-              <span class="font-semibold text-text truncate leading-tight">{{ comp.name }}</span>
+              <span
+                @click.stop="copyToClipboard(comp.name, 'Nama Produk')"
+                class="font-semibold text-text truncate leading-tight hover:text-primary cursor-pointer"
+                >{{ comp.name }}</span
+              >
               <span class="text-[10px] text-text/60 font-mono truncate">{{ comp.sku }}</span>
             </div>
           </li>

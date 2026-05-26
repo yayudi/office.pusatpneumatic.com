@@ -3,7 +3,21 @@ import fs from 'fs/promises'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
-import Vips from 'wasm-vips'
+import os from 'os'
+
+// --- WORKAROUND UNTUK SHARED HOSTING (EAGAIN / LIMIT THREAD) ---
+// wasm-vips membaca os.cpus() saat inisialisasi dan mencoba membuat puluhan Worker Thread.
+// Pada shared hosting dengan resource ketat, ini memicu error "EAGAIN" (Cannot allocate memory/thread).
+// Solusi: Kita 'mock' jumlah CPU menjadi 1 sebelum load library-nya.
+const originalCpus = os.cpus
+os.cpus = () => [{}] 
+process.env.VIPS_CONCURRENCY = '1'
+process.env.UV_THREADPOOL_SIZE = '1'
+
+const { default: Vips } = await import('wasm-vips')
+
+os.cpus = originalCpus
+// -------------------------------------------------------------
 import Logger from "../../utils/logger.js";
 import {
   getPendingMediaJobs,

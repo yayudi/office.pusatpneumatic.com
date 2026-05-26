@@ -38,6 +38,7 @@ build/
 .cache/
 scratch/
 /frontend/bundle-stats.html
+migrations/
 
 # ===================================================================
 # IDE & EDITORS

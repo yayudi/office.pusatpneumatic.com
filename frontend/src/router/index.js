@@ -2,9 +2,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
-// NOTE: Layouts & Views sekarang menggunakan Dynamic Imports (Lazy Loading)
-// untuk performa dan code splitting yang lebih baik.
-
 const routes = [
   // --- AUTH ROUTES ---
   {
@@ -41,6 +38,20 @@ const routes = [
     path: '/guide',
     name: 'Guide',
     component: () => import('../views/GuideView.vue'),
+    meta: { requiresAuth: true },
+  },
+
+  // --- NOTIFICATION ROUTES ---
+  {
+    path: '/notifications',
+    name: 'NotificationCenter',
+    component: () => import('../views/notifications/NotificationCenter.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/notifications/preferences',
+    name: 'NotificationPreferences',
+    component: () => import('../views/notifications/NotificationPreferences.vue'),
     meta: { requiresAuth: true },
   },
 

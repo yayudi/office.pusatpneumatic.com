@@ -257,7 +257,7 @@ watch(Escape, (pressed) => {
     </h2>
 
     <div
-      class="bg-secondary/35 p-1.5 rounded-xl border border-secondary/20 shadow-sm flex gap-3 overflow-x-auto max-w-full items-center"
+      class="bg-secondary/35 p-1.5 rounded-xl border border-secondary/20 shadow-sm flex gap-3 overflow-x-auto max-w-full items-center custom-scrollbar"
       :class="isMobile ? 'grid grid-cols-2 justify-center text-center w-full' : ''"
     >
       <router-link

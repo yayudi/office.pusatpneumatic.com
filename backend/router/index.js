@@ -25,6 +25,7 @@ import statisticRoutes from "./statistics.js";
 import changelogRoutes from "./changelogRouter.js";
 import categoryRoutes from "./categoryRouter.js";
 import salesChannelsRoutes from "./salesChannels.js";
+import notificationRoutes from "./notificationRouter.js";
 // import cronRouter from "./cronRouter.js";
 
 // Impor middleware yang diperlukan
@@ -62,6 +63,7 @@ apiRouter.use("/statistics", statisticRoutes);
 apiRouter.use("/changelogs", authenticateToken, changelogRoutes);
 apiRouter.use("/categories", authenticateToken, categoryRoutes);
 apiRouter.use("/sales-channels", salesChannelsRoutes);
+apiRouter.use("/notifications", authenticateToken, notificationRoutes);
 // apiRouter.use("/cron", authenticateToken, cronRouter);
 
 // Rute tes "canary"

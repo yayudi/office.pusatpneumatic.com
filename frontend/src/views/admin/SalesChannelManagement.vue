@@ -209,7 +209,11 @@ const handleDelete = async () => {
                   >
                     <font-awesome-icon icon="fa-solid fa-pen" class="text-xs" />
                   </button>
-                  <button @click="confirmDelete(item)" class="w-8 h-8 rounded bg-danger/10 text-danger hover:bg-danger/20 flex items-center justify-center transition-colors" title="Hapus">
+                  <button
+                    @click="confirmDelete(item)"
+                    class="w-8 h-8 rounded bg-danger/10 text-danger hover:bg-danger/20 flex items-center justify-center transition-colors"
+                    title="Hapus"
+                  >
                     <font-awesome-icon icon="fa-solid fa-trash" class="text-xs" />
                   </button>
                 </div>
@@ -221,132 +225,166 @@ const handleDelete = async () => {
     </div>
 
     <!-- Form Modal -->
-    <BaseModal :show="isModalOpen" @close="closeModal" maxWidth="max-w-md" class="mt-[-10vh]">
-      <template #title>
-        <div class="-mt-1">
-          <h3 class="font-bold text-text">
-            {{ modalMode === 'add' ? 'Tambah Saluran Penjualan' : 'Edit Saluran Penjualan' }}
-          </h3>
-        </div>
-      </template>
+    <Teleport to="body">
+      <BaseModal :show="isModalOpen" @close="closeModal" maxWidth="max-w-md" class="mt-[-10vh]">
+        <template #title>
+          <div class="-mt-1">
+            <h3 class="font-bold text-text">
+              {{ modalMode === 'add' ? 'Tambah Saluran Penjualan' : 'Edit Saluran Penjualan' }}
+            </h3>
+          </div>
+        </template>
 
-      <div class="space-y-4">
-        <div>
-          <label class="block text-xs font-bold text-text/70 mb-1"
-            >Platform <span class="text-danger">*</span></label
-          >
-          <select
-            v-model="formData.platform"
-            class="w-full bg-background border border-secondary/30 rounded-lg px-3 py-2 text-sm text-text focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none"
-          >
-            <option v-for="opt in platformOptions" :key="opt" :value="opt">{{ opt }}</option>
-          </select>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-text/70 mb-1"
+              >Platform <span class="text-danger">*</span></label
+            >
+            <select
+              v-model="formData.platform"
+              class="w-full bg-background border border-secondary/30 rounded-lg px-3 py-2 text-sm text-text focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none"
+            >
+              <option v-for="opt in platformOptions" :key="opt" :value="opt">{{ opt }}</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-text/70 mb-1"
+              >Nama Toko / Sales <span class="text-danger">*</span></label
+            >
+            <input
+              v-model="formData.name"
+              type="text"
+              placeholder="Contoh: Toko Maju Jaya"
+              class="w-full bg-background border border-secondary/30 rounded-lg px-3 py-2 text-sm text-text focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-text/70 mb-1">Keterangan (Opsional)</label>
+            <textarea
+              v-model="formData.description"
+              rows="2"
+              placeholder="Contoh: Akun cabang Budi"
+              class="w-full bg-background border border-secondary/30 rounded-lg px-3 py-2 text-sm text-text focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none resize-none"
+            ></textarea>
+          </div>
+
+          <div class="pt-2">
+            <label class="flex items-center gap-3 cursor-pointer group">
+              <div class="relative flex items-center">
+                <input type="checkbox" v-model="formData.isActive" class="peer sr-only" />
+                <div
+                  class="w-10 h-5 bg-secondary/30 rounded-full peer-checked:bg-success transition-colors duration-200"
+                ></div>
+                <div
+                  class="absolute left-1 top-1 w-3 h-3 bg-secondary rounded-full transition-transform duration-200 peer-checked:translate-x-5 shadow-sm"
+                ></div>
+              </div>
+              <div>
+                <span class="text-sm font-bold text-text group-hover:text-primary transition-colors"
+                  >Saluran Aktif</span
+                >
+                <p class="text-[10px] text-text/50">Nonaktifkan jika toko tutup / sales resign.</p>
+              </div>
+            </label>
+          </div>
         </div>
 
-        <div>
-          <label class="block text-xs font-bold text-text/70 mb-1"
-            >Nama Toko / Sales <span class="text-danger">*</span></label
-          >
-          <input
-            v-model="formData.name"
-            type="text"
-            placeholder="Contoh: Toko Maju Jaya"
-            class="w-full bg-background border border-secondary/30 rounded-lg px-3 py-2 text-sm text-text focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none"
-          />
-        </div>
+        <template #footer>
+          <div class="flex justify-end gap-3 w-full">
+            <button
+              @click="closeModal"
+              class="px-4 py-2 text-sm font-bold text-text/60 hover:text-text transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              @click="saveChannel"
+              :disabled="isSaving"
+              class="px-6 py-2 bg-primary text-secondary text-sm font-bold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              <font-awesome-icon v-if="isSaving" icon="fa-solid fa-spinner" spin />
+              Simpan
+            </button>
+          </div>
+        </template>
+      </BaseModal>
 
-        <div>
-          <label class="block text-xs font-bold text-text/70 mb-1">Keterangan (Opsional)</label>
-          <textarea
-            v-model="formData.description"
-            rows="2"
-            placeholder="Contoh: Akun cabang Budi"
-            class="w-full bg-background border border-secondary/30 rounded-lg px-3 py-2 text-sm text-text focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none resize-none"
-          ></textarea>
+      <!-- Delete Confirmation Modal -->
+      <BaseModal
+        :show="isDeleteModalOpen"
+        @close="isDeleteModalOpen = false"
+        maxWidth="max-w-sm"
+        class="mt-[-10vh]"
+      >
+        <template #title>Konfirmasi Hapus</template>
+        <div class="py-2">
+          <p class="text-sm text-text/80">
+            Apakah Anda yakin ingin menghapus saluran
+            <span class="font-bold text-text">{{ itemToDelete?.name }}</span
+            >?
+          </p>
+          <p class="text-xs text-text/50 mt-2">
+            Data ini akan dinonaktifkan (soft delete) untuk menjaga integritas data riwayat
+            penjualan.
+          </p>
         </div>
+        <template #footer>
+          <div class="flex justify-end gap-3 w-full">
+            <button
+              @click="isDeleteModalOpen = false"
+              class="px-4 py-2 text-sm font-bold text-text/60 hover:text-text transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              @click="handleDelete"
+              class="px-6 py-2 bg-danger text-secondary text-sm font-bold rounded-lg hover:bg-danger/90 transition-colors"
+            >
+              Hapus
+            </button>
+          </div>
+        </template>
+      </BaseModal>
 
-        <div class="pt-2">
-          <label class="flex items-center gap-3 cursor-pointer group">
-            <div class="relative flex items-center">
-              <input type="checkbox" v-model="formData.isActive" class="peer sr-only" />
-              <div
-                class="w-10 h-5 bg-secondary/30 rounded-full peer-checked:bg-success transition-colors duration-200"
-              ></div>
-              <div
-                class="absolute left-1 top-1 w-3 h-3 bg-secondary rounded-full transition-transform duration-200 peer-checked:translate-x-5 shadow-sm"
-              ></div>
-            </div>
-            <div>
-              <span class="text-sm font-bold text-text group-hover:text-primary transition-colors"
-                >Saluran Aktif</span
-              >
-              <p class="text-[10px] text-text/50">Nonaktifkan jika toko tutup / sales resign.</p>
-            </div>
-          </label>
+      <!-- Delete Confirmation Modal -->
+      <BaseModal
+        :show="isDeleteModalOpen"
+        @close="isDeleteModalOpen = false"
+        maxWidth="max-w-sm"
+        class="mt-[-10vh]"
+      >
+        <template #title>Konfirmasi Hapus</template>
+        <div class="py-2">
+          <p class="text-sm text-text/80">
+            Apakah Anda yakin ingin menghapus saluran
+            <span class="font-bold text-text">{{ itemToDelete?.name }}</span
+            >?
+          </p>
+          <p class="text-xs text-text/50 mt-2">
+            Data ini akan dinonaktifkan (soft delete) untuk menjaga integritas data riwayat
+            penjualan.
+          </p>
         </div>
-      </div>
-
-      <template #footer>
-        <div class="flex justify-end gap-3 w-full">
-          <button
-            @click="closeModal"
-            class="px-4 py-2 text-sm font-bold text-text/60 hover:text-text transition-colors"
-          >
-            Batal
-          </button>
-          <button
-            @click="saveChannel"
-            :disabled="isSaving"
-            class="px-6 py-2 bg-primary text-secondary text-sm font-bold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
-          >
-            <font-awesome-icon v-if="isSaving" icon="fa-solid fa-spinner" spin />
-            Simpan
-          </button>
-        </div>
-      </template>
-    </BaseModal>
-
-    <!-- Delete Confirmation Modal -->
-    <BaseModal :show="isDeleteModalOpen" @close="isDeleteModalOpen = false" maxWidth="max-w-sm" class="mt-[-10vh]">
-      <template #title>Konfirmasi Hapus</template>
-      <div class="py-2">
-        <p class="text-sm text-text/80">
-          Apakah Anda yakin ingin menghapus saluran <span class="font-bold text-text">{{ itemToDelete?.name }}</span>?
-        </p>
-        <p class="text-xs text-text/50 mt-2">Data ini akan dinonaktifkan (soft delete) untuk menjaga integritas data riwayat penjualan.</p>
-      </div>
-      <template #footer>
-        <div class="flex justify-end gap-3 w-full">
-          <button @click="isDeleteModalOpen = false" class="px-4 py-2 text-sm font-bold text-text/60 hover:text-text transition-colors">
-            Batal
-          </button>
-          <button @click="handleDelete" class="px-6 py-2 bg-danger text-secondary text-sm font-bold rounded-lg hover:bg-danger/90 transition-colors">
-            Hapus
-          </button>
-        </div>
-      </template>
-    </BaseModal>
-
-    <!-- Delete Confirmation Modal -->
-    <BaseModal :show="isDeleteModalOpen" @close="isDeleteModalOpen = false" maxWidth="max-w-sm" class="mt-[-10vh]">
-      <template #title>Konfirmasi Hapus</template>
-      <div class="py-2">
-        <p class="text-sm text-text/80">
-          Apakah Anda yakin ingin menghapus saluran <span class="font-bold text-text">{{ itemToDelete?.name }}</span>?
-        </p>
-        <p class="text-xs text-text/50 mt-2">Data ini akan dinonaktifkan (soft delete) untuk menjaga integritas data riwayat penjualan.</p>
-      </div>
-      <template #footer>
-        <div class="flex justify-end gap-3 w-full">
-          <button @click="isDeleteModalOpen = false" class="px-4 py-2 text-sm font-bold text-text/60 hover:text-text transition-colors">
-            Batal
-          </button>
-          <button @click="handleDelete" class="px-6 py-2 bg-danger text-secondary text-sm font-bold rounded-lg hover:bg-danger/90 transition-colors">
-            Hapus
-          </button>
-        </div>
-      </template>
-    </BaseModal>
+        <template #footer>
+          <div class="flex justify-end gap-3 w-full">
+            <button
+              @click="isDeleteModalOpen = false"
+              class="px-4 py-2 text-sm font-bold text-text/60 hover:text-text transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              @click="handleDelete"
+              class="px-6 py-2 bg-danger text-secondary text-sm font-bold rounded-lg hover:bg-danger/90 transition-colors"
+            >
+              Hapus
+            </button>
+          </div>
+        </template>
+      </BaseModal>
+    </Teleport>
   </div>
 </template>
 

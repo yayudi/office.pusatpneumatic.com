@@ -341,7 +341,7 @@ const getImageUrl = resolveUrl
                     v-if="!img.is_primary && canUpload"
                     @click.stop="setPrimary(img.id)"
                     :disabled="loading"
-                    class="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-lg"
+                    class="px-2 py-1 md:py-3 align-center items-center justify-center rounded-md bg-accent text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-md"
                     title="Jadikan Utama"
                   >
                     <font-awesome-icon icon="fa-solid fa-star" />
@@ -350,7 +350,7 @@ const getImageUrl = resolveUrl
                     v-if="canDelete"
                     @click.stop="deleteImage(img.id)"
                     :disabled="loading"
-                    class="flex h-8 w-8 items-center justify-center rounded-full bg-danger text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-lg"
+                    class="px-2 py-1 md:py-3 align-center items-center justify-center rounded-md bg-danger text-background hover:backdrop-brightness-75 transition-transform hover:scale-110 shadow-md"
                     title="Hapus Gambar"
                   >
                     <font-awesome-icon icon="fa-solid fa-trash" />

@@ -1,0 +1,8 @@
+# .graphifyignore
+node_modules/
+dist/
+*.generated.py
+.git/
+.vscode/
+.agents/
+backend/uploads/

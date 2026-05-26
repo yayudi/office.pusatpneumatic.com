@@ -752,7 +752,7 @@ onUnmounted(() => {
           selectedMediaIds.has(item.id)
             ? 'border-primary ring-2 ring-primary ring-offset-2 ring-offset-background'
             : 'bg-background border-secondary hover:border-primary/50',
-          viewMode === 'list' ? 'flex flex-row items-center p-3 gap-4' : 'shadow-sm',
+          viewMode === 'list' ? 'flex flex-row items-center py-2 px-3 gap-4' : 'shadow-sm',
         ]"
       >
         <template v-if="viewMode === 'list'">
@@ -811,6 +811,7 @@ onUnmounted(() => {
               show-info
               show-delete
               :disable-delete="item.usage_count > 0"
+              :class="viewMode === 'list' ? 'grid grid-cols-5' : 'grid grid-cols-3'"
               @info="openInfoModal(item)"
               @delete="deleteMedia(item.id, item.usage_count)"
             />

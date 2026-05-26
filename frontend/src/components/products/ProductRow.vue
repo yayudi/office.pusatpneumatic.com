@@ -29,14 +29,16 @@ const isArchived = computed(() => {
 </script>
 
 <template>
-  <tr class="transition-colors group"
+  <tr class="transition-colors group cursor-pointer"
     :class="[
       isMobile ? 'block mb-4 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4 relative' : 'border-b border-secondary/5 hover:bg-secondary/5 last:border-0',
       { 'bg-primary/5': isSelected, 'opacity-60 grayscale-[50%]': isArchived }
-    ]">
+    ]"
+    @click="!isArchived && $emit('edit', product)">
     <!-- CHECKBOX (Sticky Left) -->
     <td
-      class="bg-background group-hover:bg-secondary/5 transition-colors" :class="isMobile ? 'absolute top-4 right-4 z-10 border-0' : 'px-4 py-4 text-center w-12 sticky left-0 z-20 border-b border-secondary/5'">
+      class="bg-background group-hover:bg-gradient-to-r group-hover:from-secondary/5 group-hover:to-secondary/5 transition-colors" :class="isMobile ? 'absolute top-4 right-4 z-10 border-0' : 'px-4 py-4 text-center w-12 sticky left-0 z-20 border-b border-secondary/5'"
+      @click.stop>
       <div class="flex items-center justify-center">
         <input type="checkbox"
           class="w-4 h-4 rounded border-secondary/30 text-primary focus:ring-primary bg-background cursor-pointer transition-all"
@@ -46,10 +48,12 @@ const isArchived = computed(() => {
 
     <!-- NAMA PRODUK (Sticky Left) -->
     <td
-      class="bg-background group-hover:bg-secondary/5 transition-colors" :class="isMobile ? 'block pb-4 mb-2 border-b border-secondary/10' : 'px-4 py-4 sticky left-12 z-20 border-b border-secondary/5 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]'">
+      class="bg-background group-hover:bg-gradient-to-r group-hover:from-secondary/5 group-hover:to-secondary/5 transition-colors" :class="isMobile ? 'block pb-4 mb-2 border-b border-secondary/10' : 'px-4 py-4 sticky left-12 z-20 border-b border-secondary/5 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]'">
       <div class="flex items-center gap-3">
         <!-- Thumbnail -->
-        <ProductThumbnail :image-url="imageUrl" @click="$emit('view-image', product)" />
+        <div @click.stop>
+          <ProductThumbnail :image-url="imageUrl" @click="$emit('view-image', product)" />
+        </div>
 
         <div class="flex flex-col">
           <div class="font-bold text-text flex items-center gap-2" :class="isMobile ? 'text-base max-w-[200px]' : 'text-sm'">
@@ -101,7 +105,8 @@ const isArchived = computed(() => {
 
     <!-- AKSI (Sticky Right) -->
     <td
-      class="bg-background group-hover:bg-secondary/5 transition-colors" :class="isMobile ? 'flex justify-end items-center pt-4' : 'px-4 py-4 sticky right-0 z-20 border-b border-secondary/5 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]'">
+      class="bg-background group-hover:bg-gradient-to-r group-hover:from-secondary/5 group-hover:to-secondary/5 transition-colors" :class="isMobile ? 'flex justify-end items-center pt-4' : 'px-4 py-4 sticky right-0 z-20 border-b border-secondary/5 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]'"
+      @click.stop>
       <div
         class="flex items-center justify-center gap-2 transition-all duration-200" :class="isMobile ? 'opacity-100' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100'">
         <!-- Edit -->
