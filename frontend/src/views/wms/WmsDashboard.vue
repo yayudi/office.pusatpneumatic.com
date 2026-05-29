@@ -44,7 +44,7 @@ const {
   visibleColumns,
   availableColumns,
   toggleColumn,
-  resetAndRefetch,
+  resetAndRefetch
 } = useWms()
 
 const auth = useAuthStore()
@@ -68,13 +68,13 @@ const masterData = useMasterDataStore()
 async function loadCategories() {
   try {
     const categories = await masterData.getCategories()
-    categoryOptions.value = categories.map((c) => ({ id: c.id, label: c.name }))
+    categoryOptions.value = categories.map(c => ({ id: c.id, label: c.name }))
   } catch (error) {
     console.error('Failed to load categories', error)
   }
 }
 
-watch(isMobile, (mobile) => {
+watch(isMobile, mobile => {
   mobileLayout.value = mobile ? 'card' : 'compact'
 })
 
@@ -92,26 +92,26 @@ const warehouseViews = [
   { label: 'Semua', value: 'all' },
   { label: 'Gudang', value: 'gudang' },
   { label: 'Pajangan', value: 'pajangan' },
-  { label: 'LTC', value: 'ltc' },
+  { label: 'LTC', value: 'ltc' }
 ]
 
 const searchTabs = [
   { label: 'Nama', value: 'name' },
-  { label: 'SKU', value: 'sku' },
+  { label: 'SKU', value: 'sku' }
 ]
 
 const buildingFilterOptions = [
   { label: 'A19', value: 'A19' },
   { label: 'A20', value: 'A20' },
   { label: 'B16', value: 'B16' },
-  { label: 'OASIS', value: 'OASIS' },
+  { label: 'OASIS', value: 'OASIS' }
 ]
 
 const floorFilterOptions = [
   { label: '1', value: '1' },
   { label: '2', value: '2' },
   { label: '3', value: '3' },
-  { label: '4', value: '4' },
+  { label: '4', value: '4' }
 ]
 
 function copyToClipboard({ text, fieldName }) {
@@ -231,7 +231,7 @@ const anyModalOpen = computed(() => {
   )
 })
 
-watch(Slash, (pressed) => {
+watch(Slash, pressed => {
   if (pressed && !anyModalOpen.value) {
     setTimeout(() => {
       const el = document.getElementById('global-search-input')
@@ -240,7 +240,7 @@ watch(Slash, (pressed) => {
   }
 })
 
-watch(Escape, (pressed) => {
+watch(Escape, pressed => {
   if (pressed) {
     closeModal()
   }
@@ -248,15 +248,14 @@ watch(Escape, (pressed) => {
 </script>
 
 <template>
-  <div
-    class="mb-2 lg:mb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
-  >
+  <div class="mb-2 lg:mb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
     <h2 class="text-2xl font-bold text-text flex items-center gap-3">
       <font-awesome-icon icon="fa-solid fa-warehouse" class="text-primary" />
-      <span>Warehouse Management</span>
+      Warehouse <span class="text-primary">Management</span>
     </h2>
 
     <div
+      v-if="auth.hasPermission('view-prices')"
       class="bg-secondary/35 p-1.5 rounded-xl border border-secondary/20 shadow-sm flex gap-3 overflow-x-auto max-w-full items-center custom-scrollbar"
       :class="isMobile ? 'grid grid-cols-2 justify-center text-center w-full' : ''"
     >
@@ -269,27 +268,7 @@ watch(Escape, (pressed) => {
         <font-awesome-icon icon="fa-solid fa-boxes-stacked" />
         <span>Pindah</span>
       </router-link>
-      <div v-if="!isMobile" class="w-px h-6 bg-primary"></div>
-      <router-link
-        v-if="auth.hasPermission('manage-stock-adjustment')"
-        to="/wms/actions/batch-adjustment"
-        class="px-4 py-2 text-sm font-bold text-warning hover:bg-warning/10 rounded-lg transition-all flex items-center gap-2 justify-center whitespace-nowrap"
-        title="Stock Opname / Penyesuaian"
-      >
-        <font-awesome-icon icon="fa-solid fa-calculator" />
-        <span>Opname</span>
-      </router-link>
-      <div v-if="!isMobile" class="w-px h-6 bg-primary"></div>
-      <router-link
-        v-if="auth.hasPermission('manage-stock-adjustment')"
-        to="/wms/actions/return"
-        class="px-4 py-2 text-sm font-bold text-danger hover:bg-danger/10 rounded-lg transition-all flex items-center gap-2 justify-center whitespace-nowrap"
-        title="Validasi Barang Retur"
-      >
-        <font-awesome-icon icon="fa-solid fa-rotate-left" />
-        <span>Retur</span>
-      </router-link>
-      <div v-if="!isMobile" class="w-px h-6 bg-primary"></div>
+      <div v-if="!isMobile && auth.hasPermission('perform-batch-movement')" class="w-px h-6 bg-primary"></div>
       <button
         @click="isSimulationModalOpen = true"
         class="px-4 py-2 text-sm font-bold text-success hover:bg-success/10 rounded-lg transition-all flex items-center gap-2 justify-center whitespace-nowrap"
@@ -302,9 +281,7 @@ watch(Escape, (pressed) => {
   </div>
 
   <!-- Panel Kontrol Utama -->
-  <div
-    class="bg-secondary/35 rounded-xl shadow-lg border border-secondary/20 p-3 lg:p-6 space-y-2 w-full"
-  >
+  <div class="bg-secondary/35 rounded-xl shadow-lg border border-secondary/20 p-3 lg:p-6 space-y-2 w-full">
     <WmsControlPanel
       class="sticky top-14"
       :search-placeholder="searchPlaceholder"
@@ -364,9 +341,7 @@ watch(Escape, (pressed) => {
             <span v-if="displayedProducts.length === 0 && !loading" class="text-text/50 text-sm">
               -- Tidak ada produk yang cocok --
             </span>
-            <span v-else-if="hasMoreData" class="text-text/50 text-sm">
-              Memuat lebih banyak...
-            </span>
+            <span v-else-if="hasMoreData" class="text-text/50 text-sm"> Memuat lebih banyak... </span>
             <span v-else class="text-text/50 text-sm"> -- Akhir dari daftar -- </span>
           </div>
         </template>

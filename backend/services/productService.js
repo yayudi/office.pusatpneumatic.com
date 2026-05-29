@@ -5,6 +5,7 @@ import Logger from "../utils/logger.js";
 
 import fs from "fs/promises";
 import path from "path";
+import * as mediaService from "./mediaService.js";
 
 // Helper Internal: Mencatat Log Audit hanya jika ada perubahan
 const logChange = async (connection, productId, userId, action, field, oldVal, newVal) => {
@@ -41,14 +42,19 @@ export const createProductService = async (data, userId) => {
 
     // Log Image if exists
     if (data.images && data.images.length > 0) {
-      const imagesToInsert = data.images.map((img, idx) => ({
-        filename: img.filename,
-        is_primary: idx === 0, // First image is primary
-      }));
-      await productRepo.insertImages(connection, newId, imagesToInsert);
-      await logChange(connection, newId, userId, "CREATE", "images", null, `${imagesToInsert.length} Images`);
-    } else if (data.image_path) {
-      await productRepo.insertImages(connection, newId, [{ filename: data.image_path, is_primary: true }]);
+      for (const img of data.images) {
+        try {
+          const mediaId = await mediaService.processMediaFile(img, img.originalname, [], userId, connection);
+          await productRepo.linkMedia(connection, newId, [mediaId]);
+        } catch (err) {
+          if (err.isDuplicate) {
+            await productRepo.linkMedia(connection, newId, [err.duplicateOf]);
+          } else {
+            throw err;
+          }
+        }
+      }
+      await logChange(connection, newId, userId, "CREATE", "images", null, `${data.images.length} Images`);
     }
 
     // Handle Package Components
@@ -110,12 +116,19 @@ export const updateProductService = async (id, data, userId) => {
 
     // Handle Appending Images
     if (data.images && data.images.length > 0) {
-      const imagesToInsert = data.images.map(img => ({
-        filename: img.filename,
-        is_primary: false
-      }));
-      await productRepo.insertImages(connection, id, imagesToInsert);
-      await logChange(connection, id, userId, "UPDATE", "images", "Append", `${imagesToInsert.length} New Images`);
+      for (const img of data.images) {
+        try {
+          const mediaId = await mediaService.processMediaFile(img, img.originalname, [], userId, connection);
+          await productRepo.linkMedia(connection, id, [mediaId]);
+        } catch (err) {
+          if (err.isDuplicate) {
+            await productRepo.linkMedia(connection, id, [err.duplicateOf]);
+          } else {
+            throw err;
+          }
+        }
+      }
+      await logChange(connection, id, userId, "UPDATE", "images", "Append", `${data.images.length} New Images`);
     }
 
     // Handle Package Components (Selalu replace logic untuk konsistensi)
@@ -180,11 +193,18 @@ export const uploadProductImagesService = async (id, images, userId) => {
   const connection = await db.getConnection();
   await connection.beginTransaction();
   try {
-    const imagesToInsert = images.map((img) => ({
-      filename: img.filename,
-      is_primary: false,
-    }));
-    await productRepo.insertImages(connection, id, imagesToInsert);
+    for (const img of images) {
+      try {
+        const mediaId = await mediaService.processMediaFile(img, img.originalname, [], userId, connection);
+        await productRepo.linkMedia(connection, id, [mediaId]);
+      } catch (err) {
+        if (err.isDuplicate) {
+          await productRepo.linkMedia(connection, id, [err.duplicateOf]);
+        } else {
+          throw err;
+        }
+      }
+    }
     await logChange(connection, id, userId, "UPDATE", "images", "Add", `${images.length} Images`);
     await connection.commit();
   } catch (error) {

@@ -5,6 +5,7 @@ import * as mediaRepo from "../repositories/mediaRepository.js";
 import * as mediaService from "../services/mediaService.js";
 import db from "../config/db.js";
 import Logger from "../utils/logger.js";
+import * as productRepo from "../repositories/productRepository.js";
 
 const createTempDir = async () => {
   const tempDir = path.resolve('uploads/temp');
@@ -176,10 +177,7 @@ export const uploadMedia = async (req, res) => {
         }
 
         for (const pId of productIds) {
-          await connection.query(
-            `INSERT INTO product_images (product_id, media_id, is_primary) VALUES (?, ?, 0)`,
-            [pId, mediaId]
-          );
+          await productRepo.linkMedia(connection, pId, [mediaId]);
         }
       }
 

@@ -665,7 +665,23 @@ export const deleteImage = async (connection, imageId) => {
 
 export const linkMedia = async (connection, productId, mediaIds) => {
   if (!mediaIds || mediaIds.length === 0) return;
-  const values = mediaIds.map(mediaId => [productId, mediaId, 0]); // is_primary = 0 default
+
+  // Cek apakah sudah punya primary image
+  const [existingPrimary] = await connection.query(
+    "SELECT id FROM product_images WHERE product_id = ? AND is_primary = 1 LIMIT 1",
+    [productId]
+  );
+  let hasPrimary = existingPrimary.length > 0;
+
+  const values = mediaIds.map(mediaId => {
+    let isPrimary = 0;
+    if (!hasPrimary) {
+      isPrimary = 1;
+      hasPrimary = true;
+    }
+    return [productId, mediaId, isPrimary];
+  });
+  
   await connection.query("INSERT INTO product_images (product_id, media_id, is_primary) VALUES ?", [values]);
 };
 

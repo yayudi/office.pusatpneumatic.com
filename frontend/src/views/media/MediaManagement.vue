@@ -18,6 +18,7 @@ import FloatingTooltip from '@/components/ui/FloatingTooltip.vue'
 import { resolveUrl } from '@/composables/useImageUrl'
 import MediaCard from '@/components/common/MediaCard.vue'
 import MediaActionBar from '@/components/common/MediaActionBar.vue'
+import { useMobile } from '@/composables/useMobile.js'
 
 import { formatBytes } from '@/utils/formatBytes.js'
 import { formatTags } from '@/utils/formatters.js'
@@ -25,14 +26,15 @@ import { formatTags } from '@/utils/formatters.js'
 const linkStatusOptions = [
   { id: 'all', label: 'Semua Media' },
   { id: 'linked', label: 'Sudah Tertaut' },
-  { id: 'orphaned', label: 'Belum Tertaut' },
+  { id: 'orphaned', label: 'Belum Tertaut' }
 ]
 
+const { isMobile } = useMobile()
 const { toast } = useToast()
 const { downloadImage } = useImageActions()
 const mediaList = ref([])
 const viewMode = ref(localStorage.getItem('mediaViewMode') || 'grid')
-watch(viewMode, (newMode) => {
+watch(viewMode, newMode => {
   localStorage.setItem('mediaViewMode', newMode)
 })
 
@@ -76,7 +78,7 @@ const bulkProductSearchQuery = ref('')
 const bulkProductSearchResults = ref([])
 const isBulkProductSearching = ref(false)
 const bulkSelectedProducts = ref([])
-const debouncedBulkSearch = debounce(async (query) => {
+const debouncedBulkSearch = debounce(async query => {
   try {
     const res = await apiClient.get(`/products/search?q=${encodeURIComponent(query)}`)
     bulkProductSearchResults.value = res.data
@@ -87,7 +89,7 @@ const debouncedBulkSearch = debounce(async (query) => {
   }
 }, 400)
 
-watch(bulkProductSearchQuery, (newVal) => {
+watch(bulkProductSearchQuery, newVal => {
   if (!newVal || newVal.length < 2) {
     bulkProductSearchResults.value = []
     debouncedBulkSearch.cancel()
@@ -97,16 +99,16 @@ watch(bulkProductSearchQuery, (newVal) => {
   debouncedBulkSearch(newVal)
 })
 
-const selectBulkProduct = (prod) => {
-  if (!bulkSelectedProducts.value.find((p) => p.id === prod.id)) {
+const selectBulkProduct = prod => {
+  if (!bulkSelectedProducts.value.find(p => p.id === prod.id)) {
     bulkSelectedProducts.value.push(prod)
   }
   bulkProductSearchQuery.value = ''
   bulkProductSearchResults.value = []
 }
 
-const removeBulkProduct = (prodId) => {
-  bulkSelectedProducts.value = bulkSelectedProducts.value.filter((p) => p.id !== prodId)
+const removeBulkProduct = prodId => {
+  bulkSelectedProducts.value = bulkSelectedProducts.value.filter(p => p.id !== prodId)
 }
 
 const uploadProgress = ref('')
@@ -115,7 +117,7 @@ const uploadProgress = ref('')
 const isInfoModalOpen = ref(false)
 const infoMediaId = ref(null)
 
-const openInfoModal = (item) => {
+const openInfoModal = item => {
   infoMediaId.value = item.id
   isInfoModalOpen.value = true
 }
@@ -138,7 +140,7 @@ const toggleSelectionMode = () => {
   if (!isSelectionMode.value) selectedMediaIds.value = new Set()
 }
 
-const toggleSelection = (item) => {
+const toggleSelection = item => {
   if (item.status !== 'COMPLETED') return
   const newSet = new Set(selectedMediaIds.value)
   if (newSet.has(item.id)) {
@@ -149,10 +151,10 @@ const toggleSelection = (item) => {
   selectedMediaIds.value = newSet
 }
 
-const toggleSelectAll = (e) => {
+const toggleSelectAll = e => {
   if (e.target.checked) {
     const newSet = new Set()
-    mediaList.value.filter((i) => i.status === 'COMPLETED').forEach((i) => newSet.add(i.id))
+    mediaList.value.filter(i => i.status === 'COMPLETED').forEach(i => newSet.add(i.id))
     selectedMediaIds.value = newSet
   } else {
     selectedMediaIds.value = new Set()
@@ -162,9 +164,7 @@ const toggleSelectAll = (e) => {
 const confirmBulkDelete = async () => {
   if (selectedMediaIds.value.size === 0) return
   if (
-    !confirm(
-      `Hapus ${selectedMediaIds.value.size} gambar terpilih secara permanen? Aksi ini tidak dapat dibatalkan.`,
-    )
+    !confirm(`Hapus ${selectedMediaIds.value.size} gambar terpilih secara permanen? Aksi ini tidak dapat dibatalkan.`)
   )
     return
 
@@ -176,7 +176,7 @@ const confirmBulkDelete = async () => {
   try {
     // Jalankan penghapusan berurutan agar pool database hosting tidak kebanjiran request
     for (const id of selectedMediaIds.value) {
-      const item = mediaList.value.find((i) => i.id === id)
+      const item = mediaList.value.find(i => i.id === id)
       if (item && item.usage_count > 0) {
         usageConflictCount++
         continue
@@ -197,8 +197,7 @@ const confirmBulkDelete = async () => {
     }
 
     let msg = `Selesai memproses pemusnahan massal.\n✓ Berhasil: ${successCount}`
-    if (usageConflictCount > 0)
-      msg += `\n⚠️ Dilewati: ${usageConflictCount} gambar (Masih ditautkan ke produk)`
+    if (usageConflictCount > 0) msg += `\n⚠️ Dilewati: ${usageConflictCount} gambar (Masih ditautkan ke produk)`
     if (failCount > 0) msg += `\n❌ Gagal sistem: ${failCount} gambar`
     alert(msg)
   } finally {
@@ -236,20 +235,20 @@ const triggerUpload = () => {
   }
 }
 
-const stripExtension = (filename) => filename.replace(/\.[^/.]+$/, '')
+const stripExtension = filename => filename.replace(/\.[^/.]+$/, '')
 
-const processFilesForUpload = (files) => {
+const processFilesForUpload = files => {
   if (!files || files.length === 0) return
 
   selectedFiles.value = Array.from(files)
-  fileTitles.value = Array.from(files).map((f) => stripExtension(f.name))
+  fileTitles.value = Array.from(files).map(f => stripExtension(f.name))
   bulkTagsStr.value = ''
   bulkSelectedProducts.value = []
   bulkProductSearchQuery.value = ''
   isBulkModalOpen.value = true
 }
 
-const handleMultipleFiles = (event) => {
+const handleMultipleFiles = event => {
   processFilesForUpload(event.target.files)
   event.target.value = null // reset input
 }
@@ -259,29 +258,29 @@ const filePreviews = ref([])
 
 watch(
   selectedFiles,
-  (newFiles) => {
+  newFiles => {
     // Revoke old URLs to prevent memory leak
-    filePreviews.value.forEach((url) => {
+    filePreviews.value.forEach(url => {
       if (url) URL.revokeObjectURL(url)
     })
 
     // Create new URLs
-    filePreviews.value = newFiles.map((f) => URL.createObjectURL(f))
+    filePreviews.value = newFiles.map(f => URL.createObjectURL(f))
   },
-  { deep: true },
+  { deep: true }
 )
 
 const isCropperOpen = ref(false)
 const currentEditIndex = ref(-1)
 const currentEditFile = ref(null)
 
-const openCropper = (index) => {
+const openCropper = index => {
   currentEditIndex.value = index
   currentEditFile.value = selectedFiles.value[index]
   isCropperOpen.value = true
 }
 
-const handleCroppedSave = (newFile) => {
+const handleCroppedSave = newFile => {
   if (currentEditIndex.value !== -1) {
     // Replace file
     const updatedFiles = [...selectedFiles.value]
@@ -290,7 +289,7 @@ const handleCroppedSave = (newFile) => {
   }
 }
 
-const removeSelectedFile = (index) => {
+const removeSelectedFile = index => {
   const updatedFiles = [...selectedFiles.value]
   updatedFiles.splice(index, 1)
   selectedFiles.value = updatedFiles
@@ -321,7 +320,7 @@ const autoCropAll = async () => {
   }
 }
 
-const handlePaste = (event) => {
+const handlePaste = event => {
   // Abaikan paste jika pengguna sedang mengetik di dalam input/textarea (misal sedang ngetik pencarian)
   if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
     return
@@ -346,7 +345,7 @@ const handlePaste = (event) => {
     } else {
       // Append ke file yang sudah ada
       selectedFiles.value = [...selectedFiles.value, ...pastedFiles]
-      fileTitles.value = [...fileTitles.value, ...pastedFiles.map((f) => stripExtension(f.name))]
+      fileTitles.value = [...fileTitles.value, ...pastedFiles.map(f => stripExtension(f.name))]
     }
   }
 }
@@ -366,24 +365,21 @@ const genericKeywords = [
   'capture',
   'dcim',
   'picture',
-  'snip',
+  'snip'
 ]
-const isGenericTitle = (title) => {
+const isGenericTitle = title => {
   if (!title || !title.trim()) return true
   const lower = title.toLowerCase()
-  return genericKeywords.some((kw) => lower.includes(kw))
+  return genericKeywords.some(kw => lower.includes(kw))
 }
 
 const executeBulkUpload = async () => {
   if (selectedFiles.value.length === 0) return
 
   // Validasi judul generik
-  const invalidIndex = fileTitles.value.findIndex((t) => isGenericTitle(t))
+  const invalidIndex = fileTitles.value.findIndex(t => isGenericTitle(t))
   if (invalidIndex !== -1) {
-    toast(
-      `Silakan ubah nama file "${fileTitles.value[invalidIndex]}" menjadi lebih spesifik.`,
-      'warning',
-    )
+    toast(`Silakan ubah nama file "${fileTitles.value[invalidIndex]}" menjadi lebih spesifik.`, 'warning')
     return
   }
 
@@ -397,7 +393,7 @@ const executeBulkUpload = async () => {
       uploadProgress.value = `Mengunggah ${i + chunk.length} dari ${selectedFiles.value.length} aset...`
 
       const formData = new FormData()
-      chunk.forEach((f) => formData.append('images', f))
+      chunk.forEach(f => formData.append('images', f))
 
       // Kirim custom titles sejajar dengan chunk
       const chunkTitles = fileTitles.value.slice(i, i + chunkSize)
@@ -408,12 +404,12 @@ const executeBulkUpload = async () => {
       }
 
       if (bulkSelectedProducts.value.length > 0) {
-        const pIds = bulkSelectedProducts.value.map((p) => p.id).join(',')
+        const pIds = bulkSelectedProducts.value.map(p => p.id).join(',')
         formData.append('products', pIds)
       }
 
       const result = await apiClient.post('/media/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 'Content-Type': 'multipart/form-data' }
       })
 
       if (!result.data.success) {
@@ -456,13 +452,12 @@ const deleteMedia = async (id, usageCount) => {
 }
 
 // --- Bulk helpers ---
-const getSelectedItems = () =>
-  mediaList.value.filter((i) => selectedMediaIds.value.has(i.id) && i.status === 'COMPLETED')
+const getSelectedItems = () => mediaList.value.filter(i => selectedMediaIds.value.has(i.id) && i.status === 'COMPLETED')
 
 const bulkCopyLinks = async () => {
   const items = getSelectedItems()
   if (items.length === 0) return
-  const links = items.map((i) => resolveUrl(i.main_path)).join('\n')
+  const links = items.map(i => resolveUrl(i.main_path)).join('\n')
   try {
     await navigator.clipboard.writeText(links)
     toast(`${items.length} tautan berhasil disalin!`, 'success')
@@ -484,7 +479,7 @@ const startPolling = () => {
   pollInterval = setInterval(() => {
     // Hindari Ghost Polling (Page Visibility API) & Hindari UI Conflict
     if (document.visibilityState === 'visible' && !isBulkModalOpen.value) {
-      const hasPending = mediaList.value.some((m) => ['PENDING', 'PROCESSING'].includes(m.status))
+      const hasPending = mediaList.value.some(m => ['PENDING', 'PROCESSING'].includes(m.status))
       if (hasPending) {
         fetchMedia(pagination.value.page, true)
       }
@@ -495,31 +490,31 @@ const startPolling = () => {
 // Global Drag and Drop State
 const isDragging = ref(false)
 
-const handleDragEnter = (e) => {
+const handleDragEnter = e => {
   e.preventDefault()
   isDragging.value = true
 }
 
-const handleDragLeave = (e) => {
+const handleDragLeave = e => {
   e.preventDefault()
   if (e.clientX === 0 || e.clientY === 0) {
     isDragging.value = false
   }
 }
 
-const handleDragOver = (e) => {
+const handleDragOver = e => {
   e.preventDefault()
   isDragging.value = true
 }
 
-const handleDrop = (e) => {
+const handleDrop = e => {
   e.preventDefault()
   isDragging.value = false
 
   const files = e.dataTransfer?.files
   if (!files || files.length === 0) return
 
-  const imageFiles = Array.from(files).filter((f) => f.type.startsWith('image/'))
+  const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'))
   if (imageFiles.length === 0) {
     alert('Hanya format/tipe file gambar yang didukung.')
     return
@@ -554,10 +549,7 @@ onUnmounted(() => {
       class="fixed inset-0 z-[100] bg-primary/20 backdrop-blur-sm border-4 border-dashed border-primary flex items-center justify-center pointer-events-none transition-colors"
     >
       <div class="bg-background px-10 py-8 rounded-2xl shadow-2xl flex flex-col items-center">
-        <font-awesome-icon
-          icon="fa-solid fa-cloud-arrow-up"
-          class="text-6xl text-primary mb-4 animate-bounce"
-        />
+        <font-awesome-icon icon="fa-solid fa-cloud-arrow-up" class="text-6xl text-primary mb-4 animate-bounce" />
         <h2 class="text-2xl font-bold text-text">Lepaskan gambar di sini</h2>
         <p class="text-text/70 mt-2">Gambar akan otomatis diunggah ke pustaka</p>
       </div>
@@ -568,7 +560,7 @@ onUnmounted(() => {
       <div>
         <h2 class="text-2xl font-bold text-text flex items-center gap-3">
           <font-awesome-icon icon="fa-solid fa-images" class="text-primary" />
-          <span>Media</span>
+          Media<span class="text-primary">Management</span>
         </h2>
       </div>
       <!-- Bulk Actions Bar (Hidden when not in selection mode) -->
@@ -582,7 +574,7 @@ onUnmounted(() => {
             class="w-5 h-5 rounded border-secondary text-primary focus:ring-primary cursor-pointer accent-primary"
             :checked="
               selectedMediaIds.size > 0 &&
-              selectedMediaIds.size === mediaList.filter((i) => i.status === 'COMPLETED').length
+              selectedMediaIds.size === mediaList.filter(i => i.status === 'COMPLETED').length
             "
             @change="toggleSelectAll"
           />
@@ -632,9 +624,7 @@ onUnmounted(() => {
         </div>
       </div>
       <div class="flex gap-2 flex-wrap">
-        <div
-          class="relative w-full md:w-[300px] border border-secondary/20 rounded-lg bg-secondary"
-        >
+        <div class="relative w-full md:w-[300px] border border-secondary/20 rounded-lg bg-secondary">
           <input
             type="text"
             v-model="globalSearchStr"
@@ -655,14 +645,7 @@ onUnmounted(() => {
           :searchable="false"
           emit-value
         />
-        <input
-          type="file"
-          ref="uploaderInput"
-          class="hidden"
-          multiple
-          accept="image/*"
-          @change="handleMultipleFiles"
-        />
+        <input type="file" ref="uploaderInput" class="hidden" multiple accept="image/*" @change="handleMultipleFiles" />
         <!-- Actions -->
 
         <!-- View Pattern Switcher -->
@@ -670,11 +653,7 @@ onUnmounted(() => {
           <button
             @click="viewMode = 'grid'"
             class="p-1.5 rounded-md transition-colors"
-            :class="
-              viewMode === 'grid'
-                ? 'bg-background shadow-sm text-primary'
-                : 'text-text/70 hover:text-text'
-            "
+            :class="viewMode === 'grid' ? 'bg-background shadow-sm text-primary' : 'text-text/70 hover:text-text'"
             title="Grid View"
           >
             <font-awesome-icon icon="fa-solid fa-border-all" />
@@ -682,11 +661,7 @@ onUnmounted(() => {
           <button
             @click="viewMode = 'list'"
             class="p-1.5 rounded-md transition-colors"
-            :class="
-              viewMode === 'list'
-                ? 'bg-background shadow-sm text-primary'
-                : 'text-text/70 hover:text-text'
-            "
+            :class="viewMode === 'list' ? 'bg-background shadow-sm text-primary' : 'text-text/70 hover:text-text'"
             title="List View"
           >
             <font-awesome-icon icon="fa-solid fa-list-ul" />
@@ -694,11 +669,7 @@ onUnmounted(() => {
           <button
             @click="viewMode = 'compact'"
             class="p-1.5 rounded-md transition-colors"
-            :class="
-              viewMode === 'compact'
-                ? 'bg-background shadow-sm text-primary'
-                : 'text-text/70 hover:text-text'
-            "
+            :class="viewMode === 'compact' ? 'bg-background shadow-sm text-primary' : 'text-text/70 hover:text-text'"
             title="Compact View"
           >
             <font-awesome-icon icon="fa-solid fa-th" />
@@ -737,11 +708,9 @@ onUnmounted(() => {
 
     <div
       :class="{
-        'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 relative':
-          viewMode === 'grid',
+        'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 relative': viewMode === 'grid',
         'flex flex-col gap-3 relative': viewMode === 'list',
-        'grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 xl:grid-cols-10 gap-2 relative':
-          viewMode === 'compact',
+        'grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 xl:grid-cols-10 gap-2 relative': viewMode === 'compact'
       }"
     >
       <div
@@ -752,7 +721,7 @@ onUnmounted(() => {
           selectedMediaIds.has(item.id)
             ? 'border-primary ring-2 ring-primary ring-offset-2 ring-offset-background'
             : 'bg-background border-secondary hover:border-primary/50',
-          viewMode === 'list' ? 'flex flex-row items-center py-2 px-3 gap-4' : 'shadow-sm',
+          viewMode === 'list' ? 'flex flex-row items-center py-2 px-3 gap-4' : 'shadow-sm'
         ]"
       >
         <template v-if="viewMode === 'list'">
@@ -769,11 +738,7 @@ onUnmounted(() => {
           <figure
             class="w-16 h-16 shrink-0 relative rounded-md overflow-hidden cursor-pointer"
             :class="selectedMediaIds.has(item.id) ? 'bg-primary/10' : 'bg-secondary/30'"
-            @click="
-              item.status === 'COMPLETED'
-                ? ((isLightboxOpen = true), (lightboxIndex = index))
-                : null
-            "
+            @click="item.status === 'COMPLETED' ? ((isLightboxOpen = true), (lightboxIndex = index)) : null"
           >
             <img
               v-if="item.status === 'COMPLETED'"
@@ -797,7 +762,7 @@ onUnmounted(() => {
               <span
                 v-if="item.usage_count > 0"
                 class="badge text-xs bg-primary/20 text-primary border border-primary/20 hidden sm:inline-flex cursor-help px-2 py-0.5 rounded-md"
-                @mouseenter="(e) => handleTooltipOpen(e, item)"
+                @mouseenter="e => handleTooltipOpen(e, item)"
                 @mouseleave="handleTooltipClose"
                 >{{ item.usage_count }} Produk</span
               >
@@ -826,7 +791,7 @@ onUnmounted(() => {
               selectedMediaIds.has(item.id)
                 ? 'bg-primary/10 ring-2 ring-primary border border-transparent'
                 : 'bg-secondary/5 border border-transparent hover:border-secondary/30',
-              viewMode === 'compact' ? 'p-0.5' : 'p-2',
+              viewMode === 'compact' ? 'p-0.5' : 'p-2'
             ]"
             @click="
               isSelectionMode
@@ -867,16 +832,14 @@ onUnmounted(() => {
                   >
                     {{ tag }}
                   </span>
-                  <span v-if="formatTags(item.tags).length > 4" class="text-[10px] opacity-70"
-                    >...</span
-                  >
+                  <span v-if="formatTags(item.tags).length > 4" class="text-[10px] opacity-70">...</span>
                 </div>
               </template>
 
               <template #badges>
                 <div class="absolute bottom-2 left-2 z-50">
                   <span
-                    @mouseenter="(e) => handleTooltipOpen(e, item)"
+                    @mouseenter="e => handleTooltipOpen(e, item)"
                     @mouseleave="handleTooltipClose"
                     class="badge text-xs shadow-sm bg-background/80 px-2 py-1 rounded-lg border border-secondary cursor-help text-secondary font-bold transition-colors"
                     :class="
@@ -924,9 +887,7 @@ onUnmounted(() => {
       v-if="!isLoading && mediaList.length === 0"
       class="text-center py-12 bg-background rounded-xl border border-secondary border-dashed"
     >
-      <div
-        class="w-16 h-16 bg-secondary/50 shadow-inner rounded-full flex items-center justify-center mx-auto mb-4"
-      >
+      <div class="w-16 h-16 bg-secondary/50 shadow-inner rounded-full flex items-center justify-center mx-auto mb-4">
         <font-awesome-icon icon="fa-solid fa-images" class="text-2xl text-text/50" />
       </div>
       <h3 class="text-lg font-bold text-text">Belum ada aset</h3>
@@ -948,20 +909,14 @@ onUnmounted(() => {
     class="mt-4 border-secondary/50 border rounded-xl overflow-hidden bg-background"
     v-if="pagination.totalPages > 1"
   >
-    <BasePagination
-      :pagination="pagination"
-      :show-limit-picker="false"
-      @changePage="(p) => fetchMedia(p)"
-    />
+    <BasePagination :pagination="pagination" :show-limit-picker="false" @changePage="p => fetchMedia(p)" />
   </div>
 
   <!-- Bulk Upload Modal -->
   <BaseModal :show="isBulkModalOpen" @close="isBulkModalOpen = false" maxWidth="max-w-lg">
     <template #title>
       <div class="flex items-center justify-between w-full pr-4">
-        <span class="font-bold text-xl font-display text-text"
-          >Unggah {{ selectedFiles.length }} Aset</span
-        >
+        <span class="font-bold text-xl font-display text-text">Unggah {{ selectedFiles.length }} Aset</span>
         <button
           @click="autoCropAll"
           :disabled="autoCropAllProcessing"
@@ -976,9 +931,7 @@ onUnmounted(() => {
       </div>
     </template>
 
-    <div
-      class="mb-4 max-h-64 overflow-y-auto bg-secondary/10 rounded-lg p-3 border border-secondary custom-scrollbar"
-    >
+    <div class="mb-4 max-h-64 overflow-y-auto bg-secondary/10 rounded-lg p-3 border border-secondary custom-scrollbar">
       <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
         <div
           v-for="(file, index) in selectedFiles"
@@ -1008,12 +961,8 @@ onUnmounted(() => {
           </div>
 
           <!-- Size indicator -->
-          <div
-            class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1"
-          >
-            <p class="text-[10px] text-white text-center truncate px-1">
-              {{ (file.size / 1024).toFixed(0) }} KB
-            </p>
+          <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1">
+            <p class="text-[10px] text-white text-center truncate px-1">{{ (file.size / 1024).toFixed(0) }} KB</p>
           </div>
         </div>
       </div>
@@ -1031,10 +980,7 @@ onUnmounted(() => {
           :key="index"
           class="flex items-center gap-2 bg-secondary/10 rounded-lg p-1.5 border border-secondary/20"
         >
-          <img
-            :src="filePreviews[index]"
-            class="w-8 h-8 rounded object-cover shrink-0 border border-secondary/30"
-          />
+          <img :src="filePreviews[index]" class="w-8 h-8 rounded object-cover shrink-0 border border-secondary/30" />
           <input
             type="text"
             v-model="fileTitles[index]"
@@ -1047,9 +993,7 @@ onUnmounted(() => {
 
     <!-- Tautan Produk Otomatis (Autocomplete) -->
     <div class="form-control mb-4">
-      <label class="label"
-        ><span class="label-text text-text font-semibold">Tautkan ke Produk</span></label
-      >
+      <label class="label"><span class="label-text text-text font-semibold">Tautkan ke Produk</span></label>
 
       <!-- Selected Products Pills -->
       <div v-if="bulkSelectedProducts.length > 0" class="flex flex-wrap gap-2 mb-2">
@@ -1059,10 +1003,7 @@ onUnmounted(() => {
           class="badge bg-primary/10 text-primary border-primary rounded-md gap-1 py-1 px-2"
         >
           <span class="max-w-[150px] truncate text-xs font-bold">{{ prod.sku }}</span>
-          <button
-            @click="removeBulkProduct(prod.id)"
-            class="text-primary hover:text-danger ml-1 transition-colors"
-          >
+          <button @click="removeBulkProduct(prod.id)" class="text-primary hover:text-danger ml-1 transition-colors">
             <font-awesome-icon icon="fa-solid fa-times" />
           </button>
         </div>
@@ -1112,11 +1053,7 @@ onUnmounted(() => {
         </div>
 
         <div
-          v-if="
-            !isBulkProductSearching &&
-            bulkProductSearchQuery.length >= 2 &&
-            bulkProductSearchResults.length === 0
-          "
+          v-if="!isBulkProductSearching && bulkProductSearchQuery.length >= 2 && bulkProductSearchResults.length === 0"
           class="absolute top-full left-0 w-full mt-1 bg-background border border-secondary p-3 text-center text-xs text-text/60 rounded-lg shadow-xl z-[60]"
         >
           Produk tidak ditemukan.
@@ -1134,18 +1071,14 @@ onUnmounted(() => {
       />
       <label class="label">
         <span class="label-text-alt text-text/60"
-          >Tag dipisahkan koma. Tag ini akan diaplikasikan merata ke seluruh berkas yang akan Anda
-          unggah.</span
+          >Tag dipisahkan koma. Tag ini akan diaplikasikan merata ke seluruh berkas yang akan Anda unggah.</span
         >
       </label>
     </div>
 
     <template #footer>
       <div class="flex w-full justify-end gap-2">
-        <div
-          v-if="isUploading"
-          class="text-sm font-medium text-primary animate-pulse flex items-center mr-auto"
-        >
+        <div v-if="isUploading" class="text-sm font-medium text-primary animate-pulse flex items-center mr-auto">
           <font-awesome-icon icon="fa-solid fa-spinner" spin class="mr-2" />
           {{ uploadProgress || 'Mempersiapkan unggahan...' }}
         </div>
@@ -1162,9 +1095,7 @@ onUnmounted(() => {
           :disabled="isUploading"
         >
           <font-awesome-icon v-if="isUploading" icon="fa-solid fa-spinner" spin />
-          <span v-else>
-            <font-awesome-icon icon="fa-solid fa-cloud-upload-alt" class="mr-2" /> Eksekusi
-          </span>
+          <span v-else> <font-awesome-icon icon="fa-solid fa-cloud-upload-alt" class="mr-2" /> Eksekusi </span>
         </button>
       </div>
     </template>

@@ -1,0 +1,242 @@
+<!-- frontend/src/components/wms/StockRequestModal.vue -->
+<script setup>
+import { ref, watch, onMounted } from 'vue'
+import { useToast } from '@/composables/useToast'
+import { fetchMyLocations } from '@/api/helpers/user'
+import { fetchAllLocations } from '@/api/helpers/locations'
+import { createStockRequest } from '@/api/helpers/stockRequest'
+import ProductSearchAddForm from '@/components/wms/transfer/ProductSearchAddForm.vue'
+import BatchItemList from '@/components/wms/transfer/BatchItemList.vue'
+
+defineProps({
+  isOpen: {
+    type: Boolean,
+    required: true
+  }
+})
+
+const emit = defineEmits(['close', 'request-created'])
+
+const { toast } = useToast()
+
+const isLoading = ref(false)
+const myLocations = ref([])
+const allLocations = ref([])
+
+const fromLocationId = ref(null)
+const toLocationId = ref(null)
+const notes = ref('')
+const batchList = ref([])
+
+onMounted(async () => {
+  try {
+    const [myLocs, allLocs] = await Promise.all([fetchMyLocations(), fetchAllLocations()])
+    myLocations.value = myLocs
+    allLocations.value = allLocs
+  } catch (error) {
+    console.error(error)
+  }
+})
+
+// Auto-select toLocation if user only has 1 location
+watch(
+  () => myLocations.value,
+  newLocs => {
+    if (newLocs.length === 1 && !toLocationId.value) {
+      toLocationId.value = newLocs[0].id
+    }
+  }
+)
+
+function handleAddProduct({ product, quantity }) {
+  if (!product || !quantity || quantity <= 0) {
+    toast('Pilih produk dan masukkan kuantitas yang valid (Lebih dari 0).', 'warning')
+    return
+  }
+  const existing = batchList.value.find(item => item.sku === product.sku)
+  if (existing) {
+    existing.quantity += quantity
+  } else {
+    batchList.value.push({
+      productId: product.id,
+      sku: product.sku,
+      name: product.name,
+      quantity: quantity
+    })
+  }
+}
+
+function removeFromBatch(sku) {
+  batchList.value = batchList.value.filter(item => item.sku !== sku)
+}
+
+async function submitRequest() {
+  if (!fromLocationId.value || !toLocationId.value) {
+    toast('Lokasi asal dan tujuan harus diisi.', 'error')
+    return
+  }
+  if (fromLocationId.value === toLocationId.value) {
+    toast('Lokasi asal dan tujuan tidak boleh sama.', 'error')
+    return
+  }
+  if (batchList.value.length === 0) {
+    toast('Tambahkan minimal satu produk.', 'error')
+    return
+  }
+
+  isLoading.value = true
+  try {
+    const payload = {
+      fromLocationId: fromLocationId.value,
+      toLocationId: toLocationId.value,
+      notes: notes.value,
+      items: batchList.value.map(i => ({
+        productId: i.productId,
+        quantity: i.quantity
+      }))
+    }
+
+    await createStockRequest(payload)
+    toast('Permintaan stok berhasil dibuat', 'success')
+    emit('request-created')
+    closeModal()
+  } catch (error) {
+    toast(error.message || 'Gagal membuat permintaan stok', 'error')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+function closeModal() {
+  // Reset form
+  fromLocationId.value = null
+  notes.value = ''
+  batchList.value = []
+  if (myLocations.value.length > 1) {
+    toLocationId.value = null
+  }
+  emit('close')
+}
+</script>
+
+<template>
+  <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+    <div
+      class="bg-background border border-secondary/20 rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in"
+    >
+      <!-- Header -->
+      <div class="px-6 py-4 border-b border-secondary/20 flex justify-between items-center bg-secondary/5">
+        <h3 class="text-lg font-bold text-text flex items-center gap-2">
+          <font-awesome-icon icon="fa-solid fa-file-invoice" class="text-primary" />
+          Buat Permintaan Stok Baru
+        </h3>
+        <button @click="closeModal" class="text-text/50 hover:text-danger transition-colors">
+          <font-awesome-icon icon="fa-solid fa-xmark" class="text-xl" />
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="p-6 overflow-y-auto space-y-6 custom-scrollbar">
+        <!-- Lokasi & Notes -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-secondary/5 p-4 rounded-xl border border-secondary/20">
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-text/60 uppercase mb-1.5">Minta Dari Lokasi (Asal)</label>
+              <select
+                v-model="fromLocationId"
+                class="w-full p-2.5 bg-background border border-secondary/30 rounded-lg text-sm text-text focus:ring-1 focus:ring-primary outline-none"
+              >
+                <option :value="null" disabled>Pilih Lokasi Asal</option>
+                <option v-for="loc in allLocations" :key="loc.id" :value="loc.id">
+                  {{ loc.code }} - {{ loc.name }}
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-text/60 uppercase mb-1.5">Kirim Ke Lokasi (Tujuan)</label>
+              <select
+                v-model="toLocationId"
+                class="w-full p-2.5 bg-background border border-secondary/30 rounded-lg text-sm text-text focus:ring-1 focus:ring-primary outline-none"
+              >
+                <option :value="null" disabled>Pilih Lokasi Tujuan (Lokasi Anda)</option>
+                <option v-for="loc in myLocations" :key="loc.id" :value="loc.id">
+                  {{ loc.code }} - {{ loc.name }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-text/60 uppercase mb-1.5">Catatan / Alasan</label>
+            <textarea
+              v-model="notes"
+              rows="4"
+              class="w-full p-3 bg-background border border-secondary/30 rounded-lg text-sm text-text focus:ring-1 focus:ring-primary outline-none resize-none placeholder:text-text/30"
+              placeholder="Contoh: Stok untuk event akhir pekan..."
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="border-t border-secondary/20 pt-6">
+          <h4 class="text-sm font-bold text-text/80 uppercase mb-4">Daftar Produk</h4>
+
+          <!-- Pakai komponen yg sama dgn Batch Adjustment -->
+          <ProductSearchAddForm
+            active-tab="TRANSFER"
+            :search-location-id="fromLocationId"
+            :disabled="!fromLocationId || isLoading"
+            @add-product="handleAddProduct"
+          />
+
+          <BatchItemList class="mt-4" :items="batchList" active-tab="TRANSFER" @remove-item="removeFromBatch" />
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="px-6 py-4 border-t border-secondary/20 bg-secondary/5 flex justify-end gap-3">
+        <button
+          @click="closeModal"
+          class="px-5 py-2.5 rounded-lg text-sm font-bold text-text/70 bg-background border border-secondary/30 hover:bg-secondary/10 transition-colors"
+        >
+          Batal
+        </button>
+        <button
+          @click="submitRequest"
+          :disabled="isLoading || batchList.length === 0 || !fromLocationId || !toLocationId"
+          class="px-5 py-2.5 bg-primary text-secondary rounded-lg text-sm font-bold disabled:opacity-50 flex items-center gap-2 hover:bg-primary/90 transition-colors"
+        >
+          <font-awesome-icon v-if="isLoading" icon="fa-solid fa-spinner" class="animate-spin" />
+          <font-awesome-icon v-else icon="fa-solid fa-paper-plane" />
+          Kirim Permintaan
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--color-secondary, #cbd5e1);
+  border-radius: 20px;
+}
+</style>

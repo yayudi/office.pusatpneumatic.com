@@ -9,10 +9,10 @@ const masterData = useMasterDataStore()
 import { processBatchMovement } from '@/api/helpers/stock.js'
 
 // Impor komponen anak
-import BatchMovementHeader from '@/components/batch/BatchMovementHeader.vue'
-import ProductSearchAddForm from '@/components/batch/ProductSearchAddForm.vue'
-import BatchItemList from '@/components/batch/BatchItemList.vue'
-import MultiLocationTransferTab from '@/components/batch/MultiLocationTransferTab.vue'
+import BatchMovementHeader from '@/components/wms/transfer/BatchMovementHeader.vue'
+import ProductSearchAddForm from '@/components/wms/transfer/ProductSearchAddForm.vue'
+import BatchItemList from '@/components/wms/transfer/BatchItemList.vue'
+import MultiLocationTransferTab from '@/components/wms/transfer/MultiLocationTransferTab.vue'
 import BatchInboundModal from '@/components/stock/BatchInboundModal.vue'
 
 const { toast } = useToast()
@@ -68,7 +68,7 @@ function handleAddProduct({ product, quantity }) {
     return
   }
 
-  const existing = batchList.value.find((item) => item.sku === product.sku)
+  const existing = batchList.value.find(item => item.sku === product.sku)
   if (existing) {
     existing.quantity += quantity
   } else {
@@ -76,13 +76,13 @@ function handleAddProduct({ product, quantity }) {
       sku: product.sku,
       name: product.name,
       current_stock: product.current_stock,
-      quantity: quantity,
+      quantity: quantity
     })
   }
 }
 
 function removeFromBatch(sku) {
-  batchList.value = batchList.value.filter((item) => item.sku !== sku)
+  batchList.value = batchList.value.filter(item => item.sku !== sku)
 }
 
 async function submitBatch() {
@@ -98,7 +98,7 @@ async function submitBatch() {
       fromLocationId: fromLocation.value?.id || null,
       toLocationId: toLocation.value?.id || null,
       notes: notes.value,
-      movements: batchList.value.map(({ sku, quantity }) => ({ sku, quantity })),
+      movements: batchList.value.map(({ sku, quantity }) => ({ sku, quantity }))
     }
 
     const response = await processBatchMovement(payload)
@@ -120,49 +120,67 @@ async function submitBatch() {
 </script>
 
 <template>
-  <div class="p-6">
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-2xl font-bold text-text">Stock Movement (Transfer / Inbound)</h2>
-      <div class="flex gap-2">
-        <button v-if="activeTab === 'INBOUND'" @click="isBatchInboundModalOpen = true"
-          class="bg-green-50 text-green-600 border border-green-200 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-green-100 flex items-center gap-2 transition-all">
-          <font-awesome-icon icon="fa-solid fa-file-import" />
-          <span>Import Massal</span>
+  <div class="animate-fade-in text-text">
+    <Teleport to="#header-actions">
+      <button
+        v-if="activeTab === 'INBOUND'"
+        @click="isBatchInboundModalOpen = true"
+        class="bg-success/20 text-success border border-success/30 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-success hover:text-background flex items-center gap-2 transition-all"
+      >
+        <font-awesome-icon icon="fa-solid fa-file-import" />
+        <span>Import Massal</span>
+      </button>
+    </Teleport>
+
+    <!-- Komponen Header (Tabs + Form Lokasi Batch) -->
+    <BatchMovementHeader
+      v-model:activeTab="activeTab"
+      v-model:fromLocation="fromLocation"
+      v-model:toLocation="toLocation"
+      v-model:notes="notes"
+      :my-locations="myLocations"
+      :all-locations="allLocations"
+      :is-loading="isLoading"
+      :allow-adjustment="false"
+    />
+
+    <!-- Panel Konten -->
+    <MultiLocationTransferTab
+      v-if="activeTab === 'DETAILED_TRANSFER'"
+      :all-locations="allLocations"
+      :is-loading-locations="isLoading"
+    />
+
+    <!-- Panel untuk semua mode 'BATCH' ('TRANSFER', 'INBOUND') -->
+    <template v-else>
+      <!-- Form Penambahan Item Batch -->
+      <ProductSearchAddForm
+        :active-tab="activeTab"
+        :search-location-id="batchSearchLocationId"
+        :disabled="!isBatchLocationSelected || isLoading"
+        @add-product="handleAddProduct"
+      />
+
+      <!-- Tabel Daftar Batch -->
+      <BatchItemList :items="batchList" :active-tab="activeTab" @remove-item="removeFromBatch" />
+
+      <!-- Tombol Aksi Final Batch -->
+      <div class="flex justify-end pt-6 border-t border-secondary/20">
+        <button
+          @click="submitBatch"
+          :disabled="!isBatchLocationSelected || batchList.length === 0 || isLoading"
+          class="px-6 py-3 bg-accent text-secondary rounded-lg font-bold disabled:opacity-50 flex items-center gap-2"
+        >
+          <font-awesome-icon v-if="isLoading" icon="fa-solid fa-spinner" class="animate-spin" />
+          <span>{{ isLoading ? 'Memproses...' : 'Submit Batch' }}</span>
         </button>
       </div>
-    </div>
-
-    <div class="bg-background rounded-xl shadow-md border border-secondary/20 p-6 space-y-6">
-      <!-- Komponen Header (Tabs + Form Lokasi Batch) -->
-      <BatchMovementHeader v-model:activeTab="activeTab" v-model:fromLocation="fromLocation"
-        v-model:toLocation="toLocation" v-model:notes="notes" :my-locations="myLocations" :all-locations="allLocations"
-        :is-loading="isLoading" :allow-adjustment="false" />
-
-      <!-- Panel Konten -->
-      <MultiLocationTransferTab v-if="activeTab === 'DETAILED_TRANSFER'" :all-locations="allLocations"
-        :is-loading-locations="isLoading" />
-
-      <!-- Panel untuk semua mode 'BATCH' ('TRANSFER', 'INBOUND') -->
-      <template v-else>
-        <!-- Form Penambahan Item Batch -->
-        <ProductSearchAddForm :active-tab="activeTab" :search-location-id="batchSearchLocationId"
-          :disabled="!isBatchLocationSelected || isLoading" @add-product="handleAddProduct" />
-
-        <!-- Tabel Daftar Batch -->
-        <BatchItemList :items="batchList" :active-tab="activeTab" @remove-item="removeFromBatch" />
-
-        <!-- Tombol Aksi Final Batch -->
-        <div class="flex justify-end pt-6 border-t border-secondary/20">
-          <button @click="submitBatch" :disabled="!isBatchLocationSelected || batchList.length === 0 || isLoading"
-            class="px-6 py-3 bg-accent text-secondary rounded-lg font-bold disabled:opacity-50 flex items-center gap-2">
-            <font-awesome-icon v-if="isLoading" icon="fa-solid fa-spinner" class="animate-spin" />
-            <span>{{ isLoading ? 'Memproses...' : 'Submit Batch' }}</span>
-          </button>
-        </div>
-      </template>
-    </div>
-
-    <BatchInboundModal :isOpen="isBatchInboundModalOpen" @close="isBatchInboundModalOpen = false"
-      @success="() => toast('Batch Inbound diproses!', 'success')" />
+    </template>
   </div>
+
+  <BatchInboundModal
+    :isOpen="isBatchInboundModalOpen"
+    @close="isBatchInboundModalOpen = false"
+    @success="() => toast('Batch Inbound diproses!', 'success')"
+  />
 </template>

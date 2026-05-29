@@ -51,7 +51,7 @@ migrations/
 *.sublime-project
 
 # ===================================================================
-# AGENT & AI CONFIGURATION (Revamped)
+# AGENT & AI CONFIGURATION
 # ===================================================================
 # Ignore everything in .agent by default to prevent leaking memory/logs
 .agent/*
@@ -67,6 +67,12 @@ migrations/
 .agent/logs/
 .agent/temp/
 .agent/chats/
+
+# ===================================================================
+# GRAPHIFY
+# ===================================================================
+.graphifyignore
+graphify-out
 
 # ===================================================================
 # BACKEND SPECIFIC

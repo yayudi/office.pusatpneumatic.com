@@ -41,7 +41,7 @@ function handleLogout() {
     <PwaInstallBanner />
 
     <AppHeader v-if="showHeader" @logout="handleLogout" />
-    <GlobalDownloadManager v-if="showHeader" />
+    <GlobalDownloadManager v-if="showHeader && auth.user?.permissions?.includes('view-reports')" />
     <main class="container mx-auto mt-12" :class="isMobile ? 'px-3 py-2' : 'p-4'">
       <RouterView />
     </main>

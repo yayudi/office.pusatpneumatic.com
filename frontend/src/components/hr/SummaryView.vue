@@ -114,8 +114,9 @@ function closeModal() {
               <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Jam Kerja</span>
               <span class="font-mono text-text/80">{{ s.workHours }}</span>
             </td>
-            <td v-if="mobileLayout !== 'compact'"
-              class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center">
+            <td
+              class="justify-between items-center px-2 md:px-6 py-1 md:py-4 text-center"
+              :class="mobileLayout === 'compact' ? 'hidden md:table-cell' : 'flex md:table-cell'">
               <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Lembur</span>
               <span class="font-mono text-primary">{{ s.lemburHours }}</span>
             </td>
@@ -125,8 +126,9 @@ function closeModal() {
               <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Telat</span>
               <span>{{ s.telatHours }}</span>
             </td>
-            <td v-if="mobileLayout !== 'compact'"
-              class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center text-warning/80">
+            <td
+              class="justify-between items-center px-2 md:px-6 py-1 md:py-4 text-center text-warning/80"
+              :class="mobileLayout === 'compact' ? 'hidden md:table-cell' : 'flex md:table-cell'">
               <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Early Out</span>
               <span>{{ s.earlyOutHours }}</span>
             </td>
@@ -137,8 +139,9 @@ function closeModal() {
                   s.absenceDays }} hari</span>
               <span v-else class="text-text/40">-</span>
             </td>
-            <td v-if="authStore.isAdmin && mobileLayout !== 'compact'"
-              class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-right font-bold text-primary font-mono md:sticky md:right-0 z-20 md:bg-background md:group-hover:bg-secondary/5 transition-colors md:shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)] border-t border-secondary/10 md:border-none mt-2 md:mt-0 pt-2 md:pt-4">
+            <td v-if="authStore.isAdmin"
+              class="justify-between items-center px-2 md:px-6 py-1 md:py-4 text-right font-bold text-primary font-mono md:sticky md:right-0 z-20 md:bg-background md:group-hover:bg-secondary/5 transition-colors md:shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)] border-t border-secondary/10 md:border-none mt-2 md:mt-0 pt-2 md:pt-4"
+              :class="mobileLayout === 'compact' ? 'hidden md:table-cell' : 'flex md:table-cell'">
               <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Uang Lembur</span>
               <span>Rp {{ s.uangLembur.toLocaleString('id-ID') }}</span>
             </td>

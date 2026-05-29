@@ -8,9 +8,10 @@ const { toast } = useToast()
 // Buat instance axios
 const instance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
+  timeout: 10000, // Timeout dalam 10 detik
   headers: {
-    'Content-Type': 'application/json',
-  },
+    'Content-Type': 'application/json'
+  }
 })
 
 /**
@@ -18,7 +19,7 @@ const instance = axios.create({
  * Menyisipkan token otomatis ke setiap request keluar.
  */
 instance.interceptors.request.use(
-  (config) => {
+  config => {
     // Lebih baik ambil dari store agar reaktif, tapi fallback ke localStorage aman
     const authStore = useAuthStore()
     const token = authStore.token || localStorage.getItem('token')
@@ -26,11 +27,19 @@ instance.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`
     }
+
+    // --- AUTO TIMEOUT OVERRIDE ---
+    // Jika payload adalah FormData (Upload File) atau response diharapkan Blob (Download File)
+    // Perpanjang timeout menjadi 60 detik (60000 ms) agar tidak putus di tengah jalan.
+    if (config.data instanceof FormData || config.responseType === 'blob') {
+      config.timeout = 80000
+    }
+
     return config
   },
-  (error) => {
+  error => {
     return Promise.reject(error)
-  },
+  }
 )
 
 /**
@@ -38,8 +47,8 @@ instance.interceptors.request.use(
  * Menangkap error global, khususnya saat token kadaluwarsa (401/403).
  */
 instance.interceptors.response.use(
-  (response) => response,
-  async (error) => {
+  response => response,
+  async error => {
     const authStore = useAuthStore() // Pastikan import store sudah benar di sini
 
     if (error.response) {
@@ -64,7 +73,7 @@ instance.interceptors.response.use(
     }
 
     return Promise.reject(error)
-  },
+  }
 )
 
 export default instance

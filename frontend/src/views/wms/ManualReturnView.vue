@@ -6,12 +6,12 @@ import { useMagicKeys } from '@vueuse/core'
 import { useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast.js'
 import api from '@/api/axios'
-import ProductSearchSelector from '@/components/transfer/ProductSearchSelector.vue'
+import ProductSearchSelector from '@/components/wms/transfer/ProductSearchSelector.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 
 const conditionOptions = [
   { id: 'GOOD', label: 'Bagus' },
-  { id: 'BAD', label: 'Rusak' },
+  { id: 'BAD', label: 'Rusak' }
 ]
 
 const router = useRouter()
@@ -22,7 +22,7 @@ const locations = ref([])
 
 const form = ref({
   invoiceId: '',
-  items: [{ selectedProduct: null, quantity: 1, condition: 'GOOD', locationId: '', notes: '' }],
+  items: [{ selectedProduct: null, quantity: 1, condition: 'GOOD', locationId: '', notes: '' }]
 })
 
 async function fetchHelpers() {
@@ -34,9 +34,7 @@ async function fetchHelpers() {
   }
 }
 
-const locationOptions = computed(() =>
-  locations.value.map((loc) => ({ id: loc.id, label: loc.code })),
-)
+const locationOptions = computed(() => locations.value.map(loc => ({ id: loc.id, label: loc.code })))
 
 function addItemRow() {
   form.value.items.push({
@@ -44,7 +42,7 @@ function addItemRow() {
     quantity: 1,
     condition: 'GOOD',
     locationId: '',
-    notes: '',
+    notes: ''
   })
   setTimeout(() => {
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
@@ -61,20 +59,17 @@ function removeItemRow(index) {
 
 async function submitForm() {
   const formData = toRaw(form.value)
-  if (!formData.invoiceId || formData.invoiceId.trim() === '')
-    return toast('Nomor Invoice wajib diisi!', 'warning')
+  if (!formData.invoiceId || formData.invoiceId.trim() === '') return toast('Nomor Invoice wajib diisi!', 'warning')
 
   const validItems = []
 
   for (const [index, item] of formData.items.entries()) {
-    if (!item.selectedProduct)
-      return toast(`Baris ke-${index + 1}: Produk belum dipilih!`, 'warning')
+    if (!item.selectedProduct) return toast(`Baris ke-${index + 1}: Produk belum dipilih!`, 'warning')
 
     const productId = item.selectedProduct.id || item.selectedProduct.product_id
     if (!productId) return toast(`Baris ke-${index + 1}: Data produk korup.`, 'error')
 
-    if (!item.quantity || item.quantity < 1)
-      return toast(`Baris ke-${index + 1}: Qty minimal 1.`, 'warning')
+    if (!item.quantity || item.quantity < 1) return toast(`Baris ke-${index + 1}: Qty minimal 1.`, 'warning')
     if (!item.locationId) return toast(`Baris ke-${index + 1}: Lokasi belum dipilih!`, 'warning')
 
     // Pisahkan payload sesuai backend controller
@@ -84,7 +79,7 @@ async function submitForm() {
       quantity: item.quantity,
       locationId: item.locationId,
       condition: item.condition, // Kirim raw condition (GOOD/BAD)
-      notes: item.notes || 'Manual Return', // Kirim notes terpisah
+      notes: item.notes || 'Manual Return' // Kirim notes terpisah
     })
   }
 
@@ -99,10 +94,7 @@ async function submitForm() {
         successCount++
       } catch (err) {
         console.error('Gagal memproses item:', itemPayload, err)
-        toast(
-          `Gagal item ${itemPayload.reference}: ${err.response?.data?.message || 'Error'}`,
-          'error',
-        )
+        toast(`Gagal item ${itemPayload.reference}: ${err.response?.data?.message || 'Error'}`, 'error')
       }
     }
 
@@ -131,7 +123,7 @@ onMounted(() => {
 // --- LOCAL HOTKEYS ---
 const { Alt_S } = useMagicKeys()
 
-watch(Alt_S, (pressed) => {
+watch(Alt_S, pressed => {
   if (pressed && !isLoading.value) {
     submitForm()
   }
@@ -141,9 +133,7 @@ watch(Alt_S, (pressed) => {
 <template>
   <div class="min-h-screen flex flex-col bg-background text-text transition-colors duration-300">
     <div class="px-6 py-6 pb-2">
-      <div
-        class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4"
-      >
+      <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div class="flex items-center gap-4">
           <button
             @click="goBack"
@@ -153,9 +143,7 @@ watch(Alt_S, (pressed) => {
           </button>
           <div>
             <h1 class="text-2xl font-bold text-text">Input Retur Manual</h1>
-            <p class="text-sm text-text/50">
-              Barang akan langsung masuk ke stok (Instant Process).
-            </p>
+            <p class="text-sm text-text/50">Barang akan langsung masuk ke stok (Instant Process).</p>
           </div>
         </div>
         <div class="w-full md:w-96">
@@ -176,9 +164,7 @@ watch(Alt_S, (pressed) => {
 
     <div class="flex-1 px-6 py-6 pb-32">
       <div class="max-w-7xl mx-auto">
-        <div
-          class="bg-secondary/30 rounded-xl shadow-sm overflow-hidden border border-secondary/50"
-        >
+        <div class="bg-secondary/30 rounded-xl shadow-sm overflow-hidden border border-secondary/50">
           <div
             class="hidden md:flex bg-secondary border-b border-primary px-6 py-3 items-center gap-4 text-xs font-bold text-text uppercase tracking-wider"
           >
@@ -197,9 +183,7 @@ watch(Alt_S, (pressed) => {
               :key="index"
               class="group p-4 md:px-6 md:py-4 flex flex-col md:flex-row gap-4 md:items-start hover:bg-secondary/30 transition-colors"
             >
-              <div
-                class="hidden md:flex w-8 h-10 items-center justify-center text-sm font-bold text-text/40"
-              >
+              <div class="hidden md:flex w-8 h-10 items-center justify-center text-sm font-bold text-text/40">
                 {{ index + 1 }}
               </div>
               <div class="md:hidden flex items-center gap-2 mb-2">
@@ -209,14 +193,8 @@ watch(Alt_S, (pressed) => {
               </div>
 
               <div class="w-full md:flex-1 min-w-0">
-                <ProductSearchSelector
-                  v-model="item.selectedProduct"
-                  placeholder="Cari SKU atau Nama Barang..."
-                />
-                <div
-                  v-if="item.selectedProduct"
-                  class="md:hidden mt-1.5 text-xs text-success font-medium"
-                >
+                <ProductSearchSelector v-model="item.selectedProduct" placeholder="Cari SKU atau Nama Barang..." />
+                <div v-if="item.selectedProduct" class="md:hidden mt-1.5 text-xs text-success font-medium">
                   <font-awesome-icon icon="fa-solid fa-check-circle" />
                   {{ item.selectedProduct.name }}
                 </div>
@@ -248,9 +226,7 @@ watch(Alt_S, (pressed) => {
                 </div>
 
                 <div class="w-full md:w-24">
-                  <div
-                    class="flex items-center border border-secondary rounded-lg overflow-hidden bg-background"
-                  >
+                  <div class="flex items-center border border-secondary rounded-lg overflow-hidden bg-background">
                     <input
                       v-model="item.quantity"
                       type="number"
@@ -283,13 +259,8 @@ watch(Alt_S, (pressed) => {
             </div>
           </div>
 
-          <div
-            v-if="form.items.length === 0"
-            class="py-12 flex flex-col items-center justify-center text-text/40"
-          >
-            <div
-              class="w-16 h-16 bg-secondary/50 rounded-full flex items-center justify-center mb-3"
-            >
+          <div v-if="form.items.length === 0" class="py-12 flex flex-col items-center justify-center text-text/40">
+            <div class="w-16 h-16 bg-secondary/50 rounded-full flex items-center justify-center mb-3">
               <font-awesome-icon icon="fa-solid fa-box-open" class="text-2xl text-text/30" />
             </div>
             <p class="text-sm">Belum ada barang yang ditambahkan.</p>
@@ -317,8 +288,7 @@ watch(Alt_S, (pressed) => {
         <div class="hidden md:flex flex-col">
           <span class="text-xs text-text/50 font-bold uppercase">Total Item</span>
           <span class="text-xl font-bold text-text"
-            >{{ form.items.length }}
-            <span class="text-sm font-normal text-text/50">Baris</span></span
+            >{{ form.items.length }} <span class="text-sm font-normal text-text/50">Baris</span></span
           >
         </div>
         <div class="flex gap-4 w-full md:w-auto">
@@ -334,11 +304,10 @@ watch(Alt_S, (pressed) => {
             class="flex-1 md:flex-none md:w-64 bg-primary text-secondary px-6 py-3 rounded-xl font-bold text-lg hover:bg-primary/90 shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
           >
             <span v-if="isLoading">Memproses...</span><span v-else>Simpan Retur</span
-            ><font-awesome-icon
-              v-if="isLoading"
-              icon="fa-solid fa-spinner"
-              spin
-            /><font-awesome-icon v-else icon="fa-solid fa-check" />
+            ><font-awesome-icon v-if="isLoading" icon="fa-solid fa-spinner" spin /><font-awesome-icon
+              v-else
+              icon="fa-solid fa-check"
+            />
           </button>
         </div>
       </div>

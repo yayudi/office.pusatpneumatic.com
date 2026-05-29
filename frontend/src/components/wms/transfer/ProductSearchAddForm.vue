@@ -9,7 +9,7 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 const props = defineProps({
   activeTab: { type: String, required: true },
   searchLocationId: { type: [Number, String], default: null },
-  disabled: { type: Boolean, default: false },
+  disabled: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['add-product'])
@@ -21,7 +21,7 @@ const isSearching = ref(false)
 const selectedProduct = ref(null)
 const quantityToAdd = ref(1)
 
-const debouncedSearch = debounce(async (query) => {
+const debouncedSearch = debounce(async query => {
   try {
     const results = await searchProducts(query, props.searchLocationId)
     searchResults.value = results
@@ -56,7 +56,7 @@ function onAddClick() {
   // Emit data ke induk
   emit('add-product', {
     product: selectedProduct.value,
-    quantity: quantityToAdd.value,
+    quantity: quantityToAdd.value
   })
 
   // Reset form lokal
@@ -92,7 +92,7 @@ function onAddClick() {
               class="text-xs font-semibold"
               :class="{
                 'text-accent': option.current_stock < 0,
-                'text-text/80': option.current_stock >= 0,
+                'text-text/80': option.current_stock >= 0
               }"
             >
               Stok: {{ option.current_stock }}
@@ -108,7 +108,7 @@ function onAddClick() {
         v-model.number="quantityToAdd"
         type="number"
         :placeholder="activeTab === 'ADJUSTMENT' ? 'e.g., -5' : 'e.g., 5'"
-        class="w-full p-2 border border-secondary/50 rounded-lg bg-background"
+        class="w-full p-2 border border-secondary/50 rounded-lg bg-background shadow-sm"
         :disabled="disabled || !selectedProduct"
       />
     </div>
@@ -116,14 +116,14 @@ function onAddClick() {
     <!-- STOK AKTUAL DITAMBAHKAN DI SINI -->
     <div
       v-if="activeTab === 'TRANSFER' || activeTab === 'ADJUSTMENT'"
-      class="h-[42px] flex flex-col justify-center items-center px-3 bg-secondary/10 rounded-lg"
+      class="h-[42px] flex flex-col justify-center items-center px-3 bg-secondary/20 border border-secondary/20 shadow-sm rounded-lg"
     >
       <span class="text-xs text-text/70">Stok</span>
       <span
         class="font-bold"
         :class="{
           'text-accent': selectedProduct && selectedProduct.current_stock < 0,
-          'text-text': !selectedProduct || selectedProduct.current_stock >= 0,
+          'text-text': !selectedProduct || selectedProduct.current_stock >= 0
         }"
       >
         {{ selectedProduct ? selectedProduct.current_stock : '-' }}
@@ -133,7 +133,7 @@ function onAddClick() {
 
     <button
       @click="onAddClick"
-      class="px-4 py-2 bg-primary text-secondary rounded-lg font-semibold h-[42px] disabled:opacity-50"
+      class="px-4 py-2 bg-primary text-secondary rounded-lg font-semibold h-[42px] shadow-sm disabled:opacity-50"
       :disabled="disabled || !selectedProduct"
     >
       Tambah

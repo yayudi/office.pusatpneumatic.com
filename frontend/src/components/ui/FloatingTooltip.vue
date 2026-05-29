@@ -2,6 +2,10 @@
 <script setup>
 import { ref, toRef } from 'vue'
 import { useFloating, offset, flip, shift, arrow, autoUpdate } from '@floating-ui/vue'
+
+defineOptions({
+  inheritAttrs: false
+})
 import { useMobile } from '@/composables/useMobile.js'
 
 const { isMobile } = useMobile()
@@ -39,7 +43,7 @@ const {
 <template>
   <Teleport to="body">
     <Transition name="fade">
-      <div v-if="show && !isMobile" ref="floating" :style="floatingStyles"
+      <div v-if="show && !isMobile" ref="floating" :style="floatingStyles" v-bind="$attrs"
         class="fixed z-[9999] min-w-[150px] max-w-xs bg-background text-text text-xs rounded-lg shadow-xl p-3 border border-secondary/50 backdrop-blur-md"
         :class="!interactive ? 'pointer-events-none' : ''">
         <div v-if="title"
