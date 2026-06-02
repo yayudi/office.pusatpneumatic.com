@@ -9,22 +9,22 @@ const { isMobile } = useMobile()
 const props = defineProps({
   show: {
     type: Boolean,
-    default: false,
+    default: false
   },
   title: {
     type: String,
-    default: 'Judul Modal',
+    default: 'Judul Modal'
   },
   maxWidth: {
     type: String,
-    default: 'max-w-xl',
-  },
+    default: 'max-w-xl'
+  }
 })
 
 const emit = defineEmits(['close'])
 
 const { Escape } = useMagicKeys()
-watch(Escape, (pressed) => {
+watch(Escape, pressed => {
   if (props.show && pressed) {
     emit('close')
   }
@@ -33,27 +33,38 @@ watch(Escape, (pressed) => {
 
 <template>
   <!-- Menggunakan <transition> untuk animasi muncul/hilang -->
-  <transition :enter-active-class="isMobile ? 'transition ease-out duration-300' : 'transition ease-out duration-200'"
+  <transition
+    :enter-active-class="isMobile ? 'transition ease-out duration-300' : 'transition ease-out duration-200'"
     :enter-from-class="isMobile ? 'transform translate-y-full opacity-0' : 'transform opacity-0 scale-95'"
     :enter-to-class="isMobile ? 'transform translate-y-0 opacity-100' : 'transform opacity-100 scale-100'"
     :leave-active-class="isMobile ? 'transition ease-in duration-200' : 'transition ease-in duration-100'"
     :leave-from-class="isMobile ? 'transform translate-y-0 opacity-100' : 'transform opacity-100 scale-100'"
-    :leave-to-class="isMobile ? 'transform translate-y-full opacity-0' : 'transform opacity-0 scale-95'">
+    :leave-to-class="isMobile ? 'transform translate-y-full opacity-0' : 'transform opacity-0 scale-95'"
+  >
     <!-- Backdrop (area gelap di belakang) -->
-    <div v-if="show" @click.self="emit('close')"
+    <div
+      v-if="show"
+      @click.self="emit('close')"
       class="fixed inset-0 bg-text bg-opacity-60 flex justify-center z-[5000] transition-all duration-300"
-      :class="isMobile ? 'items-end p-0' : 'items-center p-4'">
+      :class="isMobile ? 'items-end p-0' : 'items-center p-4'"
+    >
       <!-- Panel Modal -->
-      <div class="bg-background shadow-xl w-full flex flex-col transition-all duration-300"
-        :class="isMobile ? 'max-w-full rounded-t-2xl rounded-b-none mb-0 max-h-[90vh]' : `${maxWidth} rounded-xl max-h-[90vh]`">
+      <div
+        class="bg-background shadow-xl w-full flex flex-col transition-all duration-300"
+        :class="
+          isMobile ? 'max-w-full rounded-t-2xl rounded-b-none mb-0 max-h-[90vh]' : `${maxWidth} rounded-xl max-h-[90vh]`
+        "
+      >
         <!-- Header Modal -->
         <div class="p-4 flex justify-between items-center shrink-0">
           <h3 class="font-bold text-text text-lg">
             <!-- Slot untuk judul kustom jika diperlukan -->
             <slot name="title">{{ title }}</slot>
           </h3>
-          <button @click="emit('close')"
-            class="text-text/50 hover:text-primary transition-colors text-2xl font-light align-top mt-[-10px]">
+          <button
+            @click="emit('close')"
+            class="text-text/50 hover:text-primary transition-colors text-2xl font-light align-top mt-[-10px]"
+          >
             &times;
           </button>
         </div>
@@ -65,8 +76,11 @@ watch(Escape, (pressed) => {
         </div>
 
         <!-- Footer Modal (opsional) -->
-        <div v-if="$slots.footer" class="py-3 px-4 bg-secondary flex justify-end gap-2 shrink-0"
-          :class="isMobile ? 'rounded-none' : 'rounded-b-xl'">
+        <div
+          v-if="$slots.footer"
+          class="py-3 px-4 bg-secondary flex justify-end gap-2 shrink-0"
+          :class="isMobile ? 'rounded-none justify-center' : 'rounded-b-xl'"
+        >
           <slot name="footer" />
         </div>
       </div>

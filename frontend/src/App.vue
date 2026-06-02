@@ -42,7 +42,7 @@ function handleLogout() {
 
     <AppHeader v-if="showHeader" @logout="handleLogout" />
     <GlobalDownloadManager v-if="showHeader && auth.user?.permissions?.includes('view-reports')" />
-    <main class="container mx-auto mt-12" :class="isMobile ? 'px-3 py-2' : 'p-4'">
+    <main class="container mx-auto mt-12" :class="isMobile ? 'p-2' : 'px-4 py-2'">
       <RouterView />
     </main>
   </div>

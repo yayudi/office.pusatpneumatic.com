@@ -1,4 +1,6 @@
 <script setup>
+import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
+
 import { ref, onMounted, computed, watch } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
@@ -9,7 +11,7 @@ import {
   updateRolePermissions,
   createRole,
   updateRole,
-  deleteRole,
+  deleteRole
 } from '@/api/helpers/roles.js' // Pastikan ini mengarah ke file helper yang benar
 import BaseModal from '@/components/ui/BaseModal.vue'
 import { useMobile } from '@/composables/useMobile.js'
@@ -54,7 +56,7 @@ const isDirty = computed(() => {
   if (isLoadingPermissions.value || !selectedRole.value) return false
   const currentIds = new Set(selectedPermissionIds.value)
   const originalIds = new Set(originalPermissionIds.value)
-  return currentIds.size !== originalIds.size || [...currentIds].some((id) => !originalIds.has(id))
+  return currentIds.size !== originalIds.size || [...currentIds].some(id => !originalIds.has(id))
 })
 
 // --- METHODS ---
@@ -85,10 +87,7 @@ onMounted(loadInitialData)
  * Memilih peran dan memuat izin (permissions) yang terkait.
  */
 async function selectRole(role) {
-  if (
-    isSaving.value ||
-    (isDirty.value && !confirm('Ada perubahan belum disimpan. Yakin pindah?'))
-  ) {
+  if (isSaving.value || (isDirty.value && !confirm('Ada perubahan belum disimpan. Yakin pindah?'))) {
     return
   }
   selectedRole.value = role
@@ -151,7 +150,7 @@ async function handleSaveRole() {
       // Update
       const updatedRole = await updateRole(roleForm.value.id, roleForm.value)
       // Update data di 'allRoles'
-      const index = allRoles.value.findIndex((r) => r.id === updatedRole.data.id)
+      const index = allRoles.value.findIndex(r => r.id === updatedRole.data.id)
       if (index !== -1) {
         allRoles.value[index] = updatedRole.data
       }
@@ -179,15 +178,13 @@ async function handleSaveRole() {
  * Menghapus peran (setelah konfirmasi).
  */
 async function handleDeleteRole(role) {
-  if (
-    !confirm(`Apakah Anda yakin ingin menghapus peran "${role.name}"? Ini tidak bisa dibatalkan.`)
-  ) {
+  if (!confirm(`Apakah Anda yakin ingin menghapus peran "${role.name}"? Ini tidak bisa dibatalkan.`)) {
     return
   }
   isSaving.value = true
   try {
     await deleteRole(role.id)
-    allRoles.value = allRoles.value.filter((r) => r.id !== role.id)
+    allRoles.value = allRoles.value.filter(r => r.id !== role.id)
     // Jika peran yang dihapus adalah yang sedang dipilih
     if (selectedRole.value?.id === role.id) {
       selectedRole.value = allRoles.value[0] || null
@@ -204,15 +201,15 @@ async function handleDeleteRole(role) {
  * Memilih semua izin dalam satu grup.
  */
 function toggleGroup(groupName, value) {
-  const groupPermissionIds = groupedPermissions.value[groupName].map((p) => p.id)
+  const groupPermissionIds = groupedPermissions.value[groupName].map(p => p.id)
   const currentPermissionSet = new Set(selectedPermissionIds.value)
 
   if (value) {
     // Select all in group
-    groupPermissionIds.forEach((id) => currentPermissionSet.add(id))
+    groupPermissionIds.forEach(id => currentPermissionSet.add(id))
   } else {
     // Deselect all in group
-    groupPermissionIds.forEach((id) => currentPermissionSet.delete(id))
+    groupPermissionIds.forEach(id => currentPermissionSet.delete(id))
   }
   selectedPermissionIds.value = [...currentPermissionSet]
 }
@@ -220,20 +217,15 @@ function toggleGroup(groupName, value) {
 // --- LOCAL HOTKEYS ---
 const { Alt_N, Alt_S } = useMagicKeys()
 
-watch(Alt_N, (pressed) => {
+watch(Alt_N, pressed => {
   if (pressed && !isRoleModalOpen.value) {
     openCreateRoleModal()
   }
 })
 
-watch(Alt_S, (pressed) => {
+watch(Alt_S, pressed => {
   if (pressed) {
-    if (
-      isRoleModalOpen.value &&
-      roleForm.value.name &&
-      roleForm.value.description &&
-      !isSaving.value
-    ) {
+    if (isRoleModalOpen.value && roleForm.value.name && roleForm.value.description && !isSaving.value) {
       handleSaveRole()
     } else if (!isRoleModalOpen.value && selectedRole.value && isDirty.value && !isSaving.value) {
       handleSavePermissions()
@@ -243,10 +235,7 @@ watch(Alt_S, (pressed) => {
 </script>
 
 <template>
-  <h2 class="text-2xl font-bold text-text mb-6 flex items-center gap-3">
-    <font-awesome-icon icon="fa-solid fa-user-shield" />
-    <span>Manajemen Peran & Izin</span>
-  </h2>
+  <WmsActionHeader title="Manajemen Peran & Izin" icon="fa-solid fa-user-shield" />
 
   <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
     <!-- Kolom Kiri: Daftar Peran -->
@@ -270,7 +259,7 @@ watch(Alt_S, (pressed) => {
               'w-full text-left px-3 py-2 rounded-md transition-colors text-sm flex justify-between items-center',
               selectedRole?.id === role.id
                 ? 'bg-primary/10 text-primary font-semibold ring-1 ring-primary'
-                : 'text-text/80 hover:bg-secondary/20',
+                : 'text-text/80 hover:bg-secondary/20'
             ]"
           >
             <span class="flex-1 truncate pr-2">{{ role.name }}</span>
@@ -279,7 +268,7 @@ watch(Alt_S, (pressed) => {
                 'flex-shrink-0 space-x-2',
                 isMobile || selectedRole?.id === role.id
                   ? 'opacity-100'
-                  : 'opacity-0 group-hover:opacity-100 transition-opacity',
+                  : 'opacity-0 group-hover:opacity-100 transition-opacity'
               ]"
             >
               <button
@@ -297,9 +286,7 @@ watch(Alt_S, (pressed) => {
                 @click.stop="handleDeleteRole(role)"
                 class="text-xs font-semibold"
                 :class="
-                  selectedRole?.id === role.id
-                    ? 'text-danger/70 hover:text-danger'
-                    : 'text-danger/70 hover:text-danger'
+                  selectedRole?.id === role.id ? 'text-danger/70 hover:text-danger' : 'text-danger/70 hover:text-danger'
                 "
               >
                 <font-awesome-icon icon="fa-solid fa-trash" />
@@ -430,11 +417,7 @@ watch(Alt_S, (pressed) => {
     </form>
     <template #footer>
       <div class="flex gap-4 justify-center pb-6 px-4">
-        <button
-          type="button"
-          @click="isRoleModalOpen = false"
-          class="btn-secondary flex items-center gap-2"
-        >
+        <button type="button" @click="isRoleModalOpen = false" class="btn-secondary flex items-center gap-2">
           <font-awesome-icon icon="fa-solid fa-times" />
           <span>Batal</span>
         </button>

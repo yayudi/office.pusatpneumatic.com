@@ -1,12 +1,10 @@
-<!-- frontend\src\components\batch\ProductSearchAddForm.vue -->
+<!-- frontend/src/components/wms/transfer/ProductSearchAddForm.vue -->
 <script setup>
 import { ref } from 'vue'
 import { useToast } from '@/composables/useToast.js'
-import { searchProducts, fetchStockSampleForLocation } from '@/api/helpers/products.js'
-import debounce from 'lodash/debounce'
-import BaseSelect from '@/components/ui/BaseSelect.vue'
+import ProductSearchSelector from '@/components/wms/transfer/ProductSearchSelector.vue'
 
-const props = defineProps({
+defineProps({
   activeTab: { type: String, required: true },
   searchLocationId: { type: [Number, String], default: null },
   disabled: { type: Boolean, default: false }
@@ -15,37 +13,8 @@ const props = defineProps({
 const emit = defineEmits(['add-product'])
 const { toast } = useToast()
 
-// State internal untuk form ini
-const searchResults = ref([])
-const isSearching = ref(false)
 const selectedProduct = ref(null)
 const quantityToAdd = ref(1)
-
-const debouncedSearch = debounce(async query => {
-  try {
-    const results = await searchProducts(query, props.searchLocationId)
-    searchResults.value = results
-
-    // Jika hasil pencarian kosong, lihat apa yang ada di lokasi itu
-    if (results.length === 0 && props.searchLocationId) {
-      await fetchStockSampleForLocation(props.searchLocationId)
-    }
-  } catch {
-    toast('Gagal mencari produk.', 'error')
-  } finally {
-    isSearching.value = false
-  }
-}, 500)
-
-function onSearchChange(query) {
-  if (query.length < 2) {
-    searchResults.value = []
-    debouncedSearch.cancel()
-    return
-  }
-  isSearching.value = true
-  debouncedSearch(query)
-}
 
 function onAddClick() {
   if (!selectedProduct.value) {
@@ -53,7 +22,6 @@ function onAddClick() {
     return
   }
 
-  // Emit data ke induk
   emit('add-product', {
     product: selectedProduct.value,
     quantity: quantityToAdd.value
@@ -61,82 +29,62 @@ function onAddClick() {
 
   // Reset form lokal
   selectedProduct.value = null
-  searchResults.value = []
   quantityToAdd.value = 1
 }
 </script>
 
 <template>
-  <div class="flex items-end gap-4">
-    <div class="flex-grow">
-      <label class="block text-sm font-medium text-text/90 mb-2">Cari Produk (SKU atau Nama)</label>
-      <BaseSelect
+  <div class="flex flex-col sm:flex-row items-center gap-2 w-full">
+    <!-- Selector Pencarian -->
+    <div class="flex-grow w-full">
+      <ProductSearchSelector
         v-model="selectedProduct"
-        :options="searchResults"
-        :loading="isSearching"
-        :internal-search="false"
-        @search-change="onSearchChange"
-        placeholder="Ketik min. 2 karakter..."
-        label="name"
-        track-by="sku"
+        :location-id="searchLocationId"
         :disabled="disabled"
-      >
-        <template #option="{ option }">
-          <div class="flex justify-between w-full">
-            <span
-              >{{ option.name }} <span class="text-xs text-text/60">({{ option.sku }})</span></span
-            >
-            <!-- Tampilkan stok hanya jika relevan (bukan inbound/return) -->
-            <span
-              v-if="option.current_stock !== undefined"
-              class="text-xs font-semibold"
-              :class="{
-                'text-accent': option.current_stock < 0,
-                'text-text/80': option.current_stock >= 0
-              }"
-            >
-              Stok: {{ option.current_stock }}
-            </span>
-          </div>
-        </template>
-        <template #noResult>Produk tidak ditemukan.</template>
-      </BaseSelect>
-    </div>
-    <div class="w-28">
-      <label class="block text-sm font-medium text-text/90 mb-2">Jumlah</label>
-      <input
-        v-model.number="quantityToAdd"
-        type="number"
-        :placeholder="activeTab === 'ADJUSTMENT' ? 'e.g., -5' : 'e.g., 5'"
-        class="w-full p-2 border border-secondary/50 rounded-lg bg-background shadow-sm"
-        :disabled="disabled || !selectedProduct"
+        placeholder="Cari SKU atau Nama Produk..."
       />
     </div>
 
-    <!-- STOK AKTUAL DITAMBAHKAN DI SINI -->
-    <div
-      v-if="activeTab === 'TRANSFER' || activeTab === 'ADJUSTMENT'"
-      class="h-[42px] flex flex-col justify-center items-center px-3 bg-secondary/20 border border-secondary/20 shadow-sm rounded-lg"
-    >
-      <span class="text-xs text-text/70">Stok</span>
-      <span
-        class="font-bold"
-        :class="{
-          'text-accent': selectedProduct && selectedProduct.current_stock < 0,
-          'text-text': !selectedProduct || selectedProduct.current_stock >= 0
-        }"
+    <!-- Container untuk Qty, Stok & Tombol -->
+    <div class="flex items-center gap-2 w-full sm:w-auto">
+      <!-- Info Stok Aktual -->
+      <div
+        v-if="(activeTab === 'TRANSFER' || activeTab === 'ADJUSTMENT') && selectedProduct"
+        class="h-[42px] flex flex-col justify-center items-center px-3 bg-secondary/20 border border-secondary/20 shadow-sm rounded-lg min-w-[70px]"
       >
-        {{ selectedProduct ? selectedProduct.current_stock : '-' }}
-      </span>
-    </div>
-    <!-- AKHIR BLOK BARU -->
+        <span class="text-[10px] text-text/70 uppercase font-bold leading-none mb-1">Stok</span>
+        <span
+          class="font-bold text-sm leading-none"
+          :class="{
+            'text-accent': selectedProduct.current_stock < 0,
+            'text-text': selectedProduct.current_stock >= 0
+          }"
+        >
+          {{ selectedProduct.current_stock }}
+        </span>
+      </div>
 
-    <button
-      @click="onAddClick"
-      class="px-4 py-2 bg-primary text-secondary rounded-lg font-semibold h-[42px] shadow-sm disabled:opacity-50"
-      :disabled="disabled || !selectedProduct"
-    >
-      Tambah
-    </button>
+      <!-- Input Jumlah -->
+      <div class="w-24 relative">
+        <input
+          v-model.number="quantityToAdd"
+          type="number"
+          :placeholder="activeTab === 'ADJUSTMENT' ? '-5 / 5' : 'Qty'"
+          class="w-full h-[42px] px-3 bg-background border border-secondary/30 rounded-lg text-sm text-text focus:outline-none focus:border-primary transition-all shadow-sm font-medium"
+          :disabled="disabled || !selectedProduct"
+          @keyup.enter="onAddClick"
+        />
+      </div>
+
+      <!-- Tombol Tambah -->
+      <button
+        @click="onAddClick"
+        class="h-[42px] px-4 bg-primary text-secondary rounded-lg font-bold shadow-sm disabled:opacity-50 flex items-center gap-2 transition-all hover:bg-primary/90 active:scale-[0.98]"
+        :disabled="disabled || !selectedProduct"
+      >
+        <font-awesome-icon icon="fa-solid fa-plus" />
+        <span class="hidden sm:inline">Tambah</span>
+      </button>
+    </div>
   </div>
 </template>

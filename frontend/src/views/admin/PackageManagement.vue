@@ -10,9 +10,12 @@ import PackageTable from '@/components/products/PackageTable.vue'
 import PackageBatchEditModal from '@/components/products/PackageBatchEditModal.vue'
 import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 import { useDownloadStore } from '@/stores/downloadStore.js'
+import { useMobile } from '@/composables/useMobile.js'
 
 const { toast } = useToast()
+const { isMobile } = useMobile()
 
 // --- STATE ---
 const products = ref([])
@@ -26,7 +29,7 @@ const sortOrder = ref('asc')
 const statusOptions = [
   { value: 'active', label: 'Aktif' },
   { value: 'archived', label: 'Diarsipkan' },
-  { value: 'all', label: 'Semua' },
+  { value: 'all', label: 'Semua' }
 ]
 
 // Modal State
@@ -44,7 +47,7 @@ const pagination = reactive({
   page: 1,
   limit: 20,
   total: 0,
-  totalPages: 0,
+  totalPages: 0
 })
 
 const selectionCount = computed(() => selectedIds.value.size)
@@ -67,7 +70,7 @@ const fetchProducts = async () => {
       sortOrder: sortOrder.value,
       is_package: true, // HARDCODED: Hanya Paket
       packageOnly: true, // Explicit flag for backend if needed
-      status: filterStatus.value,
+      status: filterStatus.value
     }
     const response = await axios.get('/products', { params })
     const resData = response.data
@@ -76,8 +79,7 @@ const fetchProducts = async () => {
     if (Array.isArray(items)) {
       products.value = items
       pagination.total = resData.meta?.total || resData.total || 0
-      pagination.totalPages =
-        resData.meta?.last_page || Math.ceil(pagination.total / pagination.limit) || 1
+      pagination.totalPages = resData.meta?.last_page || Math.ceil(pagination.total / pagination.limit) || 1
     } else {
       products.value = []
       pagination.total = 0
@@ -94,16 +96,16 @@ const fetchProducts = async () => {
 // --- HANDLERS ---
 
 // Pagination & Sorting
-const handleChangePage = (page) => {
+const handleChangePage = page => {
   pagination.page = page
   fetchProducts()
 }
-const handleUpdateLimit = (limit) => {
+const handleUpdateLimit = limit => {
   pagination.limit = limit
   pagination.page = 1
   fetchProducts()
 }
-const handleSort = (field) => {
+const handleSort = field => {
   if (sortBy.value === field) sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
   else {
     sortBy.value = field
@@ -122,20 +124,19 @@ const handleFilterChange = debounce(() => {
 watch([searchQuery, searchBy, filterStatus], handleFilterChange)
 
 // Selection
-const toggleSelection = (id) => {
+const toggleSelection = id => {
   if (selectedIds.value.has(id)) selectedIds.value.delete(id)
   else selectedIds.value.add(id)
 }
 
 const toggleSelectAll = () => {
-  const allSelected =
-    products.value.length > 0 && products.value.every((p) => selectedIds.value.has(p.id))
-  if (allSelected) products.value.forEach((p) => selectedIds.value.delete(p.id))
-  else products.value.forEach((p) => selectedIds.value.add(p.id))
+  const allSelected = products.value.length > 0 && products.value.every(p => selectedIds.value.has(p.id))
+  if (allSelected) products.value.forEach(p => selectedIds.value.delete(p.id))
+  else products.value.forEach(p => selectedIds.value.add(p.id))
 }
 
 // CRUD
-const handleDelete = async (product) => {
+const handleDelete = async product => {
   if (!confirm(`Arsipkan paket "${product.name}"?`)) return
   try {
     await axios.delete(`/products/${product.id}`)
@@ -148,7 +149,7 @@ const handleDelete = async (product) => {
   }
 }
 
-const handleRestore = async (product) => {
+const handleRestore = async product => {
   if (!confirm(`Pulihkan paket "${product.name}"?`)) return
   try {
     await axios.put(`/products/${product.id}`, { is_active: true })
@@ -167,14 +168,14 @@ const openAddModal = () => {
   selectedProduct.value = {}
   showProductForm.value = true
 }
-const openEditModal = (p) => {
+const openEditModal = p => {
   productFormMode.value = 'edit'
   selectedProduct.value = p
   showProductForm.value = true
 }
 
 // Bulk Actions
-const performBulkAction = async (actionType) => {
+const performBulkAction = async actionType => {
   if (!selectedIds.value.size) return
 
   const msg = actionType === 'archive' ? 'Arsipkan' : 'Pulihkan'
@@ -185,7 +186,7 @@ const performBulkAction = async (actionType) => {
   const promises = []
 
   try {
-    ids.forEach((id) => {
+    ids.forEach(id => {
       if (actionType === 'archive') promises.push(axios.delete(`/products/${id}`))
       else promises.push(axios.put(`/products/${id}`, { is_active: true, is_package: true }))
     })
@@ -210,7 +211,7 @@ const handleExport = async ({ format }) => {
       sortBy: sortBy.value,
       sortOrder: sortOrder.value,
       status: filterStatus.value,
-      format: format, // 'xlsx' or 'csv'
+      format: format // 'xlsx' or 'csv'
     }
 
     // Request Job Creation
@@ -228,11 +229,11 @@ const handleExport = async ({ format }) => {
   }
 }
 
-const handleImport = async (formData) => {
+const handleImport = async formData => {
   // Use new endpoint for packages
   try {
     await axios.post('/packages/batch/update', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { 'Content-Type': 'multipart/form-data' }
     })
     toast('File paket diunggah. Cek menu Logs/Laporan untuk status.', 'info')
     showBatchEditModal.value = false
@@ -254,25 +255,25 @@ onMounted(() => {
 // --- LOCAL HOTKEYS ---
 const { Alt_N, Alt_A, Alt_R, Slash } = useMagicKeys()
 
-watch(Alt_N, (pressed) => {
+watch(Alt_N, pressed => {
   if (pressed && !showProductForm.value && !showBatchEditModal.value) {
     openAddModal()
   }
 })
 
-watch(Alt_A, (pressed) => {
+watch(Alt_A, pressed => {
   if (pressed && !showProductForm.value && !showBatchEditModal.value) {
     toggleSelectAll()
   }
 })
 
-watch(Alt_R, (pressed) => {
+watch(Alt_R, pressed => {
   if (pressed && !showProductForm.value && !showBatchEditModal.value) {
     fetchProducts()
   }
 })
 
-watch(Slash, (pressed) => {
+watch(Slash, pressed => {
   if (pressed && !showProductForm.value && !showBatchEditModal.value) {
     setTimeout(() => {
       const el = document.getElementById('global-search-input')
@@ -286,37 +287,31 @@ watch(Slash, (pressed) => {
   <div class="bg-background min-h-screen px-6 text-text flex flex-col h-screen overflow-hidden">
     <div class="w-full max-w-7xl mx-auto flex flex-col h-full relative">
       <!-- HEADER -->
-      <div class="shrink-0 mb-6">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 class="text-3xl font-bold tracking-tight flex items-center gap-3">
-              <span class="bg-primary/10 text-primary p-2 rounded-lg text-2xl">
-                <font-awesome-icon icon="fa-solid fa-boxes-stacked" />
-              </span>
-              Manajemen Paket
-            </h1>
-          </div>
-          <div class="flex flex-wrap gap-3">
-            <!-- Tombol Batch Edit -->
-            <button
-              @click="showBatchEditModal = true"
-              class="px-5 py-2.5 bg-secondary hover:bg-secondary/80 text-text rounded-xl shadow-md font-medium flex items-center gap-2 transition-all border border-secondary/30"
-              title="Edit paket secara massal (Export & Import)"
-            >
-              <font-awesome-icon icon="fa-solid fa-pen-to-square" />
-              <span class="hidden sm:inline">Batch Edit</span>
-            </button>
+      <div class="shrink-0">
+        <WmsActionHeader title="Manajemen Paket" icon="fa-solid fa-boxes-stacked">
+          <template #actions>
+            <div class="flex flex-wrap gap-3">
+              <!-- Tombol Batch Edit -->
+              <button
+                @click="showBatchEditModal = true"
+                class="px-5 py-2.5 bg-secondary hover:bg-secondary/80 text-text rounded-xl shadow-md font-medium flex items-center gap-2 transition-all border border-secondary/30"
+                title="Edit paket secara massal (Export & Import)"
+              >
+                <font-awesome-icon icon="fa-solid fa-pen-to-square" />
+                <span class="hidden sm:inline">Batch Edit</span>
+              </button>
 
-            <!-- Tombol Tambah Paket -->
-            <button
-              @click="openAddModal"
-              class="px-5 py-2.5 bg-primary hover:bg-primary/90 text-secondary rounded-xl shadow-lg font-bold flex items-center gap-2 transition-transform hover:-translate-y-0.5"
-            >
-              <font-awesome-icon icon="fa-solid fa-plus" />
-              <span>Buat Paket</span>
-            </button>
-          </div>
-        </div>
+              <!-- Tombol Tambah Paket -->
+              <button
+                @click="openAddModal"
+                class="px-5 py-2.5 bg-primary hover:bg-primary/90 text-secondary rounded-xl shadow-lg font-bold flex items-center gap-2 transition-transform hover:-translate-y-0.5"
+              >
+                <font-awesome-icon icon="fa-solid fa-plus" />
+                <span>Buat Paket</span>
+              </button>
+            </div>
+          </template>
+        </WmsActionHeader>
 
         <!-- FILTER BAR SIMPLIFIED -->
         <BaseFilterPanel class="mb-4">
@@ -327,15 +322,11 @@ watch(Slash, (pressed) => {
                 v-model="searchQuery"
                 type="text"
                 placeholder="Cari nama paket atau SKU..."
-                class="w-full pl-10 pr-4 py-2 bg-background border border-secondary/20 rounded-lg focus:outline-none focus:border-primary text-sm shadow-sm"
+                class="w-full h-[40px] pl-10 pr-4 py-2 bg-background border border-secondary rounded-lg focus:outline-none focus:border-primary text-sm shadow-sm"
+                :class="isMobile ? 'mb-4 mr-4' : 'm-0'"
               />
-              <font-awesome-icon
-                icon="fa-solid fa-search"
-                class="absolute left-3 top-2.5 text-text/40"
-              />
+              <font-awesome-icon icon="fa-solid fa-search" class="absolute left-3 top-2.5 text-text/40" />
             </div>
-          </template>
-          <template #filters>
             <div class="flex items-center gap-2 w-full sm:w-auto">
               <label class="text-xs font-bold text-text/60 whitespace-nowrap">Status:</label>
               <BaseSelect
@@ -375,13 +366,10 @@ watch(Slash, (pressed) => {
           v-if="selectedIds.size > 0"
           class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-background border border-secondary/20 shadow-2xl rounded-2xl px-6 py-3 flex items-center gap-6 z-40 text-sm"
         >
-          <div
-            class="flex items-center gap-2 text-text font-bold border-r border-secondary/10 pr-6"
-          >
-            <span
-              class="bg-primary/10 text-primary w-6 h-6 flex items-center justify-center rounded-full text-xs"
-              >{{ selectionCount }}</span
-            >
+          <div class="flex items-center gap-2 text-text font-bold border-r border-secondary/10 pr-6">
+            <span class="bg-primary/10 text-primary w-6 h-6 flex items-center justify-center rounded-full text-xs">{{
+              selectionCount
+            }}</span>
             <span>Dipilih</span>
           </div>
           <div class="flex items-center gap-3">

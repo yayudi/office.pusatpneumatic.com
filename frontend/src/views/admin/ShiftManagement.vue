@@ -1,4 +1,6 @@
 <script setup>
+import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
+
 import { ref, onMounted, watch } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
@@ -30,12 +32,12 @@ const openCreate = () => {
   isModalOpen.value = true
 }
 
-const openEdit = (shift) => {
+const openEdit = shift => {
   selectedShift.value = shift
   isModalOpen.value = true
 }
 
-const deleteShift = async (id) => {
+const deleteShift = async id => {
   if (!confirm('Hapus shift ini? User yang menggunakan shift ini akan kembali ke default.')) return
 
   try {
@@ -47,7 +49,7 @@ const deleteShift = async (id) => {
   }
 }
 
-const getWorkDaysLabel = (daysStr) => {
+const getWorkDaysLabel = daysStr => {
   if (!daysStr) return '-'
   const days = daysStr.split(',')
   if (days.length === 5 && !days.includes('6') && !days.includes('7')) return 'Senin - Jumat'
@@ -60,7 +62,7 @@ onMounted(getShifts)
 // --- LOCAL HOTKEYS ---
 const { Alt_N } = useMagicKeys()
 
-watch(Alt_N, (pressed) => {
+watch(Alt_N, pressed => {
   if (pressed && !isModalOpen.value) {
     openCreate()
   }
@@ -68,19 +70,17 @@ watch(Alt_N, (pressed) => {
 </script>
 
 <template>
-  <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-    <h2 class="text-2xl font-bold text-text flex items-center gap-3">
-      <font-awesome-icon icon="fa-solid fa-clock" />
-      <span>Manajemen Shift</span>
-    </h2>
-    <button
-      @click="openCreate"
-      class="bg-primary text-secondary text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
-    >
-      <font-awesome-icon icon="fa-solid fa-plus" />
-      <span>Tambah Shift</span>
-    </button>
-  </div>
+  <WmsActionHeader title="Manajemen Shift" icon="fa-solid fa-clock">
+    <template #actions>
+      <button
+        @click="openCreate"
+        class="bg-primary text-secondary text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 w-full md:w-auto justify-center"
+      >
+        <font-awesome-icon icon="fa-solid fa-plus" />
+        <span>Tambah Shift</span>
+      </button>
+    </template>
+  </WmsActionHeader>
 
   <!-- Shift Cards Grid -->
   <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -129,9 +129,7 @@ watch(Alt_N, (pressed) => {
         </div>
       </div>
 
-      <div
-        class="flex items-center gap-4 bg-secondary/20 p-3 rounded-lg border border-secondary/10"
-      >
+      <div class="flex items-center gap-4 bg-secondary/20 p-3 rounded-lg border border-secondary/10">
         <div class="text-center">
           <div class="text-xs text-text/60 uppercase font-semibold">Masuk</div>
           <div class="text-lg font-mono font-bold text-primary">
@@ -152,9 +150,7 @@ watch(Alt_N, (pressed) => {
           >
             Flex {{ shift.flexible_minutes }}m
           </span>
-          <span v-else class="text-xs font-medium text-text/60 bg-secondary/10 px-2 py-1 rounded">
-            Fixed
-          </span>
+          <span v-else class="text-xs font-medium text-text/60 bg-secondary/10 px-2 py-1 rounded"> Fixed </span>
         </div>
       </div>
     </div>
@@ -165,10 +161,5 @@ watch(Alt_N, (pressed) => {
   </div>
 
   <!-- Modal -->
-  <ShiftFormModal
-    :show="isModalOpen"
-    :shift="selectedShift"
-    @close="isModalOpen = false"
-    @updated="getShifts"
-  />
+  <ShiftFormModal :show="isModalOpen" :shift="selectedShift" @close="isModalOpen = false" @updated="getShifts" />
 </template>

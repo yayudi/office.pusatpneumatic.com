@@ -37,7 +37,7 @@ onMounted(async () => {
     const [myLocs, allLocs] = await Promise.all([fetchMyLocations(), masterData.getLocations(true)])
     myLocations.value = myLocs
     allLocations.value = allLocs
-  } catch (error) {
+  } catch {
     toast('Gagal memuat data lokasi.', 'error')
   } finally {
     isLoading.value = false

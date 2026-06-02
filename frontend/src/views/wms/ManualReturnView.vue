@@ -162,7 +162,7 @@ watch(Alt_S, pressed => {
       </div>
     </div>
 
-    <div class="flex-1 px-6 py-6 pb-32">
+    <div class="flex-1 px-6 py-6">
       <div class="max-w-7xl mx-auto">
         <div class="bg-secondary/30 rounded-xl shadow-sm overflow-hidden border border-secondary/50">
           <div
@@ -226,12 +226,14 @@ watch(Alt_S, pressed => {
                 </div>
 
                 <div class="w-full md:w-24">
-                  <div class="flex items-center border border-secondary rounded-lg overflow-hidden bg-background">
+                  <div
+                    class="flex items-center border border-secondary rounded-lg overflow-hidden bg-background focus:border-primary focus:ring-1 focus:ring-primary"
+                  >
                     <input
                       v-model="item.quantity"
                       type="number"
                       min="1"
-                      class="w-full text-center py-2.5 text-sm font-bold outline-none bg-background text-text focus:bg-secondary/20 transition-colors placeholder-text/30"
+                      class="w-full px-3 py-2.5 bg-background border border-secondary rounded-lg text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary text-text placeholder-text/30"
                       placeholder="Qty"
                     />
                   </div>

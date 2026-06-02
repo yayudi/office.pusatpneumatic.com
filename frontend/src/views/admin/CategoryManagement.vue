@@ -1,5 +1,7 @@
 <!-- frontend/src/views/admin/CategoryManagement.vue -->
 <script setup>
+import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
+
 import { ref, onMounted, watch } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
@@ -87,37 +89,36 @@ async function handleDelete(categoryId) {
 // --- LOCAL HOTKEYS ---
 const { Alt_N, Alt_S } = useMagicKeys()
 
-watch(Alt_N, (pressed) => {
+watch(Alt_N, pressed => {
   if (pressed && !isModalOpen.value) openCreateModal()
 })
 
-watch(Alt_S, (pressed) => {
+watch(Alt_S, pressed => {
   if (pressed && isModalOpen.value && !saving.value) handleSave()
 })
 </script>
 
 <template>
-  <div class="flex justify-between items-center mb-6">
-    <div>
-      <h2 class="text-2xl font-bold text-text">Manajemen Kategori</h2>
-      <p class="text-sm text-text/50 mt-1">Kelola kategori produk untuk klasifikasi inventaris.</p>
-    </div>
-    <button
-      @click="openCreateModal"
-      class="bg-primary text-secondary text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 shadow-md shadow-primary/20"
-    >
-      <font-awesome-icon icon="fa-solid fa-plus" />
-      <span>Tambah Kategori</span>
-    </button>
-  </div>
+  <WmsActionHeader
+    title="Manajemen Kategori"
+    description="Kelola kategori produk untuk klasifikasi inventaris."
+    icon="fa-solid fa-tags"
+  >
+    <template #actions>
+      <button
+        @click="openCreateModal"
+        class="bg-primary text-secondary text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 shadow-md shadow-primary/20"
+      >
+        <font-awesome-icon icon="fa-solid fa-plus" />
+        <span>Tambah Kategori</span>
+      </button>
+    </template>
+  </WmsActionHeader>
 
   <div
     class="bg-background shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(95vh]"
   >
-    <table
-      class="w-full text-sm text-left text-text border-collapse"
-      :class="isMobile ? 'block' : 'min-w-[400px]'"
-    >
+    <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : 'min-w-[400px]'">
       <thead
         class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5"
         :class="isMobile ? 'hidden' : 'sticky top-0 z-30'"
@@ -161,25 +162,14 @@ watch(Alt_S, (pressed) => {
             class="text-text/40 font-mono text-xs"
             :class="isMobile ? 'flex justify-between items-center py-2' : 'px-6 py-4 text-center'"
           >
-            <span v-if="isMobile" class="text-text/60 text-xs uppercase font-sans font-semibold"
-              >#</span
-            >
+            <span v-if="isMobile" class="text-text/60 text-xs uppercase font-sans font-semibold">#</span>
             <span>{{ index + 1 }}</span>
           </td>
-          <td
-            :class="
-              isMobile
-                ? 'flex justify-between items-center py-2 border-b border-secondary/10'
-                : 'px-6 py-4'
-            "
-          >
+          <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
             <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Nama</span>
             <span class="font-medium text-text">{{ cat.name }}</span>
           </td>
-          <td
-            class="space-x-4"
-            :class="isMobile ? 'flex justify-end items-center pt-3' : 'px-6 py-4 text-center'"
-          >
+          <td class="space-x-4" :class="isMobile ? 'flex justify-end items-center pt-3' : 'px-6 py-4 text-center'">
             <button
               @click="openEditModal(cat)"
               class="text-primary hover:text-primary/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105"
@@ -222,11 +212,7 @@ watch(Alt_S, (pressed) => {
     <template #footer>
       <button type="button" @click="isModalOpen = false" class="btn-secondary">Batal</button>
       <button type="submit" @click="handleSave" :disabled="saving" class="btn-primary">
-        <font-awesome-icon
-          v-if="saving"
-          icon="fa-solid fa-circle-notch"
-          class="animate-spin mr-1"
-        />
+        <font-awesome-icon v-if="saving" icon="fa-solid fa-circle-notch" class="animate-spin mr-1" />
         Simpan
       </button>
     </template>

@@ -12,7 +12,7 @@ const { isMobile } = useMobile()
 
 defineProps({
   allLocations: { type: Array, required: true },
-  isLoadingLocations: { type: Boolean, default: false },
+  isLoadingLocations: { type: Boolean, default: false }
 })
 
 const { toast } = useToast()
@@ -36,7 +36,7 @@ const quantity = ref(1)
 
 // --- FUNGSI FORM PENAMBAHAN ---
 
-const debouncedSearch = debounce(async (query) => {
+const debouncedSearch = debounce(async query => {
   try {
     searchResults.value = await searchProducts(query, null)
   } catch {
@@ -86,6 +86,29 @@ function validateQuantity() {
   }
 }
 
+function validateBatchItemQuantity(item) {
+  if (item.quantity > item.maxQuantity) {
+    item.quantity = item.maxQuantity
+    toast(`Kuantitas melebihi stok di lokasi asal (${item.maxQuantity}).`, 'warning')
+  }
+  if (item.quantity < 1 || isNaN(item.quantity)) {
+    item.quantity = 1
+  }
+}
+
+function onBatchItemLocationChange(item) {
+  const newLocation = item.availableStocks.find(loc => loc.location_id === item.fromLocationId)
+  if (newLocation) {
+    item.fromLocationCode = newLocation.location_code
+    item.maxQuantity = newLocation.quantity
+
+    if (item.quantity > item.maxQuantity) {
+      item.quantity = item.maxQuantity
+      toast(`Kuantitas disesuaikan karena stok di lokasi asal baru hanya ${item.maxQuantity}.`, 'warning')
+    }
+  }
+}
+
 // --- FUNGSI BATCH ---
 
 function addItemToBatch() {
@@ -104,14 +127,18 @@ function addItemToBatch() {
 
   // Cek duplikat (SKU, Dari, Ke)
   const existing = batchList.value.find(
-    (item) =>
+    item =>
       item.sku === selectedProduct.value.sku &&
       item.fromLocationId === fromLocation.value.location_id &&
-      item.toLocationId === toLocation.value.id,
+      item.toLocationId === toLocation.value.id
   )
 
   if (existing) {
     existing.quantity += quantity.value
+    if (existing.quantity > existing.maxQuantity) {
+      existing.quantity = existing.maxQuantity
+      toast('Total kuantitas melebihi stok yang tersedia. Diset ke batas maksimal.', 'warning')
+    }
   } else {
     batchList.value.push({
       id: crypto.randomUUID(), // ID unik untuk key v-for
@@ -122,6 +149,8 @@ function addItemToBatch() {
       toLocationId: toLocation.value.id,
       toLocationCode: toLocation.value.code,
       quantity: quantity.value,
+      maxQuantity: fromLocation.value.quantity,
+      availableStocks: [...stockDetails.value]
     })
   }
 
@@ -135,7 +164,7 @@ function addItemToBatch() {
 }
 
 function removeFromBatch(id) {
-  batchList.value = batchList.value.filter((item) => item.id !== id)
+  batchList.value = batchList.value.filter(item => item.id !== id)
 }
 
 async function submitDetailedBatch() {
@@ -151,12 +180,12 @@ async function submitDetailedBatch() {
       type: 'TRANSFER_MULTI',
       notes: notes.value,
       // API /batch-process universal akan menerima ID lokasi di dalam movements
-      movements: batchList.value.map((item) => ({
+      movements: batchList.value.map(item => ({
         sku: item.sku,
         quantity: item.quantity,
         fromLocationId: item.fromLocationId,
-        toLocationId: item.toLocationId,
-      })),
+        toLocationId: item.toLocationId
+      }))
     }
 
     const response = await processBatchMovement(payload)
@@ -177,7 +206,7 @@ async function submitDetailedBatch() {
   <div class="space-y-6">
     <!-- Form Penambahan Item Baru -->
     <div
-      class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end p-4 border border-secondary/20 rounded-lg"
+      class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end p-4 my-4 bg-secondary/50 rounded-xl border border-secondary/20 shadow-sm flex-col relative z-30"
     >
       <!-- Cari Produk -->
       <div class="md:col-span-2">
@@ -240,16 +269,22 @@ async function submitDetailedBatch() {
       <div class="flex items-end gap-3">
         <div class="flex-grow">
           <label class="block text-sm font-medium text-text/90 mb-2">Jumlah</label>
-          <input
-            v-model.number="quantity"
-            @blur="validateQuantity"
-            type="number"
-            min="1"
-            :max="fromLocation ? fromLocation.quantity : undefined"
-            class="w-full p-2 border border-secondary/50 rounded-lg bg-background"
-            :disabled="!fromLocation"
-          />
+          <div class="flex items-center gap-2">
+            <input
+              v-model.number="quantity"
+              @blur="validateQuantity"
+              type="number"
+              min="1"
+              :max="fromLocation ? fromLocation.quantity : undefined"
+              class="w-full p-2 border border-secondary/50 rounded-lg bg-background"
+              :disabled="!fromLocation"
+            />
+            <span v-if="fromLocation" class="text-sm text-text/60 whitespace-nowrap"
+              >/ {{ fromLocation.quantity }}</span
+            >
+          </div>
         </div>
+
         <button
           @click="addItemToBatch"
           class="px-4 py-2 bg-primary text-secondary rounded-lg font-semibold h-[42px] disabled:opacity-50"
@@ -262,9 +297,7 @@ async function submitDetailedBatch() {
 
     <!-- Tabel Daftar Batch (Item yang akan ditransfer) -->
     <div class="border-t border-secondary/20 pt-6">
-      <h3 class="text-lg font-semibold text-text mb-4">
-        Daftar Transfer Rinci ({{ batchList.length }})
-      </h3>
+      <h3 class="text-lg font-semibold text-text mb-4">Daftar Transfer Rinci ({{ batchList.length }})</h3>
       <div
         v-if="batchList.length === 0"
         class="text-center text-text/60 py-8 border-2 border-dashed border-secondary/20 rounded-lg"
@@ -275,12 +308,12 @@ async function submitDetailedBatch() {
         <table class="text-sm" :class="isMobile ? 'w-full block' : 'min-w-full'">
           <thead :class="isMobile ? 'hidden' : 'bg-secondary/10'">
             <tr>
-              <th class="p-2 text-left">SKU</th>
-              <th class="p-2 text-left">Nama Produk</th>
+              <th class="p-2 text-left w-44">SKU</th>
+              <th class="p-2 text-left w-[50%] min-w-[200px]">Nama Produk</th>
               <th class="p-2 text-left">Dari</th>
               <th class="p-2 text-left">Ke</th>
-              <th class="p-2 text-center">Jumlah</th>
-              <th class="p-2 text-center">Aksi</th>
+              <th class="p-2 text-center w-44">Jumlah</th>
+              <th class="p-2 text-center w-20">Aksi</th>
             </tr>
           </thead>
           <tbody :class="isMobile ? 'block' : 'divide-y divide-secondary/20'">
@@ -296,65 +329,72 @@ async function submitDetailedBatch() {
             >
               <td
                 :class="
-                  isMobile
-                    ? 'flex justify-between items-center py-1.5 border-b border-secondary/10'
-                    : 'p-2 font-mono'
+                  isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'
                 "
               >
-                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
-                  >SKU</span
-                >
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">SKU</span>
                 <span class="font-mono">{{ item.sku }}</span>
               </td>
-              <td
-                :class="
-                  isMobile
-                    ? 'flex justify-between items-center py-1.5 border-b border-secondary/10'
-                    : 'p-2'
-                "
-              >
-                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
-                  >Produk</span
-                >
+              <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Produk</span>
                 <span>{{ item.name }}</span>
               </td>
-              <td
-                :class="
-                  isMobile
-                    ? 'flex justify-between items-center py-1.5 border-b border-secondary/10'
-                    : 'p-2 font-mono'
-                "
-              >
-                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
-                  >Dari</span
+              <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Dari</span>
+                <select
+                  v-model="item.fromLocationId"
+                  @change="onBatchItemLocationChange(item)"
+                  class="p-1 border border-secondary/50 rounded bg-background text-sm font-mono max-w-[120px] outline-none focus:border-primary"
                 >
-                <span class="font-mono">{{ item.fromLocationCode }}</span>
+                  <option v-for="loc in item.availableStocks" :key="loc.location_id" :value="loc.location_id">
+                    {{ loc.location_code }}
+                  </option>
+                </select>
               </td>
               <td
                 :class="
-                  isMobile
-                    ? 'flex justify-between items-center py-1.5 border-b border-secondary/10'
-                    : 'p-2 font-mono'
+                  isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'
                 "
               >
                 <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Ke</span>
-                <span class="font-mono">{{ item.toLocationCode }}</span>
+                <select
+                  v-model="item.toLocationId"
+                  class="p-1 border border-secondary/50 rounded bg-background text-sm font-mono max-w-[120px] outline-none focus:border-primary"
+                >
+                  <option v-for="loc in item.availableStocks" :key="loc.location_id" :value="loc.location_id">
+                    {{ loc.location_code }}
+                  </option>
+                </select>
               </td>
               <td
                 :class="
-                  isMobile
-                    ? 'flex justify-between items-center py-1.5 border-b border-secondary/10'
-                    : 'p-2 text-center font-bold'
+                  isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 text-center'
                 "
               >
-                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
-                  >Jumlah</span
-                >
-                <span class="font-bold">{{ item.quantity }}</span>
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Jumlah</span>
+                <div class="flex items-center" :class="isMobile ? 'justify-end gap-2' : 'justify-center gap-2'">
+                  <input
+                    v-model.number="item.quantity"
+                    @blur="validateBatchItemQuantity(item)"
+                    type="number"
+                    min="1"
+                    :max="item.maxQuantity"
+                    class="w-20 p-1 border border-secondary/50 rounded bg-background text-center font-bold"
+                  />
+                  <span class="text-xs text-text/60 whitespace-nowrap">/ {{ item.maxQuantity }}</span>
+                </div>
               </td>
-              <td :class="isMobile ? 'absolute top-3 right-3' : 'p-2 text-center'">
-                <button @click="removeFromBatch(item.id)" class="text-accent hover:text-accent/80">
+              <td :class="isMobile ? 'pt-3 mt-2 border-t border-secondary/10 block' : 'p-2 text-center'">
+                <button
+                  @click="removeFromBatch(item.id)"
+                  :class="
+                    isMobile
+                      ? 'text-accent hover:bg-accent/10 flex items-center justify-center gap-2 w-full py-2 bg-accent/5 rounded-lg transition-colors'
+                      : 'text-accent hover:text-accent/80'
+                  "
+                >
                   <font-awesome-icon icon="fa-solid fa-trash" />
+                  <span v-if="isMobile" class="text-sm font-semibold">Hapus Item</span>
                 </button>
               </td>
             </tr>
@@ -393,11 +433,7 @@ async function submitDetailedBatch() {
           :disabled="isSubmitting || batchList.length === 0"
           class="px-6 py-3 bg-accent text-secondary rounded-lg font-bold disabled:opacity-50 flex items-center gap-3"
         >
-          <font-awesome-icon
-            vid-if="isSubmitting"
-            icon="fa-solid fa-spinner"
-            class="animate-spin"
-          />
+          <font-awesome-icon vid-if="isSubmitting" icon="fa-solid fa-spinner" class="animate-spin" />
           <span>{{ isSubmitting ? 'Memproses...' : 'Submit Batch Transfer' }}</span>
         </button>
       </div>

@@ -5,60 +5,60 @@ import { useFloating, autoUpdate, offset, flip, shift, size } from '@floating-ui
 const props = defineProps({
   modelValue: {
     type: [Object, String, Number, Array, null],
-    default: null,
+    default: null
   },
   options: {
     type: Array,
-    default: () => [],
+    default: () => []
   },
   label: {
     type: String,
-    default: 'label',
+    default: 'label'
   },
   trackBy: {
     type: String,
-    default: 'id',
+    default: 'id'
   },
   placeholder: {
     type: String,
-    default: 'Pilih opsi...',
+    default: 'Pilih opsi...'
   },
   searchable: {
     type: Boolean,
-    default: true,
+    default: true
   },
   disabled: {
     type: Boolean,
-    default: false,
+    default: false
   },
   multiple: {
     type: Boolean,
-    default: false,
+    default: false
   },
   loading: {
     type: Boolean,
-    default: false,
+    default: false
   },
   internalSearch: {
     type: Boolean,
-    default: true,
+    default: true
   },
   emitValue: {
     type: Boolean,
-    default: false,
+    default: false
   },
   clearable: {
     type: Boolean,
-    default: false,
+    default: false
   },
   clearValue: {
     type: [String, Number, Boolean, Object, Array, null],
-    default: '',
+    default: ''
   },
   placeholderValues: {
     type: Array,
-    default: () => [null, '', 'all'],
-  },
+    default: () => [null, '', 'all']
+  }
 })
 
 const emit = defineEmits(['update:modelValue', 'search-change'])
@@ -80,11 +80,11 @@ const { floatingStyles } = useFloating(triggerRef, dropdownRef, {
     size({
       apply({ rects, elements }) {
         Object.assign(elements.floating.style, {
-          width: `${rects.reference.width}px`,
+          width: `${rects.reference.width}px`
         })
-      },
-    }),
-  ],
+      }
+    })
+  ]
 })
 
 // --- COMPUTED ---
@@ -95,7 +95,7 @@ const displayValue = computed(() => {
     return props.modelValue[props.label]
   }
   if (props.emitValue) {
-    const matched = props.options.find((opt) => {
+    const matched = props.options.find(opt => {
       if (typeof opt === 'object') return opt[props.trackBy] === props.modelValue
       return opt === props.modelValue
     })
@@ -111,7 +111,7 @@ const filteredOptions = computed(() => {
     return props.options
   }
   const query = searchQuery.value.toLowerCase()
-  return props.options.filter((option) => {
+  return props.options.filter(option => {
     const text = typeof option === 'object' ? option[props.label] : String(option)
     return String(text).toLowerCase().includes(query)
   })
@@ -128,7 +128,7 @@ const isPlaceholderState = computed(() => {
 })
 
 // --- WATCHERS ---
-watch(searchQuery, (newQuery) => {
+watch(searchQuery, newQuery => {
   if (props.searchable) {
     emit('search-change', newQuery)
   }
@@ -200,7 +200,7 @@ function removeTag(item, event) {
 }
 
 function findIndex(array, val) {
-  return array.findIndex((item) => {
+  return array.findIndex(item => {
     if (typeof item === 'object' && typeof val === 'object' && props.trackBy) {
       if (item[props.trackBy] !== undefined) {
         return item[props.trackBy] === val[props.trackBy]
@@ -227,7 +227,7 @@ function isSelected(option) {
 function selectAll() {
   if (!props.multiple) return
   const current = Array.isArray(props.modelValue) ? [...props.modelValue] : []
-  filteredOptions.value.forEach((opt) => {
+  filteredOptions.value.forEach(opt => {
     const val = getOptionValue(opt)
     if (findIndex(current, val) === -1) {
       current.push(val)
@@ -253,7 +253,7 @@ function handleClear(event) {
 }
 
 // Click Outside Handler
-const handleClickOutside = (event) => {
+const handleClickOutside = event => {
   const isClickInsideContainer = containerRef.value && containerRef.value.contains(event.target)
   const isClickInsideDropdown = dropdownRef.value && dropdownRef.value.contains(event.target)
 
@@ -279,10 +279,8 @@ onUnmounted(() => {
       @click="toggle"
       class="w-full min-h-[42px] px-2 bg-background border rounded-lg cursor-pointer flex flex-wrap gap-1 items-center transition-all shadow-sm"
       :class="[
-        isOpen
-          ? 'border-primary ring-1 ring-primary'
-          : 'border-secondary/50 hover:border-primary/50',
-        disabled ? 'opacity-50 cursor-not-allowed bg-secondary/10' : '',
+        isOpen ? 'border-primary ring-1 ring-primary' : 'border-secondary/50 hover:border-primary/50',
+        disabled ? 'opacity-50 cursor-not-allowed bg-secondary/10' : ''
       ]"
     >
       <!-- Loading Indicator -->
@@ -301,16 +299,10 @@ onUnmounted(() => {
             typeof item === 'object'
               ? item[label]
               : props.emitValue
-                ? options.find((o) => (typeof o === 'object' ? o[trackBy] === item : o === item))?.[
-                    label
-                  ] || item
+                ? options.find(o => (typeof o === 'object' ? o[trackBy] === item : o === item))?.[label] || item
                 : item
           }}</span>
-          <span
-            @click="(e) => removeTag(item, e)"
-            class="cursor-pointer hover:text-primary/70 font-bold"
-            >&times;</span
-          >
+          <span @click="e => removeTag(item, e)" class="cursor-pointer hover:text-primary/70 font-bold">&times;</span>
         </div>
       </template>
 
@@ -328,10 +320,7 @@ onUnmounted(() => {
       </span>
 
       <!-- Placeholder for Multiple -->
-      <span
-        v-if="multiple && selectedItems.length === 0"
-        class="text-sm text-text/40 truncate flex-grow select-none"
-      >
+      <span v-if="multiple && selectedItems.length === 0" class="text-sm text-text/40 truncate flex-grow select-none">
         {{ placeholder }}
       </span>
 
@@ -413,13 +402,8 @@ onUnmounted(() => {
             v-if="multiple"
             class="max-h-[300px] overflow-y-auto custom-scrollbar p-3 flex flex-wrap gap-1 items-start content-start"
           >
-            <div v-if="loading" class="w-full text-center text-text/60 italic text-xs py-2">
-              Memuat data...
-            </div>
-            <div
-              v-else-if="filteredOptions.length === 0"
-              class="w-full text-center text-text/40 italic text-xs py-2"
-            >
+            <div v-if="loading" class="w-full text-center text-text/60 italic text-xs py-2">Memuat data...</div>
+            <div v-else-if="filteredOptions.length === 0" class="w-full text-center text-text/40 italic text-xs py-2">
               <slot name="noResult">Tidak ada opsi ditemukan.</slot>
             </div>
             <button
@@ -431,7 +415,7 @@ onUnmounted(() => {
               :class="[
                 isSelected(option)
                   ? 'bg-primary text-secondary border border-transparent hover:brightness-110'
-                  : 'bg-secondary/10 text-text border border-secondary/30 hover:bg-secondary/20',
+                  : 'bg-secondary/10 text-text border border-secondary/30 hover:bg-secondary/20'
               ]"
             >
               <span class="truncate max-w-[200px] text-left">
@@ -439,24 +423,15 @@ onUnmounted(() => {
                   {{ typeof option === 'object' ? option[label] : option }}
                 </slot>
               </span>
-              <font-awesome-icon
-                v-if="isSelected(option)"
-                icon="fa-solid fa-check"
-                class="text-[10px]"
-              />
+              <font-awesome-icon v-if="isSelected(option)" icon="fa-solid fa-check" class="text-[10px]" />
               <font-awesome-icon v-else icon="fa-solid fa-plus" class="text-[10px]" />
             </button>
           </div>
 
           <!-- Options List (Single mode) -->
           <ul v-else class="max-h-60 overflow-y-auto custom-scrollbar p-1">
-            <li v-if="loading" class="px-3 py-4 text-center text-text/60 italic text-xs">
-              Memuat data...
-            </li>
-            <li
-              v-else-if="filteredOptions.length === 0"
-              class="px-3 py-4 text-center text-text/40 italic text-xs"
-            >
+            <li v-if="loading" class="px-3 py-4 text-center text-text/60 italic text-xs">Memuat data...</li>
+            <li v-else-if="filteredOptions.length === 0" class="px-3 py-4 text-center text-text/40 italic text-xs">
               <slot name="noResult">Tidak ada opsi ditemukan.</slot>
             </li>
 
@@ -466,11 +441,7 @@ onUnmounted(() => {
               :key="typeof option === 'object' ? option[trackBy] : index"
               @mousedown.prevent.stop="select(option)"
               class="px-3 py-2 rounded-md cursor-pointer flex justify-between items-center transition-colors group"
-              :class="[
-                isSelected(option)
-                  ? 'bg-primary/10 text-primary font-bold'
-                  : 'text-text hover:bg-secondary/10',
-              ]"
+              :class="[isSelected(option) ? 'bg-primary/10 text-primary font-bold' : 'text-text hover:bg-secondary/10']"
             >
               <!-- Slot for Custom Option Content -->
               <div class="flex-1 w-full truncate text-left">
@@ -480,11 +451,7 @@ onUnmounted(() => {
               </div>
 
               <!-- Checkmark for Selected -->
-              <font-awesome-icon
-                v-if="isSelected(option)"
-                icon="fa-solid fa-check"
-                class="text-xs ml-2"
-              />
+              <font-awesome-icon v-if="isSelected(option)" icon="fa-solid fa-check" class="text-xs ml-2" />
             </li>
 
             <slot name="afterOptions"></slot>

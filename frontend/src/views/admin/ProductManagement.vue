@@ -13,6 +13,7 @@ import ProductFormModal from '@/components/wms/shared/ProductFormModal.vue'
 import ConnectionStatus from '@/components/wms/shared/ConnectionStatus.vue'
 import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 import ProductTable from '@/components/products/ProductTable.vue'
 import ProductImageModal from '@/components/products/ProductImageModal.vue'
 
@@ -315,36 +316,33 @@ watch(Slash, (pressed) => {
   <div class="w-full max-w-7xl mx-auto flex flex-col h-full relative">
     <!-- HEADER -->
     <div class="shrink-0 mb-6">
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 class="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <span class="bg-primary/10 text-primary p-2 rounded-lg text-2xl">
-              <font-awesome-icon icon="fa-solid fa-tags" />
-            </span>
-            Manajemen Produk
-          </h1>
-        </div>
-        <div class="flex flex-wrap gap-3">
-          <!-- Tombol Batch Edit -->
-          <button
-            @click="showBatchEditModal = true"
-            class="px-5 py-2.5 bg-secondary hover:bg-secondary/80 text-text rounded-xl shadow-md font-medium flex items-center gap-2 transition-all border border-secondary/30"
-            title="Edit produk secara massal (Export & Import)"
-          >
-            <font-awesome-icon icon="fa-solid fa-pen-to-square" />
-            <span class="hidden sm:inline">Batch Edit</span>
-          </button>
+      <WmsActionHeader
+        title="Manajemen Produk"
+        icon="fa-solid fa-tags"
+      >
+        <template #actions>
+          <div class="flex flex-wrap gap-3">
+            <!-- Tombol Batch Edit -->
+            <button
+              @click="showBatchEditModal = true"
+              class="px-5 py-2.5 bg-secondary hover:bg-secondary/80 text-text rounded-xl shadow-md font-medium flex items-center gap-2 transition-all border border-secondary/30"
+              title="Edit produk secara massal (Export & Import)"
+            >
+              <font-awesome-icon icon="fa-solid fa-pen-to-square" />
+              <span class="hidden sm:inline">Batch Edit</span>
+            </button>
 
-          <!-- Tombol Tambah Produk -->
-          <button
-            @click="openAddModal"
-            class="px-5 py-2.5 bg-primary hover:bg-primary/90 text-secondary rounded-xl shadow-lg font-bold flex items-center gap-2 transition-transform hover:-translate-y-0.5"
-          >
-            <font-awesome-icon icon="fa-solid fa-plus" />
-            <span>Tambah</span>
-          </button>
-        </div>
-      </div>
+            <!-- Tombol Tambah Produk -->
+            <button
+              @click="openAddModal"
+              class="px-5 py-2.5 bg-primary hover:bg-primary/90 text-secondary rounded-xl shadow-lg font-bold flex items-center gap-2 transition-transform hover:-translate-y-0.5"
+            >
+              <font-awesome-icon icon="fa-solid fa-plus" />
+              <span>Tambah</span>
+            </button>
+          </div>
+        </template>
+      </WmsActionHeader>
 
       <!-- FILTER BAR COMPONENT -->
       <BaseFilterPanel>

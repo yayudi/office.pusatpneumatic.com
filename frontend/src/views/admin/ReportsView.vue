@@ -4,6 +4,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import axios from '@/api/axios.js'
 import { useToast } from '@/composables/useToast.js'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
+import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 import dayjs from 'dayjs'
 import { useMobile } from '@/composables/useMobile.js'
 
@@ -114,25 +115,19 @@ onUnmounted(() => {
 <template>
   <div class="max-w-7xl mx-auto">
     <!-- Header -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-      <div>
-        <h1 class="text-3xl font-bold tracking-tight flex items-center gap-3">
-          <span class="bg-[hsl(var(--color-primary))/0.1] text-[hsl(var(--color-primary))] p-2 rounded-lg text-2xl">
-            <font-awesome-icon icon="fa-solid fa-file-arrow-down" />
-          </span>
-          Laporan Saya
-        </h1>
-        <p class="text-[hsl(var(--color-text))/0.6] text-sm mt-2 ml-1">
-          Unduh hasil export data dan laporan yang telah Anda request.
-        </p>
-      </div>
-
-      <button @click="fetchJobs"
-        class="px-4 py-2 bg-[hsl(var(--color-secondary))] hover:bg-[hsl(var(--color-secondary))/0.8] rounded-lg font-medium transition-colors flex items-center gap-2">
-        <font-awesome-icon icon="fa-solid fa-rotate-right" :spin="loading" />
-        Refresh
-      </button>
-    </div>
+    <WmsActionHeader
+      title="Laporan Saya"
+      description="Unduh hasil export data dan laporan yang telah Anda request."
+      icon="fa-solid fa-file-arrow-down"
+    >
+      <template #actions>
+        <button @click="fetchJobs"
+          class="px-4 py-2 bg-secondary hover:bg-secondary/80 text-text rounded-lg font-medium transition-colors flex items-center gap-2">
+          <font-awesome-icon icon="fa-solid fa-rotate-right" :spin="loading" />
+          Refresh
+        </button>
+      </template>
+    </WmsActionHeader>
 
     <!-- Job List -->
     <div

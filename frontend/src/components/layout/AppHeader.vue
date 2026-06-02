@@ -39,14 +39,14 @@ function handleLogout() {
   emit('logout')
 }
 
-watch(isDropdownOpen, (isOpen) => {
+watch(isDropdownOpen, isOpen => {
   if (isOpen) isMobileMenuOpen.value = false
 })
-watch(isMobileMenuOpen, (isOpen) => {
+watch(isMobileMenuOpen, isOpen => {
   if (isOpen) isDropdownOpen.value = false
 })
 
-watch(isMobile, (mobile) => {
+watch(isMobile, mobile => {
   if (!mobile) isMobileMenuOpen.value = false
 })
 
@@ -77,9 +77,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <header
-    class="bg-background py-1 md:py-2 px-6 fixed top-0 z-[60] border-b border-secondary/20 shadow-md min-w-full"
-  >
+  <header class="bg-background py-1 md:py-2 px-6 fixed top-0 z-[60] border-b border-secondary/20 shadow-md min-w-full">
     <nav
       class="container mx-auto flex justify-between items-center"
       title="Navigation Menu"
@@ -100,7 +98,7 @@ onUnmounted(() => {
           role="button"
           tabindex="0"
         >
-          Dunia Pratama Sejahtera
+          {{ isMobile ? 'DPS' : 'Dunia Pratama Sejahtera' }}
         </RouterLink>
 
         <div class="hidden lg:flex items-center gap-6 text-sm font-medium">

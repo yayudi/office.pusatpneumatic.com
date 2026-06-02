@@ -63,42 +63,46 @@ const currentHeader = computed(() => {
 </script>
 
 <template>
-  <div class="mb-2">
-    <!-- Area Navigasi & Back Button -->
-    <div class="flex justify-between items-center w-full">
-      <!-- Header Utama (Reaktif via Route) -->
-      <WmsActionHeader
-        :title="currentHeader.title"
-        :icon="currentHeader.icon"
-        :iconClass="currentHeader.iconClass"
-        :description="currentHeader.description"
-        class="w-[420px]"
-      />
-      <!-- Navigasi Sekunder (Tabs) -->
-      <nav>
-        <div class="flex justify-center border-b border-secondary items-center">
-          <router-link
-            v-for="route in actionRoutes"
-            :key="route.path"
-            :to="route.path"
-            class="px-4 py-3 text-sm font-semibold border-b-2 transition-colors"
-            active-class="border-primary text-primary"
-            exact-active-class="border-primary text-background"
-          >
-            <font-awesome-icon :icon="route.icon" class="mr-2" />
-            {{ route.name }}
-          </router-link>
-        </div>
-      </nav>
-      <router-link to="/wms" class="text-sm text-primary hover:underline flex items-center gap-2">
-        <font-awesome-icon icon="fa-solid fa-arrow-left" />
-        <span>Kembali ke Dasbor WMS</span>
-      </router-link>
-    </div>
+  <div class="mb-4 w-full">
+    <!-- Header Utama (Reaktif via Route) & Back Button -->
+    <WmsActionHeader
+      :title="currentHeader.title"
+      :icon="currentHeader.icon"
+      :iconClass="currentHeader.iconClass"
+      :description="currentHeader.description"
+      class="mb-[1vh]"
+    >
+      <template #actions>
+        <router-link
+          to="/wms"
+          class="text-sm text-primary border border-primary/20 hover:bg-primary/10 px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 font-bold whitespace-nowrap shadow-sm bg-background w-full sm:w-auto"
+        >
+          <font-awesome-icon icon="fa-solid fa-arrow-left" />
+          <span>Kembali</span>
+        </router-link>
+      </template>
+    </WmsActionHeader>
+
+    <!-- Navigasi Sekunder (Tabs) -->
+    <nav class="mt-2 w-full overflow-x-auto custom-scrollbar pb-1">
+      <div class="flex border-b border-secondary/30 justify-center w-max md:w-full">
+        <router-link
+          v-for="route in actionRoutes"
+          :key="route.path"
+          :to="route.path"
+          class="px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap"
+          active-class="border-primary text-primary"
+          exact-active-class="border-primary text-primary"
+        >
+          <font-awesome-icon :icon="route.icon" class="mr-2" />
+          <span>{{ route.name }}</span>
+        </router-link>
+      </div>
+    </nav>
   </div>
 
   <!-- Area Konten Dinamis (diisi oleh child route) -->
-  <main>
+  <main class="w-full">
     <RouterView />
   </main>
 </template>

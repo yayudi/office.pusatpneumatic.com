@@ -109,7 +109,7 @@ const isSidebarOpen = ref(false)
     <div class="flex-1 flex flex-col min-w-0 transition-all duration-300">
       <!-- Mobile Header -->
       <header
-        class="md:hidden bg-background border-t border-secondary/20 flex items-center justify-between sticky top-12 z-10 shadow-sm">
+        class="md:hidden bg-background border-t border-secondary/20 flex items-center justify-between sticky top-12 z-10 shadow-sm p-4">
         <button @click="isSidebarOpen = !isSidebarOpen"
           class="p-2 -ml-2 text-text/70 hover:text-primary rounded-lg hover:bg-secondary/10 transition-colors">
           <font-awesome-icon icon="fa-solid fa-bars" size="lg" />

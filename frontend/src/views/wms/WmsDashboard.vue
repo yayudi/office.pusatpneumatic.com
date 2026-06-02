@@ -12,6 +12,7 @@ import { useMobile } from '@/composables/useMobile.js'
 import WmsProductTable from '@/components/wms/shared/ProductTable.vue'
 import WmsControlPanel from '@/components/wms/shared/WmsControlPanel.vue'
 import WmsAdjustModal from '@/components/wms/shared/AdjustModal.vue'
+import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 import WmsTransferModal from '@/components/wms/transfer/TransferModal.vue'
 import WmsHistoryModal from '@/components/wms/shared/HistoryModal.vue'
 import WmsProductFormModal from '@/components/wms/shared/ProductFormModal.vue'
@@ -248,40 +249,41 @@ watch(Escape, pressed => {
 </script>
 
 <template>
-  <div class="mb-2 lg:mb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-    <h2 class="text-2xl font-bold text-text flex items-center gap-3">
-      <font-awesome-icon icon="fa-solid fa-warehouse" class="text-primary" />
-      Warehouse <span class="text-primary">Management</span>
-    </h2>
-
-    <div
-      v-if="auth.hasPermission('view-prices')"
-      class="bg-secondary/35 p-1.5 rounded-xl border border-secondary/20 shadow-sm flex gap-3 overflow-x-auto max-w-full items-center custom-scrollbar"
-      :class="isMobile ? 'grid grid-cols-2 justify-center text-center w-full' : ''"
-    >
-      <router-link
+  <WmsActionHeader
+    title="Warehouse <span class='text-primary'>Management</span>"
+    icon="fa-solid fa-warehouse"
+    class="mb-[1vh]"
+  >
+    <template #actions>
+      <div
         v-if="auth.hasPermission('perform-batch-movement')"
-        to="/wms/actions/batch-movement"
-        class="px-4 py-2 text-sm font-bold text-accent hover:bg-accent/10 rounded-lg transition-all flex items-center gap-2 justify-center whitespace-nowrap"
-        title="Pindah Stok Antar Lokasi"
+        class="bg-secondary/35 p-1.5 rounded-xl border border-secondary/20 shadow-sm flex gap-3 overflow-x-auto items-center custom-scrollbar"
+        :class="isMobile ? 'w-full justify-center' : ''"
       >
-        <font-awesome-icon icon="fa-solid fa-boxes-stacked" />
-        <span>Pindah</span>
-      </router-link>
-      <div v-if="!isMobile && auth.hasPermission('perform-batch-movement')" class="w-px h-6 bg-primary"></div>
-      <button
-        @click="isSimulationModalOpen = true"
-        class="px-4 py-2 text-sm font-bold text-success hover:bg-success/10 rounded-lg transition-all flex items-center gap-2 justify-center whitespace-nowrap"
-        title="Simulasi Harga & Berat"
-      >
-        <font-awesome-icon icon="fa-solid fa-calculator" />
-        <span>Simulasi</span>
-      </button>
-    </div>
-  </div>
+        <router-link
+          to="/wms/actions/batch-movement"
+          class="w-1/2 px-4 py-2 text-sm font-bold text-accent hover:bg-accent/10 rounded-lg transition-all flex items-center gap-2 justify-center whitespace-nowrap"
+          title="Pindah Stok Antar Lokasi"
+        >
+          <font-awesome-icon icon="fa-solid fa-boxes-stacked" />
+          <span>Pindah</span>
+        </router-link>
+        <div v-if="!isMobile" class="w-px h-6 bg-primary"></div>
+        <button
+          v-if="auth.hasPermission('view-prices')"
+          @click="isSimulationModalOpen = true"
+          class="w-1/2 px-4 py-2 text-sm font-bold text-success hover:bg-success/10 rounded-lg transition-all flex items-center gap-2 justify-center whitespace-nowrap"
+          title="Simulasi Harga & Berat"
+        >
+          <font-awesome-icon icon="fa-solid fa-calculator" />
+          <span>Simulasi</span>
+        </button>
+      </div>
+    </template>
+  </WmsActionHeader>
 
   <!-- Panel Kontrol Utama -->
-  <div class="bg-secondary/35 rounded-xl shadow-lg border border-secondary/20 p-3 lg:p-6 space-y-2 w-full">
+  <div class="bg-secondary/35 rounded-xl shadow-lg border border-secondary/20 p-2 lg:p-6 space-y-2 w-full">
     <WmsControlPanel
       class="sticky top-14"
       :search-placeholder="searchPlaceholder"

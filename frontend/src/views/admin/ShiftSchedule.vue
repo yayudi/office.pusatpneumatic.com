@@ -1,5 +1,7 @@
 <!-- frontend/src/views/admin/ShiftSchedule.vue -->
 <script setup>
+import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
+
 import { ref, computed, onMounted, watch } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { fetchShifts } from '@/api/helpers/admin.js'
@@ -22,7 +24,7 @@ const loading = ref(false)
 const isImportModalOpen = ref(false)
 
 const userOptions = computed(() => {
-  return users.value.map((u) => ({ id: u.id, label: u.nama || u.username }))
+  return users.value.map(u => ({ id: u.id, label: u.nama || u.username }))
 })
 
 // Calendar State
@@ -37,7 +39,7 @@ const popover = ref({
   left: 0,
   dateStr: '',
   dateObj: null,
-  currentShiftId: null,
+  currentShiftId: null
 })
 const isProcessing = ref(false)
 
@@ -70,7 +72,7 @@ const calendarDays = computed(() => {
     const day = String(d.getDate()).padStart(2, '0')
     const dateStr = `${y}-${m}-${day}`
 
-    const schedule = (Array.isArray(schedules.value) ? schedules.value : []).find((s) => {
+    const schedule = (Array.isArray(schedules.value) ? schedules.value : []).find(s => {
       return s.date.startsWith(dateStr)
     })
 
@@ -80,7 +82,7 @@ const calendarDays = computed(() => {
       dateStr,
       isPadding: false,
       schedule,
-      isToday: new Date().toDateString() === d.toDateString(),
+      isToday: new Date().toDateString() === d.toDateString()
     })
   }
 
@@ -123,12 +125,8 @@ const loadSchedules = async () => {
   }
 }
 
-const changeMonth = (delta) => {
-  currentDate.value = new Date(
-    currentDate.value.getFullYear(),
-    currentDate.value.getMonth() + delta,
-    1,
-  )
+const changeMonth = delta => {
+  currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + delta, 1)
   loadSchedules()
 }
 
@@ -152,7 +150,7 @@ const openPopover = (event, dayObj) => {
     left,
     dateStr: dayObj.dateStr,
     dateObj: dayObj,
-    currentShiftId: dayObj.schedule?.shift_id || null,
+    currentShiftId: dayObj.schedule?.shift_id || null
   }
 }
 
@@ -160,13 +158,13 @@ const closePopover = () => {
   popover.value.visible = false
 }
 
-const selectShift = async (shiftId) => {
+const selectShift = async shiftId => {
   isProcessing.value = true
   try {
     await createSchedule({
       userId: selectedUserId.value,
       shiftId: shiftId,
-      date: popover.value.dateStr,
+      date: popover.value.dateStr
     })
     closePopover()
     await loadSchedules() // Reload to reflect changes
@@ -229,7 +227,7 @@ useResizeObserver(document.body, () => {
         new Date(popover.dateStr).toLocaleDateString('id-ID', {
           weekday: 'short',
           day: 'numeric',
-          month: 'short',
+          month: 'short'
         })
       }}</span>
       <button @click="closePopover" class="text-text hover:text-danger">&times;</button>
@@ -242,22 +240,14 @@ useResizeObserver(document.body, () => {
         @click="selectShift(s.id)"
         class="w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex justify-between items-center group"
         :class="
-          popover.currentShiftId === s.id
-            ? 'bg-primary/10 text-primary font-bold'
-            : 'text-text hover:bg-primary/20'
+          popover.currentShiftId === s.id ? 'bg-primary/10 text-primary font-bold' : 'text-text hover:bg-primary/20'
         "
       >
         <div>
           <div class="truncate">{{ s.name }}</div>
-          <div class="text-[10px] opacity-70">
-            {{ s.start_time.slice(0, 5) }} - {{ s.end_time.slice(0, 5) }}
-          </div>
+          <div class="text-[10px] opacity-70">{{ s.start_time.slice(0, 5) }} - {{ s.end_time.slice(0, 5) }}</div>
         </div>
-        <font-awesome-icon
-          v-if="popover.currentShiftId === s.id"
-          icon="fa-solid fa-check"
-          class="text-xs"
-        />
+        <font-awesome-icon v-if="popover.currentShiftId === s.id" icon="fa-solid fa-check" class="text-xs" />
       </button>
     </div>
 
@@ -273,13 +263,8 @@ useResizeObserver(document.body, () => {
   </div>
 
   <!-- Header -->
-  <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-    <h2 class="text-2xl font-bold text-text flex items-center gap-3">
-      <font-awesome-icon icon="fa-solid fa-calendar-alt" />
-      <span>Jadwal Shift (Rostering)</span>
-    </h2>
-
-    <div class="w-full md:w-auto flex gap-3 items-center">
+  <WmsActionHeader title="Jadwal Shift (Rostering)" icon="fa-solid fa-calendar-alt">
+    <template #actions>
       <button
         @click="isImportModalOpen = true"
         class="px-3 py-2 bg-success/10 text-success border border-success/20 rounded-lg text-sm font-bold hover:bg-success hover:text-secondary transition-all flex items-center gap-2"
@@ -295,8 +280,8 @@ useResizeObserver(document.body, () => {
         placeholder="Pilih Karyawan..."
         class="w-full md:w-[250px]"
       />
-    </div>
-  </div>
+    </template>
+  </WmsActionHeader>
 
   <!-- Calendar Controls -->
   <div
@@ -305,17 +290,11 @@ useResizeObserver(document.body, () => {
   >
     <!-- Month Nav -->
     <div class="p-4 flex justify-between items-center bg-secondary/5 border-b border-secondary/10">
-      <button
-        @click="changeMonth(-1)"
-        class="p-2 hover:bg-secondary/10 rounded-full transition-colors"
-      >
+      <button @click="changeMonth(-1)" class="p-2 hover:bg-secondary/10 rounded-full transition-colors">
         <font-awesome-icon icon="fa-solid fa-chevron-left" />
       </button>
       <h3 class="text-lg font-bold text-text">{{ currentMonthLabel }}</h3>
-      <button
-        @click="changeMonth(1)"
-        class="p-2 hover:bg-secondary/10 rounded-full transition-colors"
-      >
+      <button @click="changeMonth(1)" class="p-2 hover:bg-secondary/10 rounded-full transition-colors">
         <font-awesome-icon icon="fa-solid fa-chevron-right" />
       </button>
     </div>
@@ -342,17 +321,14 @@ useResizeObserver(document.body, () => {
             'bg-secondary/5': day.isPadding,
             'hover:bg-primary/5 cursor-pointer active:bg-primary/10': !day.isPadding,
             'bg-primary/5': day.isToday && !day.isPadding,
-            'ring-2 ring-inset ring-primary/40': popover.visible && popover.dateStr === day.dateStr,
+            'ring-2 ring-inset ring-primary/40': popover.visible && popover.dateStr === day.dateStr
           },
-          isMobile ? 'min-h-[70px]' : 'min-h-[100px]',
+          isMobile ? 'min-h-[70px]' : 'min-h-[100px]'
         ]"
         @click="openPopover($event, day)"
       >
         <div v-if="!day.isPadding">
-          <span
-            class="text-sm font-medium text-text/80 block mb-1"
-            :class="{ 'text-primary font-bold': day.isToday }"
-          >
+          <span class="text-sm font-medium text-text/80 block mb-1" :class="{ 'text-primary font-bold': day.isToday }">
             {{ day.day }}
           </span>
 
@@ -382,21 +358,14 @@ useResizeObserver(document.body, () => {
     </div>
   </div>
 
-  <div
-    v-else
-    class="text-center py-20 bg-secondary/5 rounded-xl border border-dashed border-secondary/30"
-  >
+  <div v-else class="text-center py-20 bg-secondary/5 rounded-xl border border-dashed border-secondary/30">
     <font-awesome-icon icon="fa-solid fa-user-clock" class="text-4xl text-text/20 mb-3" />
     <p class="text-text/60">Silakan pilih karyawan untuk melihat dan mengatur jadwal shift.</p>
   </div>
   <!-- Popover -->
   <!-- (Existing Popover Code) -->
 
-  <BatchScheduleImportModal
-    :isOpen="isImportModalOpen"
-    @close="isImportModalOpen = false"
-    @success="loadSchedules"
-  />
+  <BatchScheduleImportModal :isOpen="isImportModalOpen" @close="isImportModalOpen = false" @success="loadSchedules" />
 </template>
 
 <style scoped>

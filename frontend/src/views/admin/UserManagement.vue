@@ -1,5 +1,7 @@
 <!-- frontend/src/views/admin/UserManagement.vue -->
 <script setup>
+import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
+
 import { ref, onMounted, computed, watch } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
@@ -46,11 +48,15 @@ async function fetchData() {
   loading.value = true
   try {
     // Gunakan helper API untuk mengambil data
-    const [usersData, rolesData, shiftsData] = await Promise.all([masterData.getUsers(true), fetchRoles(), fetchShifts()])
+    const [usersData, rolesData, shiftsData] = await Promise.all([
+      masterData.getUsers(true),
+      fetchRoles(),
+      fetchShifts()
+    ])
     users.value = usersData
     allRoles.value = rolesData
     allShifts.value = shiftsData
-  } catch (error) {
+  } catch {
     toast('Gagal memuat data pengguna.', 'error')
   } finally {
     loading.value = false
@@ -103,17 +109,17 @@ function openEditModal(user) {
 
 // --- LOCAL HOTKEYS ---
 const { Alt_N, Alt_S, Alt_R } = useMagicKeys()
-watch(Alt_N, (pressed) => {
+watch(Alt_N, pressed => {
   if (pressed && !isCreateModalOpen.value && !isEditModalOpen.value && !isLocationModalOpen.value) {
     isCreateModalOpen.value = true
   }
 })
-watch(Alt_S, (pressed) => {
+watch(Alt_S, pressed => {
   if (pressed && isCreateModalOpen.value) {
     handleCreateUser()
   }
 })
-watch(Alt_R, (pressed) => {
+watch(Alt_R, pressed => {
   if (pressed && !isCreateModalOpen.value && !isEditModalOpen.value && !isLocationModalOpen.value) {
     fetchData()
   }
@@ -123,56 +129,80 @@ onMounted(fetchData)
 </script>
 
 <template>
-  <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-    <h2 class="text-2xl font-bold text-text flex items-center gap-3">
-      <font-awesome-icon icon="fa-solid fa-users" />
-      <span>Manajemen Pengguna</span>
-    </h2>
-    <button @click="isCreateModalOpen = true"
-      class="bg-primary text-secondary text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 w-full md:w-auto justify-center">
-      <font-awesome-icon icon="fa-solid fa-plus" />
-      <span>Tambah Pengguna</span>
-    </button>
-  </div>
+  <WmsActionHeader title="Manajemen Pengguna" icon="fa-solid fa-users">
+    <template #actions>
+      <button
+        @click="isCreateModalOpen = true"
+        class="bg-primary text-secondary text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/90 hover:shadow-sm transition-colors flex items-center gap-2 w-full md:w-auto justify-center"
+      >
+        <font-awesome-icon icon="fa-solid fa-plus" />
+        <span>Tambah Pengguna</span>
+      </button>
+    </template>
+  </WmsActionHeader>
 
   <div
-    class="bg-secondary/5 shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(80vh)]">
+    class="bg-secondary/5 shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(80vh)]"
+  >
     <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : 'min-w-[600px]'">
       <thead class="bg-background shadow-sm ring-1 ring-secondary/5" :class="isMobile ? 'hidden' : 'sticky top-0 z-30'">
         <tr class="text-xs text-text/80 uppercase">
           <th
-            class="px-6 py-3 sticky left-0 z-30 text-center bg-secondary border-b border-r border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-            Username</th>
+            class="px-6 py-3 sticky left-0 z-30 text-center bg-secondary border-b border-r border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]"
+          >
+            Username
+          </th>
           <th class="px-6 py-3 text-center bg-secondary border-b border-r border-secondary/10">Nickname</th>
           <th class="px-6 py-3 text-center bg-secondary border-b border-r border-secondary/10">Role</th>
           <th class="px-6 py-3 text-center bg-secondary border-b border-r border-secondary/10">Shift</th>
           <th
-            class="px-6 py-3 text-center sticky right-0 z-30 bg-secondary border-b border-secondary/10 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]">
-            Aksi</th>
+            class="px-6 py-3 text-center sticky right-0 z-30 bg-secondary border-b border-secondary/10 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]"
+          >
+            Aksi
+          </th>
         </tr>
       </thead>
-      <TransitionGroup tag="tbody" name="list" class="relative"
-        :class="isMobile ? 'block' : 'divide-y divide-secondary/5'">
+      <TransitionGroup
+        tag="tbody"
+        name="list"
+        class="relative"
+        :class="isMobile ? 'block' : 'divide-y divide-secondary/5'"
+      >
         <!-- Loading State -->
         <template v-if="loading">
           <TableSkeleton v-for="n in 5" :key="`skeleton-${n}`" />
         </template>
 
         <tr v-else-if="users.length === 0" key="empty">
-          <td colspan="5" class="py-12 text-center text-text/50 italic">
-            Tidak ada data pengguna.
-          </td>
+          <td colspan="5" class="py-12 text-center text-text/50 italic">Tidak ada data pengguna.</td>
         </tr>
 
-        <tr v-else v-for="user in users" :key="user.id" class="transition-colors group relative"
-          :class="isMobile ? 'block mb-4 p-4 bg-background rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4' : 'border-b border-secondary/20 hover:bg-secondary/5'">
-          <td class="font-medium bg-secondary group-hover:bg-secondary transition-colors"
-            :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4 sticky left-0 z-20 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]'">
+        <tr
+          v-else
+          v-for="user in users"
+          :key="user.id"
+          class="transition-colors group relative"
+          :class="
+            isMobile
+              ? 'block mb-4 p-4 bg-background rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4'
+              : 'border-b border-secondary/20 hover:bg-secondary/30'
+          "
+        >
+          <td
+            class="font-medium bg-secondary/20 group-hover:bg-secondary/30 transition-colors"
+            :class="
+              isMobile
+                ? 'flex justify-between items-center py-2 border-b border-secondary/10'
+                : 'px-6 py-4 sticky left-0 z-20 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]'
+            "
+          >
             <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Username</span>
             <span>{{ user.username }}</span>
           </td>
-          <td class="text-text/80"
-            :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+          <td
+            class="text-text/80"
+            :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'"
+          >
             <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Nickname</span>
             <span>{{ user.nickname || '-' }}</span>
           </td>
@@ -182,8 +212,10 @@ onMounted(fetchData)
               {{ user.role_name }}
             </span>
           </td>
-          <td class="text-text/80 text-sm"
-            :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+          <td
+            class="text-text/80 text-sm"
+            :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'"
+          >
             <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Shift</span>
             <span v-if="user.shift_name" class="flex items-center gap-1.5">
               <font-awesome-icon icon="fa-solid fa-clock" class="text-text/40 text-xs" />
@@ -191,20 +223,32 @@ onMounted(fetchData)
             </span>
             <span v-else class="text-text/40 italic">Default</span>
           </td>
-          <td class="space-x-2 bg-secondary transition-colors"
-            :class="isMobile ? 'flex justify-end items-center pt-4' : 'text-center px-6 py-4 sticky right-0 z-20 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]'">
-            <button @click="openEditModal(user)"
-              class="text-primary hover:text-primary/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105">
+          <td
+            class="space-x-2 bg-secondary/20 transition-colors"
+            :class="
+              isMobile
+                ? 'flex justify-end items-center pt-4'
+                : 'text-center px-6 py-4 sticky right-0 z-20 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]'
+            "
+          >
+            <button
+              @click="openEditModal(user)"
+              class="text-primary hover:text-primary/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105"
+            >
               <font-awesome-icon icon="fa-solid fa-edit" />
               <span>Edit</span>
             </button>
-            <button @click="openLocationModal(user)"
-              class="text-accent hover:text-accent/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105">
+            <button
+              @click="openLocationModal(user)"
+              class="text-accent hover:text-accent/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105"
+            >
               <font-awesome-icon icon="fa-solid fa-map-marker-alt" />
               <span>Lokasi</span>
             </button>
-            <button @click="handleDeleteUser(user.id)"
-              class="text-danger hover:text-danger/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105">
+            <button
+              @click="handleDeleteUser(user.id)"
+              class="text-danger hover:text-danger/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105"
+            >
               <font-awesome-icon icon="fa-solid fa-trash" />
               <span>Hapus</span>
             </button>
@@ -215,10 +259,20 @@ onMounted(fetchData)
   </div>
 
   <!-- Semua Modal yang Digunakan di Halaman Ini -->
-  <UserLocationModal :show="isLocationModalOpen" :user="selectedUser" @close="isLocationModalOpen = false"
-    @updated="fetchData" />
-  <UserEditModal :show="isEditModalOpen" :user="selectedUser" :roles="allRoles" :shifts="allShifts"
-    @close="isEditModalOpen = false" @updated="fetchData" />
+  <UserLocationModal
+    :show="isLocationModalOpen"
+    :user="selectedUser"
+    @close="isLocationModalOpen = false"
+    @updated="fetchData"
+  />
+  <UserEditModal
+    :show="isEditModalOpen"
+    :user="selectedUser"
+    :roles="allRoles"
+    :shifts="allShifts"
+    @close="isEditModalOpen = false"
+    @updated="fetchData"
+  />
 
   <!-- Modal Konfirmasi Hapus -->
   <BaseModal :show="isDeleteConfirmOpen" @close="isDeleteConfirmOpen = false" title="Konfirmasi Hapus">
@@ -230,13 +284,17 @@ onMounted(fetchData)
       <p class="text-text/50 text-sm">Pengguna akan dinonaktifkan dan tidak dapat login lagi.</p>
     </div>
     <template #footer>
-      <button @click="isDeleteConfirmOpen = false"
-        class="bg-background border border-secondary/30 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-secondary/20 flex items-center gap-2">
+      <button
+        @click="isDeleteConfirmOpen = false"
+        class="bg-background border border-secondary/30 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-secondary/20 flex items-center gap-2"
+      >
         <font-awesome-icon icon="fa-solid fa-times" />
         <span>Batal</span>
       </button>
-      <button @click="confirmDelete"
-        class="bg-danger text-secondary px-4 py-2 rounded-lg text-sm font-semibold hover:bg-danger/90 flex items-center gap-2">
+      <button
+        @click="confirmDelete"
+        class="bg-danger text-secondary px-4 py-2 rounded-lg text-sm font-semibold hover:bg-danger/90 flex items-center gap-2"
+      >
         <font-awesome-icon icon="fa-solid fa-trash" />
         <span>Hapus</span>
       </button>
@@ -248,38 +306,69 @@ onMounted(fetchData)
     <form @submit.prevent="handleCreateUser" class="p-6 space-y-4">
       <div>
         <label for="username" class="block text-sm font-medium text-text/80 mb-1">Username</label>
-        <input v-model="newUser.username" id="username" type="text" required
-          class="w-full px-3 py-2 bg-background border border-secondary/50 rounded-lg" />
+        <input
+          v-model="newUser.username"
+          id="username"
+          type="text"
+          required
+          class="w-full px-3 py-2 bg-background border border-secondary/50 rounded-lg"
+        />
       </div>
       <div>
         <label for="nickname" class="block text-sm font-medium text-text/80 mb-1">Nickname (Opsional)</label>
-        <input v-model="newUser.nickname" id="nickname" type="text"
-          class="w-full px-3 py-2 bg-background border border-secondary/50 rounded-lg" />
+        <input
+          v-model="newUser.nickname"
+          id="nickname"
+          type="text"
+          class="w-full px-3 py-2 bg-background border border-secondary/50 rounded-lg"
+        />
       </div>
       <div>
         <label for="password" class="block text-sm font-medium text-text/80 mb-1">Password</label>
-        <input v-model="newUser.password" id="password" type="password" required
-          class="w-full px-3 py-2 bg-background border border-secondary/50 rounded-lg" />
+        <input
+          v-model="newUser.password"
+          id="password"
+          type="password"
+          required
+          class="w-full px-3 py-2 bg-background border border-secondary/50 rounded-lg"
+        />
       </div>
       <div>
         <label for="role" class="block text-sm font-medium text-text/80 mb-1">Role</label>
-        <BaseSelect v-model="newUser.role_id" :options="allRoles" track-by="id" label="name" emit-value
-          placeholder="Pilih Role" />
+        <BaseSelect
+          v-model="newUser.role_id"
+          :options="allRoles"
+          track-by="id"
+          label="name"
+          emit-value
+          placeholder="Pilih Role"
+        />
       </div>
       <div>
         <label for="shift" class="block text-sm font-medium text-text/80 mb-1">Shift (Opsional)</label>
-        <BaseSelect v-model="newUser.shift_id" :options="shiftOptions" track-by="id" emit-value
-          placeholder="Pilih Shift" />
+        <BaseSelect
+          v-model="newUser.shift_id"
+          :options="shiftOptions"
+          track-by="id"
+          emit-value
+          placeholder="Pilih Shift"
+        />
       </div>
     </form>
     <template #footer>
-      <button type="button" @click="isCreateModalOpen = false"
-        class="bg-background border border-secondary/30 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-secondary/20 flex items-center gap-2">
+      <button
+        type="button"
+        @click="isCreateModalOpen = false"
+        class="bg-background border border-secondary/30 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-secondary/20 flex items-center gap-2"
+      >
         <font-awesome-icon icon="fa-solid fa-times" />
         <span>Batal</span>
       </button>
-      <button type="submit" @click="handleCreateUser"
-        class="bg-primary text-secondary px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 flex items-center gap-2">
+      <button
+        type="submit"
+        @click="handleCreateUser"
+        class="bg-primary text-secondary px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 flex items-center gap-2"
+      >
         <font-awesome-icon icon="fa-solid fa-save" />
         <span>Simpan</span>
       </button>

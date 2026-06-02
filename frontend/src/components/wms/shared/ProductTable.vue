@@ -21,11 +21,11 @@ const props = defineProps({
   recentlyUpdatedProducts: {
     type: Set,
     required: false,
-    default: () => new Set(),
+    default: () => new Set()
   },
   loading: { type: Boolean, default: false },
   mobileLayout: { type: String, default: 'card' },
-  visibleColumns: { type: Object, required: true },
+  visibleColumns: { type: Object, required: true }
 })
 
 const emit = defineEmits([
@@ -36,7 +36,7 @@ const emit = defineEmits([
   'openHistory',
   'openEdit',
   'delete',
-  'view-image',
+  'view-image'
 ])
 
 const auth = useAuthStore()
@@ -65,7 +65,7 @@ const { floatingStyles: menuFloatingStyles } = useFloating(menuTargetRef, menuFl
   placement: 'bottom-end',
   strategy: 'fixed',
   middleware: [offset(4), flip(), shift({ padding: 8 })],
-  whileElementsMounted: autoUpdate,
+  whileElementsMounted: autoUpdate
 })
 
 // --- HELPERS ---
@@ -97,7 +97,7 @@ function getCurrentLocation(product) {
 
 function getVirtualStock(product) {
   if (product.is_package && product.components && product.components.length > 0) {
-    const possiblePackages = product.components.map((c) => {
+    const possiblePackages = product.components.map(c => {
       const stockAvail = c.stock_available || 0
       const needed = c.quantity || 1
       return Math.floor(stockAvail / needed)
@@ -120,7 +120,7 @@ function getCurrentStock(product) {
 function getDisplayWeight(product) {
   if (product.weight && product.weight > 0) return product.weight
   if (product.is_package && product.components && product.components.length > 0) {
-    const hasUnweighedComponent = product.components.some((c) => !c.weight || c.weight <= 0)
+    const hasUnweighedComponent = product.components.some(c => !c.weight || c.weight <= 0)
     if (hasUnweighedComponent) return 0
     return product.components.reduce((sum, c) => sum + (c.weight || 0) * (c.quantity || 1), 0)
   }
@@ -130,11 +130,11 @@ function getDisplayWeight(product) {
 function hasMultipleLocations(product) {
   const allLocations = product.stock_locations || []
   let count = 0
-  if (props.activeView === 'all') count = allLocations.filter((loc) => loc.quantity !== 0).length
+  if (props.activeView === 'all') count = allLocations.filter(loc => loc.quantity !== 0).length
   else if (props.activeView === 'gudang')
-    count = allLocations.filter((loc) => loc.purpose === 'WAREHOUSE' && loc.quantity !== 0).length
+    count = allLocations.filter(loc => loc.purpose === 'WAREHOUSE' && loc.quantity !== 0).length
   else if (props.activeView === 'pajangan')
-    count = allLocations.filter((loc) => loc.purpose === 'DISPLAY' && loc.quantity !== 0).length
+    count = allLocations.filter(loc => loc.purpose === 'DISPLAY' && loc.quantity !== 0).length
   return count > 1
 }
 
@@ -142,11 +142,11 @@ function hasMultipleLocations(product) {
 const locationsForTooltip = computed(() => {
   if (!activeProduct.value) return []
   const allLocations = activeProduct.value.stock_locations || []
-  if (props.activeView === 'all') return allLocations.filter((loc) => loc.quantity !== 0)
+  if (props.activeView === 'all') return allLocations.filter(loc => loc.quantity !== 0)
   if (props.activeView === 'gudang')
-    return allLocations.filter((loc) => loc.purpose === 'WAREHOUSE' && loc.quantity !== 0)
+    return allLocations.filter(loc => loc.purpose === 'WAREHOUSE' && loc.quantity !== 0)
   if (props.activeView === 'pajangan')
-    return allLocations.filter((loc) => loc.purpose === 'DISPLAY' && loc.quantity !== 0)
+    return allLocations.filter(loc => loc.purpose === 'DISPLAY' && loc.quantity !== 0)
   return []
 })
 
@@ -222,10 +222,7 @@ function handleClickOutside(event) {
   if (!event.target.closest('.location-cell') && !event.target.closest('.tooltip-teleported')) {
     isLocationTooltipVisible.value = false
   }
-  if (
-    !event.target.closest('.package-badge-trigger') &&
-    !event.target.closest('.package-tooltip-teleported')
-  ) {
+  if (!event.target.closest('.package-badge-trigger') && !event.target.closest('.package-tooltip-teleported')) {
     isPackageTooltipVisible.value = false
   }
   if (!event.target.closest('.action-btn') && !event.target.closest('.menu-teleported')) {
@@ -243,46 +240,36 @@ onUnmounted(() => {
 
 <template>
   <div
-    class="bg-background rounded-lg border border-secondary/50 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[80vh] table-container"
+    class="bg-background rounded-lg overflow-x-auto overflow-y-auto relative custom-scrollbar h-[80vh] table-container"
   >
-    <table
-      class="min-w-full md:min-w-[1000px] w-full bg-background text-sm text-text border-collapse rounded-xl"
-    >
+    <table class="min-w-full md:min-w-[1000px] w-full bg-background text-sm text-text border-collapse rounded-xl">
       <!-- STATIC HEADER -->
       <thead
         class="hidden md:table-header-group sticky top-0 z-50 bg-background shadow-sm uppercase text-xs font-bold text-text/60"
       >
         <tr>
-          <th
-            class="px-4 py-3 w-16 text-center md:sticky md:left-0 z-30 md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]"
-          >
+          <th class="px-4 py-3 w-16 text-center md:sticky md:left-0 z-30 md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
             Foto
           </th>
           <th
             class="px-6 py-3 md:sticky md:left-16 md:border-r md:border-secondary/50 z-30 md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] text-left cursor-pointer hover:text-primary transition-colors min-w-[250px] md:w-[350px]"
             @click="handleSort('name')"
           >
-            <div class="flex items-center gap-2">
-              Produk <font-awesome-icon :icon="sortIcon('name')" />
-            </div>
+            <div class="flex items-center gap-2">Produk <font-awesome-icon :icon="sortIcon('name')" /></div>
           </th>
           <th
             v-if="visibleColumns.has('sku')"
             class="px-6 py-3 text-left md:border-r md:border-secondary/50 cursor-pointer hover:text-primary transition-colors"
             @click="handleSort('sku')"
           >
-            <div class="flex items-center gap-2">
-              SKU <font-awesome-icon :icon="sortIcon('sku')" />
-            </div>
+            <div class="flex items-center gap-2">SKU <font-awesome-icon :icon="sortIcon('sku')" /></div>
           </th>
           <th
             v-if="visibleColumns.has('category')"
             class="px-6 py-3 text-left md:border-r md:border-secondary/50 cursor-pointer hover:text-primary transition-colors"
             @click="handleSort('category_name')"
           >
-            <div class="flex items-center gap-2">
-              Kategori <font-awesome-icon :icon="sortIcon('category_name')" />
-            </div>
+            <div class="flex items-center gap-2">Kategori <font-awesome-icon :icon="sortIcon('category_name')" /></div>
           </th>
           <th
             v-if="visibleColumns.has('weight')"
@@ -298,20 +285,12 @@ onUnmounted(() => {
             class="px-6 py-3 text-right md:border-r md:border-secondary/50 cursor-pointer hover:text-primary transition-colors"
             @click="handleSort('price')"
           >
-            <div class="flex items-center justify-end gap-2">
-              Harga <font-awesome-icon :icon="sortIcon('price')" />
-            </div>
+            <div class="flex items-center justify-end gap-2">Harga <font-awesome-icon :icon="sortIcon('price')" /></div>
           </th>
-          <th
-            v-if="visibleColumns.has('location')"
-            class="px-6 py-3 text-center md:border-r md:border-secondary/50"
-          >
+          <th v-if="visibleColumns.has('location')" class="px-6 py-3 text-center md:border-r md:border-secondary/50">
             Lokasi
           </th>
-          <th
-            v-if="visibleColumns.has('stock')"
-            class="px-6 py-3 text-center md:border-r md:border-secondary/50"
-          >
+          <th v-if="visibleColumns.has('stock')" class="px-6 py-3 text-center md:border-r md:border-secondary/50">
             Stok
           </th>
           <th
@@ -323,7 +302,12 @@ onUnmounted(() => {
       </thead>
 
       <!-- TABLE BODY -->
-      <TransitionGroup tag="tbody" name="list" class="divide-y divide-secondary/5 relative">
+      <TransitionGroup
+        tag="tbody"
+        name="list"
+        class="divide-y divide-secondary/5 relative custom-scrollbar h-auto"
+        :class="isMobile ? 'bg-secondary/35' : 'bg-background'"
+      >
         <template v-if="loading">
           <TableSkeleton v-for="n in 10" :key="`skeleton-${n}`" />
         </template>
@@ -343,8 +327,8 @@ onUnmounted(() => {
           :class="[
             recentlyUpdatedProducts.has(product.id) ? 'bg-success/20' : 'md:hover:bg-secondary/20',
             mobileLayout === 'compact'
-              ? 'grid grid-cols-[1fr_auto] gap-x-3 p-3 items-start'
-              : 'grid grid-cols-2 gap-x-4 gap-y-2 p-3',
+              ? 'grid grid-cols-[1fr_auto] gap-x-2 p-2 items-start'
+              : 'grid grid-cols-2 gap-x-4 gap-y-2 p-3'
           ]"
           @click="$emit('openEdit', product)"
         >
@@ -353,10 +337,7 @@ onUnmounted(() => {
             class="hidden md:table-cell p-0 md:px-3 md:py-2 text-center whitespace-nowrap md:border-b border-secondary/10 md:border-secondary/80 md:sticky md:left-0 z-20 group-hover:bg-gradient-to-r group-hover:from-secondary/10 group-hover:to-secondary/10 transition-colors md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] bg-background w-16"
           >
             <div @click.stop>
-              <ProductThumbnail
-                :image-url="getImageUrl(product)"
-                @click="$emit('view-image', product)"
-              />
+              <ProductThumbnail :image-url="getImageUrl(product)" @click="$emit('view-image', product)" />
             </div>
           </td>
 
@@ -365,19 +346,16 @@ onUnmounted(() => {
             class="md:table-cell flex items-center justify-between p-0 md:px-3 md:py-2 whitespace-nowrap md:border-b border-secondary/10 md:border-secondary/80 md:sticky md:left-16 z-20 group-hover:bg-gradient-to-r group-hover:from-secondary/10 group-hover:to-secondary/10 transition-colors md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] bg-background"
             :class="mobileLayout === 'compact' ? 'col-span-1' : 'col-span-2'"
           >
-            <div class="flex items-center gap-3 w-full overflow-hidden">
+            <div class="flex items-center gap-3 w-full overflow-x-auto custom-scrollbar">
               <!-- Mobile Thumbnail -->
               <div @click.stop v-if="isMobile">
-                <ProductThumbnail
-                  :image-url="getImageUrl(product)"
-                  @click="$emit('view-image', product)"
-                />
+                <ProductThumbnail :image-url="getImageUrl(product)" @click="$emit('view-image', product)" />
               </div>
-              <div class="flex flex-col w-full overflow-hidden">
+              <div class="flex flex-col w-full">
                 <div class="flex items-center gap-2 w-full">
                   <span
                     @click.stop="copyToClipboard(product.name, 'Nama Produk')"
-                    class="font-bold text-text cursor-pointer hover:text-primary transition-colors truncate text-sm md:text-base w-full"
+                    class="font-bold text-text cursor-pointer hover:text-primary transition-colors text-sm md:text-base w-full"
                     :title="product.name"
                   >
                     {{ product.name }}
@@ -415,9 +393,7 @@ onUnmounted(() => {
             class="md:table-cell flex justify-between items-center px-4 py-2 md:px-3 md:py-2 whitespace-nowrap border-b border-secondary/10 md:border-secondary/80"
             :class="{ 'hidden md:flex': mobileLayout === 'compact' }"
           >
-            <span class="md:hidden text-[10px] font-bold text-text/50 uppercase tracking-wide"
-              >SKU</span
-            >
+            <span class="md:hidden text-[10px] font-bold text-text/50 uppercase tracking-wide">SKU</span>
             <div class="text-left text-xs text-text/70 font-mono">
               <span
                 @click.stop="copyToClipboard(product.sku, 'SKU')"
@@ -434,9 +410,7 @@ onUnmounted(() => {
             class="md:table-cell flex justify-between items-center px-4 py-2 md:px-3 md:py-2 whitespace-nowrap border-b border-secondary/10 md:border-secondary/80"
             :class="{ 'hidden md:flex': mobileLayout === 'compact' }"
           >
-            <span class="md:hidden text-[10px] font-bold text-text/50 uppercase tracking-wide"
-              >Kategori</span
-            >
+            <span class="md:hidden text-[10px] font-bold text-text/50 uppercase tracking-wide">Kategori</span>
             <span class="text-xs text-text/60 font-medium">{{ product.category_name || '-' }}</span>
           </td>
 
@@ -446,9 +420,7 @@ onUnmounted(() => {
             class="md:table-cell flex justify-between items-center px-4 py-2 md:px-3 md:py-2 text-right whitespace-nowrap text-xs text-text/70 font-mono border-b border-secondary/10 md:border-secondary/80"
             :class="{ 'hidden md:flex': mobileLayout === 'compact' }"
           >
-            <span class="md:hidden text-[10px] font-bold text-text/50 uppercase tracking-wide"
-              >Berat</span
-            >
+            <span class="md:hidden text-[10px] font-bold text-text/50 uppercase tracking-wide">Berat</span>
             <span>{{ formatNumber(getDisplayWeight(product)) }} gr</span>
           </td>
 
@@ -458,9 +430,7 @@ onUnmounted(() => {
             class="md:table-cell flex justify-between items-center px-4 py-2 md:px-3 md:py-2 text-right whitespace-nowrap text-sm text-text/70 font-mono border-b border-secondary/10 md:border-secondary/80"
             :class="{ 'hidden md:flex': mobileLayout === 'compact' }"
           >
-            <span class="md:hidden text-[10px] font-bold text-text/50 uppercase tracking-wide"
-              >Harga</span
-            >
+            <span class="md:hidden text-[10px] font-bold text-text/50 uppercase tracking-wide">Harga</span>
             <span
               @click.stop="copyToClipboard(product.price, 'Harga')"
               @mouseenter="showPriceTooltip($event, product)"
@@ -477,16 +447,13 @@ onUnmounted(() => {
             class="md:table-cell flex justify-between items-center px-4 py-2 md:px-3 md:py-2 text-center whitespace-nowrap location-cell relative border-b border-secondary/10 md:border-secondary/80"
             :class="[
               {
-                'cursor-pointer hover:text-primary text-primary font-bold':
-                  hasMultipleLocations(product),
+                'cursor-pointer hover:text-primary text-primary font-bold': hasMultipleLocations(product)
               },
-              { 'hidden md:flex': mobileLayout === 'compact' },
+              { 'hidden md:flex': mobileLayout === 'compact' }
             ]"
             @click.stop="toggleLocationTooltip($event, product)"
           >
-            <span class="md:hidden text-[10px] font-bold text-text/50 uppercase tracking-wide"
-              >Lokasi</span
-            >
+            <span class="md:hidden text-[10px] font-bold text-text/50 uppercase tracking-wide">Lokasi</span>
             <span
               class="text-xs text-text/70 font-mono truncate block max-w-[150px] mx-auto"
               :title="getCurrentLocation(product)"
@@ -502,9 +469,7 @@ onUnmounted(() => {
             :class="mobileLayout === 'compact' ? 'col-span-1' : ''"
           >
             <div class="md:hidden flex flex-col items-end gap-0.5">
-              <span
-                v-if="mobileLayout === 'card'"
-                class="text-[10px] font-bold text-text/50 uppercase tracking-wide"
+              <span v-if="mobileLayout === 'card'" class="text-[10px] font-bold text-text/50 uppercase tracking-wide"
                 >Stok Total</span
               >
               <span
@@ -512,29 +477,19 @@ onUnmounted(() => {
                 :class="{
                   'text-accent': getCurrentStock(product) < 0,
                   'text-primary': getCurrentStock(product) > 0,
-                  'text-text/50':
-                    getCurrentStock(product) === 0 || getCurrentStock(product) === null,
+                  'text-text/50': getCurrentStock(product) === 0 || getCurrentStock(product) === null
                 }"
               >
                 {{ getCurrentStock(product) || 0 }}
                 <!-- Virtual Stock Info -->
-                <div
-                  v-if="product.is_package"
-                  class="text-[10px] text-text/50 font-normal leading-tight"
-                >
+                <div v-if="product.is_package" class="text-[10px] text-text/50 font-normal leading-tight">
                   (Virtual: {{ getVirtualStock(product) }}
-                  <span
-                    class="text-[9px] cursor-help"
-                    title="Stok Virtual (Kalkulasi dari Komponen)"
-                    >[V]</span
-                  >)
+                  <span class="text-[9px] cursor-help" title="Stok Virtual (Kalkulasi dari Komponen)">[V]</span>)
                 </div>
               </span>
               <!-- Price for Compact Mode -->
               <span
-                v-if="
-                  mobileLayout === 'compact' && auth.canViewPrices && visibleColumns.has('price')
-                "
+                v-if="mobileLayout === 'compact' && auth.canViewPrices && visibleColumns.has('price')"
                 class="text-[10px] font-mono text-text/60"
               >
                 {{ formatCurrency(product.price) }}
@@ -547,16 +502,14 @@ onUnmounted(() => {
               :class="{
                 'text-accent': getCurrentStock(product) < 0,
                 'text-primary': getCurrentStock(product) > 0,
-                'text-text/50': getCurrentStock(product) === 0 || getCurrentStock(product) === null,
+                'text-text/50': getCurrentStock(product) === 0 || getCurrentStock(product) === null
               }"
             >
               {{ getCurrentStock(product) || 0 }}
               <!-- Virtual Stock Info -->
               <span v-if="product.is_package" class="text-[10px] text-text/50 font-normal ml-1">
                 (Virtual: {{ getVirtualStock(product) }}
-                <span class="text-[9px] cursor-help" title="Stok Virtual (Kalkulasi dari Komponen)"
-                  >[V]</span
-                >)
+                <span class="text-[9px] cursor-help" title="Stok Virtual (Kalkulasi dari Komponen)">[V]</span>)
               </span>
             </span>
           </td>
@@ -588,11 +541,7 @@ onUnmounted(() => {
       interactive
     >
       <ul class="space-y-1.5">
-        <li
-          v-for="loc in locationsForTooltip"
-          :key="loc.location_code"
-          class="flex justify-between items-center gap-4"
-        >
+        <li v-for="loc in locationsForTooltip" :key="loc.location_code" class="flex justify-between items-center gap-4">
           <span class="font-mono text-primary-light">{{ loc.location_code }}</span>
           <span class="font-bold bg-primary/10 text-primary px-1.5 rounded">
             {{ loc.quantity }}
@@ -617,9 +566,7 @@ onUnmounted(() => {
             :key="comp.id || comp.component_product_id"
             class="flex items-start gap-2"
           >
-            <div
-              class="font-bold bg-accent/10 text-accent px-1.5 py-0.5 rounded text-[10px] shrink-0 font-mono"
-            >
+            <div class="font-bold bg-accent/10 text-accent px-1.5 py-0.5 rounded text-[10px] shrink-0 font-mono">
               {{ comp.quantity || comp.quantity_per_package }}x
             </div>
             <div class="flex flex-col min-w-0">
@@ -647,9 +594,7 @@ onUnmounted(() => {
         <span class="text-text/70">DPP:</span>
         <span class="font-mono">{{ formatCurrency(activeProduct.price) }}</span>
       </div>
-      <div
-        class="flex justify-between gap-4 font-bold text-primary mt-1 pt-1 border-t border-secondary/20"
-      >
+      <div class="flex justify-between gap-4 font-bold text-primary mt-1 pt-1 border-t border-secondary/20">
         <span>Final (11%):</span>
         <span class="font-mono">{{ formatCurrency(activeProduct.price * (1 + PPN_RATE)) }}</span>
       </div>
@@ -669,16 +614,14 @@ onUnmounted(() => {
             @click="handleMenuAction('openAdjust')"
             class="w-full text-left px-4 py-2.5 hover:bg-primary/10 hover:text-primary flex items-center gap-3 transition-colors"
           >
-            <font-awesome-icon icon="fa-solid fa-calculator" class="w-4 text-center" /> Sesuaikan
-            Stok
+            <font-awesome-icon icon="fa-solid fa-calculator" class="w-4 text-center" /> Sesuaikan Stok
           </button>
 
           <button
             @click="handleMenuAction('openTransfer')"
             class="w-full text-left px-4 py-2.5 hover:bg-primary/10 hover:text-primary flex items-center gap-3 transition-colors"
           >
-            <font-awesome-icon icon="fa-solid fa-right-left" class="w-4 text-center" /> Transfer
-            Stok
+            <font-awesome-icon icon="fa-solid fa-right-left" class="w-4 text-center" /> Transfer Stok
           </button>
 
           <div class="h-px bg-primary/10 my-1"></div>
@@ -699,10 +642,7 @@ onUnmounted(() => {
             Riwayat
           </button>
 
-          <div
-            v-if="auth.hasPermission('product.image.delete')"
-            class="h-px bg-secondary/10 my-1"
-          ></div>
+          <div v-if="auth.hasPermission('product.image.delete')" class="h-px bg-secondary/10 my-1"></div>
 
           <button
             v-if="auth.hasPermission('product.image.delete')"

@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import api from '@/api/axios.js'
 import BaseModal from '@/components/ui/BaseModal.vue'
+import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 
 const { toast } = useToast()
 const channels = ref([])
@@ -17,7 +18,7 @@ const formData = ref({
   platform: 'Shopee',
   name: '',
   description: '',
-  isActive: true,
+  isActive: true
 })
 
 const platformOptions = ['Shopee', 'Tokopedia', 'Offline', 'Lainnya']
@@ -48,19 +49,19 @@ const openAddModal = () => {
     platform: 'Shopee',
     name: '',
     description: '',
-    isActive: true,
+    isActive: true
   }
   isModalOpen.value = true
 }
 
-const openEditModal = (item) => {
+const openEditModal = item => {
   modalMode.value = 'edit'
   formData.value = {
     id: item.id,
     platform: item.platform,
     name: item.name,
     description: item.description || '',
-    isActive: item.is_active === 1,
+    isActive: item.is_active === 1
   }
   isModalOpen.value = true
 }
@@ -81,7 +82,7 @@ const saveChannel = async () => {
       platform: formData.value.platform,
       name: formData.value.name,
       description: formData.value.description,
-      isActive: formData.value.isActive,
+      isActive: formData.value.isActive
     }
 
     if (modalMode.value === 'add') {
@@ -101,7 +102,7 @@ const saveChannel = async () => {
   }
 }
 
-const confirmDelete = (item) => {
+const confirmDelete = item => {
   itemToDelete.value = item
   isDeleteModalOpen.value = true
 }
@@ -125,23 +126,21 @@ const handleDelete = async () => {
 <template>
   <div class="space-y-6 animate-fade-in">
     <!-- Header -->
-    <div
-      class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-secondary/20 pb-4"
+    <WmsActionHeader
+      title="Manajemen Saluran Penjualan"
+      description="Kelola referensi nama toko / sales untuk form upload picking list."
+      icon="fa-solid fa-store"
     >
-      <div>
-        <h2 class="text-2xl font-bold text-text">Manajemen Saluran Penjualan</h2>
-        <p class="text-text/60 text-sm mt-1">
-          Kelola referensi nama toko / sales untuk form upload picking list.
-        </p>
-      </div>
-      <button
-        @click="openAddModal"
-        class="bg-primary text-secondary px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-sm"
-      >
-        <font-awesome-icon icon="fa-solid fa-plus" />
-        Tambah Saluran
-      </button>
-    </div>
+      <template #actions>
+        <button
+          @click="openAddModal"
+          class="bg-primary text-secondary px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-sm"
+        >
+          <font-awesome-icon icon="fa-solid fa-plus" />
+          Tambah Saluran
+        </button>
+      </template>
+    </WmsActionHeader>
 
     <!-- Table Content -->
     <div class="bg-background rounded-xl border border-secondary/20 shadow-sm overflow-hidden">
@@ -167,11 +166,7 @@ const handleDelete = async () => {
             </tr>
           </thead>
           <tbody class="divide-y divide-secondary/10">
-            <tr
-              v-for="item in channels"
-              :key="item.id"
-              class="hover:bg-secondary/5 transition-colors"
-            >
+            <tr v-for="item in channels" :key="item.id" class="hover:bg-secondary/5 transition-colors">
               <td class="px-6 py-4">
                 <span
                   class="px-2 py-1 rounded-md text-xs font-bold"
@@ -191,14 +186,10 @@ const handleDelete = async () => {
                 {{ item.description || '-' }}
               </td>
               <td class="px-6 py-4 text-center">
-                <span
-                  v-if="item.is_active"
-                  class="px-2 py-1 bg-success/10 text-success text-xs font-bold rounded-lg"
+                <span v-if="item.is_active" class="px-2 py-1 bg-success/10 text-success text-xs font-bold rounded-lg"
                   >Aktif</span
                 >
-                <span v-else class="px-2 py-1 bg-danger/10 text-danger text-xs font-bold rounded-lg"
-                  >Nonaktif</span
-                >
+                <span v-else class="px-2 py-1 bg-danger/10 text-danger text-xs font-bold rounded-lg">Nonaktif</span>
               </td>
               <td class="px-6 py-4 text-right">
                 <div class="flex justify-end gap-3">
@@ -237,9 +228,7 @@ const handleDelete = async () => {
 
         <div class="space-y-4">
           <div>
-            <label class="block text-xs font-bold text-text/70 mb-1"
-              >Platform <span class="text-danger">*</span></label
-            >
+            <label class="block text-xs font-bold text-text/70 mb-1">Platform <span class="text-danger">*</span></label>
             <select
               v-model="formData.platform"
               class="w-full bg-background border border-secondary/30 rounded-lg px-3 py-2 text-sm text-text focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none"
@@ -312,12 +301,7 @@ const handleDelete = async () => {
       </BaseModal>
 
       <!-- Delete Confirmation Modal -->
-      <BaseModal
-        :show="isDeleteModalOpen"
-        @close="isDeleteModalOpen = false"
-        maxWidth="max-w-sm"
-        class="mt-[-10vh]"
-      >
+      <BaseModal :show="isDeleteModalOpen" @close="isDeleteModalOpen = false" maxWidth="max-w-sm" class="mt-[-10vh]">
         <template #title>Konfirmasi Hapus</template>
         <div class="py-2">
           <p class="text-sm text-text/80">
@@ -326,8 +310,7 @@ const handleDelete = async () => {
             >?
           </p>
           <p class="text-xs text-text/50 mt-2">
-            Data ini akan dinonaktifkan (soft delete) untuk menjaga integritas data riwayat
-            penjualan.
+            Data ini akan dinonaktifkan (soft delete) untuk menjaga integritas data riwayat penjualan.
           </p>
         </div>
         <template #footer>
@@ -349,12 +332,7 @@ const handleDelete = async () => {
       </BaseModal>
 
       <!-- Delete Confirmation Modal -->
-      <BaseModal
-        :show="isDeleteModalOpen"
-        @close="isDeleteModalOpen = false"
-        maxWidth="max-w-sm"
-        class="mt-[-10vh]"
-      >
+      <BaseModal :show="isDeleteModalOpen" @close="isDeleteModalOpen = false" maxWidth="max-w-sm" class="mt-[-10vh]">
         <template #title>Konfirmasi Hapus</template>
         <div class="py-2">
           <p class="text-sm text-text/80">
@@ -363,8 +341,7 @@ const handleDelete = async () => {
             >?
           </p>
           <p class="text-xs text-text/50 mt-2">
-            Data ini akan dinonaktifkan (soft delete) untuk menjaga integritas data riwayat
-            penjualan.
+            Data ini akan dinonaktifkan (soft delete) untuk menjaga integritas data riwayat penjualan.
           </p>
         </div>
         <template #footer>

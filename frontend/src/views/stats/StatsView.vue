@@ -251,7 +251,7 @@ function formatJobType(type) {
 
     <!-- Sidebar -->
     <aside
-      class="fixed md:sticky top-12 bottom-0 left-0 md:h-[calc(95vh-3rem)] z-50 w-64 bg-background border-r border-secondary/20 transform transition-transform duration-300 ease-in-out flex flex-col shadow-lg md:shadow-none overflow-y-auto"
+      class="fixed md:sticky top-12 bottom-0 left-0 md:h-[calc(100vh-3rem)] z-50 w-64 bg-background border-r border-secondary/20 transform transition-transform duration-300 ease-in-out flex flex-col shadow-lg md:shadow-none overflow-y-auto"
       :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
     >
       <!-- Logo / Header -->
@@ -272,31 +272,29 @@ function formatJobType(type) {
       </div>
 
       <!-- Navigation -->
-      <nav class="flex-1 space-y-1 overflow-y-auto mt-[-2vh]">
+      <nav class="flex-1 overflow-y-auto space-y-1">
         <div
           v-for="groupName in ['Overview', 'Laporan Utama', 'Audit & Lainnya']"
           :key="groupName"
-          class="border-t border-secondary py-4 pr-6"
+          class="py-4 px-4 pr-6 border-t border-secondary"
         >
-          <h4 class="text-xs font-bold text-text/40 uppercase tracking-wider mb-2 px-3">
+          <span class="text-xs font-bold text-text/40 uppercase tracking-wider block mb-2">
             {{ groupName }}
-          </h4>
+          </span>
           <div class="space-y-1">
             <a
               v-for="item in reportsMenu.filter((m) => m.group === groupName)"
               :key="item.key"
               href="#"
               @click.prevent="((activeReport = item.key), (isSidebarOpen = false))"
-              class="flex items-center ml-5 px-3 py-2.5 text-sm font-medium rounded-lg transition-all"
+              class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
               :class="
                 activeReport === item.key
-                  ? 'bg-primary/10 text-primary shadow-sm font-bold ring-1 ring-primary/20'
-                  : 'text-text/70 hover:bg-secondary/20 hover:text-text'
+                  ? 'bg-primary/10 text-primary font-semibold shadow-sm ring-1 ring-primary/20'
+                  : 'text-text/70 hover:bg-secondary/20 hover:text-primary'
               "
             >
-              <div class="w-6 flex justify-center mr-2">
-                <font-awesome-icon :icon="item.icon" />
-              </div>
+              <font-awesome-icon :icon="item.icon" class="w-5" />
               <span>{{ item.label }}</span>
             </a>
           </div>
@@ -308,7 +306,7 @@ function formatJobType(type) {
     <div class="flex-1 flex flex-col min-w-0 transition-all duration-300">
       <!-- Mobile Header -->
       <header
-        class="md:hidden h-16 bg-background/80 backdrop-blur-md border-b border-secondary/20 flex items-center justify-between px-4 sticky top-0 z-25 shadow-sm"
+        class="md:hidden bg-background border-t border-secondary/20 flex items-center justify-between sticky top-12 z-10 shadow-sm p-4"
       >
         <button
           @click="isSidebarOpen = !isSidebarOpen"
@@ -322,8 +320,8 @@ function formatJobType(type) {
       </header>
 
       <!-- Page Content -->
-      <main class="flex-1 p-4 md:ml-8 w-full">
-        <div class="w-full md:w-auto mx-auto">
+      <main class="flex-1 p-4 lg:p-6 overflow-x-hidden w-full">
+        <div class="max-w-7xl mx-auto">
           <div
             class="bg-background rounded-xl shadow-md border border-secondary/20 p-6 min-h-[calc(50vh+20rem)] relative overflow-visible animate-fade-in"
           >

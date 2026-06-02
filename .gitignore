@@ -55,18 +55,26 @@ migrations/
 # ===================================================================
 # Ignore everything in .agent by default to prevent leaking memory/logs
 .agent/*
+.agents/*
 
 # Whitelist (Keep) critical context and rules
 !.agent/rules/
-!.agent/context/
 !.agent/workflows/
 !.agent/README.md
+!.agents/rules/
+!.agents/workflows/
+!.agents/README.md
 
 # Explicitly ignore temp/sensitive agent files (double safety)
 .agent/memory/
 .agent/logs/
 .agent/temp/
 .agent/chats/
+.agent/context/
+.agents/memory/
+.agents/logs/
+.agents/temp/
+.agents/chats/
 
 # ===================================================================
 # GRAPHIFY

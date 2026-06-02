@@ -71,8 +71,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-secondary/20 p-4 animate-fade-in relative">
-    <div class="w-full max-w-sm bg-background p-6 rounded-xl shadow-2xl relative z-10">
+  <div class="min-h-screen flex items-center justify-center p-4 animate-fade-in relative">
+    <div class="w-full max-w-sm p-6 rounded-xl shadow-2xl relative z-10 bg-background border-2 border-primary/20">
       <!-- Indikator Tes Koneksi Server -->
       <div
         v-if="testResult === false"

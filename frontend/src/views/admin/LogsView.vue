@@ -1,5 +1,7 @@
 <!-- frontend/src/views/admin/LogsView.vue -->
 <script setup>
+import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
+
 import { ref, onMounted, watch } from 'vue'
 import axios from '@/api/axios.js'
 import { format } from 'date-fns'
@@ -117,8 +119,8 @@ onMounted(() => {
 
 <template>
   <div class="px-6">
-    <div class="flex justify-between items-center mb-6">
-      <h2 class="text-2xl font-bold text-text">Audit Logs</h2>
+    <WmsActionHeader title="Audit Logs" icon="fa-solid fa-history">
+    <template #actions>
       <button
         @click="fetchLogs"
         class="bg-primary/10 text-primary px-4 py-2 rounded-lg hover:bg-primary/20 transition-colors"
@@ -126,7 +128,8 @@ onMounted(() => {
         <font-awesome-icon icon="fa-solid fa-rotate-right" :spin="isLoading" />
         Refresh
       </button>
-    </div>
+    </template>
+  </WmsActionHeader>
 
     <!-- Filters -->
     <div

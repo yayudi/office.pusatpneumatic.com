@@ -1,5 +1,7 @@
 <!-- frontend\src\views\admin\LocationManagement.vue -->
 <script setup>
+import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
+
 import { ref, onMounted, watch } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
@@ -113,8 +115,8 @@ watch(Alt_S, (pressed) => {
 </script>
 
 <template>
-  <div class="flex justify-between items-center mb-6">
-    <h2 class="text-2xl font-bold text-text">Manajemen Lokasi</h2>
+  <WmsActionHeader title="Manajemen Lokasi" icon="fa-solid fa-map-marker-alt">
+    <template #actions>
     <button
       @click="openCreateModal"
       class="bg-primary text-secondary text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
@@ -122,7 +124,8 @@ watch(Alt_S, (pressed) => {
       <font-awesome-icon icon="fa-solid fa-plus" />
       <span>Tambah Lokasi</span>
     </button>
-  </div>
+  </template>
+  </WmsActionHeader>
 
   <div
     class="bg-background shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(100vh-100px)]"

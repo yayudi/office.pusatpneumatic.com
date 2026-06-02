@@ -4,6 +4,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useResizeObserver, useEventListener } from '@vueuse/core'
 import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import { useMobile } from '@/composables/useMobile'
 
 defineProps({
   // Data
@@ -28,7 +29,7 @@ defineProps({
   selectedCategory: String,
   mobileLayout: { type: String, default: 'card' },
   availableColumns: { type: Array, default: () => [] },
-  visibleColumns: { type: Object, default: () => new Set() },
+  visibleColumns: { type: Object, default: () => new Set() }
 })
 
 const emit = defineEmits([
@@ -44,7 +45,7 @@ const emit = defineEmits([
   'update:mobileLayout',
   'search',
   'toggle-column',
-  'toggle-refetch',
+  'toggle-refetch'
 ])
 
 function onSearchInput(e) {
@@ -59,16 +60,17 @@ function clearSearch() {
 
 const typeOptions = [
   { id: 'unit', label: 'Satuan' },
-  { id: 'package', label: 'Paket' },
+  { id: 'package', label: 'Paket' }
 ]
 
 const stockOptions = [
   { id: 'minus', label: 'Minus' },
-  { id: 'positive', label: 'Aman' },
+  { id: 'positive', label: 'Aman' }
 ]
 
 // Column Menu State
 const isColumnMenuOpen = ref(false)
+const { isMobile } = useMobile()
 
 function toggleColumnMenu() {
   isColumnMenuOpen.value = !isColumnMenuOpen.value
@@ -106,7 +108,7 @@ function updateDropdownPosition() {
     dropdownPosition.value = {
       top: `${rect.bottom + 8}px`,
       left: `${rect.right - 125}px`, // Align right edge
-      minWidth: '125px',
+      minWidth: '125px'
     }
   }
 }
@@ -122,7 +124,7 @@ useEventListener(
   () => {
     if (isColumnMenuOpen.value) updateDropdownPosition()
   },
-  true,
+  true
 )
 </script>
 
@@ -130,7 +132,7 @@ useEventListener(
   <BaseFilterPanel class="z-50">
     <!-- Search Row -->
     <template #search>
-      <div class="relative flex-grow group w-full xl:w-auto shadow-sm rounded-lg">
+      <div class="relative flex-grow group w-full xl:w-[1vw] shadow-sm rounded-lg">
         <span
           class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text/40 group-focus-within:text-primary transition-colors"
         >
@@ -143,13 +145,13 @@ useEventListener(
           @input="onSearchInput"
           type="text"
           :placeholder="searchPlaceholder"
-          class="w-full pl-10 pr-10 py-2 bg-background border border-secondary rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 text-text transition-all placeholder-text/30 h-[42px]"
+          class="w-full px-10 py-2 bg-background border border-secondary rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 text-text transition-all placeholder-text/30 h-[42px]"
         />
 
         <button
           v-if="searchValue"
           @click="clearSearch"
-          class="absolute inset-y-0 right-0 pr-3 flex items-center text-text/40 hover:text-danger cursor-pointer transition-colors"
+          class="absolute inset-y-0 right-0 flex items-center text-text/40 hover:text-danger cursor-pointer transition-colors"
           title="Bersihkan pencarian"
         >
           <font-awesome-icon icon="fa-solid fa-times-circle" />
@@ -159,21 +161,15 @@ useEventListener(
 
     <!-- Tabs Row -->
     <template #tabs>
-      <div class="flex flex-col md:flex-row gap-3 w-full lg:w-auto">
+      <div class="flex flex-col md:flex-row gap-1 w-full lg:w-auto">
         <!-- Search By Tabs -->
-        <div
-          class="flex bg-background p-1 rounded-lg border border-secondary h-[42px] shrink-0 items-center shadow-sm"
-        >
+        <div class="flex bg-background p-1 rounded-lg border border-secondary h-[42px] shrink-0 items-center shadow-sm">
           <button
             v-for="tab in searchTabs"
             :key="tab.value"
             @click="emit('update:searchBy', tab.value)"
             class="flex-1 md:flex-none px-3 py-1 rounded text-xs font-bold transition-all duration-200 flex items-center justify-center h-full"
-            :class="[
-              searchBy === tab.value
-                ? 'bg-primary text-secondary shadow-sm'
-                : 'text-text/60 hover:text-text',
-            ]"
+            :class="[searchBy === tab.value ? 'bg-primary text-secondary shadow-sm' : 'text-text/60 hover:text-text']"
           >
             {{ tab.label }}
           </button>
@@ -191,7 +187,7 @@ useEventListener(
             :class="[
               activeView === view.value
                 ? 'bg-primary text-secondary shadow-sm font-bold'
-                : 'text-text/60 hover:text-text hover:bg-secondary/10',
+                : 'text-text/60 hover:text-text hover:bg-secondary/10'
             ]"
           >
             {{ view.label }}
@@ -202,12 +198,9 @@ useEventListener(
 
     <!-- Actions & Filters (Inline Right) -->
     <template #actions>
-      <div class="flex flex-wrap items-center justify-between gap-3 min-w-full lg:min-w-0">
+      <div class="flex flex-wrap items-center justify-between gap-1 min-w-full lg:min-w-0">
         <!-- Filter Warehouse (Hanya tampil jika view gudang) -->
-        <div
-          v-if="activeView === 'gudang'"
-          class="flex gap-3 animate-fade-in w-full lg:w-auto lg:min-w-[160px]"
-        >
+        <div v-if="activeView === 'gudang'" class="flex gap-1 animate-fade-in w-full lg:w-auto lg:min-w-[160px]">
           <BaseSelect
             :model-value="selectedBuilding"
             @update:modelValue="emit('update:selectedBuilding', $event)"
@@ -218,7 +211,7 @@ useEventListener(
             clearable
             clear-value="all"
             placeholder="Gedung"
-            class="w-full lg:w-[100px]"
+            :class="isMobile ? 'w-full' : ''"
           />
           <BaseSelect
             :model-value="selectedFloor"
@@ -230,33 +223,12 @@ useEventListener(
             clearable
             clear-value="all"
             placeholder="Lantai"
-            class="w-full lg:w-[100px]"
-          />
-        </div>
-
-        <!-- Category Filter -->
-        <div class="w-full lg:w-[160px]">
-          <BaseSelect
-            :model-value="selectedCategory"
-            @update:modelValue="emit('update:selectedCategory', $event)"
-            :options="categoryFilterOptions"
-            track-by="id"
-            emit-value
-            :searchable="true"
-            clearable
-            clear-value="all"
-            placeholder="- Kategori -"
-            class="w-full"
-            :class="[
-              selectedCategory !== 'all'
-                ? 'bg-accent/5 border-accent text-accent'
-                : 'bg-background border-secondary text-text/60 hover:text-text',
-            ]"
+            :class="isMobile ? 'w-full' : ''"
           />
         </div>
 
         <!-- Type Filter -->
-        <div class="w-auto lg:w-[100px] sm:block">
+        <div :class="ismobile ? 'flex gap-2 animate-fade-in w-full lg:w-auto lg:min-w-[160px]' : 'w-auto'">
           <BaseSelect
             :model-value="productTypeFilter"
             @update:modelValue="emit('update:productTypeFilter', $event)"
@@ -266,18 +238,20 @@ useEventListener(
             :searchable="false"
             clearable
             clear-value="all"
-            placeholder="- Tipe -"
-            class="w-full"
+            placeholder="Tipe"
             :class="[
-              productTypeFilter !== 'all'
-                ? 'bg-accent/5 border-accent text-accent'
-                : 'bg-background border-secondary text-text/60 hover:text-text',
+              isMobile ? 'w-full' : '',
+              [
+                productTypeFilter !== 'all'
+                  ? 'bg-accent/5 border-accent text-accent'
+                  : 'bg-background border-secondary text-text/60 hover:text-text'
+              ]
             ]"
           />
         </div>
 
         <!-- Status Stock -->
-        <div class="w-auto lg:w-[100px] sm:block">
+        <div :class="ismobile ? 'w-1/2' : 'w-auto'">
           <BaseSelect
             :model-value="stockStatusFilter"
             @update:modelValue="emit('update:stockStatusFilter', $event)"
@@ -287,20 +261,42 @@ useEventListener(
             :searchable="false"
             clearable
             clear-value="all"
-            placeholder="- Stok -"
+            placeholder="Stok"
             class="w-full"
             :class="[
               stockStatusFilter === 'minus'
                 ? 'bg-danger/5 border-danger text-danger'
                 : stockStatusFilter === 'positive'
                   ? 'bg-success/5 border-success text-success'
-                  : 'bg-background border-secondary text-text/60 hover:text-text',
+                  : 'bg-background border-secondary text-text/60 hover:text-text'
             ]"
           />
         </div>
 
-        <!-- Column Visibility Selector -->
-        <div class="relative column-selector-group shrink-0">
+        <!-- Category Filter -->
+        <div
+          class="w-full lg:w-[160px] relative column-selector-group shrink-0 gap-2"
+          :class="ismobile ? 'grid grid-cols-2' : 'flex'"
+        >
+          <BaseSelect
+            :model-value="selectedCategory"
+            @update:modelValue="emit('update:selectedCategory', $event)"
+            :options="categoryFilterOptions"
+            track-by="id"
+            emit-value
+            :searchable="true"
+            clearable
+            clear-value="all"
+            placeholder="Kategori"
+            class="w-1/2 lg:w-[160px]"
+            :class="[
+              selectedCategory !== 'all'
+                ? 'bg-accent/5 border-accent text-accent'
+                : 'bg-background border-secondary text-text/60 hover:text-text'
+            ]"
+          />
+
+          <!-- Column Visibility Selector -->
           <button
             ref="buttonRef"
             @click.stop="toggleColumnMenu"
@@ -319,7 +315,7 @@ useEventListener(
               :style="{
                 top: dropdownPosition.top,
                 left: dropdownPosition.left,
-                minWidth: dropdownPosition.minWidth,
+                minWidth: dropdownPosition.minWidth
               }"
             >
               <div
@@ -330,9 +326,7 @@ useEventListener(
               >
                 <div
                   class="w-4 h-4 rounded border border-secondary flex items-center justify-center"
-                  :class="
-                    visibleColumns.has(col.id) ? 'bg-primary border-primary' : 'bg-transparent'
-                  "
+                  :class="visibleColumns.has(col.id) ? 'bg-primary border-primary' : 'bg-transparent'"
                 >
                   <font-awesome-icon
                     v-if="visibleColumns.has(col.id)"
@@ -344,28 +338,24 @@ useEventListener(
               </div>
             </div>
           </Teleport>
-        </div>
 
-        <!-- Mobile Layout Switcher -->
-        <div class="flex h-[42px] bg-secondary/10 rounded-lg p-1 md:hidden shrink-0">
-          <button
-            @click="emit('update:mobileLayout', 'card')"
-            class="px-3 rounded-md text-xs font-bold transition-all flex items-center gap-1"
-            :class="
-              mobileLayout === 'card' ? 'bg-background text-primary shadow-sm' : 'text-text/50'
-            "
-          >
-            <font-awesome-icon icon="fa-solid fa-grip-vertical" />
-          </button>
-          <button
-            @click="emit('update:mobileLayout', 'compact')"
-            class="px-3 rounded-md text-xs font-bold transition-all flex items-center gap-1"
-            :class="
-              mobileLayout === 'compact' ? 'bg-background text-primary shadow-sm' : 'text-text/50'
-            "
-          >
-            <font-awesome-icon icon="fa-solid fa-list" />
-          </button>
+          <!-- Mobile Layout Switcher -->
+          <div class="flex h-[42px] w-1/3 bg-secondary/10 rounded-lg p-1 md:hidden shrink-0">
+            <button
+              @click="emit('update:mobileLayout', 'card')"
+              class="px-3 rounded-md text-xs font-bold transition-all flex items-center gap-1"
+              :class="mobileLayout === 'card' ? 'bg-background text-primary shadow-sm' : 'text-text/50'"
+            >
+              <font-awesome-icon icon="fa-solid fa-grip-vertical" />
+            </button>
+            <button
+              @click="emit('update:mobileLayout', 'compact')"
+              class="px-3 rounded-md text-xs font-bold transition-all flex items-center gap-1"
+              :class="mobileLayout === 'compact' ? 'bg-background text-primary shadow-sm' : 'text-text/50'"
+            >
+              <font-awesome-icon icon="fa-solid fa-list" />
+            </button>
+          </div>
         </div>
       </div>
     </template>

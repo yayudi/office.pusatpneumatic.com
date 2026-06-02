@@ -17,34 +17,34 @@
  */
 export const createStockRequest = async (connection, payload) => {
   const { requesterId, fromLocationId, toLocationId, notes, items } = payload;
-  
+
   // Generate request_number (contoh SR-YYMMDD-XXXX)
-  const dateStr = new Date().toISOString().slice(2,10).replace(/-/g, '');
+  const dateStr = new Date().toISOString().slice(2, 10).replace(/-/g, "");
   const randStr = Math.floor(1000 + Math.random() * 9000);
   const requestNumber = `SR-${dateStr}-${randStr}`;
 
   const [result] = await connection.execute(
-    `INSERT INTO stock_requests 
-    (request_number, requester_id, from_location_id, to_location_id, status, notes, created_at, updated_at) 
+    `INSERT INTO stock_requests
+    (request_number, requester_id, from_location_id, to_location_id, status, notes, created_at, updated_at)
     VALUES (?, ?, ?, ?, 'PENDING', ?, NOW(), NOW())`,
-    [requestNumber, requesterId, fromLocationId, toLocationId, notes || null]
+    [requestNumber, requesterId, fromLocationId, toLocationId, notes || null],
   );
-  
+
   const stockRequestId = result.insertId;
 
   if (items && items.length > 0) {
-    const itemValues = items.map(item => [
+    const itemValues = items.map((item) => [
       stockRequestId,
       item.productId,
       item.quantity,
-      0 // received_quantity awal 0
+      0, // received_quantity awal 0
     ]);
-    
+
     await connection.query(
-      `INSERT INTO stock_request_items 
-      (stock_request_id, product_id, quantity, received_quantity) 
+      `INSERT INTO stock_request_items
+      (stock_request_id, product_id, quantity, received_quantity)
       VALUES ?`,
-      [itemValues]
+      [itemValues],
     );
   }
 
@@ -59,7 +59,7 @@ export const createStockRequest = async (connection, payload) => {
  */
 export const getStockRequests = async (connection, filters = {}) => {
   let query = `
-    SELECT sr.*, 
+    SELECT sr.*,
            u.username as requester_name,
            l1.name as from_location_name, l1.code as from_location_code,
            l2.name as to_location_name, l2.code as to_location_code
@@ -89,6 +89,33 @@ export const getStockRequests = async (connection, filters = {}) => {
   query += ` ORDER BY sr.created_at DESC`;
 
   const [rows] = await connection.execute(query, queryParams);
+
+  if (rows.length === 0) return rows;
+
+  // Fetch all items for the retrieved requests
+  const requestIds = rows.map((r) => r.id);
+  const [items] = await connection.query(
+    `SELECT sri.*, p.name as product_name, p.sku
+     FROM stock_request_items sri
+     JOIN products p ON sri.product_id = p.id
+     WHERE sri.stock_request_id IN (?)`,
+    [requestIds],
+  );
+
+  // Group items by stock_request_id
+  const itemsByRequestId = {};
+  for (const item of items) {
+    if (!itemsByRequestId[item.stock_request_id]) {
+      itemsByRequestId[item.stock_request_id] = [];
+    }
+    itemsByRequestId[item.stock_request_id].push(item);
+  }
+
+  // Attach items to rows
+  for (const row of rows) {
+    row.items = itemsByRequestId[row.id] || [];
+  }
+
   return rows;
 };
 
@@ -100,27 +127,27 @@ export const getStockRequests = async (connection, filters = {}) => {
  */
 export const getStockRequestById = async (connection, id) => {
   const [rows] = await connection.execute(
-    `SELECT sr.*, 
-            u.username as requester_name,
-            l1.name as from_location_name, l1.code as from_location_code,
-            l2.name as to_location_name, l2.code as to_location_code
-     FROM stock_requests sr
-     LEFT JOIN users u ON sr.requester_id = u.id
-     LEFT JOIN locations l1 ON sr.from_location_id = l1.id
-     LEFT JOIN locations l2 ON sr.to_location_id = l2.id
-     WHERE sr.id = ?`,
-    [id]
+    `SELECT sr.*,
+        u.username as requester_name,
+        l1.name as from_location_name, l1.code as from_location_code,
+        l2.name as to_location_name, l2.code as to_location_code
+      FROM stock_requests sr
+      LEFT JOIN users u ON sr.requester_id = u.id
+      LEFT JOIN locations l1 ON sr.from_location_id = l1.id
+      LEFT JOIN locations l2 ON sr.to_location_id = l2.id
+      WHERE sr.id = ?`,
+    [id],
   );
 
   if (rows.length === 0) return null;
   const requestData = rows[0];
 
   const [items] = await connection.execute(
-    `SELECT sri.*, p.name as product_name, p.sku 
-     FROM stock_request_items sri
-     JOIN products p ON sri.product_id = p.id
-     WHERE sri.stock_request_id = ?`,
-    [id]
+    `SELECT sri.*, p.name as product_name, p.sku
+      FROM stock_request_items sri
+      JOIN products p ON sri.product_id = p.id
+      WHERE sri.stock_request_id = ?`,
+    [id],
   );
 
   requestData.items = items;
@@ -137,7 +164,7 @@ export const getStockRequestById = async (connection, id) => {
 export const updateStockRequestStatus = async (connection, id, status) => {
   const [result] = await connection.execute(
     `UPDATE stock_requests SET status = ?, updated_at = NOW() WHERE id = ?`,
-    [status, id]
+    [status, id],
   );
   return result.affectedRows > 0;
 };
@@ -152,7 +179,7 @@ export const updateStockRequestStatus = async (connection, id, status) => {
 export const updateRequestItemReceived = async (connection, itemId, receivedQuantity) => {
   const [result] = await connection.execute(
     `UPDATE stock_request_items SET received_quantity = ? WHERE id = ?`,
-    [receivedQuantity, itemId]
+    [receivedQuantity, itemId],
   );
   return result.affectedRows > 0;
 };

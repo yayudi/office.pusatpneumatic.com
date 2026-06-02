@@ -18,6 +18,7 @@ import FloatingTooltip from '@/components/ui/FloatingTooltip.vue'
 import { resolveUrl } from '@/composables/useImageUrl'
 import MediaCard from '@/components/common/MediaCard.vue'
 import MediaActionBar from '@/components/common/MediaActionBar.vue'
+import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 import { useMobile } from '@/composables/useMobile.js'
 
 import { formatBytes } from '@/utils/formatBytes.js'
@@ -556,155 +557,158 @@ onUnmounted(() => {
     </div>
 
     <!-- Header -->
-    <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-      <div>
-        <h2 class="text-2xl font-bold text-text flex items-center gap-3">
-          <font-awesome-icon icon="fa-solid fa-images" class="text-primary" />
-          Media<span class="text-primary">Management</span>
-        </h2>
-      </div>
-      <!-- Bulk Actions Bar (Hidden when not in selection mode) -->
-      <div
-        v-if="isSelectionMode"
-        class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-background border border-secondary/50 shadow-2xl rounded-full px-5 py-3 flex items-center gap-4 z-[60] animate-fade-in-up"
-      >
-        <div class="flex items-center gap-3 pr-4 border-r border-secondary/30">
-          <input
-            type="checkbox"
-            class="w-5 h-5 rounded border-secondary text-primary focus:ring-primary cursor-pointer accent-primary"
-            :checked="
-              selectedMediaIds.size > 0 &&
-              selectedMediaIds.size === mediaList.filter(i => i.status === 'COMPLETED').length
-            "
-            @change="toggleSelectAll"
-          />
-          <span
-            class="font-bold text-sm text-text whitespace-nowrap"
-            v-text="`${selectedMediaIds.size} Terpilih`"
-          ></span>
-        </div>
-
+    <WmsActionHeader title="Media <span class='text-primary'>Management</span>" icon="fa-solid fa-images">
+      <template #actions>
+        <!-- Bulk Actions Bar (Hidden when not in selection mode) -->
         <div
-          class="flex items-center gap-2"
-          :class="{ 'opacity-50 grayscale pointer-events-none': selectedMediaIds.size === 0 }"
+          v-if="isSelectionMode"
+          class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-background border border-secondary/50 shadow-2xl rounded-full px-5 py-3 flex items-center gap-4 z-[60] animate-fade-in-up"
         >
-          <button
-            @click="bulkCopyLinks"
-            class="px-3 py-1.5 rounded-lg hover:bg-primary/10 hover:text-primary text-text text-sm font-semibold transition-colors flex items-center whitespace-nowrap"
-            title="Salin semua tautan"
+          <div class="flex items-center gap-3 pr-4 border-r border-secondary/30">
+            <input
+              type="checkbox"
+              class="w-5 h-5 rounded border-secondary text-primary focus:ring-primary cursor-pointer accent-primary"
+              :checked="
+                selectedMediaIds.size > 0 &&
+                selectedMediaIds.size === mediaList.filter(i => i.status === 'COMPLETED').length
+              "
+              @change="toggleSelectAll"
+            />
+            <span
+              class="font-bold text-sm text-text whitespace-nowrap"
+              v-text="`${selectedMediaIds.size} Terpilih`"
+            ></span>
+          </div>
+
+          <div
+            class="flex items-center gap-2"
+            :class="{ 'opacity-50 grayscale pointer-events-none': selectedMediaIds.size === 0 }"
           >
-            <font-awesome-icon icon="fa-solid fa-link" class="mr-2" /> Salin Link
-          </button>
-          <button
-            @click="bulkDownloadImages"
-            class="px-3 py-1.5 rounded-lg hover:bg-primary/10 hover:text-primary text-text text-sm font-semibold transition-colors flex items-center whitespace-nowrap"
-            title="Unduh semua gambar terpilih"
-          >
-            <font-awesome-icon icon="fa-solid fa-download" class="mr-2" /> Unduh
-          </button>
-          <div class="w-px h-6 bg-secondary/30"></div>
-          <button
-            @click="isLinkProductModalOpen = true"
-            class="px-3 py-1.5 rounded-lg hover:bg-primary/10 hover:text-primary text-text text-sm font-semibold transition-colors flex items-center whitespace-nowrap"
-          >
-            <font-awesome-icon icon="fa-solid fa-chart-diagram" class="mr-2" /> Tautkan
-          </button>
-          <button
-            @click="isBulkEditTagsModalOpen = true"
-            class="px-3 py-1.5 rounded-lg hover:bg-accent/10 hover:text-accent text-text text-sm font-semibold transition-colors flex items-center whitespace-nowrap"
-          >
-            <font-awesome-icon icon="fa-solid fa-tags" class="mr-2" /> Tag Massal
-          </button>
-          <button
-            @click="confirmBulkDelete"
-            class="px-3 py-1.5 rounded-lg bg-danger/10 hover:bg-danger hover:text-background text-danger text-sm font-bold transition-colors flex items-center whitespace-nowrap"
-          >
-            <font-awesome-icon icon="fa-solid fa-trash" class="mr-2" /> Hapus
-          </button>
+            <button
+              @click="bulkCopyLinks"
+              class="px-3 py-1.5 rounded-lg hover:bg-primary/10 hover:text-primary text-text text-sm font-semibold transition-colors flex items-center whitespace-nowrap"
+              title="Salin semua tautan"
+            >
+              <font-awesome-icon icon="fa-solid fa-link" class="mr-2" /> Salin Link
+            </button>
+            <button
+              @click="bulkDownloadImages"
+              class="px-3 py-1.5 rounded-lg hover:bg-primary/10 hover:text-primary text-text text-sm font-semibold transition-colors flex items-center whitespace-nowrap"
+              title="Unduh semua gambar terpilih"
+            >
+              <font-awesome-icon icon="fa-solid fa-download" class="mr-2" /> Unduh
+            </button>
+            <div class="w-px h-6 bg-secondary/30"></div>
+            <button
+              @click="isLinkProductModalOpen = true"
+              class="px-3 py-1.5 rounded-lg hover:bg-primary/10 hover:text-primary text-text text-sm font-semibold transition-colors flex items-center whitespace-nowrap"
+            >
+              <font-awesome-icon icon="fa-solid fa-chart-diagram" class="mr-2" /> Tautkan
+            </button>
+            <button
+              @click="isBulkEditTagsModalOpen = true"
+              class="px-3 py-1.5 rounded-lg hover:bg-accent/10 hover:text-accent text-text text-sm font-semibold transition-colors flex items-center whitespace-nowrap"
+            >
+              <font-awesome-icon icon="fa-solid fa-tags" class="mr-2" /> Tag Massal
+            </button>
+            <button
+              @click="confirmBulkDelete"
+              class="px-3 py-1.5 rounded-lg bg-danger/10 hover:bg-danger hover:text-background text-danger text-sm font-bold transition-colors flex items-center whitespace-nowrap"
+            >
+              <font-awesome-icon icon="fa-solid fa-trash" class="mr-2" /> Hapus
+            </button>
+          </div>
         </div>
-      </div>
-      <div class="flex gap-2 flex-wrap">
-        <div class="relative w-full md:w-[300px] border border-secondary/20 rounded-lg bg-secondary">
+        <div class="flex gap-2 flex-wrap justify-end">
+          <div class="relative w-full md:w-[300px] border border-secondary/20 rounded-lg bg-secondary">
+            <input
+              type="text"
+              v-model="globalSearchStr"
+              placeholder="Cari nama file, SKU, atau tag..."
+              class="input input-sm input-bordered w-full p-2 pr-8 text-text rounded-lg bg-background h-[42px]"
+            />
+            <font-awesome-icon
+              icon="fa-solid fa-search"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-text/40 pointer-events-none"
+            />
+          </div>
+          <BaseSelect
+            v-model="linkStatusFilter"
+            :options="linkStatusOptions"
+            label="label"
+            track-by="id"
+            placeholder="Filter Media"
+            :searchable="false"
+            emit-value
+          />
           <input
-            type="text"
-            v-model="globalSearchStr"
-            placeholder="Cari nama file, SKU, atau tag..."
-            class="input input-sm input-bordered w-full p-2 pr-8 text-text rounded-lg bg-background h-[42px]"
+            type="file"
+            ref="uploaderInput"
+            class="hidden"
+            multiple
+            accept="image/*"
+            @change="handleMultipleFiles"
           />
-          <font-awesome-icon
-            icon="fa-solid fa-search"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-text/40 pointer-events-none"
-          />
-        </div>
-        <BaseSelect
-          v-model="linkStatusFilter"
-          :options="linkStatusOptions"
-          label="label"
-          track-by="id"
-          placeholder="Filter Media"
-          :searchable="false"
-          emit-value
-        />
-        <input type="file" ref="uploaderInput" class="hidden" multiple accept="image/*" @change="handleMultipleFiles" />
-        <!-- Actions -->
+          <!-- Actions -->
 
-        <!-- View Pattern Switcher -->
-        <div class="flex items-center bg-secondary/50 p-1 rounded-lg border border-secondary">
+          <!-- View Pattern Switcher -->
+          <div class="flex items-center bg-secondary/50 p-1 rounded-lg border border-secondary">
+            <button
+              @click="viewMode = 'grid'"
+              class="p-1.5 rounded-md transition-colors"
+              :class="viewMode === 'grid' ? 'bg-background shadow-sm text-primary' : 'text-text/70 hover:text-text'"
+              title="Grid View"
+            >
+              <font-awesome-icon icon="fa-solid fa-border-all" />
+            </button>
+            <button
+              @click="viewMode = 'list'"
+              class="p-1.5 rounded-md transition-colors"
+              :class="viewMode === 'list' ? 'bg-background shadow-sm text-primary' : 'text-text/70 hover:text-text'"
+              title="List View"
+            >
+              <font-awesome-icon icon="fa-solid fa-list-ul" />
+            </button>
+            <button
+              @click="viewMode = 'compact'"
+              class="p-1.5 rounded-md transition-colors"
+              :class="viewMode === 'compact' ? 'bg-background shadow-sm text-primary' : 'text-text/70 hover:text-text'"
+              title="Compact View"
+            >
+              <font-awesome-icon icon="fa-solid fa-th" />
+            </button>
+          </div>
+
           <button
-            @click="viewMode = 'grid'"
-            class="p-1.5 rounded-md transition-colors"
-            :class="viewMode === 'grid' ? 'bg-background shadow-sm text-primary' : 'text-text/70 hover:text-text'"
-            title="Grid View"
+            @click="fetchMedia(pagination.page)"
+            class="flex items-center justify-center w-10 h-10 rounded-lg bg-background border border-secondary text-text hover:border-primary transition-colors"
+            title="Refresh"
           >
-            <font-awesome-icon icon="fa-solid fa-border-all" />
+            <font-awesome-icon icon="fa-solid fa-sync" :spin="isLoading" />
           </button>
           <button
-            @click="viewMode = 'list'"
-            class="p-1.5 rounded-md transition-colors"
-            :class="viewMode === 'list' ? 'bg-background shadow-sm text-primary' : 'text-text/70 hover:text-text'"
-            title="List View"
+            @click="toggleSelectionMode"
+            class="px-4 py-1.5 rounded-lg font-medium transition-colors flex items-center justify-center whitespace-nowrap"
+            :class="
+              isSelectionMode
+                ? 'bg-secondary text-text border border-secondary hover:brightness-95'
+                : 'bg-background border border-secondary text-text hover:border-primary'
+            "
           >
-            <font-awesome-icon icon="fa-solid fa-list-ul" />
+            <font-awesome-icon icon="fa-solid fa-check-double" class="mr-2" />
+            <span v-text="isSelectionMode ? 'Batal' : 'Pilih'"></span>
           </button>
           <button
-            @click="viewMode = 'compact'"
-            class="p-1.5 rounded-md transition-colors"
-            :class="viewMode === 'compact' ? 'bg-background shadow-sm text-primary' : 'text-text/70 hover:text-text'"
-            title="Compact View"
+            @click="triggerUpload"
+            class="px-4 py-1.5 rounded-lg bg-primary text-background font-medium hover:bg-accent transition-colors flex items-center justify-center whitespace-nowrap"
+            :disabled="isUploading"
           >
-            <font-awesome-icon icon="fa-solid fa-th" />
+            <font-awesome-icon icon="fa-solid fa-upload" :class="isMobile ? 'mr-2' : ''" />
+            <span v-if="isMobile" v-text="isUploading ? 'Mengunggah...' : 'Unggah Aset'"></span>
           </button>
         </div>
-
-        <button
-          @click="fetchMedia(pagination.page)"
-          class="flex items-center justify-center w-10 h-10 rounded-lg bg-background border border-secondary text-text hover:border-primary transition-colors"
-          title="Refresh"
-        >
-          <font-awesome-icon icon="fa-solid fa-sync" :spin="isLoading" />
-        </button>
-        <button
-          @click="toggleSelectionMode"
-          class="px-4 py-1.5 rounded-lg font-medium transition-colors flex items-center justify-center whitespace-nowrap"
-          :class="
-            isSelectionMode
-              ? 'bg-secondary text-text border border-secondary hover:brightness-95'
-              : 'bg-background border border-secondary text-text hover:border-primary'
-          "
-        >
-          <font-awesome-icon icon="fa-solid fa-check-double" class="mr-2" />
-          <span v-text="isSelectionMode ? 'Batal' : 'Pilih'"></span>
-        </button>
-        <button
-          @click="triggerUpload"
-          class="px-4 py-1.5 rounded-lg bg-primary text-background font-medium hover:bg-accent transition-colors flex items-center justify-center whitespace-nowrap"
-          :disabled="isUploading"
-        >
-          <font-awesome-icon icon="fa-solid fa-upload" :class="isMobile ? 'mr-2' : ''" />
-          <span v-if="isMobile" v-text="isUploading ? 'Mengunggah...' : 'Unggah Aset'"></span>
-        </button>
-      </div>
-    </div>
+      </template>
+    </WmsActionHeader>
 
     <div
       :class="{

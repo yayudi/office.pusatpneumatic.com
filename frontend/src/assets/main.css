@@ -125,11 +125,11 @@
 :root[data-theme='permen'] {
   --color-text: 270 20 25; /* Ungu gelap */
   --color-background: 330 100 98; /* Pink sangat pucat */
-  --color-primary: 340 90 65; /* Pink permen */
-  --color-secondary: 150 50 80; /* Hijau mint pucat */
+  --color-primary: 340 90 55; /* Pink permen */
+  --color-secondary: 150 50 75; /* Hijau mint pucat */
   --color-accent: 200 90 65; /* Biru permen */
   --color-success: 140 70 60; /* Hijau permen */
-  --color-warning: 45 85 60; /* Kuning permen */
+  --color-warning: 25 95 65; /* Kuning permen */
   --color-danger: 0 80 70; /* Merah permen */
 }
 
