@@ -61,8 +61,19 @@ export const getStockMovementStatistics = async (filters) => {
       };
     });
 
-    if (filterStatus && filterStatus !== 'all') {
-      data = data.filter(item => item.status === filterStatus.toUpperCase());
+    if (filterStatus) {
+      if (typeof filterStatus === 'string' && filterStatus !== 'all') {
+        data = data.filter(item => item.status === filterStatus.toUpperCase());
+      } else if (typeof filterStatus === 'object') {
+        if (filterStatus.include && filterStatus.include.length > 0) {
+          const inc = filterStatus.include.map(s => String(s).toUpperCase());
+          data = data.filter(item => inc.includes(item.status));
+        }
+        if (filterStatus.exclude && filterStatus.exclude.length > 0) {
+          const exc = filterStatus.exclude.map(s => String(s).toUpperCase());
+          data = data.filter(item => !exc.includes(item.status));
+        }
+      }
     }
 
     if (filterMovement && filterMovement !== 'all') {

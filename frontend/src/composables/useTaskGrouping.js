@@ -23,12 +23,24 @@ export function useTaskGrouping(itemsRef, filterStateRef) {
       })
     }
 
-    if (filter.source !== 'ALL') {
-      filtered = filtered.filter((i) => i.source === filter.source)
+    const hasTriState = (fieldObj) => fieldObj && (fieldObj.include?.length > 0 || fieldObj.exclude?.length > 0)
+
+    if (hasTriState(filter.source)) {
+      filtered = filtered.filter((i) => {
+        const val = i.source || 'Unknown'
+        if (filter.source.exclude.includes(val)) return false
+        if (filter.source.include.length > 0 && !filter.source.include.includes(val)) return false
+        return true
+      })
     }
 
-    if (filter.locationPurpose && filter.locationPurpose !== 'ALL') {
-      filtered = filtered.filter((i) => (i.location_purpose || 'DISPLAY') === filter.locationPurpose)
+    if (hasTriState(filter.locationPurpose)) {
+      filtered = filtered.filter((i) => {
+        const val = i.location_purpose || 'DISPLAY'
+        if (filter.locationPurpose.exclude.includes(val)) return false
+        if (filter.locationPurpose.include.length > 0 && !filter.locationPurpose.include.includes(val)) return false
+        return true
+      })
     }
 
     if (filter.search) {
@@ -43,19 +55,27 @@ export function useTaskGrouping(itemsRef, filterStateRef) {
       )
     }
 
-    if (filter.shopName && filter.shopName !== 'ALL') {
-      filtered = filtered.filter((i) => i.shop_name === filter.shopName)
+    if (hasTriState(filter.shopName)) {
+      filtered = filtered.filter((i) => {
+        const val = i.shop_name || 'Unknown'
+        if (filter.shopName.exclude.includes(val)) return false
+        if (filter.shopName.include.length > 0 && !filter.shopName.include.includes(val)) return false
+        return true
+      })
     }
 
-    if (filter.stockStatus !== 'ALL') {
+    if (hasTriState(filter.stockStatus)) {
       filtered = filtered.filter((i) => {
         const qty = Number(i.quantity || 0)
         const stock = Number(i.available_stock || 0)
         const hasLoc = !!i.location_code
-
-        if (filter.stockStatus === 'READY') return hasLoc && stock >= qty && i.status !== 'BACKORDER'
-        if (filter.stockStatus === 'ISSUE') return hasLoc && stock < qty && i.status !== 'BACKORDER'
-        if (filter.stockStatus === 'EMPTY') return !hasLoc || i.status === 'BACKORDER'
+        
+        let statusObj = 'READY'
+        if (!hasLoc || i.status === 'BACKORDER') statusObj = 'EMPTY'
+        else if (stock < qty) statusObj = 'ISSUE'
+        
+        if (filter.stockStatus.exclude.includes(statusObj)) return false
+        if (filter.stockStatus.include.length > 0 && !filter.stockStatus.include.includes(statusObj)) return false
         return true
       })
     }

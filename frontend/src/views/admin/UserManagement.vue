@@ -13,6 +13,8 @@ import UserLocationModal from '@/components/users/locationModal.vue'
 import UserEditModal from '@/components/users/EditModal.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import TriStateSelect from '@/components/ui/TriStateSelect.vue'
+import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
 import { useMobile } from '@/composables/useMobile.js'
 
@@ -23,6 +25,11 @@ const allRoles = ref([])
 const allShifts = ref([])
 const loading = ref(true)
 const selectedUser = ref(null)
+
+// Filter State
+const searchQuery = ref('')
+const searchRole = ref({ include: [], exclude: [] })
+const searchShift = ref({ include: [], exclude: [] })
 
 // State untuk semua modal
 const isCreateModalOpen = ref(false)
@@ -43,6 +50,41 @@ const shiftOptions = computed(() => {
     }))
   ]
 })
+
+const roleOptions = computed(() => {
+  return (allRoles.value || []).map(r => ({ id: r.id, label: r.name }))
+})
+
+// Filter Logic Client-Side
+const filteredUsers = computed(() => {
+  if (!users.value) return []
+  return users.value.filter(user => {
+    // 1. Search Query
+    if (searchQuery.value) {
+      const query = searchQuery.value.toLowerCase()
+      const matchUsername = user.username?.toLowerCase().includes(query)
+      const matchNickname = user.nickname?.toLowerCase().includes(query)
+      if (!matchUsername && !matchNickname) return false
+    }
+
+    // 2. Role Filter (TriState)
+    if (searchRole.value.include.length > 0 && !searchRole.value.include.includes(user.role_id)) return false
+    if (searchRole.value.exclude.length > 0 && searchRole.value.exclude.includes(user.role_id)) return false
+
+    // 3. Shift Filter (TriState) - Note: shift_id bisa null
+    const shiftId = user.shift_id
+    if (searchShift.value.include.length > 0 && !searchShift.value.include.includes(shiftId)) return false
+    if (searchShift.value.exclude.length > 0 && searchShift.value.exclude.includes(shiftId)) return false
+
+    return true
+  })
+})
+
+function handleResetFilters() {
+  searchQuery.value = ''
+  searchRole.value = { include: [], exclude: [] }
+  searchShift.value = { include: [], exclude: [] }
+}
 
 async function fetchData() {
   loading.value = true
@@ -141,9 +183,68 @@ onMounted(fetchData)
     </template>
   </WmsActionHeader>
 
-  <div
-    class="bg-secondary/5 shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(80vh)]"
-  >
+  <div class="p-6">
+    <!-- Filter Section -->
+    <BaseFilterPanel class="mb-6">
+      <template #filters>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:flex xl:flex-row lg:justify-between items-end gap-4">
+          <!-- Search -->
+          <div class="space-y-1.5 flex-1">
+            <label class="text-xs font-bold text-text/60 uppercase tracking-wide">Pencarian</label>
+            <div class="relative group">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text/40 group-focus-within:text-primary transition-colors">
+                <font-awesome-icon icon="fa-solid fa-search" />
+              </span>
+              <input
+                v-model="searchQuery"
+                type="text"
+                class="w-full pl-10 pr-4 py-2.5 bg-background border border-secondary hover:border-primary/50 focus:border-primary rounded-lg text-sm transition-all shadow-sm"
+                placeholder="Cari username atau nickname..."
+              />
+            </div>
+          </div>
+
+          <!-- Role Filter -->
+          <div class="space-y-1.5 w-full lg:w-[150px]">
+            <label class="text-xs font-bold text-text/60 uppercase tracking-wide">Role</label>
+            <TriStateSelect
+              v-model="searchRole"
+              :options="roleOptions"
+              label="label"
+              track="id"
+              placeholder="Semua Role"
+            />
+          </div>
+
+          <!-- Shift Filter -->
+          <div class="space-y-1.5 w-full lg:w-[150px]">
+            <label class="text-xs font-bold text-text/60 uppercase tracking-wide">Shift</label>
+            <TriStateSelect
+              v-model="searchShift"
+              :options="shiftOptions"
+              label="label"
+              track="id"
+              placeholder="Semua Shift"
+            />
+          </div>
+        </div>
+      </template>
+
+      <template #actions>
+        <button
+          @click="handleResetFilters"
+          class="h-10 px-4 flex items-center justify-center gap-2 text-sm font-semibold rounded-lg border border-secondary/50 bg-background hover:bg-secondary/20 hover:text-danger transition-colors text-text/80 shadow-sm"
+          title="Reset Filter"
+        >
+          <font-awesome-icon icon="fa-solid fa-undo" />
+          <span class="hidden sm:inline">Reset</span>
+        </button>
+      </template>
+    </BaseFilterPanel>
+
+    <div
+      class="bg-secondary/5 shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(70vh)]"
+    >
     <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : 'min-w-[600px]'">
       <thead class="bg-background shadow-sm ring-1 ring-secondary/5" :class="isMobile ? 'hidden' : 'sticky top-0 z-30'">
         <tr class="text-xs text-text/80 uppercase">
@@ -173,13 +274,13 @@ onMounted(fetchData)
           <TableSkeleton v-for="n in 5" :key="`skeleton-${n}`" />
         </template>
 
-        <tr v-else-if="users.length === 0" key="empty">
-          <td colspan="5" class="py-12 text-center text-text/50 italic">Tidak ada data pengguna.</td>
+        <tr v-else-if="filteredUsers.length === 0" key="empty">
+          <td colspan="5" class="py-12 text-center text-text/50 italic">Tidak ada data pengguna yang cocok.</td>
         </tr>
 
         <tr
           v-else
-          v-for="user in users"
+          v-for="user in filteredUsers"
           :key="user.id"
           class="transition-colors group relative"
           :class="
@@ -256,6 +357,7 @@ onMounted(fetchData)
         </tr>
       </TransitionGroup>
     </table>
+    </div>
   </div>
 
   <!-- Semua Modal yang Digunakan di Halaman Ini -->

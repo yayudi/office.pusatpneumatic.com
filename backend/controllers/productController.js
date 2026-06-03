@@ -42,6 +42,11 @@ export const getProducts = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
 
   try {
+    const safeParse = (str) => {
+      if (!str) return [];
+      try { return JSON.parse(str); } catch (e) { return Array.isArray(str) ? str : [str]; }
+    };
+
     const filters = {
       page: parseInt(req.query.page) || 1,
       limit: parseInt(req.query.limit) || 20,
@@ -52,11 +57,22 @@ export const getProducts = async (req, res) => {
       is_package: req.query.is_package !== undefined ? req.query.is_package === "true" : undefined,
       packageOnly: req.query.packageOnly === "true",
       stockStatus: req.query.minusOnly === "true" ? "minus" : (req.query.stockStatus || "all"),
+      
+      // Tri-State Filters
+      categoryInclude: safeParse(req.query.categoryInclude),
+      categoryExclude: safeParse(req.query.categoryExclude),
+      buildingInclude: safeParse(req.query.buildingInclude),
+      buildingExclude: safeParse(req.query.buildingExclude),
+      floorInclude: safeParse(req.query.floorInclude),
+      floorExclude: safeParse(req.query.floorExclude),
+      
+      // Fallbacks
       building: req.query.building || "all",
       floor: req.query.floor || "all",
+      categoryId: req.query.category_id || "",
+      
       sortBy: req.query.sortBy || "sku",
       sortOrder: req.query.sortOrder === "asc" ? "ASC" : "DESC",
-      categoryId: req.query.category_id || "",
     };
     filters.offset = (filters.page - 1) * filters.limit;
     const result = await productRepo.getProductsWithFilters(db, filters);

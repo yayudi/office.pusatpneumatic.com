@@ -13,7 +13,11 @@ export const getStockMovements = async (req, res) => {
 
     let buildingsArray = [];
     if (building) {
-      buildingsArray = Array.isArray(building) ? building : building.split(',');
+      if (typeof building === 'object' && !Array.isArray(building)) {
+        buildingsArray = building;
+      } else {
+        buildingsArray = Array.isArray(building) ? building : building.split(',');
+      }
     }
 
     const filters = {
@@ -81,7 +85,11 @@ export const getStockTimeline = async (req, res) => {
 
     let buildingsArray = [];
     if (building) {
-      buildingsArray = Array.isArray(building) ? building : building.split(',');
+      if (typeof building === 'object' && !Array.isArray(building)) {
+        buildingsArray = building;
+      } else {
+        buildingsArray = Array.isArray(building) ? building : building.split(',');
+      }
     }
 
     const filters = {
@@ -142,7 +150,11 @@ export const getInventoryValue = async (req, res) => {
 
     let buildingsArray = [];
     if (building) {
-      buildingsArray = Array.isArray(building) ? building : building.split(',');
+      if (typeof building === 'object' && !Array.isArray(building)) {
+        buildingsArray = building;
+      } else {
+        buildingsArray = Array.isArray(building) ? building : building.split(',');
+      }
     }
 
     const filters = {

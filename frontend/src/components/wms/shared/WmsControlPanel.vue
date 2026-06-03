@@ -4,6 +4,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useResizeObserver, useEventListener } from '@vueuse/core'
 import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import TriStateSelect from '@/components/ui/TriStateSelect.vue'
 import { useMobile } from '@/composables/useMobile'
 
 defineProps({
@@ -24,9 +25,9 @@ defineProps({
   activeView: String,
   productTypeFilter: { type: String, default: 'all' },
   stockStatusFilter: { type: String, default: 'all' },
-  selectedBuilding: String,
-  selectedFloor: String,
-  selectedCategory: String,
+  selectedBuilding: { type: Object, default: () => ({ include: [], exclude: [] }) },
+  selectedFloor: { type: Object, default: () => ({ include: [], exclude: [] }) },
+  selectedCategory: { type: Object, default: () => ({ include: [], exclude: [] }) },
   mobileLayout: { type: String, default: 'card' },
   availableColumns: { type: Array, default: () => [] },
   visibleColumns: { type: Object, default: () => new Set() }
@@ -132,7 +133,7 @@ useEventListener(
   <BaseFilterPanel class="z-50">
     <!-- Search Row -->
     <template #search>
-      <div class="relative flex-grow group w-full xl:w-[1vw] shadow-sm rounded-lg">
+      <div class="relative flex-grow group w-full xl:w-[1vw] shadow-sm rounded-lg items-end mt-auto">
         <span
           class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text/40 group-focus-within:text-primary transition-colors"
         >
@@ -161,7 +162,7 @@ useEventListener(
 
     <!-- Tabs Row -->
     <template #tabs>
-      <div class="flex flex-col md:flex-row gap-1 w-full lg:w-auto">
+      <div class="flex flex-col md:flex-row gap-1 w-full lg:w-auto items-end mt-auto">
         <!-- Search By Tabs -->
         <div class="flex bg-background p-1 rounded-lg border border-secondary h-[42px] shrink-0 items-center shadow-sm">
           <button
@@ -176,22 +177,26 @@ useEventListener(
         </div>
 
         <!-- View Tabs -->
-        <div
-          class="flex bg-background p-1 rounded-lg border border-secondary h-[42px] overflow-x-auto no-scrollbar shrink-0 items-center shadow-sm"
-        >
-          <button
-            v-for="view in warehouseViews"
-            :key="view.value"
-            @click="emit('update:activeView', view.value)"
-            class="flex-1 px-3 py-1 rounded text-xs font-bold whitespace-nowrap transition-all flex items-center justify-center h-full"
-            :class="[
-              activeView === view.value
-                ? 'bg-primary text-secondary shadow-sm font-bold'
-                : 'text-text/60 hover:text-text hover:bg-secondary/10'
-            ]"
+
+        <div :class="isMobile ? 'flex gap-2 animate-fade-in w-full lg:w-auto lg:min-w-[160px]' : 'w-auto'">
+          <label class="block text-xs font-semibold text-text/60 text-center mb-1">Lokasi</label>
+          <div
+            class="flex bg-background p-1 rounded-lg border border-secondary h-[42px] overflow-x-auto no-scrollbar shrink-0 items-center shadow-sm"
           >
-            {{ view.label }}
-          </button>
+            <button
+              v-for="view in warehouseViews"
+              :key="view.value"
+              @click="emit('update:activeView', view.value)"
+              class="flex-1 px-3 py-1 rounded text-xs font-bold whitespace-nowrap transition-all flex items-center justify-center h-full"
+              :class="[
+                activeView === view.value
+                  ? 'bg-primary text-secondary shadow-sm font-bold'
+                  : 'text-text/60 hover:text-text hover:bg-secondary/10'
+              ]"
+            >
+              {{ view.label }}
+            </button>
+          </div>
         </div>
       </div>
     </template>
@@ -201,34 +206,36 @@ useEventListener(
       <div class="flex flex-wrap items-center justify-between gap-1 min-w-full lg:min-w-0">
         <!-- Filter Warehouse (Hanya tampil jika view gudang) -->
         <div v-if="activeView === 'gudang'" class="flex gap-1 animate-fade-in w-full lg:w-auto lg:min-w-[160px]">
-          <BaseSelect
-            :model-value="selectedBuilding"
-            @update:modelValue="emit('update:selectedBuilding', $event)"
-            :options="buildingFilterOptions"
-            track-by="value"
-            emit-value
-            :searchable="false"
-            clearable
-            clear-value="all"
-            placeholder="Gedung"
-            :class="isMobile ? 'w-full' : ''"
-          />
-          <BaseSelect
-            :model-value="selectedFloor"
-            @update:modelValue="emit('update:selectedFloor', $event)"
-            :options="floorFilterOptions"
-            track-by="value"
-            emit-value
-            :searchable="false"
-            clearable
-            clear-value="all"
-            placeholder="Lantai"
-            :class="isMobile ? 'w-full' : ''"
-          />
+          <div :class="isMobile ? 'flex gap-2 animate-fade-in w-full lg:w-auto lg:min-w-[160px]' : 'w-auto'">
+            <label class="block text-xs font-semibold text-text/60 text-center mb-1">Gedung</label>
+            <TriStateSelect
+              :model-value="selectedBuilding"
+              @update:modelValue="emit('update:selectedBuilding', $event)"
+              :options="buildingFilterOptions"
+              placeholder="Gedung"
+              label="label"
+              track-by="value"
+              :class="isMobile ? 'w-full' : ''"
+            />
+          </div>
+
+          <div :class="isMobile ? 'flex gap-2 animate-fade-in w-full lg:w-auto lg:min-w-[160px]' : 'w-auto'">
+            <label class="block text-xs font-semibold text-text/60 text-center mb-1">Lantai</label>
+            <TriStateSelect
+              :model-value="selectedFloor"
+              @update:modelValue="emit('update:selectedFloor', $event)"
+              :options="floorFilterOptions"
+              placeholder="Lantai"
+              label="label"
+              track-by="value"
+              :class="isMobile ? 'w-full' : ''"
+            />
+          </div>
         </div>
 
         <!-- Type Filter -->
-        <div :class="ismobile ? 'flex gap-2 animate-fade-in w-full lg:w-auto lg:min-w-[160px]' : 'w-auto'">
+        <div :class="isMobile ? 'flex gap-2 animate-fade-in w-full lg:w-auto lg:min-w-[160px]' : 'w-auto'">
+          <label class="block text-xs font-semibold text-text/60 text-center mb-1">Tipe</label>
           <BaseSelect
             :model-value="productTypeFilter"
             @update:modelValue="emit('update:productTypeFilter', $event)"
@@ -251,7 +258,8 @@ useEventListener(
         </div>
 
         <!-- Status Stock -->
-        <div :class="ismobile ? 'w-1/2' : 'w-auto'">
+        <div :class="isMobile ? 'w-1/2' : 'w-auto'">
+          <label class="block text-xs font-semibold text-text/60 text-center mb-1">Status</label>
           <BaseSelect
             :model-value="stockStatusFilter"
             @update:modelValue="emit('update:stockStatusFilter', $event)"
@@ -274,28 +282,29 @@ useEventListener(
         </div>
 
         <!-- Category Filter -->
-        <div
-          class="w-full lg:w-[160px] relative column-selector-group shrink-0 gap-2"
-          :class="ismobile ? 'grid grid-cols-2' : 'flex'"
-        >
-          <BaseSelect
+        <div :class="isMobile ? 'flex gap-2 animate-fade-in w-full lg:w-auto lg:min-w-[160px]' : 'w-auto'">
+          <label class="block text-xs font-semibold text-text/60 text-center mb-1">Kategori</label>
+          <TriStateSelect
             :model-value="selectedCategory"
             @update:modelValue="emit('update:selectedCategory', $event)"
             :options="categoryFilterOptions"
-            track-by="id"
-            emit-value
-            :searchable="true"
-            clearable
-            clear-value="all"
             placeholder="Kategori"
-            class="w-1/2 lg:w-[160px]"
+            label="label"
+            track-by="id"
+            class="w-full"
             :class="[
-              selectedCategory !== 'all'
+              selectedCategory?.include?.length > 0 || selectedCategory?.exclude?.length > 0
                 ? 'bg-accent/5 border-accent text-accent'
                 : 'bg-background border-secondary text-text/60 hover:text-text'
             ]"
           />
+        </div>
 
+        <div
+          :class="
+            isMobile ? 'flex gap-2 animate-fade-in w-full lg:w-auto lg:min-w-[160px]' : 'w-auto items-end mt-auto'
+          "
+        >
           <!-- Column Visibility Selector -->
           <button
             ref="buttonRef"

@@ -27,6 +27,7 @@
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.19",
     "event-source-polyfill": "^1.0.31",
+    "fabric": "^7.4.0",
     "jwt-decode": "^4.0.0",
     "lodash": "^4.17.21",
     "papaparse": "^5.5.3",

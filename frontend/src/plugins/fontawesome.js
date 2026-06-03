@@ -136,6 +136,7 @@ import {
   faPlayCircle,
   faPlus,
   faPlusCircle,
+  faPrint,
   faRankingStar,
   faRightLeft,
   faRotate,
@@ -191,7 +192,7 @@ import {
   faWarehouse,
   faWifi,
   faWrench,
-  faXmark,
+  faXmark
 } from '@fortawesome/free-solid-svg-icons'
 library.add(
   faAngleLeft,
@@ -329,6 +330,7 @@ library.add(
   faPlayCircle,
   faPlus,
   faPlusCircle,
+  faPrint,
   faRankingStar,
   faRightLeft,
   faRotate,
@@ -384,7 +386,7 @@ library.add(
   faWarehouse,
   faWifi,
   faWrench,
-  faXmark,
+  faXmark
 )
 
 export default FontAwesomeIcon

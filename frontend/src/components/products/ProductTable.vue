@@ -112,6 +112,9 @@ function getSortIcon(field) {
               </div>
             </th>
 
+            <!-- KATEGORI -->
+            <th class="px-4 py-3 text-left border-b border-secondary/10">Kategori</th>
+
             <!-- BERAT -->
             <th class="px-4 py-3 text-right border-b border-secondary/10">Berat</th>
 

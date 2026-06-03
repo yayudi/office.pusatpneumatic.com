@@ -28,8 +28,7 @@ const sortOrder = ref('asc')
 
 const statusOptions = [
   { value: 'active', label: 'Aktif' },
-  { value: 'archived', label: 'Diarsipkan' },
-  { value: 'all', label: 'Semua' }
+  { value: 'archived', label: 'Diarsipkan' }
 ]
 
 // Modal State
@@ -334,6 +333,8 @@ watch(Slash, pressed => {
                 :options="statusOptions"
                 track-by="value"
                 emit-value
+                clearable
+                clearValue="all"
                 :searchable="false"
                 class="w-full sm:w-[150px]"
               />

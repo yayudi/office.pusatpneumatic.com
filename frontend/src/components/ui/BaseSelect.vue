@@ -80,7 +80,8 @@ const { floatingStyles } = useFloating(triggerRef, dropdownRef, {
     size({
       apply({ rects, elements }) {
         Object.assign(elements.floating.style, {
-          width: `${rects.reference.width}px`
+          minWidth: `${rects.reference.width}px`,
+          maxWidth: '90vw'
         })
       }
     })

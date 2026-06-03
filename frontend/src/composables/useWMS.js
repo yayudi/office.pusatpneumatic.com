@@ -31,9 +31,9 @@ export function useWms() {
   const searchBy = ref('name')
   const stockStatusFilter = ref('all')
   const productTypeFilter = ref('all')
-  const selectedBuilding = ref('all')
-  const selectedFloor = ref('all')
-  const selectedCategory = ref('all')
+  const selectedBuilding = ref({ include: [], exclude: [] })
+  const selectedFloor = ref({ include: [], exclude: [] })
+  const selectedCategory = ref({ include: [], exclude: [] })
   const sortBy = ref('name')
   const sortOrder = ref('asc')
   const isAutoRefetching = ref(true)
@@ -85,18 +85,28 @@ export function useWms() {
 
   function matchesFilters(loc) {
     let buildingMatch = true
-    if (selectedBuilding.value !== 'all') {
+    if (selectedBuilding.value.include.length > 0) {
       if (loc.building) {
-        buildingMatch = loc.building === selectedBuilding.value
+        buildingMatch = selectedBuilding.value.include.includes(loc.building)
       } else if (loc.location_code) {
-        buildingMatch = loc.location_code.startsWith(selectedBuilding.value)
+        buildingMatch = selectedBuilding.value.include.some(b => loc.location_code.startsWith(b))
+      }
+    } else if (selectedBuilding.value.exclude.length > 0) {
+      if (loc.building) {
+        buildingMatch = !selectedBuilding.value.exclude.includes(loc.building)
+      } else if (loc.location_code) {
+        buildingMatch = !selectedBuilding.value.exclude.some(b => loc.location_code.startsWith(b))
       }
     }
 
     let floorMatch = true
-    if (selectedFloor.value !== 'all') {
+    if (selectedFloor.value.include.length > 0) {
       if (loc.floor !== undefined && loc.floor !== null) {
-        floorMatch = String(loc.floor) === String(selectedFloor.value)
+        floorMatch = selectedFloor.value.include.includes(String(loc.floor))
+      }
+    } else if (selectedFloor.value.exclude.length > 0) {
+      if (loc.floor !== undefined && loc.floor !== null) {
+        floorMatch = !selectedFloor.value.exclude.includes(String(loc.floor))
       }
     }
 
@@ -180,9 +190,14 @@ export function useWms() {
         location: activeView.value,
         stockStatus: stockStatusFilter.value,
         is_package: productTypeFilter.value === 'all' ? undefined : productTypeFilter.value === 'package',
-        building: selectedBuilding.value,
-        floor: selectedFloor.value,
-        category_id: selectedCategory.value !== 'all' ? selectedCategory.value : undefined,
+        
+        buildingInclude: JSON.stringify(selectedBuilding.value.include),
+        buildingExclude: JSON.stringify(selectedBuilding.value.exclude),
+        floorInclude: JSON.stringify(selectedFloor.value.include),
+        floorExclude: JSON.stringify(selectedFloor.value.exclude),
+        categoryInclude: JSON.stringify(selectedCategory.value.include),
+        categoryExclude: JSON.stringify(selectedCategory.value.exclude),
+        
         sortBy: sortBy.value,
         sortOrder: sortOrder.value,
         startDate: startDate.value,
@@ -206,9 +221,12 @@ export function useWms() {
 
       const isMasterView =
         activeView.value === 'all' &&
-        selectedBuilding.value === 'all' &&
-        selectedFloor.value === 'all' &&
-        selectedCategory.value === 'all'
+        selectedBuilding.value.include.length === 0 &&
+        selectedBuilding.value.exclude.length === 0 &&
+        selectedFloor.value.include.length === 0 &&
+        selectedFloor.value.exclude.length === 0 &&
+        selectedCategory.value.include.length === 0 &&
+        selectedCategory.value.exclude.length === 0
 
       if (!isMasterView) {
         transformed = transformed.filter((p) => {

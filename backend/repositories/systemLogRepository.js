@@ -6,6 +6,34 @@ import db from "../config/db.js";
  * @param {object} filters
  * @returns {Promise<{data: Array, total: number}>}
  */
+const buildTriStateWhere = (column, filterValue, queryParams) => {
+  const clauses = [];
+  let parsed = filterValue;
+  if (typeof filterValue === 'string' && filterValue.startsWith('{')) {
+    try { parsed = JSON.parse(filterValue); } catch(e) {}
+  }
+  
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    if (parsed.include && parsed.include.length > 0) {
+      clauses.push(`${column} IN (?)`);
+      queryParams.push(parsed.include);
+    }
+    if (parsed.exclude && parsed.exclude.length > 0) {
+      clauses.push(`${column} NOT IN (?)`);
+      queryParams.push(parsed.exclude);
+    }
+  } else if (parsed && parsed !== 'All' && parsed !== 'all') {
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      clauses.push(`${column} IN (?)`);
+      queryParams.push(parsed);
+    } else if (typeof parsed === 'string') {
+      clauses.push(`${column} = ?`);
+      queryParams.push(parsed);
+    }
+  }
+  return clauses;
+};
+
 export const getLogs = async ({
   page = 1,
   limit = 20,
@@ -25,15 +53,11 @@ export const getLogs = async ({
     params.push(`%${search}%`, `%${search}%`);
   }
 
-  if (action && action !== "all") {
-    conditions.push("action = ?");
-    params.push(action);
-  }
+  const actionClauses = buildTriStateWhere('action', action, params);
+  if (actionClauses.length > 0) conditions.push(...actionClauses);
 
-  if (targetType && targetType !== "all") {
-    conditions.push("target_type = ?");
-    params.push(targetType);
-  }
+  const targetClauses = buildTriStateWhere('target_type', targetType, params);
+  if (targetClauses.length > 0) conditions.push(...targetClauses);
 
   if (userId && userId !== "all") {
     conditions.push("user_id = ?");

@@ -18,12 +18,14 @@ const isLoadingHistory = ref(false)
 const historyItems = ref([])
 const historyFilterState = ref({
   search: '',
-  source: 'ALL',
-  stockStatus: 'ALL',
+  source: { include: [], exclude: [] },
+  stockStatus: { include: [], exclude: [] },
+  shopName: { include: [], exclude: [] },
+  locationPurpose: { include: [], exclude: [] },
   sortBy: 'newest',
   viewMode: 'grid', // Default Grid
   startDate: '',
-  endDate: '',
+  endDate: ''
 })
 
 // --- LOGIC: GROUPING ---
@@ -32,7 +34,7 @@ const { groupedHistory } = useHistoryGrouping(historyItems, historyFilterState)
 
 // --- INFINITE SCROLL ---
 const { displayedItems, hasMore, reset, loaderRef } = useInfiniteScroll(groupedHistory, {
-  step: 12,
+  step: 12
 })
 
 watch(historyFilterState, () => reset(), { deep: true })
@@ -40,14 +42,16 @@ watch(historyFilterState, () => reset(), { deep: true })
 // --- COMPUTED: SHOP OPTIONS ---
 const shopOptions = computed(() => {
   const shops = new Set()
-  historyItems.value.forEach((item) => {
+  historyItems.value.forEach(item => {
     if (item.shop_name) shops.add(item.shop_name)
   })
 
   const options = [{ id: 'ALL', label: 'Semua Channel/Toko' }]
-  Array.from(shops).sort().forEach(shop => {
-    options.push({ id: shop, label: shop })
-  })
+  Array.from(shops)
+    .sort()
+    .forEach(shop => {
+      options.push({ id: shop, label: shop })
+    })
 
   return options
 })
@@ -89,7 +93,7 @@ onMounted(() => {
 <template>
   <div class="space-y-6 animate-fade-in pb-32">
     <!-- Filter Bar (Search, Date, Sort, View Mode) -->
-    <div class="bg-secondary/25 p-4 rounded-xl border border-dashed border-secondary/20">
+    <div class="bg-secondary/50 p-4 rounded-xl border border-dashed border-secondary/20">
       <PickingFilterBar v-model="historyFilterState" :shop-options="shopOptions" class="w-full" />
     </div>
 
@@ -108,8 +112,10 @@ onMounted(() => {
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="groupedHistory.length === 0"
-      class="py-24 text-center border-2 border-dashed border-secondary/20 rounded-2xl bg-secondary/5">
+    <div
+      v-else-if="groupedHistory.length === 0"
+      class="py-24 text-center border-2 border-dashed border-secondary/20 rounded-2xl bg-secondary/5"
+    >
       <h3 class="text-xl font-bold text-text/70">Belum ada Riwayat</h3>
       <p class="text-text/50 mt-1 text-sm">Selesaikan tugas picking untuk melihat arsip di sini.</p>
     </div>
@@ -117,24 +123,45 @@ onMounted(() => {
     <!-- Content -->
     <div v-else>
       <!-- View Mode: GRID (Masonry Card Standard) -->
-      <MasonryWall v-if="historyFilterState.viewMode === 'grid'" :items="displayedItems" :ssr-columns="1"
-        :column-width="350" :gap="16">
+      <MasonryWall
+        v-if="historyFilterState.viewMode === 'grid'"
+        :items="displayedItems"
+        :ssr-columns="1"
+        :column-width="350"
+        :gap="16"
+      >
         <template #default="{ item: inv }">
-          <PickingListCard :inv="inv" mode="history" :historyLogs="inv.historyLogs"
-            @cancel-invoice="handleCancelItem" />
+          <PickingListCard
+            :inv="inv"
+            mode="history"
+            :historyLogs="inv.historyLogs"
+            @cancel-invoice="handleCancelItem"
+          />
         </template>
       </MasonryWall>
 
       <!-- View Mode: COMPACT (Stack Card) -->
       <div v-else-if="historyFilterState.viewMode === 'compact'" class="flex flex-col gap-3">
-        <PickingListCardCompact v-for="inv in displayedItems" :key="inv.id" :inv="inv" mode="history"
-          :historyLogs="inv.historyLogs" @cancel-invoice="handleCancelItem" />
+        <PickingListCardCompact
+          v-for="inv in displayedItems"
+          :key="inv.id"
+          :inv="inv"
+          mode="history"
+          :historyLogs="inv.historyLogs"
+          @cancel-invoice="handleCancelItem"
+        />
       </div>
 
       <!-- View Mode: LIST (Stack Baris Lengkap) -->
       <div v-else class="flex flex-col border border-secondary/10 rounded-xl overflow-hidden shadow-sm bg-background">
-        <PickingListRow v-for="inv in displayedItems" :key="inv.id" :inv="inv" mode="history"
-          :historyLogs="inv.historyLogs" @cancel-invoice="handleCancelItem" />
+        <PickingListRow
+          v-for="inv in displayedItems"
+          :key="inv.id"
+          :inv="inv"
+          mode="history"
+          :historyLogs="inv.historyLogs"
+          @cancel-invoice="handleCancelItem"
+        />
       </div>
 
       <!-- Infinite Scroll Loader -->

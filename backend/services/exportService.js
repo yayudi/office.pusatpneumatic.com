@@ -15,7 +15,7 @@ const styleHeader = (
   rowNumber,
   colCount,
   bgColor = "FFD9E1F2",
-  fontColor = "FF000000"
+  fontColor = "FF000000",
 ) => {
   const row = worksheet.getRow(rowNumber);
   row.height = 20;
@@ -61,12 +61,7 @@ export const generateStockReportStreaming = async (filters, filePath) => {
 
     // Setup Sheet 1: Pivot / Ringkasan
     const pivotSheet = writer.addWorksheet("Ringkasan Stok");
-    const pivotHeaderTexts = [
-      "SKU",
-      "Nama Produk",
-      ...locationCodes,
-      "Grand Total",
-    ];
+    const pivotHeaderTexts = ["SKU", "Nama Produk", ...locationCodes, "Grand Total"];
 
     // Setup Columns
     const pivotColumns = [
@@ -74,9 +69,7 @@ export const generateStockReportStreaming = async (filters, filePath) => {
       { key: "NamaProduk", width: 50 },
     ];
     locationCodes.forEach((code) => pivotColumns.push({ key: code, width: 10 }));
-    pivotColumns.push(
-      { key: "GrandTotal", width: 15 }
-    );
+    pivotColumns.push({ key: "GrandTotal", width: 15 });
     pivotSheet.columns = pivotColumns;
 
     // Judul & Header
@@ -93,13 +86,7 @@ export const generateStockReportStreaming = async (filters, filePath) => {
 
     // Setup Sheet 2: Raw Data
     const rawSheet = writer.addWorksheet("Data Mentah");
-    const rawHeaderTexts = [
-      "SKU",
-      "Nama Produk",
-      "Lokasi",
-      "Kuantitas",
-      "Kuantitas",
-    ];
+    const rawHeaderTexts = ["SKU", "Nama Produk", "Lokasi", "Kuantitas", "Kuantitas"];
     rawSheet.columns = [
       { key: "Sku", width: 20 },
       { key: "NamaProduk", width: 50 },
@@ -188,7 +175,6 @@ export const generateStockReportStreaming = async (filters, filePath) => {
               data.NamaProduk,
               ...locationCodes.map((code) => (data[code] === 0 ? "" : data[code])),
               data.GrandTotalKuantitas,
-              data.GrandTotalKuantitas,
             ];
             const addedRow = pivotSheet.addRow(rowArray);
 
@@ -240,7 +226,7 @@ export const generateStockReportStreaming = async (filters, filePath) => {
     if (writer) {
       try {
         stream.end();
-      } catch (e) { }
+      } catch (e) {}
     }
     throw error;
   }
@@ -255,7 +241,7 @@ export const generateProductExportStreaming = async (filters, filePath) => {
   const isCsv = filters.format === "csv";
   Logger.info(
     `Mulai generate MASTER PRODUK (${isCsv ? "CSV" : "XLSX"}) ke: ${filePath}`,
-    "EXPORT_SERVICE"
+    "EXPORT_SERVICE",
   );
 
   let connection;
@@ -302,7 +288,7 @@ export const generateProductExportStreaming = async (filters, filePath) => {
       await pipeline(
         Readable.from(products),
         fastCsv.format({ headers: true }).transform(transformRow),
-        stream
+        stream,
       );
 
       Logger.info("CSV Pipeline Completed.", "EXPORT_SERVICE");
@@ -368,7 +354,7 @@ export const generateProductExportStreaming = async (filters, filePath) => {
       // Try to close writer/stream on error
       try {
         stream.end();
-      } catch (e) { }
+      } catch (e) {}
     }
     throw error;
   } finally {

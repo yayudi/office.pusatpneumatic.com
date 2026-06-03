@@ -13,6 +13,7 @@ import ProductFormModal from '@/components/wms/shared/ProductFormModal.vue'
 import ConnectionStatus from '@/components/wms/shared/ConnectionStatus.vue'
 import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import TriStateSelect from '@/components/ui/TriStateSelect.vue'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 import ProductTable from '@/components/products/ProductTable.vue'
 import ProductImageModal from '@/components/products/ProductImageModal.vue'
@@ -28,6 +29,9 @@ const filterType = ref('all')
 const filterStatus = ref('active')
 const sortBy = ref('sku')
 const sortOrder = ref('desc')
+
+const categoryOptions = ref([])
+const filterCategory = ref({ include: [], exclude: [] })
 
 const statusOptions = [
   { id: 'active', label: 'Produk Aktif' },
@@ -81,6 +85,8 @@ const fetchProducts = async () => {
       sortOrder: sortOrder.value,
       is_package: filterType.value === 'all' ? undefined : filterType.value === 'package',
       status: filterStatus.value,
+      categoryInclude: JSON.stringify(filterCategory.value.include),
+      categoryExclude: JSON.stringify(filterCategory.value.exclude),
     }
     const response = await axios.get('/products', { params })
     const resData = response.data
@@ -132,7 +138,10 @@ const handleFilterChange = debounce(() => {
   fetchProducts()
 }, 300)
 
-watch([searchQuery, searchBy, filterType, filterStatus], handleFilterChange)
+watch([
+  searchQuery, searchBy, filterType, filterStatus,
+  () => filterCategory.value.include, () => filterCategory.value.exclude
+], handleFilterChange, { deep: true })
 
 // Selection
 const toggleSelection = (id) => {
@@ -232,6 +241,8 @@ const handleExport = async ({ format }) => {
       sortOrder: sortOrder.value,
       is_package: filterType.value === 'all' ? undefined : filterType.value === 'package',
       status: filterStatus.value,
+      categoryInclude: JSON.stringify(filterCategory.value.include),
+      categoryExclude: JSON.stringify(filterCategory.value.exclude),
       format: format, // 'xlsx' or 'csv'
     }
 
@@ -276,8 +287,20 @@ const handleImageSaved = () => {
   fetchProducts()
 }
 
+const fetchCategories = async () => {
+  try {
+    const res = await axios.get('/categories')
+    if (res.data && res.data.success) {
+      categoryOptions.value = res.data.data.map((c) => ({ id: c.id, label: c.name }))
+    }
+  } catch (err) {
+    console.error('Gagal memuat kategori', err)
+  }
+}
+
 // Init
 onMounted(() => {
+  fetchCategories()
   fetchProducts()
 })
 
@@ -401,6 +424,17 @@ watch(Slash, (pressed) => {
               emit-value
               clearable
               clear-value="all"
+            />
+          </div>
+
+          <!-- Filter Kategori -->
+          <div class="shrink-0 w-full sm:w-48">
+            <TriStateSelect
+              v-model="filterCategory"
+              :options="categoryOptions"
+              label="label"
+              track="id"
+              placeholder="Semua Kategori"
             />
           </div>
 

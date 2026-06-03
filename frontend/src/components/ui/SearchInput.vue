@@ -6,12 +6,12 @@ import { computed } from 'vue'
 const props = defineProps({
   modelValue: {
     type: String,
-    default: '',
+    default: ''
   },
   placeholder: {
     type: String,
-    default: 'Cari...',
-  },
+    default: 'Cari...'
+  }
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -23,7 +23,7 @@ const value = computed({
   },
   set(val) {
     emit('update:modelValue', val)
-  },
+  }
 })
 
 // Fungsi untuk membersihkan input
@@ -44,7 +44,7 @@ function clearInput() {
       v-model="value"
       :placeholder="placeholder"
       type="text"
-      class="w-full rounded-lg border border-secondary/30 bg-background py-2 pl-10 pr-10 text-sm text-text focus:border-primary focus:ring-1 focus:ring-primary"
+      class="w-full rounded-lg border border-secondary bg-background py-2 pl-10 pr-10 text-sm text-text focus:border-primary focus:ring-1 focus:ring-primary"
     />
 
     <!-- Tombol 'x' (Clear) di kanan -->

@@ -9,7 +9,7 @@ import { id } from 'date-fns/locale'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
-import BaseSelect from '@/components/ui/BaseSelect.vue'
+import TriStateSelect from '@/components/ui/TriStateSelect.vue'
 import { computed } from 'vue'
 import { useMobile } from '@/composables/useMobile.js'
 
@@ -23,25 +23,25 @@ const page = ref(1)
 const limit = ref(20)
 
 // Filters
-const actionFilter = ref('all')
-const targetFilter = ref('all')
+const actionFilter = ref({ include: [], exclude: [] })
+const targetFilter = ref({ include: [], exclude: [] })
 
 const startDate = ref(null)
 const endDate = ref(null)
 
 const actionOptions = [
-  { value: 'CREATE', label: 'CREATE' },
-  { value: 'UPDATE', label: 'UPDATE' },
-  { value: 'DELETE', label: 'DELETE' },
-  { value: 'LOGIN', label: 'LOGIN' },
+  { id: 'CREATE', label: 'CREATE' },
+  { id: 'UPDATE', label: 'UPDATE' },
+  { id: 'DELETE', label: 'DELETE' },
+  { id: 'LOGIN', label: 'LOGIN' },
 ]
 
 const targetOptions = [
-  { value: 'PRODUCT', label: 'PRODUCT' },
-  { value: 'USER', label: 'USER' },
-  { value: 'ROLE', label: 'ROLE' },
-  { value: 'LOCATION', label: 'LOCATION' },
-  { value: 'SETTING', label: 'SETTING' },
+  { id: 'PRODUCT', label: 'PRODUCT' },
+  { id: 'USER', label: 'USER' },
+  { id: 'ROLE', label: 'ROLE' },
+  { id: 'LOCATION', label: 'LOCATION' },
+  { id: 'SETTING', label: 'SETTING' },
 ]
 
 const fetchLogs = async () => {
@@ -51,8 +51,8 @@ const fetchLogs = async () => {
       page: page.value,
       limit: limit.value,
       search: search.value,
-      action: actionFilter.value !== 'all' ? actionFilter.value : undefined,
-      targetType: targetFilter.value !== 'all' ? targetFilter.value : undefined,
+      action: JSON.stringify(actionFilter.value),
+      targetType: JSON.stringify(targetFilter.value),
       startDate: startDate.value,
       endDate: endDate.value,
     }
@@ -100,13 +100,18 @@ const onUpdateLimit = (l) => {
 }
 
 // Watchers
-watch([search, actionFilter, targetFilter, startDate, endDate], () => {
+watch([
+  search, 
+  () => actionFilter.value.include, () => actionFilter.value.exclude, 
+  () => targetFilter.value.include, () => targetFilter.value.exclude, 
+  startDate, endDate
+], () => {
   if (page.value !== 1) {
     page.value = 1
   } else {
     fetchLogs()
   }
-})
+}, { deep: true })
 
 watch([page, limit], () => {
   fetchLogs()
@@ -145,25 +150,19 @@ onMounted(() => {
 
       <DateRangeFilter v-model:startDate="startDate" v-model:endDate="endDate" />
 
-      <BaseSelect
+      <TriStateSelect
         v-model="actionFilter"
         :options="actionOptions"
-        track-by="value"
-        emit-value
-        :searchable="false"
-        clearable
-        clear-value="all"
+        label="label"
+        track="id"
         placeholder="Semua Aksi"
         class="min-w-[150px]"
       />
-      <BaseSelect
+      <TriStateSelect
         v-model="targetFilter"
         :options="targetOptions"
-        track-by="value"
-        emit-value
-        :searchable="false"
-        clearable
-        clear-value="all"
+        label="label"
+        track="id"
         placeholder="Semua Tipe"
         class="min-w-[150px]"
       />

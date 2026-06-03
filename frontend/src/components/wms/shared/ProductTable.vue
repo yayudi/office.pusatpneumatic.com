@@ -36,7 +36,8 @@ const emit = defineEmits([
   'openHistory',
   'openEdit',
   'delete',
-  'view-image'
+  'view-image',
+  'openSticker'
 ])
 
 const auth = useAuthStore()
@@ -622,6 +623,13 @@ onUnmounted(() => {
             class="w-full text-left px-4 py-2.5 hover:bg-primary/10 hover:text-primary flex items-center gap-3 transition-colors"
           >
             <font-awesome-icon icon="fa-solid fa-right-left" class="w-4 text-center" /> Transfer Stok
+          </button>
+
+          <button
+            @click="handleMenuAction('openSticker')"
+            class="w-full text-left px-4 py-2.5 hover:bg-primary/10 hover:text-primary flex items-center gap-3 transition-colors"
+          >
+            <font-awesome-icon icon="fa-solid fa-print" class="w-4 text-center" /> Cetak Sticker
           </button>
 
           <div class="h-px bg-primary/10 my-1"></div>

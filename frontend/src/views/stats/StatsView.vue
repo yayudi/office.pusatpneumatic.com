@@ -6,27 +6,18 @@ import { useMasterDataStore } from '@/stores/masterData'
 import { useToast } from '@/composables/useToast.js'
 import SearchInput from '@/components/ui/SearchInput.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import TriStateSelect from '@/components/ui/TriStateSelect.vue'
 import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
 import { formatNumber, formatCurrency } from '@/utils/formatters.js'
 import { useDownloadStore } from '@/stores/downloadStore.js'
 
 // Lazy load heavy chart components based on active tab
-const StockMovementStats = defineAsyncComponent(
-  () => import('@/components/stats/StockMovementStats.vue'),
-)
-const StockTimelineFull = defineAsyncComponent(
-  () => import('@/components/stats/StockTimelineFull.vue'),
-)
-const InventoryValueStats = defineAsyncComponent(
-  () => import('@/components/stats/InventoryValueStats.vue'),
-)
-const TimePerformanceStats = defineAsyncComponent(
-  () => import('@/components/stats/TimePerformanceStats.vue'),
-)
-const ShopPerformanceStats = defineAsyncComponent(
-  () => import('@/components/stats/ShopPerformanceStats.vue'),
-)
+const StockMovementStats = defineAsyncComponent(() => import('@/components/stats/StockMovementStats.vue'))
+const StockTimelineFull = defineAsyncComponent(() => import('@/components/stats/StockTimelineFull.vue'))
+const InventoryValueStats = defineAsyncComponent(() => import('@/components/stats/InventoryValueStats.vue'))
+const TimePerformanceStats = defineAsyncComponent(() => import('@/components/stats/TimePerformanceStats.vue'))
+const ShopPerformanceStats = defineAsyncComponent(() => import('@/components/stats/ShopPerformanceStats.vue'))
 
 const masterData = useMasterDataStore()
 const downloadStore = useDownloadStore()
@@ -45,15 +36,15 @@ const isHistoryLoading = ref(false)
 // State untuk filter
 const selectedFilters = ref({
   searchQuery: '',
-  building: [],
-  purpose: '',
+  building: { include: [], exclude: [] },
+  purpose: { include: [], exclude: [] },
   isPackage: '',
-  stockStatus: 'positive',
+  stockStatus: ''
 })
 const reportFilters = ref({
   allBuildings: [],
   purposes: [],
-  buildingsByPurpose: {},
+  buildingsByPurpose: {}
 })
 
 const activeReport = ref('overview')
@@ -63,56 +54,56 @@ const reportsMenu = [
     key: 'sales',
     label: 'Laporan Penjualan',
     group: 'Laporan Utama',
-    icon: 'fa-solid fa-chart-line',
+    icon: 'fa-solid fa-chart-line'
   },
   {
     key: 'stock-movement',
     label: 'Pergerakan Stok',
     group: 'Laporan Utama',
-    icon: 'fa-solid fa-boxes-stacked',
+    icon: 'fa-solid fa-boxes-stacked'
   },
   {
     key: 'stock-timeline',
     label: 'Timeline Stok',
     group: 'Laporan Utama',
-    icon: 'fa-solid fa-clock-rotate-left',
+    icon: 'fa-solid fa-clock-rotate-left'
   },
   {
     key: 'dead-stock',
     label: 'Laporan Stok Mati',
     group: 'Laporan Utama',
-    icon: 'fa-solid fa-skull',
+    icon: 'fa-solid fa-skull'
   },
   {
     key: 'inventory-value',
     label: 'Laporan Nilai Inventaris',
     group: 'Laporan Utama',
-    icon: 'fa-solid fa-dollar-sign',
+    icon: 'fa-solid fa-dollar-sign'
   },
   {
     key: 'time-performance',
     label: 'Performa Waktu',
     group: 'Laporan Utama',
-    icon: 'fa-solid fa-chart-line',
+    icon: 'fa-solid fa-chart-line'
   },
   {
     key: 'channel-performance',
     label: 'Performa Toko & Saluran',
     group: 'Laporan Utama',
-    icon: 'fa-solid fa-store',
+    icon: 'fa-solid fa-store'
   },
   {
     key: 'sku-audit',
     label: 'Audit SKU',
     group: 'Audit & Lainnya',
-    icon: 'fa-solid fa-search',
+    icon: 'fa-solid fa-search'
   },
   {
     key: 'export-stock',
     label: 'Ekspor Laporan Stok',
     group: 'Audit & Lainnya',
-    icon: 'fa-solid fa-file-excel',
-  },
+    icon: 'fa-solid fa-file-excel'
+  }
 ]
 
 async function loadKpiData() {
@@ -147,7 +138,7 @@ async function loadHistory() {
   try {
     const response = await getUserExportJobs()
     if (response.success) {
-      jobHistory.value = response.data.filter((job) => job.type === 'STOCK_REPORT')
+      jobHistory.value = response.data.filter(job => job.type === 'STOCK_REPORT')
     }
   } catch (error) {
     console.error('Gagal memuat riwayat:', error)
@@ -165,48 +156,50 @@ onMounted(() => {
   loadHistory()
 })
 
-const purposeOptions = computed(() => [
-  { id: '', label: '-- Semua Tujuan --' },
-  ...(reportFilters.value?.purposes || []).map((p) => ({ id: p, label: p })),
-])
+const purposeOptions = computed(() => {
+  return (reportFilters.value?.purposes || []).map(p => ({ value: p, label: p }))
+})
 
 const typeOptions = [
-  { id: '', label: 'Semua' },
   { id: '0', label: 'Tunggal' },
-  { id: '1', label: 'Paket' },
+  { id: '1', label: 'Paket' }
 ]
 
 const stockStatusOptions = [
   { id: 'positive', label: 'Positif' },
-  { id: 'negative', label: 'Minus' },
-  { id: 'all', label: 'Semua' },
+  { id: 'negative', label: 'Minus' }
 ]
 
 const availableBuildings = computed(() => {
-  const selectedPurpose = selectedFilters.value.purpose
-  if (!selectedPurpose) {
-    return reportFilters.value.allBuildings
+  const includedPurposes = selectedFilters.value.purpose?.include || []
+  if (!includedPurposes || includedPurposes.length === 0) {
+    return reportFilters.value.allBuildings.map(b => ({ value: b, label: b }))
   }
-  return reportFilters.value.buildingsByPurpose[selectedPurpose] || []
+  let buildings = new Set()
+  includedPurposes.forEach(p => {
+    const blds = reportFilters.value.buildingsByPurpose[p] || []
+    blds.forEach(b => buildings.add(b))
+  })
+  return Array.from(buildings).map(b => ({ value: b, label: b }))
 })
 
 watch(
   () => selectedFilters.value.purpose,
-  (newPurpose, oldPurpose) => {
-    if (newPurpose !== oldPurpose) {
-      selectedFilters.value.building = []
-    }
+  () => {
+    // Reset building when purpose changes
+    selectedFilters.value.building = { include: [], exclude: [] }
   },
+  { deep: true }
 )
 
 async function handleRequestExport() {
   const filters = {
     searchQuery: selectedFilters.value.searchQuery || null,
     building: selectedFilters.value.building,
-    purpose: selectedFilters.value.purpose || null,
+    purpose: selectedFilters.value.purpose,
     isPackage: selectedFilters.value.isPackage,
     stockStatus: selectedFilters.value.stockStatus || 'all',
-    exportType: 'STOCK_REPORT',
+    exportType: 'STOCK_REPORT'
   }
 
   isRequesting.value = true
@@ -233,7 +226,7 @@ function formatJobType(type) {
   if (!type) return '-'
   return type
     .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ')
 }
 
@@ -255,9 +248,7 @@ function formatJobType(type) {
       :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
     >
       <!-- Logo / Header -->
-      <div
-        class="p-6 border-b border-secondary/20 flex justify-between items-center bg-secondary/5"
-      >
+      <div class="p-6 border-b border-secondary/20 flex justify-between items-center bg-secondary/5">
         <h2 class="text-xl font-bold text-text flex items-center gap-3">
           <font-awesome-icon icon="fa-solid fa-chart-simple" class="text-primary" />
           <span>Statistik</span>
@@ -283,7 +274,7 @@ function formatJobType(type) {
           </span>
           <div class="space-y-1">
             <a
-              v-for="item in reportsMenu.filter((m) => m.group === groupName)"
+              v-for="item in reportsMenu.filter(m => m.group === groupName)"
               :key="item.key"
               href="#"
               @click.prevent="((activeReport = item.key), (isSidebarOpen = false))"
@@ -326,18 +317,11 @@ function formatJobType(type) {
             class="bg-background rounded-xl shadow-md border border-secondary/20 p-6 min-h-[calc(50vh+20rem)] relative overflow-visible animate-fade-in"
           >
             <div v-if="isLoading" class="flex flex-col items-center justify-center h-80">
-              <font-awesome-icon
-                icon="fa-solid fa-circle-notch"
-                spin
-                class="text-primary text-4xl mb-3"
-              />
+              <font-awesome-icon icon="fa-solid fa-circle-notch" spin class="text-primary text-4xl mb-3" />
               <span class="text-text/50 font-medium">Memuat Data...</span>
             </div>
 
-            <div
-              v-else-if="errorMessage"
-              class="flex flex-col items-center justify-center h-80 text-danger"
-            >
+            <div v-else-if="errorMessage" class="flex flex-col items-center justify-center h-80 text-danger">
               <div class="bg-danger/10 p-4 rounded-full mb-3">
                 <font-awesome-icon icon="fa-solid fa-triangle-exclamation" class="text-3xl" />
               </div>
@@ -354,7 +338,7 @@ function formatJobType(type) {
                       weekday: 'long',
                       year: 'numeric',
                       month: 'long',
-                      day: 'numeric',
+                      day: 'numeric'
                     })
                   }}</span>
                 </div>
@@ -403,34 +387,17 @@ function formatJobType(type) {
               </div>
 
               <KeepAlive>
-                <StockMovementStats
-                  v-if="activeReport === 'stock-movement'"
-                  class="animate-fade-in"
-                />
-                <StockTimelineFull
-                  v-else-if="activeReport === 'stock-timeline'"
-                  class="animate-fade-in"
-                />
-                <InventoryValueStats
-                  v-else-if="activeReport === 'inventory-value'"
-                  class="animate-fade-in"
-                />
-                <TimePerformanceStats
-                  v-else-if="activeReport === 'time-performance'"
-                  class="animate-fade-in"
-                />
-                <ShopPerformanceStats
-                  v-else-if="activeReport === 'channel-performance'"
-                  class="animate-fade-in"
-                />
+                <StockMovementStats v-if="activeReport === 'stock-movement'" class="animate-fade-in" />
+                <StockTimelineFull v-else-if="activeReport === 'stock-timeline'" class="animate-fade-in" />
+                <InventoryValueStats v-else-if="activeReport === 'inventory-value'" class="animate-fade-in" />
+                <TimePerformanceStats v-else-if="activeReport === 'time-performance'" class="animate-fade-in" />
+                <ShopPerformanceStats v-else-if="activeReport === 'channel-performance'" class="animate-fade-in" />
               </KeepAlive>
 
               <div v-if="activeReport === 'export-stock'" class="animate-fade-in">
                 <div class="mb-6 border-b border-secondary pb-4">
                   <h3 class="text-lg font-bold text-text">Ekspor Laporan Stok</h3>
-                  <p class="text-sm text-text/50 mt-1">
-                    Filter dan unduh data stok gudang dalam format Excel.
-                  </p>
+                  <p class="text-sm text-text/50 mt-1">Filter dan unduh data stok gudang dalam format Excel.</p>
                 </div>
 
                 <div class="grid lg:grid-cols-3 gap-8">
@@ -449,21 +416,23 @@ function formatJobType(type) {
 
                           <div>
                             <label class="label-input">Gedung</label>
-                            <BaseSelect
+                            <TriStateSelect
                               v-model="selectedFilters.building"
                               :options="availableBuildings"
-                              :multiple="true"
+                              label="label"
+                              track-by="value"
                               placeholder="Semua Gedung"
                             />
                           </div>
 
                           <div>
                             <label class="label-input">Tujuan</label>
-                            <BaseSelect
+                            <TriStateSelect
                               v-model="selectedFilters.purpose"
                               :options="purposeOptions"
-                              emitValue
-                              :searchable="false"
+                              label="label"
+                              track-by="value"
+                              placeholder="Semua Tujuan"
                             />
                           </div>
 
@@ -474,6 +443,9 @@ function formatJobType(type) {
                                 v-model="selectedFilters.isPackage"
                                 :options="typeOptions"
                                 emitValue
+                                clearable
+                                clear-value="all"
+                                placeholder="Semua Tipe"
                                 :searchable="false"
                               />
                             </div>
@@ -483,6 +455,9 @@ function formatJobType(type) {
                                 v-model="selectedFilters.stockStatus"
                                 :options="stockStatusOptions"
                                 emitValue
+                                clearable
+                                clear-value="all"
+                                placeholder="Semua Status"
                                 :searchable="false"
                               />
                             </div>
@@ -493,11 +468,7 @@ function formatJobType(type) {
                             :disabled="isRequesting"
                             class="w-full py-3 bg-primary text-secondary rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
                           >
-                            <font-awesome-icon
-                              v-if="isRequesting"
-                              icon="fa-solid fa-circle-notch"
-                              spin
-                            />
+                            <font-awesome-icon v-if="isRequesting" icon="fa-solid fa-circle-notch" spin />
                             <font-awesome-icon v-else icon="fa-solid fa-file-export" />
                             <span>{{ isRequesting ? 'Memproses...' : 'Generate Laporan' }}</span>
                           </button>
@@ -508,18 +479,13 @@ function formatJobType(type) {
 
                   <div class="lg:col-span-2">
                     <div class="flex justify-between items-center mb-4">
-                      <h4 class="text-sm font-bold text-text/70 uppercase tracking-wide">
-                        Riwayat Generate
-                      </h4>
+                      <h4 class="text-sm font-bold text-text/70 uppercase tracking-wide">Riwayat Generate</h4>
                       <button
                         @click="loadHistory"
                         :disabled="isHistoryLoading"
                         class="text-xs text-primary font-bold hover:text-primary/80 disabled:opacity-50 flex items-center gap-1.5 transition-colors"
                       >
-                        <font-awesome-icon
-                          icon="fa-solid fa-rotate"
-                          :class="{ 'animate-spin': isHistoryLoading }"
-                        />
+                        <font-awesome-icon icon="fa-solid fa-rotate" :class="{ 'animate-spin': isHistoryLoading }" />
                         Refresh
                       </button>
                     </div>
@@ -547,9 +513,7 @@ function formatJobType(type) {
                             >
                               Tipe
                             </th>
-                            <th
-                              class="px-3 py-3 font-bold text-xs text-text/60 uppercase border-b border-secondary/10"
-                            >
+                            <th class="px-3 py-3 font-bold text-xs text-text/60 uppercase border-b border-secondary/10">
                               Status
                             </th>
                             <th
@@ -559,20 +523,13 @@ function formatJobType(type) {
                             </th>
                           </tr>
                         </thead>
-                        <TransitionGroup
-                          tag="tbody"
-                          name="list"
-                          class="divide-y divide-secondary/5 relative"
-                        >
+                        <TransitionGroup tag="tbody" name="list" class="divide-y divide-secondary/5 relative">
                           <template v-if="isHistoryLoading && jobHistory.length === 0">
                             <TableSkeleton v-for="n in 3" :key="`skeleton-${n}`" />
                           </template>
 
                           <tr v-else-if="jobHistory.length === 0" key="empty">
-                            <td
-                              colspan="3"
-                              class="px-6 py-12 text-sm text-text/40 text-center italic"
-                            >
+                            <td colspan="3" class="px-6 py-12 text-sm text-text/40 text-center italic">
                               <font-awesome-icon
                                 icon="fa-solid fa-clock-rotate-left"
                                 class="mb-3 text-3xl opacity-20 block mx-auto"
@@ -638,9 +595,7 @@ function formatJobType(type) {
                                 class="inline-flex items-center gap-1.5 justify-center align-center w-full py-1 rounded-full text-[10px] font-bold bg-warning/10 text-warning border border-warning/20"
                                 title="Proses"
                               >
-                                <span
-                                  class="w-1.5 h-1.5 rounded-full bg-current animate-ping"
-                                ></span>
+                                <span class="w-1.5 h-1.5 rounded-full bg-current animate-ping"></span>
                               </span>
                             </td>
                             <td
@@ -661,10 +616,7 @@ function formatJobType(type) {
                               >
                                 Error
                               </span>
-                              <span
-                                v-else
-                                class="text-xs text-text/30 align-center justify-center italic"
-                              >
+                              <span v-else class="text-xs text-text/30 align-center justify-center italic">
                                 Menunggu...
                               </span>
                             </td>
@@ -686,15 +638,12 @@ function formatJobType(type) {
                     'inventory-value',
                     'time-performance',
                     'export-stock',
-                    'channel-performance',
+                    'channel-performance'
                   ].includes(activeReport)
                 "
                 class="flex flex-col items-center justify-center h-80 text-text/30"
               >
-                <font-awesome-icon
-                  icon="fa-solid fa-screwdriver-wrench"
-                  class="text-4xl mb-3 opacity-20"
-                />
+                <font-awesome-icon icon="fa-solid fa-screwdriver-wrench" class="text-4xl mb-3 opacity-20" />
                 <h3 class="text-lg font-medium italic">Laporan ini sedang dalam pengembangan.</h3>
                 <p class="text-sm">Silakan kembali lagi nanti.</p>
               </div>

@@ -26,9 +26,26 @@ export const getStockReportStream = (connection, filters) => {
       break;
   }
 
-  if (filters.building && filters.building !== "all" && filters.building.length > 0) {
-    whereClauses.push("l.building IN (?)");
-    queryParams.push(filters.building);
+  // Handle array / object filters for building
+  if (filters.building) {
+    if (Array.isArray(filters.building)) {
+      if (filters.building.length > 0) {
+        whereClauses.push("l.building IN (?)");
+        queryParams.push(filters.building);
+      }
+    } else if (typeof filters.building === 'object') {
+      if (filters.building.include && filters.building.include.length > 0) {
+        whereClauses.push("l.building IN (?)");
+        queryParams.push(filters.building.include);
+      }
+      if (filters.building.exclude && filters.building.exclude.length > 0) {
+        whereClauses.push("l.building NOT IN (?)");
+        queryParams.push(filters.building.exclude);
+      }
+    } else if (filters.building !== "all" && filters.building !== "") {
+      whereClauses.push("l.building = ?");
+      queryParams.push(filters.building);
+    }
   }
 
   if (filters.searchQuery) {
@@ -36,9 +53,26 @@ export const getStockReportStream = (connection, filters) => {
     queryParams.push(`%${filters.searchQuery}%`, `%${filters.searchQuery}%`);
   }
 
+  // Handle array / object filters for purpose
   if (filters.purpose) {
-    whereClauses.push("l.purpose = ?");
-    queryParams.push(filters.purpose);
+    if (Array.isArray(filters.purpose)) {
+      if (filters.purpose.length > 0) {
+        whereClauses.push("l.purpose IN (?)");
+        queryParams.push(filters.purpose);
+      }
+    } else if (typeof filters.purpose === 'object') {
+      if (filters.purpose.include && filters.purpose.include.length > 0) {
+        whereClauses.push("l.purpose IN (?)");
+        queryParams.push(filters.purpose.include);
+      }
+      if (filters.purpose.exclude && filters.purpose.exclude.length > 0) {
+        whereClauses.push("l.purpose NOT IN (?)");
+        queryParams.push(filters.purpose.exclude);
+      }
+    } else if (filters.purpose !== "all" && filters.purpose !== "") {
+      whereClauses.push("l.purpose = ?");
+      queryParams.push(filters.purpose);
+    }
   }
 
   if (filters.isPackage !== null && filters.isPackage !== undefined && filters.isPackage !== "") {

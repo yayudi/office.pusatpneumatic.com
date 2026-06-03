@@ -5,6 +5,8 @@ import { useToast } from '@/composables/useToast.js'
 import { useTheme } from '@/composables/useTheme.js'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import TriStateSelect from '@/components/ui/TriStateSelect.vue'
+import StatsFilterBar from './shared/StatsFilterBar.vue'
 import { fetchShopPerformance } from '@/api/helpers/stats.js'
 import api from '@/api/axios'
 import VueApexCharts from 'vue3-apexcharts'
@@ -21,7 +23,7 @@ const dailyTrendData = ref([])
 const topProductsData = ref([])
 const fulfillmentData = ref([])
 const comparisonData = ref({ current: {}, previous: {}, delta: {} })
-const shopOptions = ref([{ id: 'All', label: 'Semua Toko / Sales' }])
+const shopOptions = ref([])
 
 const filterValues = ref({
   reportType: 'monthly',
@@ -29,8 +31,8 @@ const filterValues = ref({
   selectedMonth: ('0' + (new Date().getMonth() + 1)).slice(-2),
   startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
   endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
-  source: 'All',
-  shopName: 'All',
+  source: { include: [], exclude: [] },
+  shopName: { include: [], exclude: [] },
 })
 
 const tabs = [
@@ -48,7 +50,6 @@ const reportTypeOptions = [
 ]
 
 const sourceOptions = [
-  { id: 'All', label: 'Semua Saluran' },
   { id: 'Tokopedia', label: 'Tokopedia / TikTok' },
   { id: 'Shopee', label: 'Shopee' },
   { id: 'Offline', label: 'Offline / Lainnya' },
@@ -135,10 +136,7 @@ onMounted(async () => {
     const res = await api.get('/sales-channels?activeOnly=true')
     if (res.data?.success) {
       const channels = res.data.data || []
-      shopOptions.value = [
-        { id: 'All', label: 'Semua Toko / Sales' },
-        ...channels.map((ch) => ({ id: ch.name, label: `${ch.name} (${ch.platform})` })),
-      ]
+      shopOptions.value = channels.map((ch) => ({ id: ch.name, label: `${ch.name} (${ch.platform})` }))
     }
   } catch {
     /* silently fail, dropdown stays with 'All' */
@@ -319,9 +317,16 @@ const periodLabel = computed(() => {
     </div>
 
     <!-- Filter Controls -->
-    <div class="bg-background border border-secondary p-4 rounded-xl flex flex-col gap-4 shadow-sm">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
-        <div>
+    <StatsFilterBar
+      :loading="isDataLoading"
+      @apply="applyFilters"
+      :hasActiveAdvancedFilters="
+        filterValues.source.include.length > 0 || filterValues.source.exclude.length > 0 ||
+        filterValues.shopName.include.length > 0 || filterValues.shopName.exclude.length > 0
+      "
+    >
+      <template #main>
+        <div class="flex-1 min-w-[200px]">
           <label class="block text-xs font-semibold text-text/60 mb-2">Tipe Laporan</label>
           <BaseSelect
             v-model="filterValues.reportType"
@@ -330,7 +335,7 @@ const periodLabel = computed(() => {
             :searchable="false"
           />
         </div>
-        <div>
+        <div class="flex-[2] min-w-[300px]">
           <label class="block text-xs font-semibold text-text/60 mb-2">Waktu Spesifik</label>
           <div v-if="filterValues.reportType === 'annual'">
             <BaseSelect
@@ -365,36 +370,31 @@ const periodLabel = computed(() => {
             />
           </div>
         </div>
+      </template>
+
+      <template #advanced>
         <div>
           <label class="block text-xs font-semibold text-text/60 mb-2">Saluran Marketplace</label>
-          <BaseSelect
+          <TriStateSelect
             v-model="filterValues.source"
             :options="sourceOptions"
-            emitValue
-            :searchable="false"
+            label="label"
+            track="id"
+            placeholder="Semua Saluran"
           />
         </div>
         <div>
           <label class="block text-xs font-semibold text-text/60 mb-2">Nama Toko / Sales</label>
-          <BaseSelect
+          <TriStateSelect
             v-model="filterValues.shopName"
             :options="shopOptions"
-            emitValue
-            :searchable="true"
+            label="label"
+            track="id"
+            placeholder="Semua Toko / Sales"
           />
         </div>
-      </div>
-      <div class="flex items-start pt-2 border-t border-secondary/20 mt-2">
-        <button
-          @click="applyFilters"
-          :disabled="isDataLoading"
-          class="h-[42px] px-8 bg-primary text-secondary font-bold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex justify-center items-center text-sm ml-auto"
-        >
-          <font-awesome-icon v-if="isDataLoading" icon="fa-solid fa-spinner" spin class="mr-2" />
-          Terapkan Laporan
-        </button>
-      </div>
-    </div>
+      </template>
+    </StatsFilterBar>
 
     <!-- Tabs -->
     <div class="flex gap-1 bg-secondary/10 p-1 rounded-xl overflow-x-auto">

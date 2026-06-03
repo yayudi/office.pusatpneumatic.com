@@ -18,6 +18,7 @@ import WmsHistoryModal from '@/components/wms/shared/HistoryModal.vue'
 import WmsProductFormModal from '@/components/wms/shared/ProductFormModal.vue'
 import SalesSimulationModal from '@/components/wms/shared/SalesSimulationModal.vue'
 import ProductImageModal from '@/components/products/ProductImageModal.vue'
+import StickerGeneratorModal from '@/components/utilities/StickerGeneratorModal.vue'
 
 const { isMobile } = useMobile()
 const {
@@ -62,6 +63,8 @@ const searchTerm = ref('')
 const isProductFormOpen = ref(false)
 const productFormMode = ref('edit')
 const isSimulationModalOpen = ref(false)
+const isStickerModalOpen = ref(false)
+const selectedStickerProduct = ref(null)
 const mobileLayout = ref(isMobile.value ? 'card' : 'compact')
 const categoryOptions = ref([])
 const masterData = useMasterDataStore()
@@ -149,6 +152,11 @@ function openHistoryModal(product) {
   isHistoryModalOpen.value = true
 }
 
+function openStickerModal(product = null) {
+  selectedStickerProduct.value = product
+  isStickerModalOpen.value = true
+}
+
 // Master Data Functions
 function openEditProductModal(product) {
   productFormMode.value = 'edit'
@@ -187,7 +195,9 @@ function closeModal() {
   isProductFormOpen.value = false
   isSimulationModalOpen.value = false
   isImageModalOpen.value = false
+  isStickerModalOpen.value = false
   selectedProduct.value = null
+  selectedStickerProduct.value = null
 }
 
 async function handleTransferConfirm(payload) {
@@ -228,7 +238,8 @@ const anyModalOpen = computed(() => {
     isAdjustModalOpen.value ||
     isProductFormOpen.value ||
     isSimulationModalOpen.value ||
-    isImageModalOpen.value
+    isImageModalOpen.value ||
+    isStickerModalOpen.value
   )
 })
 
@@ -270,6 +281,15 @@ watch(Escape, pressed => {
         </router-link>
         <div v-if="!isMobile" class="w-px h-6 bg-primary"></div>
         <button
+          @click="openStickerModal(null)"
+          class="w-1/2 px-4 py-2 text-sm font-bold text-accent hover:bg-accent/10 rounded-lg transition-all flex items-center gap-2 justify-center whitespace-nowrap"
+          title="Batch Sticker Generator"
+        >
+          <font-awesome-icon icon="fa-solid fa-print" />
+          <span>Sticker</span>
+        </button>
+        <div v-if="!isMobile" class="w-px h-6 bg-primary"></div>
+        <button
           v-if="auth.hasPermission('view-prices')"
           @click="isSimulationModalOpen = true"
           class="w-1/2 px-4 py-2 text-sm font-bold text-success hover:bg-success/10 rounded-lg transition-all flex items-center gap-2 justify-center whitespace-nowrap"
@@ -283,7 +303,7 @@ watch(Escape, pressed => {
   </WmsActionHeader>
 
   <!-- Panel Kontrol Utama -->
-  <div class="bg-secondary/35 rounded-xl shadow-lg border border-secondary/20 p-2 lg:p-6 space-y-2 w-full">
+  <div class="bg-secondary/35 rounded-xl shadow-lg border border-secondary/20 p-2 lg:px-6 lg:pb-6 space-y-2 w-full">
     <WmsControlPanel
       class="sticky top-14"
       :search-placeholder="searchPlaceholder"
@@ -337,6 +357,7 @@ watch(Escape, pressed => {
         @sort="handleSort"
         :visible-columns="visibleColumns"
         @view-image="openImageModal"
+        @openSticker="openStickerModal"
       >
         <template #footer>
           <div ref="loader" class="text-center pt-6 pb-2">
@@ -398,6 +419,8 @@ watch(Escape, pressed => {
     @close="isImageModalOpen = false"
     @refresh="resetAndRefetch"
   />
+
+  <StickerGeneratorModal :show="isStickerModalOpen" :initialProduct="selectedStickerProduct" @close="closeModal" />
 </template>
 
 <style scoped>

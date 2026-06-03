@@ -1,5 +1,28 @@
 // backend/repositories/statisticRepository.js
 
+export const buildTriStateWhere = (field, filter, queryParams) => {
+  const clauses = [];
+  if (filter) {
+    if (Array.isArray(filter) && filter.length > 0) {
+      clauses.push(`${field} IN (?)`);
+      queryParams.push(filter);
+    } else if (typeof filter === 'object' && !Array.isArray(filter)) {
+      if (filter.include && filter.include.length > 0) {
+        clauses.push(`${field} IN (?)`);
+        queryParams.push(filter.include);
+      }
+      if (filter.exclude && filter.exclude.length > 0) {
+        clauses.push(`${field} NOT IN (?)`);
+        queryParams.push(filter.exclude);
+      }
+    } else if (typeof filter === 'string' && filter !== "all" && filter !== "") {
+      clauses.push(`${field} = ?`);
+      queryParams.push(filter);
+    }
+  }
+  return clauses;
+};
+
 /**
  * @param {Object} connection
  * @param {string} startDate
@@ -16,15 +39,17 @@ export const getStockMovementStats = async (connection, filters) => {
     FROM stock_locations
   `;
 
-  if (buildings && Array.isArray(buildings) && buildings.length > 0) {
+
+
+  const bClauses = buildTriStateWhere('l.building', buildings, queryParams);
+  if (bClauses.length > 0) {
     locSubquery = `
       SELECT sl.product_id, SUM(sl.quantity) as current_stock
       FROM stock_locations sl
       JOIN locations l ON sl.location_id = l.id
-      WHERE l.building IN (?)
+      WHERE ${bClauses.join(" AND ")}
       GROUP BY sl.product_id
     `;
-    queryParams.push(buildings);
   } else {
     locSubquery += ` GROUP BY product_id`;
   }
@@ -32,15 +57,39 @@ export const getStockMovementStats = async (connection, filters) => {
   // Stock Movements Subquery (Filtered by Building)
   let movFilter = "";
   let movParams = [startDate, endDate];
-  if (buildings && Array.isArray(buildings) && buildings.length > 0) {
-    movFilter = `
-      AND (
-        (sm.movement_type = 'INBOUND' AND tl.building IN (?))
-        OR
-        (sm.movement_type IN ('SALE', 'OUT') AND fl.building IN (?))
-      )
-    `;
-    movParams.push(buildings, buildings);
+  
+  if (buildings) {
+    if (Array.isArray(buildings) && buildings.length > 0) {
+      movFilter = `
+        AND (
+          (sm.movement_type = 'INBOUND' AND tl.building IN (?))
+          OR
+          (sm.movement_type IN ('SALE', 'OUT') AND fl.building IN (?))
+        )
+      `;
+      movParams.push(buildings, buildings);
+    } else if (typeof buildings === 'object' && !Array.isArray(buildings)) {
+      if (buildings.include && buildings.include.length > 0) {
+        movFilter += `
+          AND (
+            (sm.movement_type = 'INBOUND' AND tl.building IN (?))
+            OR
+            (sm.movement_type IN ('SALE', 'OUT') AND fl.building IN (?))
+          )
+        `;
+        movParams.push(buildings.include, buildings.include);
+      }
+      if (buildings.exclude && buildings.exclude.length > 0) {
+        movFilter += `
+          AND (
+            (sm.movement_type = 'INBOUND' AND (tl.building IS NULL OR tl.building NOT IN (?)))
+            OR
+            (sm.movement_type IN ('SALE', 'OUT') AND (fl.building IS NULL OR fl.building NOT IN (?)))
+          )
+        `;
+        movParams.push(buildings.exclude, buildings.exclude);
+      }
+    }
   }
 
   // Main Query
@@ -82,9 +131,9 @@ export const getStockMovementStats = async (connection, filters) => {
   }
 
   // Category Filter
-  if (categoryId && categoryId !== "all") {
-    query += ` AND p.category_id = ?`;
-    queryParams.push(categoryId);
+  const cClauses = buildTriStateWhere('p.category_id', categoryId, queryParams);
+  if (cClauses.length > 0) {
+    query += ` AND ${cClauses.join(" AND ")}`;
   }
 
   query += ` ORDER BY total_sold DESC`;
@@ -105,18 +154,41 @@ export const getInventoryValueStats = async (connection, filters) => {
 
   // Logic Filter
   if (stockStatus) {
-    if (stockStatus === "positive") {
-      whereClauses.push("COALESCE(sl.quantity, 0) > 0");
-    } else if (stockStatus === "negative") {
-      whereClauses.push("COALESCE(sl.quantity, 0) < 0");
-    } else if (stockStatus === "zero") {
-      whereClauses.push("COALESCE(sl.quantity, 0) = 0");
+    const applyStockStatus = (statusArr, isExclude = false) => {
+      const conds = [];
+      if (statusArr.includes("positive")) conds.push("COALESCE(sl.quantity, 0) > 0");
+      if (statusArr.includes("negative")) conds.push("COALESCE(sl.quantity, 0) < 0");
+      if (statusArr.includes("zero")) conds.push("COALESCE(sl.quantity, 0) = 0");
+      if (conds.length > 0) {
+        return `(${conds.join(isExclude ? " AND NOT " : " OR ")})`;
+      }
+      return null;
+    };
+
+    if (typeof stockStatus === 'string' && stockStatus !== 'all') {
+      const cond = applyStockStatus([stockStatus]);
+      if (cond) whereClauses.push(cond);
+    } else if (typeof stockStatus === 'object') {
+      if (stockStatus.include && stockStatus.include.length > 0) {
+        const cond = applyStockStatus(stockStatus.include);
+        if (cond) whereClauses.push(cond);
+      }
+      if (stockStatus.exclude && stockStatus.exclude.length > 0) {
+        // Exclude needs to invert the condition
+        const conds = [];
+        if (stockStatus.exclude.includes("positive")) conds.push("COALESCE(sl.quantity, 0) <= 0");
+        if (stockStatus.exclude.includes("negative")) conds.push("COALESCE(sl.quantity, 0) >= 0");
+        if (stockStatus.exclude.includes("zero")) conds.push("COALESCE(sl.quantity, 0) != 0");
+        if (conds.length > 0) {
+          whereClauses.push(`(${conds.join(" AND ")})`);
+        }
+      }
     }
   }
 
-  if (building && building !== "all" && building.length > 0) {
-    whereClauses.push("l.building IN (?)");
-    queryParams.push(building);
+  const bClauses = buildTriStateWhere('l.building', building, queryParams);
+  if (bClauses.length > 0) {
+    whereClauses.push(...bClauses);
   }
 
   if (searchQuery) {
@@ -124,9 +196,9 @@ export const getInventoryValueStats = async (connection, filters) => {
     queryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
   }
 
-  if (purpose) {
-    whereClauses.push("l.purpose = ?");
-    queryParams.push(purpose);
+  const pClauses = buildTriStateWhere('l.purpose', purpose, queryParams);
+  if (pClauses.length > 0) {
+    whereClauses.push(...pClauses);
   }
 
   if (isPackage !== null && isPackage !== undefined && isPackage !== "") {
@@ -134,9 +206,9 @@ export const getInventoryValueStats = async (connection, filters) => {
     queryParams.push(isPackage);
   }
 
-  if (categoryId && categoryId !== "all") {
-    whereClauses.push("p.category_id = ?");
-    queryParams.push(categoryId);
+  const cClauses = buildTriStateWhere('p.category_id', categoryId, queryParams);
+  if (cClauses.length > 0) {
+    whereClauses.push(...cClauses);
   }
 
   const query = `
@@ -172,16 +244,38 @@ export const getMovementTimelineStats = async (connection, filters) => {
   const queryParams = [startDate, endDate];
 
   let buildingFilter = "";
-  if (buildings && Array.isArray(buildings) && buildings.length > 0) {
-    // In timeline, we check if either source or destination matches the building
-    buildingFilter = `
-      AND (
-        (sm.movement_type = 'INBOUND' AND tl.building IN (?))
-        OR
-        (sm.movement_type IN ('SALE', 'OUT') AND fl.building IN (?))
-      )
-    `;
-    queryParams.push(buildings, buildings);
+  if (buildings) {
+    if (Array.isArray(buildings) && buildings.length > 0) {
+      buildingFilter = `
+        AND (
+          (sm.movement_type = 'INBOUND' AND tl.building IN (?))
+          OR
+          (sm.movement_type IN ('SALE', 'OUT') AND fl.building IN (?))
+        )
+      `;
+      queryParams.push(buildings, buildings);
+    } else if (typeof buildings === 'object' && !Array.isArray(buildings)) {
+      if (buildings.include && buildings.include.length > 0) {
+        buildingFilter += `
+          AND (
+            (sm.movement_type = 'INBOUND' AND tl.building IN (?))
+            OR
+            (sm.movement_type IN ('SALE', 'OUT') AND fl.building IN (?))
+          )
+        `;
+        queryParams.push(buildings.include, buildings.include);
+      }
+      if (buildings.exclude && buildings.exclude.length > 0) {
+        buildingFilter += `
+          AND (
+            (sm.movement_type = 'INBOUND' AND (tl.building IS NULL OR tl.building NOT IN (?)))
+            OR
+            (sm.movement_type IN ('SALE', 'OUT') AND (fl.building IS NULL OR fl.building NOT IN (?)))
+          )
+        `;
+        queryParams.push(buildings.exclude, buildings.exclude);
+      }
+    }
   }
 
   let searchJoin = "";
@@ -197,9 +291,9 @@ export const getMovementTimelineStats = async (connection, filters) => {
       queryParams.push(likeTerm, likeTerm);
     }
 
-    if (categoryId && categoryId !== "all") {
-      searchFilter += " AND p.category_id = ?";
-      queryParams.push(categoryId);
+    const cClauses = buildTriStateWhere('p.category_id', categoryId, queryParams);
+    if (cClauses.length > 0) {
+      searchFilter += ` AND ${cClauses.join(" AND ")}`;
     }
   }
 
@@ -237,17 +331,20 @@ export const getMovementTimelineStats = async (connection, filters) => {
  */
 const buildShopFilters = (filters) => {
   const { source, shopName } = filters;
-  let filterSql = '';
   const filterParams = [];
+  const clauses = [];
 
-  if (source && source !== 'All') {
-    filterSql += ` AND pl.source = ?`;
-    filterParams.push(source);
+  const sourceClauses = buildTriStateWhere('pl.source', source, filterParams);
+  if (sourceClauses.length > 0) clauses.push(...sourceClauses);
+
+  const shopClauses = buildTriStateWhere('pl.shop_name', shopName, filterParams);
+  if (shopClauses.length > 0) clauses.push(...shopClauses);
+
+  let filterSql = '';
+  if (clauses.length > 0) {
+    filterSql = ` AND ` + clauses.join(' AND ');
   }
-  if (shopName && shopName !== 'All') {
-    filterSql += ` AND pl.shop_name = ?`;
-    filterParams.push(shopName);
-  }
+
   return { filterSql, filterParams };
 };
 

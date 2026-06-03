@@ -13,7 +13,7 @@ const props = defineProps({
   isSelected: Boolean,
 })
 
-defineEmits(['toggle-selection', 'edit', 'restore', 'delete', 'view-image'])
+defineEmits(['toggle-selection', 'edit', 'restore', 'delete', 'view-image', 'open-sticker'])
 
 // Helper Image URL
 const imageUrl = computed(() => resolveProductImageUrl(props.product))
@@ -76,6 +76,12 @@ const isArchived = computed(() => {
       </span>
     </td>
 
+    <!-- KATEGORI -->
+    <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-4 py-4 text-sm border-b border-secondary/5 text-text/80'">
+      <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Kategori</span>
+      <span>{{ product.category_name || '-' }}</span>
+    </td>
+
     <!-- BERAT -->
     <td class="font-mono text-text/70" :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10 text-sm' : 'px-4 py-4 text-right text-sm border-b border-secondary/5'">
       <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold font-sans">Berat</span>
@@ -116,6 +122,15 @@ const isArchived = computed(() => {
           title="Edit Data">
           <font-awesome-icon icon="fa-solid fa-pen-to-square" />
           <span v-if="isMobile">Edit</span>
+        </button>
+
+        <!-- Print Sticker -->
+        <button v-if="!isArchived" @click="$emit('open-sticker', product)"
+          class="flex items-center justify-center rounded-lg hover:bg-primary/10 transition-colors"
+          :class="isMobile ? 'px-3 py-1.5 bg-primary/10 text-primary font-semibold text-xs gap-2' : 'w-8 h-8 text-text/40 hover:text-primary'"
+          title="Cetak Sticker">
+          <font-awesome-icon icon="fa-solid fa-print" />
+          <span v-if="isMobile">Sticker</span>
         </button>
 
         <!-- Restore -->

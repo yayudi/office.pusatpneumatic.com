@@ -503,6 +503,22 @@ CREATE TABLE `user_schedules` (
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `sticker_templates`
+--
+
+CREATE TABLE `sticker_templates` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `paper_size` varchar(50) NOT NULL DEFAULT '80x40',
+  `config_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`config_json`)),
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 --
 -- Indexes for dumped tables
 --
@@ -704,6 +720,12 @@ ALTER TABLE `system_changelogs`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `sticker_templates`
+--
+ALTER TABLE `sticker_templates`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
@@ -867,6 +889,12 @@ ALTER TABLE `system_audit_logs`
 -- AUTO_INCREMENT for table `system_changelogs`
 --
 ALTER TABLE `system_changelogs`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `sticker_templates`
+--
+ALTER TABLE `sticker_templates`
   MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --

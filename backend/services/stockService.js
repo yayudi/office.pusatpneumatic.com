@@ -601,6 +601,63 @@ export const getStockHistoryService = async (productId, page = 1, limit = 15, mo
   }
 };
 
+const buildTriStateWhere = (column, filterValue, queryParams) => {
+  const clauses = [];
+  let parsed = filterValue;
+  if (typeof filterValue === 'string' && filterValue.startsWith('{')) {
+    try { parsed = JSON.parse(filterValue); } catch(e) {}
+  }
+  
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    if (parsed.include && parsed.include.length > 0) {
+      clauses.push(`${column} IN (?)`);
+      queryParams.push(parsed.include);
+    }
+    if (parsed.exclude && parsed.exclude.length > 0) {
+      clauses.push(`${column} NOT IN (?)`);
+      queryParams.push(parsed.exclude);
+    }
+  } else if (parsed && parsed !== 'All' && parsed !== 'all') {
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      clauses.push(`${column} IN (?)`);
+      queryParams.push(parsed);
+    } else if (typeof parsed === 'string') {
+      clauses.push(`${column} = ?`);
+      queryParams.push(parsed);
+    }
+  }
+  return clauses;
+};
+
+const buildTriStateWhereLocations = (filterValue, queryParams) => {
+  const clauses = [];
+  let parsed = filterValue;
+  if (typeof filterValue === 'string' && filterValue.startsWith('{')) {
+    try { parsed = JSON.parse(filterValue); } catch(e) {}
+  }
+  
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    if (parsed.include && parsed.include.length > 0) {
+      clauses.push(`(sm.from_location_id IN (?) OR sm.to_location_id IN (?))`);
+      queryParams.push(parsed.include, parsed.include);
+    }
+    if (parsed.exclude && parsed.exclude.length > 0) {
+      // Must NOT be in both
+      clauses.push(`(sm.from_location_id NOT IN (?) AND sm.to_location_id NOT IN (?))`);
+      queryParams.push(parsed.exclude, parsed.exclude);
+    }
+  } else if (parsed && parsed !== 'All' && parsed !== 'all') {
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      clauses.push(`(sm.from_location_id IN (?) OR sm.to_location_id IN (?))`);
+      queryParams.push(parsed, parsed);
+    } else if (typeof parsed === 'string') {
+      clauses.push(`(sm.from_location_id = ? OR sm.to_location_id = ?)`);
+      queryParams.push(parsed, parsed);
+    }
+  }
+  return clauses;
+};
+
 export const getBatchLogsService = async ({ startDate, endDate, productName, movementType, locationId, userId }) => {
   const connection = await db.getConnection();
   try {
@@ -629,14 +686,14 @@ export const getBatchLogsService = async ({ startDate, endDate, productName, mov
       params.push(`%${productName}%`, `%${productName}%`);
     }
 
-    if (movementType) {
-      query += ` AND sm.movement_type = ?`;
-      params.push(movementType);
+    const typeClauses = buildTriStateWhere('sm.movement_type', movementType, params);
+    if (typeClauses.length > 0) {
+      query += ` AND ${typeClauses.join(' AND ')}`;
     }
 
-    if (locationId) {
-      query += ` AND (sm.from_location_id = ? OR sm.to_location_id = ?)`;
-      params.push(locationId, locationId);
+    const locClauses = buildTriStateWhereLocations(locationId, params);
+    if (locClauses.length > 0) {
+      query += ` AND ${locClauses.join(' AND ')}`;
     }
 
     if (userId) {

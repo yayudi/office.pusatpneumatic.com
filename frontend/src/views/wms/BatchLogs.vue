@@ -7,6 +7,7 @@ import { useToast } from '@/composables/useToast.js'
 import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import TriStateSelect from '@/components/ui/TriStateSelect.vue'
 import { useMobile } from '@/composables/useMobile.js'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
@@ -18,7 +19,7 @@ const { toast } = useToast()
 const startDate = ref('')
 const endDate = ref('')
 const searchProduct = ref('')
-const searchType = ref('')
+const searchType = ref({ include: [], exclude: [] })
 const searchLocation = ref('')
 const searchUser = ref('')
 
@@ -69,7 +70,7 @@ async function handleSearch() {
   try {
     const filters = {
       productName: searchProduct.value,
-      movementType: searchType.value,
+      movementType: JSON.stringify(searchType.value),
       locationId: searchLocation.value,
       user: searchUser.value
     }
@@ -88,7 +89,7 @@ function handleReset() {
   endDate.value = today
 
   searchProduct.value = ''
-  searchType.value = ''
+  searchType.value = { include: [], exclude: [] }
   searchLocation.value = ''
   searchUser.value = ''
 
@@ -103,7 +104,7 @@ function handleReset() {
     <!-- Filter Section -->
     <BaseFilterPanel class="mb-6">
       <template #filters>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 items-end">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:flex xl:flex-row lg:justify-between items-end gap-4">
           <!-- Product Name -->
           <div class="space-y-1.5">
             <label class="text-xs font-bold text-text/60 uppercase tracking-wide">Produk / SKU</label>
@@ -123,18 +124,14 @@ function handleReset() {
           </div>
 
           <!-- Movement Type -->
-          <div class="space-y-1.5">
+          <div class="space-y-1.5 w-full lg:w-[125px]">
             <label class="text-xs font-bold text-text/60 uppercase tracking-wide">Tipe</label>
-            <BaseSelect
+            <TriStateSelect
               v-model="searchType"
               :options="movementTypeOptions"
               label="label"
-              track-by="id"
+              track="id"
               placeholder="Semua Tipe"
-              :searchable="false"
-              emit-value
-              clearable
-              clear-value=""
             />
           </div>
 
@@ -148,6 +145,7 @@ function handleReset() {
               track-by="id"
               placeholder="Semua Lokasi"
               :searchable="true"
+              :multiple="true"
               emit-value
               clearable
               clear-value=""

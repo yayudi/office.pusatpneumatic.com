@@ -30,6 +30,7 @@ node_modules/
 # ===================================================================
 dist/
 /frontend/dist/
+/frontend/dev-dist
 coverage/
 /frontend/coverage/
 /backend/coverage/

@@ -47,9 +47,17 @@ export const getProductsWithFilters = async (connection, filters) => {
   }
 
   // Filter Kategori
-  if (filters.categoryId && filters.categoryId !== "all") {
+  if (filters.categoryInclude && filters.categoryInclude.length > 0) {
+    whereClauses.push("p.category_id IN (?)");
+    queryParams.push(filters.categoryInclude);
+  } else if (filters.categoryId && filters.categoryId !== "all") {
     whereClauses.push("p.category_id = ?");
     queryParams.push(filters.categoryId);
+  }
+  
+  if (filters.categoryExclude && filters.categoryExclude.length > 0) {
+    whereClauses.push("p.category_id NOT IN (?)");
+    queryParams.push(filters.categoryExclude);
   }
 
   // Filter Lokasi (Subquery EXISTS)
@@ -63,13 +71,30 @@ export const getProductsWithFilters = async (connection, filters) => {
     queryParams.push(purpose);
 
     if (location === "gudang") {
-      if (building !== "all") {
+      if (filters.buildingInclude && filters.buildingInclude.length > 0) {
+        existsConditions.push("l.building IN (?)");
+        queryParams.push(filters.buildingInclude);
+      } else if (building !== "all") {
         existsConditions.push("l.building = ?");
         queryParams.push(building);
       }
-      if (floor !== "all") {
+      
+      if (filters.buildingExclude && filters.buildingExclude.length > 0) {
+        existsConditions.push("l.building NOT IN (?)");
+        queryParams.push(filters.buildingExclude);
+      }
+
+      if (filters.floorInclude && filters.floorInclude.length > 0) {
+        existsConditions.push("l.floor IN (?)");
+        queryParams.push(filters.floorInclude);
+      } else if (floor !== "all") {
         existsConditions.push("l.floor = ?");
         queryParams.push(floor);
+      }
+      
+      if (filters.floorExclude && filters.floorExclude.length > 0) {
+        existsConditions.push("l.floor NOT IN (?)");
+        queryParams.push(filters.floorExclude);
       }
     }
 
@@ -108,13 +133,30 @@ export const getProductsWithFilters = async (connection, filters) => {
 
     // Jika ada filter lokasi gudang detail
     if (location === "gudang") {
-      if (building !== "all") {
+      if (filters.buildingInclude && filters.buildingInclude.length > 0) {
+        statusConditions.push("l.building IN (?)");
+        queryParams.push(filters.buildingInclude);
+      } else if (building !== "all") {
         statusConditions.push("l.building = ?");
         queryParams.push(building);
       }
-      if (floor !== "all") {
+
+      if (filters.buildingExclude && filters.buildingExclude.length > 0) {
+        statusConditions.push("l.building NOT IN (?)");
+        queryParams.push(filters.buildingExclude);
+      }
+
+      if (filters.floorInclude && filters.floorInclude.length > 0) {
+        statusConditions.push("l.floor IN (?)");
+        queryParams.push(filters.floorInclude);
+      } else if (floor !== "all") {
         statusConditions.push("l.floor = ?");
         queryParams.push(floor);
+      }
+
+      if (filters.floorExclude && filters.floorExclude.length > 0) {
+        statusConditions.push("l.floor NOT IN (?)");
+        queryParams.push(filters.floorExclude);
       }
     }
 
@@ -210,13 +252,30 @@ export const getProductsWithFilters = async (connection, filters) => {
         stockParams.push(purpose);
 
         if (location === "gudang") {
-          if (building !== "all") {
+          if (filters.buildingInclude && filters.buildingInclude.length > 0) {
+            stockQuery += " AND l.building IN (?)";
+            stockParams.push(filters.buildingInclude);
+          } else if (building !== "all") {
             stockQuery += " AND l.building = ?";
             stockParams.push(building);
           }
-          if (floor !== "all") {
+          
+          if (filters.buildingExclude && filters.buildingExclude.length > 0) {
+            stockQuery += " AND l.building NOT IN (?)";
+            stockParams.push(filters.buildingExclude);
+          }
+
+          if (filters.floorInclude && filters.floorInclude.length > 0) {
+            stockQuery += " AND l.floor IN (?)";
+            stockParams.push(filters.floorInclude);
+          } else if (floor !== "all") {
             stockQuery += " AND l.floor = ?";
             stockParams.push(floor);
+          }
+          
+          if (filters.floorExclude && filters.floorExclude.length > 0) {
+            stockQuery += " AND l.floor NOT IN (?)";
+            stockParams.push(filters.floorExclude);
           }
         }
       }
