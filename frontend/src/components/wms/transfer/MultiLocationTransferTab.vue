@@ -163,6 +163,20 @@ function addItemToBatch() {
   quantity.value = 1
 }
 
+async function copyFromSku() {
+  const text = batchList.value
+    .map(item => `${item.sku}\t${item.name}\t${item.fromLocationCode}\t${item.toLocationCode}\t${item.quantity}`)
+    .join('\n')
+
+  try {
+    await navigator.clipboard.writeText(text)
+    toast('Daftar transfer berhasil disalin ke clipboard.', 'success')
+  } catch (err) {
+    console.error('Failed to copy text: ', err)
+    toast('Gagal menyalin daftar transfer.', 'error')
+  }
+}
+
 function removeFromBatch(id) {
   batchList.value = batchList.value.filter(item => item.id !== id)
 }
@@ -215,7 +229,6 @@ async function submitDetailedBatch() {
           v-model="selectedProduct"
           :options="searchResults"
           :loading="isSearching"
-          :internal-search="false"
           @search-change="onSearchChange"
           @update:model-value="onProductSelect"
           placeholder="Ketik SKU atau Nama..."
@@ -381,7 +394,7 @@ async function submitDetailedBatch() {
                     :max="item.maxQuantity"
                     class="w-20 p-1 border border-secondary/50 rounded bg-background text-center font-bold"
                   />
-                  <span class="text-xs text-text/60 whitespace-nowrap">/ {{ item.maxQuantity }}</span>
+                  <span class="text-xs text-text/60 whitespace-nowrap select-none">/ {{ item.maxQuantity }}</span>
                 </div>
               </td>
               <td :class="isMobile ? 'pt-3 mt-2 border-t border-secondary/10 block' : 'p-2 text-center'">
@@ -415,23 +428,33 @@ async function submitDetailedBatch() {
           v-model="notes"
           type="text"
           placeholder="e.g., Transfer batch multi-lokasi"
-          class="w-full p-2 border border-secondary/50 rounded-lg bg-background"
+          class="w-full p-2 border border-secondary rounded-lg bg-secondary/20 h-[42px]"
         />
       </div>
 
       <!-- Tombol Aksi -->
-      <div class="flex gap-4">
+      <div class="flex gap-2">
+        <!-- Salin daftar transfer -->
+        <button
+          @click="copyFromSku()"
+          :disabled="isSubmitting || batchList.length === 0"
+          class="px-6 py-3 bg-accent text-secondary rounded-lg font-bold disabled:opacity-50"
+        >
+          <font-awesome-icon icon="fa-solid fa-copy" />
+          Salin Daftar
+        </button>
         <button
           @click="batchList = []"
           :disabled="isSubmitting || batchList.length === 0"
-          class="px-6 py-3 bg-secondary/20 text-text/80 rounded-lg font-bold disabled:opacity-50"
+          class="px-6 py-3 bg-danger text-secondary rounded-lg font-bold disabled:opacity-50"
         >
+          <font-awesome-icon icon="fa-solid fa-trash" />
           Batal
         </button>
         <button
           @click="submitDetailedBatch"
           :disabled="isSubmitting || batchList.length === 0"
-          class="px-6 py-3 bg-accent text-secondary rounded-lg font-bold disabled:opacity-50 flex items-center gap-3"
+          class="px-6 py-3 bg-primary text-secondary rounded-lg font-bold disabled:opacity-50 flex items-center gap-3"
         >
           <font-awesome-icon vid-if="isSubmitting" icon="fa-solid fa-spinner" class="animate-spin" />
           <span>{{ isSubmitting ? 'Memproses...' : 'Submit Batch Transfer' }}</span>

@@ -273,7 +273,7 @@ watch(Escape, pressed => {
       >
         <router-link
           to="/wms/actions/batch-movement"
-          class="w-1/2 px-4 py-2 text-sm font-bold text-accent hover:bg-accent/10 rounded-lg transition-all flex items-center gap-2 justify-center whitespace-nowrap"
+          class="w-1/2 px-4 py-2 text-sm font-bold text-primary hover:bg-primary/10 rounded-lg transition-all flex items-center gap-2 justify-center whitespace-nowrap"
           title="Pindah Stok Antar Lokasi"
         >
           <font-awesome-icon icon="fa-solid fa-boxes-stacked" />

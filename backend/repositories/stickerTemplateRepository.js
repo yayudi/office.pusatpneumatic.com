@@ -54,3 +54,22 @@ export const deleteTemplate = async (id) => {
   );
   return result.affectedRows > 0;
 };
+
+/**
+ * Update template berdasarkan ID
+ * @param {number} id
+ * @param {Object} templateData
+ * @param {string} templateData.name
+ * @param {string} templateData.paper_size
+ * @param {string} templateData.config_json
+ * @returns {Promise<boolean>} 
+ */
+export const updateTemplate = async (id, templateData) => {
+  const [result] = await db.query(
+    `UPDATE sticker_templates 
+     SET name = ?, paper_size = ?, config_json = ?, updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [templateData.name, templateData.paper_size, templateData.config_json, id]
+  );
+  return result.affectedRows > 0;
+};

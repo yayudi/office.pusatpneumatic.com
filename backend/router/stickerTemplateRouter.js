@@ -2,7 +2,8 @@ import { Router } from "express";
 import {
   getAllTemplates,
   createTemplate,
-  deleteTemplate
+  deleteTemplate,
+  updateTemplate
 } from "../controllers/stickerTemplateController.js";
 import { canAccess } from "../middleware/permissionMiddleware.js";
 
@@ -19,5 +20,8 @@ router.post("/", createTemplate);
 // Delete template (only admin or users with manage-users/manage-roles permission)
 // Based on existing conventions, "manage-users" usually denotes admin level.
 router.delete("/:id", canAccess("manage-users"), deleteTemplate);
+
+// Update template
+router.put("/:id", updateTemplate);
 
 export default router;

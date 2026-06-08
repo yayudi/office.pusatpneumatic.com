@@ -14,6 +14,7 @@ import ProductSearchAddForm from '@/components/wms/transfer/ProductSearchAddForm
 import BatchItemList from '@/components/wms/transfer/BatchItemList.vue'
 import MultiLocationTransferTab from '@/components/wms/transfer/MultiLocationTransferTab.vue'
 import BatchInboundModal from '@/components/stock/BatchInboundModal.vue'
+import StickerGeneratorModal from '@/components/utilities/StickerGeneratorModal.vue'
 
 const { toast } = useToast()
 
@@ -24,6 +25,7 @@ const isLoading = ref(false)
 const activeTab = ref('TRANSFER') // Tab default
 const batchList = ref([])
 const isBatchInboundModalOpen = ref(false)
+const isStickerModalOpen = ref(false)
 
 // --- STATE FORM BATCH (untuk header) ---
 const fromLocation = ref(null)
@@ -76,8 +78,23 @@ function handleAddProduct({ product, quantity }) {
       sku: product.sku,
       name: product.name,
       current_stock: product.current_stock,
+      price: product.price,
       quantity: quantity
     })
+  }
+}
+
+async function copyFromSku() {
+  const text = batchList.value
+    .map(item => `${item.sku}\t${item.name}\t${fromLocation.value.code}\t${toLocation.value.code}\t${item.quantity}`)
+    .join('\n')
+
+  try {
+    await navigator.clipboard.writeText(text)
+    toast('Daftar transfer berhasil disalin ke clipboard.', 'success')
+  } catch (err) {
+    console.error('Failed to copy text: ', err)
+    toast('Gagal menyalin daftar transfer.', 'error')
   }
 }
 
@@ -165,11 +182,28 @@ async function submitBatch() {
       <BatchItemList :items="batchList" :active-tab="activeTab" @remove-item="removeFromBatch" />
 
       <!-- Tombol Aksi Final Batch -->
-      <div class="flex justify-end pt-6 border-t border-secondary/20">
+      <div class="flex justify-end pt-6 border-t border-secondary/20 gap-2">
+        <button
+          v-if="activeTab === 'INBOUND'"
+          @click="isStickerModalOpen = true"
+          :disabled="batchList.length === 0"
+          class="px-6 py-3 bg-secondary text-text rounded-lg font-bold disabled:opacity-50 border border-primary/20 hover:border-primary flex items-center gap-2"
+        >
+          <font-awesome-icon icon="fa-solid fa-print" />
+          <span>Cetak Label Barang Masuk</span>
+        </button>
+        <button
+          @click="copyFromSku()"
+          :disabled="isLoading || batchList.length === 0"
+          class="px-6 py-3 bg-accent text-secondary rounded-lg font-bold disabled:opacity-50"
+        >
+          <font-awesome-icon icon="fa-solid fa-copy" />
+          <span>Salin Daftar</span>
+        </button>
         <button
           @click="submitBatch"
           :disabled="!isBatchLocationSelected || batchList.length === 0 || isLoading"
-          class="px-6 py-3 bg-accent text-secondary rounded-lg font-bold disabled:opacity-50 flex items-center gap-2"
+          class="px-6 py-3 bg-primary text-secondary rounded-lg font-bold disabled:opacity-50 flex items-center gap-2"
         >
           <font-awesome-icon v-if="isLoading" icon="fa-solid fa-spinner" class="animate-spin" />
           <span>{{ isLoading ? 'Memproses...' : 'Submit Batch' }}</span>
@@ -182,5 +216,11 @@ async function submitBatch() {
     :isOpen="isBatchInboundModalOpen"
     @close="isBatchInboundModalOpen = false"
     @success="() => toast('Batch Inbound diproses!', 'success')"
+  />
+
+  <StickerGeneratorModal
+    :show="isStickerModalOpen"
+    @close="isStickerModalOpen = false"
+    :initial-batch="batchList"
   />
 </template>

@@ -118,15 +118,15 @@ watch(
               <div class="hidden sm:flex items-center gap-2">
                 <button
                   @click="applyPreset('issue')"
-                  class="px-3 py-1.5 text-xs font-medium rounded-full bg-danger/10 text-danger hover:bg-danger/20 transition-colors border border-danger/20"
+                  class="px-3 py-1.5 text-xs font-medium rounded-full bg-warning/10 text-warning hover:bg-warning/20 transition-colors border border-warning/20"
                 >
-                  ⚠️ Ada Masalah
+                  <font-awesome-icon icon="fa-solid fa-triangle-exclamation" class="text-warning" /> Ada Masalah
                 </button>
                 <button
                   @click="applyPreset('empty')"
-                  class="px-3 py-1.5 text-xs font-medium rounded-full bg-secondary/20 text-text hover:bg-secondary/30 transition-colors border border-secondary/20"
+                  class="px-3 py-1.5 text-xs font-medium rounded-full bg-danger/10 text-danger hover:bg-danger/20 transition-colors border border-danger/20"
                 >
-                  📦 Stok Kosong
+                  <font-awesome-icon icon="fa-solid fa-box-open" class="text-danger" /> Stok Kosong
                 </button>
               </div>
             </div>
@@ -134,7 +134,7 @@ watch(
             <!-- Controls Group (View Mode, Clear, Toggle Advanced) -->
             <div class="flex items-center gap-2 w-full md:w-auto">
               <!-- Mode View -->
-              <div class="flex bg-secondary/10 p-1 h-[42px] rounded-lg ring-1 ring-secondary bg-background shrink-0">
+              <div class="flex bg-secondary p-1 h-[42px] rounded-lg ring-1 ring-secondary shrink-0">
                 <button
                   @click="onSelectChange('viewMode', 'grid')"
                   class="px-3 rounded-md text-sm transition-all flex items-center justify-center min-w-[40px]"

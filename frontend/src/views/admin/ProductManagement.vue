@@ -17,6 +17,7 @@ import TriStateSelect from '@/components/ui/TriStateSelect.vue'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 import ProductTable from '@/components/products/ProductTable.vue'
 import ProductImageModal from '@/components/products/ProductImageModal.vue'
+import StickerGeneratorModal from '@/components/utilities/StickerGeneratorModal.vue'
 
 const { toast } = useToast()
 
@@ -35,12 +36,12 @@ const filterCategory = ref({ include: [], exclude: [] })
 
 const statusOptions = [
   { id: 'active', label: 'Produk Aktif' },
-  { id: 'archived', label: 'Diarsipkan (Hapus)' },
+  { id: 'archived', label: 'Diarsipkan (Hapus)' }
 ]
 
 const searchByOptions = [
   { id: 'name', label: 'Nama' },
-  { id: 'sku', label: 'SKU' },
+  { id: 'sku', label: 'SKU' }
 ]
 
 // Modal State
@@ -53,6 +54,10 @@ const selectedProduct = ref({})
 const showImageModal = ref(false)
 const selectedImageProduct = ref({})
 
+// Print Modal State
+const showStickerModal = ref(false)
+const printBatchList = ref([])
+
 // Bulk Action State
 const selectedIds = ref(new Set())
 const isProcessingBulk = ref(false)
@@ -62,7 +67,7 @@ const pagination = reactive({
   page: 1,
   limit: 20,
   total: 0,
-  totalPages: 0,
+  totalPages: 0
 })
 
 const selectionCount = computed(() => selectedIds.value.size)
@@ -86,7 +91,7 @@ const fetchProducts = async () => {
       is_package: filterType.value === 'all' ? undefined : filterType.value === 'package',
       status: filterStatus.value,
       categoryInclude: JSON.stringify(filterCategory.value.include),
-      categoryExclude: JSON.stringify(filterCategory.value.exclude),
+      categoryExclude: JSON.stringify(filterCategory.value.exclude)
     }
     const response = await axios.get('/products', { params })
     const resData = response.data
@@ -95,8 +100,7 @@ const fetchProducts = async () => {
     if (Array.isArray(items)) {
       products.value = items
       pagination.total = resData.meta?.total || resData.total || 0
-      pagination.totalPages =
-        resData.meta?.last_page || Math.ceil(pagination.total / pagination.limit) || 1
+      pagination.totalPages = resData.meta?.last_page || Math.ceil(pagination.total / pagination.limit) || 1
     } else {
       products.value = []
       pagination.total = 0
@@ -113,16 +117,16 @@ const fetchProducts = async () => {
 // --- HANDLERS (Dioper ke Child Components) ---
 
 // Pagination & Sorting
-const handleChangePage = (page) => {
+const handleChangePage = page => {
   pagination.page = page
   fetchProducts()
 }
-const handleUpdateLimit = (limit) => {
+const handleUpdateLimit = limit => {
   pagination.limit = limit
   pagination.page = 1
   fetchProducts()
 }
-const handleSort = (field) => {
+const handleSort = field => {
   if (sortBy.value === field) sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
   else {
     sortBy.value = field
@@ -138,26 +142,33 @@ const handleFilterChange = debounce(() => {
   fetchProducts()
 }, 300)
 
-watch([
-  searchQuery, searchBy, filterType, filterStatus,
-  () => filterCategory.value.include, () => filterCategory.value.exclude
-], handleFilterChange, { deep: true })
+watch(
+  [
+    searchQuery,
+    searchBy,
+    filterType,
+    filterStatus,
+    () => filterCategory.value.include,
+    () => filterCategory.value.exclude
+  ],
+  handleFilterChange,
+  { deep: true }
+)
 
 // Selection
-const toggleSelection = (id) => {
+const toggleSelection = id => {
   if (selectedIds.value.has(id)) selectedIds.value.delete(id)
   else selectedIds.value.add(id)
 }
 
 const toggleSelectAll = () => {
-  const allSelected =
-    products.value.length > 0 && products.value.every((p) => selectedIds.value.has(p.id))
-  if (allSelected) products.value.forEach((p) => selectedIds.value.delete(p.id))
-  else products.value.forEach((p) => selectedIds.value.add(p.id))
+  const allSelected = products.value.length > 0 && products.value.every(p => selectedIds.value.has(p.id))
+  if (allSelected) products.value.forEach(p => selectedIds.value.delete(p.id))
+  else products.value.forEach(p => selectedIds.value.add(p.id))
 }
 
 // CRUD
-const handleDelete = async (product) => {
+const handleDelete = async product => {
   if (!confirm(`Arsipkan produk "${product.name}"?`)) return
   try {
     await axios.delete(`/products/${product.id}`)
@@ -170,7 +181,7 @@ const handleDelete = async (product) => {
   }
 }
 
-const handleRestore = async (product) => {
+const handleRestore = async product => {
   if (!confirm(`Pulihkan produk "${product.name}"?`)) return
   try {
     await axios.put(`/products/${product.id}`, { is_active: true })
@@ -189,19 +200,19 @@ const openAddModal = () => {
   selectedProduct.value = {}
   showProductForm.value = true
 }
-const openEditModal = (p) => {
+const openEditModal = p => {
   productFormMode.value = 'edit'
   selectedProduct.value = p
   showProductForm.value = true
 }
 
-const openImageModal = (p) => {
+const openImageModal = p => {
   selectedImageProduct.value = p
   showImageModal.value = true
 }
 
 // Bulk Actions
-const performBulkAction = async (actionType) => {
+const performBulkAction = async actionType => {
   if (!selectedIds.value.size) return
 
   const msg = actionType === 'archive' ? 'Arsipkan' : 'Pulihkan'
@@ -212,7 +223,7 @@ const performBulkAction = async (actionType) => {
   const promises = []
 
   try {
-    ids.forEach((id) => {
+    ids.forEach(id => {
       if (actionType === 'archive') promises.push(axios.delete(`/products/${id}`))
       else promises.push(axios.put(`/products/${id}`, { is_active: true }))
     })
@@ -227,8 +238,19 @@ const performBulkAction = async (actionType) => {
   }
 }
 
-const handleBulkPrintLabel = () =>
-  alert(`Fitur Cetak Label untuk ${selectionCount.value} produk segera hadir!`)
+const handleBulkPrintLabel = () => {
+  const sourceProducts = selectedIds.value.size > 0 
+    ? products.value.filter(p => selectedIds.value.has(p.id))
+    : products.value
+
+  printBatchList.value = sourceProducts.map(p => ({
+    sku: p.sku,
+    name: p.name,
+    price: p.price,
+    quantity: 1
+  }))
+  showStickerModal.value = true
+}
 
 // Batch Edit (Export & Import)
 const handleExport = async ({ format }) => {
@@ -243,7 +265,7 @@ const handleExport = async ({ format }) => {
       status: filterStatus.value,
       categoryInclude: JSON.stringify(filterCategory.value.include),
       categoryExclude: JSON.stringify(filterCategory.value.exclude),
-      format: format, // 'xlsx' or 'csv'
+      format: format // 'xlsx' or 'csv'
     }
 
     // Request Job Creation
@@ -261,16 +283,13 @@ const handleExport = async ({ format }) => {
   }
 }
 
-const handleImport = async (formData) => {
+const handleImport = async formData => {
   // Logic from old PriceUpdateModal/ProductImportModal
   try {
     await axios.post('/products/batch/product-update', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { 'Content-Type': 'multipart/form-data' }
     })
-    toast(
-      'File diunggah. Buka kembali Batch Edit > Tab Riwayat & Log untuk memantau status.',
-      'info',
-    )
+    toast('File diunggah. Buka kembali Batch Edit > Tab Riwayat & Log untuk memantau status.', 'info')
     showBatchEditModal.value = false
     fetchProducts()
   } catch (err) {
@@ -291,7 +310,7 @@ const fetchCategories = async () => {
   try {
     const res = await axios.get('/categories')
     if (res.data && res.data.success) {
-      categoryOptions.value = res.data.data.map((c) => ({ id: c.id, label: c.name }))
+      categoryOptions.value = res.data.data.map(c => ({ id: c.id, label: c.name }))
     }
   } catch (err) {
     console.error('Gagal memuat kategori', err)
@@ -307,25 +326,25 @@ onMounted(() => {
 // --- LOCAL HOTKEYS ---
 const { Alt_N, Alt_A, Alt_R, Slash } = useMagicKeys()
 
-watch(Alt_N, (pressed) => {
+watch(Alt_N, pressed => {
   if (pressed && !showProductForm.value && !showImageModal.value && !showBatchEditModal.value) {
     openAddModal()
   }
 })
 
-watch(Alt_A, (pressed) => {
+watch(Alt_A, pressed => {
   if (pressed && !showProductForm.value && !showImageModal.value && !showBatchEditModal.value) {
     toggleSelectAll()
   }
 })
 
-watch(Alt_R, (pressed) => {
+watch(Alt_R, pressed => {
   if (pressed && !showProductForm.value && !showImageModal.value && !showBatchEditModal.value) {
     fetchProducts()
   }
 })
 
-watch(Slash, (pressed) => {
+watch(Slash, pressed => {
   if (pressed && !showProductForm.value && !showImageModal.value && !showBatchEditModal.value) {
     setTimeout(() => {
       const el = document.getElementById('global-search-input')
@@ -339,26 +358,33 @@ watch(Slash, (pressed) => {
   <div class="w-full max-w-7xl mx-auto flex flex-col h-full relative">
     <!-- HEADER -->
     <div class="shrink-0 mb-6">
-      <WmsActionHeader
-        title="Manajemen Produk"
-        icon="fa-solid fa-tags"
-      >
+      <WmsActionHeader title="Manajemen Produk" icon="fa-solid fa-tags">
         <template #actions>
           <div class="flex flex-wrap gap-3">
             <!-- Tombol Batch Edit -->
             <button
               @click="showBatchEditModal = true"
-              class="px-5 py-2.5 bg-secondary hover:bg-secondary/80 text-text rounded-xl shadow-md font-medium flex items-center gap-2 transition-all border border-secondary/30"
+              class="px-5 py-2.5 bg-success/10 hover:bg-success/20 text-success rounded-xl shadow-md font-medium flex items-center gap-2 transition-all border border-success/30"
               title="Edit produk secara massal (Export & Import)"
             >
               <font-awesome-icon icon="fa-solid fa-pen-to-square" />
               <span class="hidden sm:inline">Batch Edit</span>
             </button>
 
+            <!-- Tombol Cetak Label -->
+            <button
+              @click="handleBulkPrintLabel"
+              class="px-5 py-2.5 bg-accent/10 hover:bg-accent/20 text-accent rounded-xl shadow-sm font-medium flex items-center gap-2 transition-all border border-accent/50"
+              title="Cetak Label untuk produk terpilih atau semua produk di halaman ini"
+            >
+              <font-awesome-icon icon="fa-solid fa-print" />
+              <span class="hidden sm:inline">Cetak Label</span>
+            </button>
+
             <!-- Tombol Tambah Produk -->
             <button
               @click="openAddModal"
-              class="px-5 py-2.5 bg-primary hover:bg-primary/90 text-secondary rounded-xl shadow-lg font-bold flex items-center gap-2 transition-transform hover:-translate-y-0.5"
+              class="px-5 py-2.5 bg-primary hover:bg-primary/90 text-secondary rounded-xl shadow-lg font-bold flex items-center gap-2"
             >
               <font-awesome-icon icon="fa-solid fa-plus" />
               <span>Tambah</span>
@@ -371,9 +397,7 @@ watch(Slash, (pressed) => {
       <BaseFilterPanel>
         <template #filters>
           <!-- Filter Tipe Produk -->
-          <div
-            class="flex bg-background rounded-xl p-1 border border-secondary/10 shrink-0 overflow-x-auto"
-          >
+          <div class="flex bg-background rounded-xl p-1 border border-secondary/10 shrink-0 overflow-x-auto">
             <button
               @click="filterType = 'all'"
               class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2"
@@ -495,10 +519,9 @@ watch(Slash, (pressed) => {
         class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-background border border-secondary/20 shadow-2xl rounded-2xl px-6 py-3 flex items-center gap-6 z-40 text-sm"
       >
         <div class="flex items-center gap-2 text-text font-bold border-r border-secondary/10 pr-6">
-          <span
-            class="bg-primary/10 text-primary w-6 h-6 flex items-center justify-center rounded-full text-xs"
-            >{{ selectionCount }}</span
-          >
+          <span class="bg-primary/10 text-primary w-6 h-6 flex items-center justify-center rounded-full text-xs">{{
+            selectionCount
+          }}</span>
           <span>Dipilih</span>
         </div>
         <div class="flex items-center gap-3">
@@ -562,6 +585,9 @@ watch(Slash, (pressed) => {
       @export="handleExport"
       @import="handleImport"
     />
+
+    <!-- Sticker Generator Modal -->
+    <StickerGeneratorModal :show="showStickerModal" @close="showStickerModal = false" :initial-batch="printBatchList" />
   </div>
 
   <!-- GLOBAL COMPONENTS -->

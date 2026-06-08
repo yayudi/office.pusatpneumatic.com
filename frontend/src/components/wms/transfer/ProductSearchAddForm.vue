@@ -3,6 +3,7 @@
 import { ref } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import ProductSearchSelector from '@/components/wms/transfer/ProductSearchSelector.vue'
+import ScannerToggle from '@/components/utilities/ScannerToggle.vue'
 
 defineProps({
   activeTab: { type: String, required: true },
@@ -15,6 +16,8 @@ const { toast } = useToast()
 
 const selectedProduct = ref(null)
 const quantityToAdd = ref(1)
+const enableScanner = ref(false)
+const searchSelectorRef = ref(null)
 
 function onAddClick() {
   if (!selectedProduct.value) {
@@ -31,16 +34,36 @@ function onAddClick() {
   selectedProduct.value = null
   quantityToAdd.value = 1
 }
+
+function handleScannerMatch(item) {
+  selectedProduct.value = item
+  quantityToAdd.value = 1
+  onAddClick()
+
+  // Re-focus the input automatically for the next scan
+  if (searchSelectorRef.value) {
+    // Timeout needed to let Vue update DOM after selection reset
+    setTimeout(() => {
+      searchSelectorRef.value.focusInput()
+    }, 50)
+  }
+}
 </script>
 
 <template>
   <div class="flex flex-col sm:flex-row items-center gap-2 w-full">
+    <!-- Scanner Mode Toggle -->
+    <ScannerToggle v-model="enableScanner" />
+
     <!-- Selector Pencarian -->
     <div class="flex-grow w-full">
       <ProductSearchSelector
         v-model="selectedProduct"
+        ref="searchSelectorRef"
         :location-id="searchLocationId"
         :disabled="disabled"
+        :enable-scanner="enableScanner"
+        @scanner-match="handleScannerMatch"
         placeholder="Cari SKU atau Nama Produk..."
       />
     </div>

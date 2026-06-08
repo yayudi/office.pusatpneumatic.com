@@ -50,14 +50,14 @@ async function runTest() {
   isTestLoading.value = true
   try {
     const response = await api.get('/test')
-    console.log('response :', response)
     testResult.value = response.data.success
-  } catch (error) {
-    console.error('Error saat tes koneksi:', error)
-    console.log('error :', error.response)
+    console.log('Success:', testResult.value)
+  } catch {
     testResult.value = false
+    console.log('Failed:', testResult.value)
   } finally {
     isTestLoading.value = false
+    console.log('Loading:', isTestLoading.value)
   }
 }
 

@@ -191,8 +191,10 @@ onMounted(fetchData)
           <!-- Search -->
           <div class="space-y-1.5 flex-1">
             <label class="text-xs font-bold text-text/60 uppercase tracking-wide">Pencarian</label>
-            <div class="relative group">
-              <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text/40 group-focus-within:text-primary transition-colors">
+            <div class="relative group lg:min-w-[400px]">
+              <span
+                class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text/40 group-focus-within:text-primary transition-colors"
+              >
                 <font-awesome-icon icon="fa-solid fa-search" />
               </span>
               <input
@@ -227,136 +229,137 @@ onMounted(fetchData)
               placeholder="Semua Shift"
             />
           </div>
-        </div>
-      </template>
 
-      <template #actions>
-        <button
-          @click="handleResetFilters"
-          class="h-10 px-4 flex items-center justify-center gap-2 text-sm font-semibold rounded-lg border border-secondary/50 bg-background hover:bg-secondary/20 hover:text-danger transition-colors text-text/80 shadow-sm"
-          title="Reset Filter"
-        >
-          <font-awesome-icon icon="fa-solid fa-undo" />
-          <span class="hidden sm:inline">Reset</span>
-        </button>
+          <button
+            @click="handleResetFilters"
+            class="h-[41px] px-4 flex items-center justify-center gap-2 text-sm font-semibold rounded-lg border border-danger bg-danger/10 hover:bg-danger/20 hover:text-danger transition-all text-danger shadow-sm"
+            title="Reset Filter"
+          >
+            <font-awesome-icon icon="fa-solid fa-undo" />
+            <span class="hidden sm:inline">Reset</span>
+          </button>
+        </div>
       </template>
     </BaseFilterPanel>
 
     <div
       class="bg-secondary/5 shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(70vh)]"
     >
-    <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : 'min-w-[600px]'">
-      <thead class="bg-background shadow-sm ring-1 ring-secondary/5" :class="isMobile ? 'hidden' : 'sticky top-0 z-30'">
-        <tr class="text-xs text-text/80 uppercase">
-          <th
-            class="px-6 py-3 sticky left-0 z-30 text-center bg-secondary border-b border-r border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]"
-          >
-            Username
-          </th>
-          <th class="px-6 py-3 text-center bg-secondary border-b border-r border-secondary/10">Nickname</th>
-          <th class="px-6 py-3 text-center bg-secondary border-b border-r border-secondary/10">Role</th>
-          <th class="px-6 py-3 text-center bg-secondary border-b border-r border-secondary/10">Shift</th>
-          <th
-            class="px-6 py-3 text-center sticky right-0 z-30 bg-secondary border-b border-secondary/10 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]"
-          >
-            Aksi
-          </th>
-        </tr>
-      </thead>
-      <TransitionGroup
-        tag="tbody"
-        name="list"
-        class="relative"
-        :class="isMobile ? 'block' : 'divide-y divide-secondary/5'"
-      >
-        <!-- Loading State -->
-        <template v-if="loading">
-          <TableSkeleton v-for="n in 5" :key="`skeleton-${n}`" />
-        </template>
-
-        <tr v-else-if="filteredUsers.length === 0" key="empty">
-          <td colspan="5" class="py-12 text-center text-text/50 italic">Tidak ada data pengguna yang cocok.</td>
-        </tr>
-
-        <tr
-          v-else
-          v-for="user in filteredUsers"
-          :key="user.id"
-          class="transition-colors group relative"
-          :class="
-            isMobile
-              ? 'block mb-4 p-4 bg-background rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4'
-              : 'border-b border-secondary/20 hover:bg-secondary/30'
-          "
+      <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : 'min-w-[600px]'">
+        <thead
+          class="bg-background shadow-sm ring-1 ring-secondary/5"
+          :class="isMobile ? 'hidden' : 'sticky top-0 z-30'"
         >
-          <td
-            class="font-medium bg-secondary/20 group-hover:bg-secondary/30 transition-colors"
+          <tr class="text-xs text-text/80 uppercase">
+            <th
+              class="px-6 py-3 sticky left-0 z-30 text-center bg-secondary border-b border-r border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]"
+            >
+              Username
+            </th>
+            <th class="px-6 py-3 text-center bg-secondary border-b border-r border-secondary/10">Nickname</th>
+            <th class="px-6 py-3 text-center bg-secondary border-b border-r border-secondary/10">Role</th>
+            <th class="px-6 py-3 text-center bg-secondary border-b border-r border-secondary/10">Shift</th>
+            <th
+              class="px-6 py-3 text-center sticky right-0 z-30 bg-secondary border-b border-secondary/10 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]"
+            >
+              Aksi
+            </th>
+          </tr>
+        </thead>
+        <TransitionGroup
+          tag="tbody"
+          name="list"
+          class="relative"
+          :class="isMobile ? 'block' : 'divide-y divide-secondary/5'"
+        >
+          <!-- Loading State -->
+          <template v-if="loading">
+            <TableSkeleton v-for="n in 5" :key="`skeleton-${n}`" />
+          </template>
+
+          <tr v-else-if="filteredUsers.length === 0" key="empty">
+            <td colspan="5" class="py-12 text-center text-text/50 italic">Tidak ada data pengguna yang cocok.</td>
+          </tr>
+
+          <tr
+            v-else
+            v-for="user in filteredUsers"
+            :key="user.id"
+            class="transition-colors group relative"
             :class="
               isMobile
-                ? 'flex justify-between items-center py-2 border-b border-secondary/10'
-                : 'px-6 py-4 sticky left-0 z-20 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]'
+                ? 'block mb-4 p-4 bg-background rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4'
+                : 'border-b border-secondary/20 hover:bg-secondary/30'
             "
           >
-            <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Username</span>
-            <span>{{ user.username }}</span>
-          </td>
-          <td
-            class="text-text/80"
-            :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'"
-          >
-            <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Nickname</span>
-            <span>{{ user.nickname || '-' }}</span>
-          </td>
-          <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
-            <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Role</span>
-            <span class="px-2 py-1 rounded text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-              {{ user.role_name }}
-            </span>
-          </td>
-          <td
-            class="text-text/80 text-sm"
-            :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'"
-          >
-            <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Shift</span>
-            <span v-if="user.shift_name" class="flex items-center gap-1.5">
-              <font-awesome-icon icon="fa-solid fa-clock" class="text-text/40 text-xs" />
-              {{ user.shift_name }}
-            </span>
-            <span v-else class="text-text/40 italic">Default</span>
-          </td>
-          <td
-            class="space-x-2 bg-secondary/20 transition-colors"
-            :class="
-              isMobile
-                ? 'flex justify-end items-center pt-4'
-                : 'text-center px-6 py-4 sticky right-0 z-20 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]'
-            "
-          >
-            <button
-              @click="openEditModal(user)"
-              class="text-primary hover:text-primary/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105"
+            <td
+              class="font-medium bg-secondary/20 group-hover:bg-secondary/30 transition-colors"
+              :class="
+                isMobile
+                  ? 'flex justify-between items-center py-2 border-b border-secondary/10'
+                  : 'px-6 py-4 sticky left-0 z-20 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]'
+              "
             >
-              <font-awesome-icon icon="fa-solid fa-edit" />
-              <span>Edit</span>
-            </button>
-            <button
-              @click="openLocationModal(user)"
-              class="text-accent hover:text-accent/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105"
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Username</span>
+              <span>{{ user.username }}</span>
+            </td>
+            <td
+              class="text-text/80"
+              :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'"
             >
-              <font-awesome-icon icon="fa-solid fa-map-marker-alt" />
-              <span>Lokasi</span>
-            </button>
-            <button
-              @click="handleDeleteUser(user.id)"
-              class="text-danger hover:text-danger/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105"
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Nickname</span>
+              <span>{{ user.nickname || '-' }}</span>
+            </td>
+            <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Role</span>
+              <span class="px-2 py-1 rounded text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                {{ user.role_name }}
+              </span>
+            </td>
+            <td
+              class="text-text/80 text-sm"
+              :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'"
             >
-              <font-awesome-icon icon="fa-solid fa-trash" />
-              <span>Hapus</span>
-            </button>
-          </td>
-        </tr>
-      </TransitionGroup>
-    </table>
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Shift</span>
+              <span v-if="user.shift_name" class="flex items-center gap-1.5">
+                <font-awesome-icon icon="fa-solid fa-clock" class="text-text/40 text-xs" />
+                {{ user.shift_name }}
+              </span>
+              <span v-else class="text-text/40 italic">Default</span>
+            </td>
+            <td
+              class="space-x-2 bg-secondary/20 transition-colors"
+              :class="
+                isMobile
+                  ? 'flex justify-end items-center pt-4'
+                  : 'text-center px-6 py-4 sticky right-0 z-20 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]'
+              "
+            >
+              <button
+                @click="openEditModal(user)"
+                class="text-primary hover:text-primary/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105"
+              >
+                <font-awesome-icon icon="fa-solid fa-edit" />
+                <span>Edit</span>
+              </button>
+              <button
+                @click="openLocationModal(user)"
+                class="text-accent hover:text-accent/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105"
+              >
+                <font-awesome-icon icon="fa-solid fa-map-marker-alt" />
+                <span>Lokasi</span>
+              </button>
+              <button
+                @click="handleDeleteUser(user.id)"
+                class="text-danger hover:text-danger/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105"
+              >
+                <font-awesome-icon icon="fa-solid fa-trash" />
+                <span>Hapus</span>
+              </button>
+            </td>
+          </tr>
+        </TransitionGroup>
+      </table>
     </div>
   </div>
 

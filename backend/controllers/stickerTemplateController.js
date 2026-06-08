@@ -84,3 +84,44 @@ export const deleteTemplate = async (req, res) => {
     });
   }
 };
+
+/**
+ * Memperbarui template
+ */
+export const updateTemplate = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, paper_size, config_json } = req.body;
+    
+    if (!name || !config_json) {
+      return res.status(400).json({
+        success: false,
+        message: "Nama dan konfigurasi template wajib diisi",
+        error_code: "VALIDATION_ERROR"
+      });
+    }
+
+    const success = await service.editTemplate(Number(id), { name, paper_size, config_json });
+    
+    if (!success) {
+      return res.status(404).json({
+        success: false,
+        message: "Template tidak ditemukan",
+        error_code: "NOT_FOUND"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Template berhasil diperbarui",
+      data: { id: Number(id) }
+    });
+  } catch (error) {
+    Logger.error("UPDATE_TEMPLATE_ERROR", error, "TEMPLATE_CTRL");
+    res.status(500).json({
+      success: false,
+      message: error.message || "Gagal memperbarui template",
+      error_code: "INTERNAL_ERROR"
+    });
+  }
+};

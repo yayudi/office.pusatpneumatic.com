@@ -8,10 +8,12 @@ const props = defineProps({
   modelValue: { type: Object, default: null },
   placeholder: { type: String, default: 'Ketik nama / SKU...' },
   locationId: { type: [Number, String], default: null },
-  disabled: { type: Boolean, default: false }
+  disabled: { type: Boolean, default: false },
+  enableScanner: { type: Boolean, default: false },
+  displayField: { type: String, default: 'name' }
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'scanner-match'])
 
 // Search logic from composable
 const {
@@ -49,7 +51,7 @@ watch(
   () => props.modelValue,
   newVal => {
     if (newVal) {
-      searchQuery.value = newVal.name
+      searchQuery.value = newVal[props.displayField] || newVal.name
     } else {
       searchQuery.value = ''
     }
@@ -67,6 +69,18 @@ async function handleInput() {
   }
   if (query.length < 2) return
   await performSearch(query)
+  
+  if (props.enableScanner && searchResults.value.length > 0) {
+    const match = searchResults.value.find(p => p.sku.toLowerCase() === query.toLowerCase())
+    if (match) {
+      console.log('[Scanner Auto] Exact match found:', match.sku)
+      emit('scanner-match', match)
+      searchQuery.value = ''
+      showDropdown.value = false
+      return
+    }
+  }
+
   if (searchResults.value.length > 0) {
     showDropdown.value = true
   }
@@ -74,8 +88,20 @@ async function handleInput() {
 
 function selectItem(item) {
   emit('update:modelValue', item)
-  searchQuery.value = item.name
+  searchQuery.value = item[props.displayField] || item.name
   showDropdown.value = false
+}
+
+const handleKeydown = (event) => {
+  if (props.enableScanner && (event.key === 'Enter' || event.key === 'Tab')) {
+    event.preventDefault()
+  }
+}
+
+const handleEnterKey = () => {
+  if (showDropdown.value && searchResults.value.length > 0) {
+    selectItem(searchResults.value[0])
+  }
 }
 
 function closeDropdown() {
@@ -104,6 +130,14 @@ const getStockColor = stock => {
   if (stock < 10) return 'text-warning bg-warning/10 border-warning/20'
   return 'text-success bg-success/10 border-success/20'
 }
+
+const focusInput = () => {
+  if (inputRef.value) {
+    inputRef.value.focus()
+  }
+}
+
+defineExpose({ focusInput })
 </script>
 
 <template>
@@ -114,6 +148,8 @@ const getStockColor = stock => {
         ref="inputRef"
         v-model="searchQuery"
         @input="handleInput"
+        @keydown="handleKeydown"
+        @keydown.enter="handleEnterKey"
         @focus="
           () => {
             if (searchResults.length && !disabled) {
@@ -125,9 +161,7 @@ const getStockColor = stock => {
         :disabled="disabled"
         class="w-full h-full pl-9 pr-8 py-1.5 bg-background border rounded-lg text-sm text-text focus:outline-none transition-all font-medium placeholder-text/40"
         :class="[
-          showDropdown
-            ? 'border-primary ring-1 ring-primary'
-            : 'border-secondary/50 hover:border-primary/50',
+          showDropdown ? 'border-primary ring-1 ring-primary' : 'border-secondary/50 hover:border-primary/50',
           disabled ? 'opacity-50 cursor-not-allowed bg-secondary/10' : ''
         ]"
       />
@@ -184,7 +218,10 @@ const getStockColor = stock => {
               </div>
             </li>
 
-            <li v-if="!isLoading && searchResults.length === 0" class="px-3 py-4 text-center text-text/40 italic text-xs">
+            <li
+              v-if="!isLoading && searchResults.length === 0"
+              class="px-3 py-4 text-center text-text/40 italic text-xs"
+            >
               Tidak ada hasil.
             </li>
           </ul>

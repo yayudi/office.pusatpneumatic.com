@@ -1,7 +1,7 @@
 <script setup>
 const props = defineProps({
   items: { type: Array, required: true },
-  activeTab: { type: String, required: true },
+  activeTab: { type: String, required: true }
 })
 
 import { useToast } from '@/composables/useToast.js'
@@ -56,20 +56,27 @@ function validateQuantity(item) {
           <tr>
             <th class="p-2 text-left w-24">SKU</th>
             <th class="p-2 text-left w-[40%] min-w-[200px]">Nama Produk</th>
-            <th
-              class="p-2 text-center"
-              v-if="activeTab === 'TRANSFER' || activeTab === 'ADJUSTMENT'"
-            >
-              Stok Saat Ini
-            </th>
+            <th class="p-2 text-center" v-if="activeTab === 'TRANSFER' || activeTab === 'ADJUSTMENT'">Stok Saat Ini</th>
             <th class="p-2 text-center w-40">Jumlah</th>
             <th class="p-2 text-center w-20">Aksi</th>
           </tr>
         </thead>
         <tbody :class="isMobile ? 'block' : 'divide-y divide-secondary/20'">
-          <tr v-for="item in items" :key="item.sku" class="transition-colors relative"
-            :class="isMobile ? 'block mb-3 p-3 bg-background/50 rounded-xl border border-secondary/20 shadow-sm' : 'hover:bg-primary/5'">
-            <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'">
+          <tr
+            v-for="item in items"
+            :key="item.sku"
+            class="transition-colors relative"
+            :class="
+              isMobile
+                ? 'block mb-3 p-3 bg-background/50 rounded-xl border border-secondary/20 shadow-sm'
+                : 'hover:bg-primary/5'
+            "
+          >
+            <td
+              :class="
+                isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'
+              "
+            >
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">SKU</span>
               <span class="font-mono">{{ item.sku }}</span>
             </td>
@@ -78,14 +85,18 @@ function validateQuantity(item) {
               <span>{{ item.name }}</span>
             </td>
             <td
-              :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 text-center'"
+              :class="
+                isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 text-center'
+              "
               v-if="activeTab === 'TRANSFER' || activeTab === 'ADJUSTMENT'"
             >
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Stok</span>
               <span>{{ item.current_stock }}</span>
             </td>
             <td
-              :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 text-center'"
+              :class="
+                isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 text-center'
+              "
             >
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Jumlah</span>
               <div class="flex items-center" :class="isMobile ? 'justify-end gap-2' : 'justify-center gap-2'">
@@ -96,7 +107,10 @@ function validateQuantity(item) {
                   :min="activeTab === 'ADJUSTMENT' ? undefined : 1"
                   :max="activeTab === 'TRANSFER' ? item.current_stock : undefined"
                   class="w-20 p-1 border border-secondary/50 rounded bg-background text-center font-bold"
-                  :class="{ 'text-success': item.quantity > 0 && activeTab === 'ADJUSTMENT', 'text-danger': item.quantity < 0 }"
+                  :class="{
+                    'text-success': item.quantity > 0 && activeTab === 'ADJUSTMENT',
+                    'text-danger': item.quantity < 0
+                  }"
                 />
               </div>
             </td>
