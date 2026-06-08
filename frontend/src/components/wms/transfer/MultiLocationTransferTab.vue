@@ -2,11 +2,11 @@
 <script setup>
 import { ref } from 'vue'
 import { useToast } from '@/composables/useToast.js'
-import { fetchProductStockDetails, searchProducts } from '@/api/helpers/products.js'
+import { fetchProductStockDetails } from '@/api/helpers/products.js'
 import { processBatchMovement } from '@/api/helpers/stock.js'
-import debounce from 'lodash/debounce'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import { useMobile } from '@/composables/useMobile.js'
+import ProductSearchSelector from '@/components/wms/transfer/ProductSearchSelector.vue'
 
 const { isMobile } = useMobile()
 
@@ -23,8 +23,6 @@ const notes = ref('')
 const isSubmitting = ref(false)
 
 // --- STATE FORM PENAMBAHAN ---
-const searchResults = ref([])
-const isSearching = ref(false)
 const selectedProduct = ref(null)
 
 const stockDetails = ref([]) // Stok untuk produk yang dipilih
@@ -36,31 +34,10 @@ const quantity = ref(1)
 
 // --- FUNGSI FORM PENAMBAHAN ---
 
-const debouncedSearch = debounce(async query => {
-  try {
-    searchResults.value = await searchProducts(query, null)
-  } catch {
-    toast('Gagal mencari produk.', 'error')
-  } finally {
-    isSearching.value = false
-  }
-}, 500)
-
-function onSearchChange(query) {
-  stockDetails.value = [] // Kosongkan detail stok saat mencari produk baru
-  fromLocation.value = null
-  if (query.length < 2) {
-    searchResults.value = []
-    debouncedSearch.cancel()
-    return
-  }
-  isSearching.value = true
-  debouncedSearch(query)
-}
-
 async function onProductSelect(product) {
   if (!product) {
     stockDetails.value = []
+    fromLocation.value = null
     return
   }
   selectedProduct.value = product
@@ -156,7 +133,6 @@ function addItemToBatch() {
 
   // Reset form penambahan
   selectedProduct.value = null
-  searchResults.value = []
   stockDetails.value = []
   fromLocation.value = null
   toLocation.value = null
@@ -225,22 +201,11 @@ async function submitDetailedBatch() {
       <!-- Cari Produk -->
       <div class="md:col-span-2">
         <label class="block text-sm font-medium text-text/90 mb-2">Cari Produk</label>
-        <BaseSelect
+        <ProductSearchSelector
           v-model="selectedProduct"
-          :options="searchResults"
-          :loading="isSearching"
-          @search-change="onSearchChange"
           @update:model-value="onProductSelect"
           placeholder="Ketik SKU atau Nama..."
-          label="name"
-          track-by="id"
-        >
-          <template #option="{ option }">
-            <div>
-              {{ option.name }} <span class="text-xs text-text/60">({{ option.sku }})</span>
-            </div>
-          </template>
-        </BaseSelect>
+        />
       </div>
 
       <!-- Pindahkan Dari -->

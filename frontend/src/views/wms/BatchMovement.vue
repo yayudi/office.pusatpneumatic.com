@@ -14,7 +14,9 @@ import ProductSearchAddForm from '@/components/wms/transfer/ProductSearchAddForm
 import BatchItemList from '@/components/wms/transfer/BatchItemList.vue'
 import MultiLocationTransferTab from '@/components/wms/transfer/MultiLocationTransferTab.vue'
 import BatchInboundModal from '@/components/stock/BatchInboundModal.vue'
-import StickerGeneratorModal from '@/components/utilities/StickerGeneratorModal.vue'
+import { defineAsyncComponent } from 'vue'
+
+const StickerGeneratorModal = defineAsyncComponent(() => import('@/components/utilities/StickerGeneratorModal.vue'))
 
 const { toast } = useToast()
 

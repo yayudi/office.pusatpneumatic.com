@@ -59,14 +59,11 @@ watch(
   { immediate: true }
 )
 
-async function handleInput() {
-  const query = searchQuery.value
-  if (!query) {
-    emit('update:modelValue', null)
-    clearSearch()
-    showDropdown.value = false
-    return
-  }
+import debounce from 'lodash/debounce'
+
+// ... (logic above remains) ...
+
+const debouncedSearch = debounce(async (query) => {
   if (query.length < 2) return
   await performSearch(query)
   
@@ -84,6 +81,19 @@ async function handleInput() {
   if (searchResults.value.length > 0) {
     showDropdown.value = true
   }
+}, 300)
+
+async function handleInput() {
+  const query = searchQuery.value
+  if (!query) {
+    emit('update:modelValue', null)
+    clearSearch()
+    showDropdown.value = false
+    return
+  }
+  
+  // Call the debounced function instead of immediate performSearch
+  debouncedSearch(query)
 }
 
 function selectItem(item) {

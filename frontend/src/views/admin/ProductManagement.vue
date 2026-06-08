@@ -239,9 +239,8 @@ const performBulkAction = async actionType => {
 }
 
 const handleBulkPrintLabel = () => {
-  const sourceProducts = selectedIds.value.size > 0 
-    ? products.value.filter(p => selectedIds.value.has(p.id))
-    : products.value
+  const sourceProducts =
+    selectedIds.value.size > 0 ? products.value.filter(p => selectedIds.value.has(p.id)) : products.value
 
   printBatchList.value = sourceProducts.map(p => ({
     sku: p.sku,
