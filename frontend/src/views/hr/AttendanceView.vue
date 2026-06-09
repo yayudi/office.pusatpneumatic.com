@@ -1,6 +1,6 @@
 <!-- frontend\src\views\hr\AttendanceView.vue -->
 <script setup>
-import { ref, watch, onMounted, computed, defineAsyncComponent } from 'vue'
+import { ref, watch, computed, defineAsyncComponent } from 'vue'
 import { startOfMonth, endOfMonth, format } from 'date-fns'
 import { useAuthStore } from '@/stores/auth'
 import BaseTabs from '@/components/ui/BaseTabs.vue'
@@ -21,7 +21,7 @@ import { useToast } from '@/composables/useToast.js'
 import { getAbsensiRange, uploadAbsensiFile } from '@/api/helpers/attendance.js'
 import { useMasterDataStore } from '@/stores/masterData'
 import { useMobile } from '@/composables/useMobile.js'
-import * as XLSX from 'xlsx'
+
 import { calculateSummaryForUser } from '@/api/helpers/summary.js'
 
 // --- STATE ---
@@ -36,7 +36,7 @@ const activeTab = ref('statistik')
 const summary = ref(null)
 const users = ref([])
 // const availableIndexes = ref({}) // Deprecated
-const filters = ref([])
+
 const filterValues = ref({
   startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
   endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
@@ -106,7 +106,7 @@ async function fetchAttendanceData() {
 // --- WATCHERS & LIFECYCLE ---
 watch(
   [() => filterValues.value.startDate, () => filterValues.value.endDate, () => authStore.user],
-  (newVals, oldVals) => {
+  () => {
     // Basic debounce or check if valid
     fetchAttendanceData()
   }
@@ -190,7 +190,7 @@ async function handleUpload(formData) {
 }
 
 // --- EXPORT ---
-function handleExportExcel() {
+async function handleExportExcel() {
   if (displayedUsers.value.length === 0) {
     toast('Tidak ada data untuk diekspor', 'warning')
     return
@@ -237,6 +237,7 @@ function handleExportExcel() {
     })
 
     // 3. Buat Workbook
+    const XLSX = await import('xlsx')
     const wb = XLSX.utils.book_new()
     const wsSummary = XLSX.utils.json_to_sheet(summaryData)
     const wsDetail = XLSX.utils.json_to_sheet(detailData)

@@ -1,6 +1,6 @@
 <!-- frontend/src/views/media/MediaManagement.vue -->
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, defineAsyncComponent } from 'vue'
 import debounce from 'lodash/debounce'
 import { useToast } from '@/composables/useToast.js'
 import { useImageActions } from '@/composables/useImageActions.js'
@@ -8,7 +8,7 @@ import apiClient from '@/api/axios'
 import MediaInfoModal from './MediaInfoModal.vue'
 import MediaLightbox from '@/components/common/MediaLightbox.vue'
 import LinkProductModal from './LinkProductModal.vue'
-import ImageCropperModal from './ImageCropperModal.vue'
+const ImageCropperModal = defineAsyncComponent(() => import('./ImageCropperModal.vue'))
 import BulkEditTagsModal from './BulkEditTagsModal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'

@@ -1,15 +1,15 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import DpvStickerTemplate from './DpvStickerTemplate.vue'
-import DynamicStickerRenderer from './DynamicStickerRenderer.vue'
-import StickerTemplateBuilder from './StickerTemplateBuilder.vue'
+const DynamicStickerRenderer = defineAsyncComponent(() => import('./DynamicStickerRenderer.vue'))
+const StickerTemplateBuilder = defineAsyncComponent(() => import('./StickerTemplateBuilder.vue'))
 import ProductSearchSelector from '@/components/wms/transfer/ProductSearchSelector.vue'
 import ScannerToggle from '@/components/utilities/ScannerToggle.vue'
 import { useAuthStore } from '@/stores/auth'
 import { formatCurrency } from '@/utils/formatters.js'
-import JSZip from 'jszip'
+
 
 const props = defineProps({
   show: { type: Boolean, required: true },
@@ -293,6 +293,8 @@ const handleDownloadZip = async () => {
   }
 
   try {
+    const JSZipModule = await import('jszip')
+    const JSZip = JSZipModule.default || JSZipModule
     const zip = new JSZip()
     const folder = zip.folder('stickers')
     let count = 0

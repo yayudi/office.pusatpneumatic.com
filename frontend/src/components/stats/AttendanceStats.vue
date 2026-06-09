@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed } from 'vue'
-import VueApexCharts from 'vue3-apexcharts'
+import { ref, computed, defineAsyncComponent } from 'vue'
+const VueApexCharts = defineAsyncComponent(() => import('vue3-apexcharts'))
 import { calculateSummaryForUser } from '@/api/helpers/summary.js'
 import { useAuthStore } from '@/stores/auth.js'
 import { formatJamMenit } from '@/api/helpers/time.js'

@@ -1,6 +1,6 @@
 <!-- frontend/src/components/products/ProductImageModal.vue -->
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { useAuthStore } from '@/stores/auth.js'
 import axios from '@/api/axios.js'
@@ -9,7 +9,7 @@ import { resolveUrl } from '@/composables/useImageUrl'
 import MediaCard from '@/components/common/MediaCard.vue'
 import MediaActionBar from '@/components/common/MediaActionBar.vue'
 import MediaLightbox from '@/components/common/MediaLightbox.vue'
-import ImageCropperModal from '@/views/media/ImageCropperModal.vue'
+const ImageCropperModal = defineAsyncComponent(() => import('@/views/media/ImageCropperModal.vue'))
 import { autoCropCenter } from '@/utils/imageCropper.js'
 import BaseModal from '@/components/ui/BaseModal.vue'
 

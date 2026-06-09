@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, defineAsyncComponent } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { useTheme } from '@/composables/useTheme.js'
 import { getInventoryValueStatistics } from '@/api/helpers/statistics.js'
@@ -8,7 +8,7 @@ import { useMasterDataStore } from '@/stores/masterData'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import TriStateSelect from '@/components/ui/TriStateSelect.vue'
 import BaseTabs from '@/components/ui/BaseTabs.vue'
-import VueApexCharts from 'vue3-apexcharts'
+const VueApexCharts = defineAsyncComponent(() => import('vue3-apexcharts'))
 import { formatCurrency, formatNumber } from '@/utils/formatters.js'
 import { useStatsTable } from '@/composables/useStatsTable.js'
 import StatsChartCard from './shared/StatsChartCard.vue'

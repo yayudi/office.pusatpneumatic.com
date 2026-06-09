@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, defineAsyncComponent } from 'vue'
 import { startOfMonth, endOfMonth, format } from 'date-fns'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast.js'
@@ -13,7 +13,7 @@ import SearchInput from '@/components/ui/SearchInput.vue'
 import BaseTabs from '@/components/ui/BaseTabs.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import TriStateSelect from '@/components/ui/TriStateSelect.vue'
-import VueApexCharts from 'vue3-apexcharts'
+const VueApexCharts = defineAsyncComponent(() => import('vue3-apexcharts'))
 import { useStatsTable } from '@/composables/useStatsTable.js'
 import StatsChartCard from './shared/StatsChartCard.vue'
 import StatsFilterBar from './shared/StatsFilterBar.vue'

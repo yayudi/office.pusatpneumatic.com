@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, defineAsyncComponent } from 'vue'
 import { startOfMonth, endOfMonth, format } from 'date-fns'
 import { useToast } from '@/composables/useToast.js'
 import { useTheme } from '@/composables/useTheme.js'
@@ -10,7 +10,7 @@ import { getStockMovementStatistics } from '@/api/helpers/statistics.js'
 import { useMasterDataStore } from '@/stores/masterData'
 
 const masterData = useMasterDataStore()
-import VueApexCharts from 'vue3-apexcharts'
+const VueApexCharts = defineAsyncComponent(() => import('vue3-apexcharts'))
 
 const { toast } = useToast()
 const isDataLoading = ref(false)
