@@ -15,11 +15,11 @@ export const processProductImport = async (
   let logSummary = "";
   const logicErrors = [];
   let updatedCount = 0;
-  let createdCount = 0;
+  const createdCount = 0;
   let skippedCount = 0;
 
   // Pagination / Resume Support
-  let startIndex = options.lastRow || 0;
+  const startIndex = options.lastRow || 0;
   let processedInThisRun = 0;
 
   // Time limit check (25 detik untuk Shared Hosting)

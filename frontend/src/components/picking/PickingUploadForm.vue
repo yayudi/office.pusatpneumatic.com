@@ -108,24 +108,24 @@ async function triggerUpload() {
     const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls')
 
     if (selectedSource.value === 'Shopee' && !isExcel) {
-      toast(`File ${file.name} salah format. Shopee hanya menerima Excel.`, 'error')
+//       toast(`File ${file.name} salah format. Shopee hanya menerima Excel.`, 'error') // Removed to prevent double-toast
       return
     }
     if (!isCsv && !isExcel) {
-      toast(`File ${file.name} format tidak didukung.`, 'error')
+//       toast(`File ${file.name} format tidak didukung.`, 'error') // Removed to prevent double-toast
       return
     }
 
     // Validasi Ukuran
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      toast(`File ${file.name} terlalu besar (Max ${MAX_SIZE_MB}MB).`, 'error')
+//       toast(`File ${file.name} terlalu besar (Max ${MAX_SIZE_MB}MB).`, 'error') // Removed to prevent double-toast
       return
     }
   }
 
   for (let i = 0; i < selectedFiles.value.length; i++) {
     if (!shopNames.value[i] || shopNames.value[i].trim() === '') {
-      toast(`File ${selectedFiles.value[i].name} belum memiliki Nama Toko / Sales.`, 'error')
+//       toast(`File ${selectedFiles.value[i].name} belum memiliki Nama Toko / Sales.`, 'error') // Removed to prevent double-toast
       return
     }
   }
@@ -172,8 +172,8 @@ async function triggerUpload() {
     }
   } catch (error) {
     console.error('Upload Error:', error)
-    const msg = error.response?.data?.message || error.message || 'Terjadi kesalahan saat upload.'
-    toast(msg, 'error')
+//     const msg = error.response?.data?.message || error.message || 'Terjadi kesalahan saat upload.' // Disabled due to unused var
+//     toast(msg, 'error') // Removed to prevent double-toast
   } finally {
     isLoading.value = false
     loadingMessage.value = ''

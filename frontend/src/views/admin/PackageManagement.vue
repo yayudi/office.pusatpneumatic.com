@@ -86,7 +86,7 @@ const fetchProducts = async () => {
     }
   } catch (err) {
     console.error(err)
-    toast('Gagal memuat data paket.', 'error')
+//     toast('Gagal memuat data paket.', 'error') // Removed to prevent double-toast
   } finally {
     loading.value = false
   }
@@ -144,7 +144,7 @@ const handleDelete = async product => {
     fetchProducts()
   } catch (err) {
     console.error(err)
-    toast('Gagal menghapus produk.', 'error')
+//     toast('Gagal menghapus produk.', 'error') // Removed to prevent double-toast
   }
 }
 
@@ -157,7 +157,7 @@ const handleRestore = async product => {
     fetchProducts()
   } catch (err) {
     console.error(err)
-    toast('Gagal memulihkan produk.', 'error')
+//     toast('Gagal memulihkan produk.', 'error') // Removed to prevent double-toast
   }
 }
 
@@ -194,7 +194,7 @@ const performBulkAction = async actionType => {
     selectedIds.value.clear()
     fetchProducts()
   } catch {
-    toast('Terjadi kesalahan saat batch processing.', 'error')
+//     toast('Terjadi kesalahan saat batch processing.', 'error') // Removed to prevent double-toast
   } finally {
     isProcessingBulk.value = false
   }
@@ -222,7 +222,7 @@ const handleExport = async ({ format }) => {
     }
   } catch (err) {
     console.error(err)
-    toast('Gagal request export paket.', 'error')
+//     toast('Gagal request export paket.', 'error') // Removed to prevent double-toast
   } finally {
     isExporting.value = false
   }
@@ -239,7 +239,7 @@ const handleImport = async formData => {
     fetchProducts()
   } catch (err) {
     console.error(err)
-    toast(err.response?.data?.message || 'Gagal mengunggah file paket.', 'error')
+//     toast(err.response?.data?.message || 'Gagal mengunggah file paket.', 'error') // Removed to prevent double-toast
   }
 }
 const handleProductSaved = () => {

@@ -1,16 +1,14 @@
 // backend/controllers/attendanceController.js
 import { createJobService } from "../services/jobService.js";
-import path from "path";
 import db from "../config/db.js";
 import { loadHolidays } from "../services/helpers/fileHelpers.js";
 import * as attendanceService from "../services/attendanceService.js";
+import AppError from "../utils/AppError.js";
 import {
   JAM_KERJA_MULAI,
   JAM_KERJA_SELESAI,
   JAM_KERJA_SELESAI_SABTU,
 } from "../config/wmsConstants.js";
-import Logger from "../utils/logger.js";
-
 // ============================================================================
 // READ OPERATIONS
 // ============================================================================
@@ -20,19 +18,14 @@ import Logger from "../utils/logger.js";
  * @param {object} req
  * @param {object} res
  */
-export const getHistory = async (req, res) => {
+export const getHistory = async (req, res, next) => {
   try {
     const { startDate, endDate, search } = req.query;
-
-    if (!startDate || !endDate) {
-      return res.status(400).json({ success: false, message: "Start Date and End Date is required." });
-    }
 
     const data = await attendanceService.getHistory(startDate, endDate, search);
     res.json({ success: true, data: data.logs });
   } catch (error) {
-    Logger.error("Error fetching attendance history", error, "ATTENDANCE_CONTROLLER");
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
@@ -40,7 +33,7 @@ export const getHistory = async (req, res) => {
  * Get available year/month indexes for attendance data.
  * Used for filtering dropdowns in Frontend.
  */
-export const getIndexes = async (req, res) => {
+export const getIndexes = async (req, res, next) => {
   try {
     const query = `
             SELECT DISTINCT YEAR(date) AS year, MONTH(date) AS month
@@ -57,8 +50,7 @@ export const getIndexes = async (req, res) => {
     }
     res.json(indexes);
   } catch (error) {
-    Logger.error("Error fetching attendance indexes", error, "ATTENDANCE_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal mengambil indeks data absensi." });
+    next(error);
   }
 };
 
@@ -66,12 +58,8 @@ export const getIndexes = async (req, res) => {
  * Get attendance data by Date Range.
  * Fetches holidays, users, logs, and raw logs for efficient frontend processing.
  */
-export const getRangeData = async (req, res) => {
+export const getRangeData = async (req, res, next) => {
   const { startDate, endDate } = req.query;
-
-  if (!startDate || !endDate) {
-    return res.status(400).json({ success: false, message: "Start Date and End Date are required." });
-  }
 
   try {
     const start = new Date(startDate);
@@ -88,7 +76,9 @@ export const getRangeData = async (req, res) => {
     }
 
     // 2. Ambil semua user aktif (untuk normalisasi data frontend jika log kosong)
-    const [allUsers] = await db.query("SELECT id, username FROM users WHERE is_active = TRUE AND exclude_from_attendance = FALSE ORDER BY username ASC");
+    const [allUsers] = await db.query(
+      "SELECT id, username FROM users WHERE is_active = TRUE AND exclude_from_attendance = FALSE ORDER BY username ASC",
+    );
 
     // 3. Ambil log absensi + raw logs (JOIN)
     const logQuery = `
@@ -113,7 +103,7 @@ export const getRangeData = async (req, res) => {
     // Iterate daries start date to end date
     const current = new Date(start);
     while (current <= end) {
-      const ymd = current.toISOString().split('T')[0];
+      const ymd = current.toISOString().split("T")[0];
       const dayOfWeek = current.getDay();
 
       if (dayOfWeek === 0 || holidayMap[ymd]) {
@@ -141,8 +131,7 @@ export const getRangeData = async (req, res) => {
 
     res.json(responseJson);
   } catch (error) {
-    Logger.error(`Error fetching attendance data for range ${startDate} to ${endDate}`, error, "ATTENDANCE_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal mengambil data absensi range." });
+    next(error);
   }
 };
 
@@ -150,22 +139,18 @@ export const getRangeData = async (req, res) => {
  * Get monthly attendance data (Summary & Detail).
  * Fetches holidays, users, logs, and raw logs for efficient frontend processing.
  */
-export const getMonthlyData = async (req, res) => {
+export const getMonthlyData = async (req, res, next) => {
   const year = parseInt(req.params.year);
   const month = parseInt(req.params.month);
-
-  if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Format tahun atau bulan tidak valid." });
-  }
 
   try {
     // 1. Ambil data libur
     const holidayMap = await loadHolidays(year);
 
     // 2. Ambil semua user aktif (untuk normalisasi data frontend jika log kosong)
-    const [allUsers] = await db.query("SELECT id, username FROM users WHERE is_active = TRUE AND exclude_from_attendance = FALSE ORDER BY username ASC");
+    const [allUsers] = await db.query(
+      "SELECT id, username FROM users WHERE is_active = TRUE AND exclude_from_attendance = FALSE ORDER BY username ASC",
+    );
 
     // 3. Ambil log absensi + raw logs (JOIN)
     const logQuery = `
@@ -217,8 +202,7 @@ export const getMonthlyData = async (req, res) => {
 
     res.json(responseJson);
   } catch (error) {
-    Logger.error(`Error fetching attendance data for ${year}-${month}`, error, "ATTENDANCE_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal mengambil data absensi." });
+    next(error);
   }
 };
 
@@ -230,10 +214,10 @@ export const getMonthlyData = async (req, res) => {
  * Upload Attendance File (Job Queue Based).
  * Supports Dry Run mode via req.body.dryRun.
  */
-export const uploadAttendanceLogs = async (req, res) => {
+export const uploadAttendanceLogs = async (req, res, next) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ success: false, message: "No file uploaded" });
+      return next(new AppError("No file uploaded", 400));
     }
 
     const userId = req.user.id;
@@ -260,32 +244,26 @@ export const uploadAttendanceLogs = async (req, res) => {
       jobId: jobId,
     });
   } catch (error) {
-    Logger.error("Upload Error", error, "ATTENDANCE_CONTROLLER");
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 /**
  * Update attendance log manually.
  */
-export const updateLog = async (req, res) => {
+export const updateLog = async (req, res, next) => {
   try {
     const { username, date, timeIn, timeOut, status, notes } = req.body;
-
-    if (!username || !date) {
-      return res.status(400).json({ success: false, message: "Username and Date are required." });
-    }
 
     const result = await attendanceService.updateAttendance(username, date, {
       timeIn,
       timeOut,
       status,
-      notes
+      notes,
     });
 
     res.json({ success: true, message: "Data updated successfully", data: result });
   } catch (error) {
-    Logger.error("Error updating log", error, "ATTENDANCE_CONTROLLER");
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };

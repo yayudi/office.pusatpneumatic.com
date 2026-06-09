@@ -11,13 +11,19 @@ const timeToMinutes = (timeStr) => {
 
 // ... existing code ...
 
+/**
+ * @param {any} username
+ * @param {any} date
+ * @param {any} payload
+ * @returns {Promise<any>}
+ */
 export const updateAttendance = async (username, date, payload) => {
   // 1. Prepare Data
   const { timeIn, timeOut, status, notes } = payload;
 
-  let check_in = timeIn || null;
-  let check_out = timeOut || null;
-  let finalNotes = notes || null;
+  const check_in = timeIn || null;
+  const check_out = timeOut || null;
+  const finalNotes = notes || null;
 
   // 2. Determine Effective Shift
   let shift;

@@ -21,6 +21,11 @@ const logChange = async (connection, productId, userId, action, field, oldVal, n
   }
 };
 
+/**
+ * @param {any} data
+ * @param {number|string} userId
+ * @returns {Promise<any>}
+ */
 export const createProductService = async (data, userId) => {
   const connection = await db.getConnection();
   await connection.beginTransaction();
@@ -72,6 +77,12 @@ export const createProductService = async (data, userId) => {
   }
 };
 
+/**
+ * @param {number|string} id
+ * @param {any} data
+ * @param {number|string} userId
+ * @returns {Promise<any>}
+ */
 export const updateProductService = async (id, data, userId) => {
   const connection = await db.getConnection();
   await connection.beginTransaction();
@@ -159,6 +170,11 @@ export const updateProductService = async (id, data, userId) => {
   }
 };
 
+/**
+ * @param {number|string} id
+ * @param {number|string} userId
+ * @returns {Promise<any>}
+ */
 export const softDeleteProductService = async (id, userId) => {
   const connection = await db.getConnection();
   await connection.beginTransaction();
@@ -174,6 +190,11 @@ export const softDeleteProductService = async (id, userId) => {
   }
 };
 
+/**
+ * @param {number|string} id
+ * @param {number|string} userId
+ * @returns {Promise<any>}
+ */
 export const restoreProductService = async (id, userId) => {
   const connection = await db.getConnection();
   await connection.beginTransaction();
@@ -189,6 +210,12 @@ export const restoreProductService = async (id, userId) => {
   }
 };
 
+/**
+ * @param {number|string} id
+ * @param {any} images
+ * @param {number|string} userId
+ * @returns {Promise<any>}
+ */
 export const uploadProductImagesService = async (id, images, userId) => {
   const connection = await db.getConnection();
   await connection.beginTransaction();
@@ -215,6 +242,12 @@ export const uploadProductImagesService = async (id, images, userId) => {
   }
 };
 
+/**
+ * @param {number|string} productId
+ * @param {number|string} mediaIds
+ * @param {number|string} userId
+ * @returns {Promise<any>}
+ */
 export const linkMediaToProductService = async (productId, mediaIds, userId) => {
   const connection = await db.getConnection();
   await connection.beginTransaction();
@@ -230,6 +263,11 @@ export const linkMediaToProductService = async (productId, mediaIds, userId) => 
   }
 };
 
+/**
+ * @param {number|string} imageId
+ * @param {number|string} userId
+ * @returns {Promise<any>}
+ */
 export const deleteProductImageService = async (imageId, userId) => {
   const connection = await db.getConnection();
   await connection.beginTransaction();
@@ -258,6 +296,12 @@ export const deleteProductImageService = async (imageId, userId) => {
   }
 };
 
+/**
+ * @param {number|string} productId
+ * @param {number|string} imageId
+ * @param {number|string} userId
+ * @returns {Promise<any>}
+ */
 export const setPrimaryImageService = async (productId, imageId, userId) => {
   const connection = await db.getConnection();
   await connection.beginTransaction();
@@ -274,6 +318,13 @@ export const setPrimaryImageService = async (productId, imageId, userId) => {
   }
 };
 
+/**
+ * @param {number|string} productId
+ * @param {any} page
+ * @param {number} limit
+ * @param {any} filters
+ * @returns {Promise<any>}
+ */
 export const getHistoricalStockTimelineService = async (productId, page = 1, limit = 100, filters = {}) => {
   const connection = await db.getConnection();
   try {

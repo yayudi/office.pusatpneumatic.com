@@ -36,7 +36,7 @@ export const processScheduleImport = async (jobId, filePath, userId) => {
 
       // Columns: A=Username, B=Date, C=Shift Name
       const username = row.getCell(1).text?.trim();
-      let dateVal = row.getCell(2).value; // Get raw value
+      const dateVal = row.getCell(2).value; // Get raw value
       const shiftName = row.getCell(3).text?.trim();
 
       // Handle Excel Date Object or String

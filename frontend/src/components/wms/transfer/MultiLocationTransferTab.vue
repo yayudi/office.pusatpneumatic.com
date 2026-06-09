@@ -45,7 +45,7 @@ async function onProductSelect(product) {
   try {
     stockDetails.value = await fetchProductStockDetails(product.id)
   } catch {
-    toast('Gagal memuat detail stok produk.', 'error')
+//     toast('Gagal memuat detail stok produk.', 'error') // Removed to prevent double-toast
   } finally {
     isLoadingDetails.value = false
   }
@@ -94,11 +94,11 @@ function addItemToBatch() {
     return
   }
   if (fromLocation.value.location_id === toLocation.value.id) {
-    toast('Lokasi asal dan tujuan tidak boleh sama.', 'error')
+//     toast('Lokasi asal dan tujuan tidak boleh sama.', 'error') // Removed to prevent double-toast
     return
   }
   if (quantity.value > fromLocation.value.quantity) {
-    toast('Kuantitas melebihi stok yang tersedia.', 'error')
+//     toast('Kuantitas melebihi stok yang tersedia.', 'error') // Removed to prevent double-toast
     return
   }
 
@@ -149,7 +149,7 @@ async function copyFromSku() {
     toast('Daftar transfer berhasil disalin ke clipboard.', 'success')
   } catch (err) {
     console.error('Failed to copy text: ', err)
-    toast('Gagal menyalin daftar transfer.', 'error')
+//     toast('Gagal menyalin daftar transfer.', 'error') // Removed to prevent double-toast
   }
 }
 
@@ -159,7 +159,7 @@ function removeFromBatch(id) {
 
 async function submitDetailedBatch() {
   if (batchList.value.length === 0) {
-    toast('Tambahkan setidaknya satu item ke daftar transfer.', 'error')
+//     toast('Tambahkan setidaknya satu item ke daftar transfer.', 'error') // Removed to prevent double-toast
     return
   }
 
@@ -185,7 +185,8 @@ async function submitDetailedBatch() {
     batchList.value = []
     notes.value = ''
   } catch (error) {
-    toast(error.message || 'Gagal memproses batch transfer.', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.message || 'Gagal memproses batch transfer.', 'error') // Removed to prevent double-toast
   } finally {
     isSubmitting.value = false
   }

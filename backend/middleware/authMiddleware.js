@@ -1,5 +1,6 @@
 // backend\middleware\authMiddleware.js
 import jwt from "jsonwebtoken";
+import AppError from "../utils/AppError.js";
 
 function authenticateToken(req, res, next) {
   let token;
@@ -12,9 +13,7 @@ function authenticateToken(req, res, next) {
   }
 
   if (!token) {
-    return res
-      .status(401)
-      .json({ success: false, message: "Akses ditolak. Token tidak ditemukan." });
+    return next(new AppError("Akses ditolak. Token tidak ditemukan.", 401));
   }
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
@@ -24,7 +23,7 @@ function authenticateToken(req, res, next) {
           ? "Sesi Anda telah berakhir. Silakan login kembali."
           : "Token tidak valid.";
 
-      return res.status(401).json({ success: false, message: message, code: "TOKEN_EXPIRED" });
+      return next(new AppError(message, 401, "TOKEN_EXPIRED"));
     }
 
     req.user = user;

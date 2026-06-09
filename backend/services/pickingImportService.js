@@ -122,6 +122,10 @@ export const syncOrdersToDB = async (
   return summary;
 };
 
+/**
+ * @param {any} payload
+ * @returns {Promise<any>}
+ */
 export const performPickingValidation = async (payload) => {
   throw new Error("Deprecated: Use Job Queue Import instead.");
 };

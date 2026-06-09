@@ -73,6 +73,9 @@ async function ensureStockLocation(connection, productId, qtyNeeded, currentLocI
 // READ OPERATIONS
 // ==============================================================================
 
+/**
+ * @returns {Promise<any>}
+ */
 export const getPendingPickingItemsService = async () => {
   const connection = await db.getConnection();
   try {
@@ -82,6 +85,10 @@ export const getPendingPickingItemsService = async () => {
   }
 };
 
+/**
+ * @param {number} limit
+ * @returns {Promise<any>}
+ */
 export const getHistoryPickingItemsService = async (limit = 1000) => {
   const connection = await db.getConnection();
   try {
@@ -91,6 +98,10 @@ export const getHistoryPickingItemsService = async (limit = 1000) => {
   }
 };
 
+/**
+ * @param {number|string} pickingListId
+ * @returns {Promise<any>}
+ */
 export const fetchPickingListDetails = async (pickingListId) => {
   const connection = await db.getConnection();
   try {
@@ -104,6 +115,11 @@ export const fetchPickingListDetails = async (pickingListId) => {
 // WRITE OPERATIONS (TRANSACTIONS)
 // ==============================================================================
 
+/**
+ * @param {number|string} pickingListId
+ * @param {number|string} userId
+ * @returns {Promise<any>}
+ */
 export const cancelPickingListService = async (pickingListId, userId) => {
   const connection = await db.getConnection();
   await connection.beginTransaction();

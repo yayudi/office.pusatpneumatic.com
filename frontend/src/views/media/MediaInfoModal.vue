@@ -44,7 +44,7 @@ async function fetchMediaDetails() {
     }
   } catch (error) {
     console.error('Fetch Media Failed', error)
-    toast('Gagal mengambil rincian media', 'error')
+//     toast('Gagal mengambil rincian media', 'error') // Removed to prevent double-toast
   } finally {
     fetching.value = false
   }
@@ -85,7 +85,7 @@ async function saveTags() {
     }
   } catch (err) {
     console.error('Update Tags Error', err)
-    toast(err.response?.data?.message || 'Gagal menyimpan tag', 'error')
+//     toast(err.response?.data?.message || 'Gagal menyimpan tag', 'error') // Removed to prevent double-toast
   } finally {
     loadingTags.value = false
   }
@@ -119,7 +119,7 @@ async function linkProduct(product) {
     }
   } catch (err) {
     console.error(err)
-    toast('Gagal menyematkan produk.', 'error')
+//     toast('Gagal menyematkan produk.', 'error') // Removed to prevent double-toast
   } finally {
     loading.value = false
   }
@@ -137,7 +137,7 @@ async function unlinkProduct(productRaw) {
     }
   } catch (err) {
     console.error(err)
-    toast('Gagal melepaskan produk.', 'error')
+//     toast('Gagal melepaskan produk.', 'error') // Removed to prevent double-toast
   } finally {
     loading.value = false
   }
@@ -169,7 +169,7 @@ const saveTitle = async () => {
     }
   } catch (err) {
     console.error(err)
-    toast(err.response?.data?.message || 'Gagal memperbarui judul', 'error')
+//     toast(err.response?.data?.message || 'Gagal memperbarui judul', 'error') // Removed to prevent double-toast
   } finally {
     loadingTitle.value = false
   }

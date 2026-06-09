@@ -36,7 +36,8 @@ const fetchChannels = async () => {
     const res = await api.get('/sales-channels')
     channels.value = res.data?.data || []
   } catch (error) {
-    toast(error.response?.data?.message || 'Gagal memuat saluran penjualan.', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.response?.data?.message || 'Gagal memuat saluran penjualan.', 'error') // Removed to prevent double-toast
   } finally {
     isLoading.value = false
   }
@@ -96,7 +97,8 @@ const saveChannel = async () => {
     closeModal()
     fetchChannels()
   } catch (error) {
-    toast(error.response?.data?.message || 'Gagal menyimpan saluran penjualan.', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.response?.data?.message || 'Gagal menyimpan saluran penjualan.', 'error') // Removed to prevent double-toast
   } finally {
     isSaving.value = false
   }
@@ -115,7 +117,8 @@ const handleDelete = async () => {
     toast('Saluran berhasil dihapus.', 'success')
     fetchChannels()
   } catch (error) {
-    toast(error.response?.data?.message || 'Gagal menghapus saluran.', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.response?.data?.message || 'Gagal menghapus saluran.', 'error') // Removed to prevent double-toast
   } finally {
     isDeleteModalOpen.value = false
     itemToDelete.value = null

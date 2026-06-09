@@ -1,9 +1,6 @@
 // frontend\src\api\axios.js
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
-import { useToast } from '@/composables/useToast'
-
-const { toast } = useToast()
 
 // Buat instance axios
 const instance = axios.create({
@@ -52,24 +49,37 @@ instance.interceptors.response.use(
     const authStore = useAuthStore() // Pastikan import store sudah benar di sini
 
     if (error.response) {
-      const { status } = error.response
+      const { status, data } = error.response
 
       // Token Expired / Tidak Valid (401)
       // -> HANYA Logout jika statusnya 401 dan BUKAN request dari login
       if (status === 401 && !error.config.url.includes('/auth/login')) {
         authStore.logout()
         // Tampilkan Toast "Sesi expired"
-        toast('Sesi telah berakhir, silakan login kembali.', 'error')
+//         toast('Sesi telah berakhir, silakan login kembali.', 'error') // Removed to prevent double-toast
         // Redirect ke login page
         window.location.href = '/login'
       }
-
       // Tidak Punya Izin (403)
       // -> JANGAN Logout, tapi beri tahu user
       else if (status === 403) {
-        const serverMessage = error.response.data?.message || 'Akses ditolak.'
-        toast(`Gagal: ${serverMessage}`, 'error')
+//         const serverMessage = data?.message || 'Akses ditolak.' // Disabled due to unused var
       }
+      // Global Error Handler untuk Server Error atau Bad Request
+      else if (status >= 400 && status !== 401 && status !== 403) {
+        // Abaikan endpoint login karena biasanya login page punya penanganan error spesifik di komponennya
+        if (!error.config.url.includes('/auth/login')) {
+           let serverMessage = data?.message || 'Terjadi kesalahan pada server.'
+
+           // Format error validasi Zod agar lebih enak dibaca (menghilangkan prefix body. / query.)
+           if (data?.error_code === 'VALIDATION_ERROR' && data?.message) {
+             serverMessage = serverMessage.replace(/(body\.|query\.|params\.)/g, '')
+             data.message = serverMessage // Sinkronkan ke response agar komponen menerima pesan yang sudah bersih
+           }
+        }
+      }
+    } else {
+      // Network Error atau server mati
     }
 
     return Promise.reject(error)

@@ -13,6 +13,7 @@ export const getStockMovementStatistics = async (filters) => {
     });
     return data;
   } catch (error) {
+    console.error(error) // Auto-added to prevent unused var
     if (error.response?.data?.message) {
       throw new Error(error.response.data.message);
     }
@@ -33,6 +34,7 @@ export const getInventoryValueStatistics = async (filters) => {
     });
     return data;
   } catch (error) {
+    console.error(error) // Auto-added to prevent unused var
     if (error.response?.data?.message) {
       throw new Error(error.response.data.message);
     }
@@ -58,6 +60,7 @@ export const getProductStockTimeline = async (productId, page, limit, buildings 
     });
     return data;
   } catch (error) {
+    console.error(error) // Auto-added to prevent unused var
     if (error.response?.data?.message) {
       throw new Error(error.response.data.message);
     }

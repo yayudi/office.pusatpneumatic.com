@@ -4,61 +4,49 @@ import db from '../config/db.js';
 import ExcelJS from 'exceljs';
 import Logger from '../utils/logger.js';
 
-export const getSchedules = async (req, res) => {
+import AppError from "../utils/AppError.js";
+export const getSchedules = async (req, res, next) => {
   try {
     const { userId, startDate, endDate } = req.query;
-    if (!userId || !startDate || !endDate) {
-      return res.status(400).json({ success: false, message: 'Missing userId, startDate, or endDate' });
-    }
 
     const schedules = await scheduleService.getSchedules(userId, startDate, endDate);
     res.json({ success: true, data: schedules });
   } catch (error) {
-    Logger.error("Error in getSchedules", error, "SCHEDULE_CONTROLLER");
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
-export const createSchedule = async (req, res) => {
+export const createSchedule = async (req, res, next) => {
   try {
     const { userId, shiftId, date } = req.body;
     // createdBy could be from req.user
     const createdBy = req.user ? req.user.id : null;
 
-    if (!userId || !shiftId || !date) {
-      return res.status(400).json({ success: false, message: 'Missing required fields' });
-    }
-
     await scheduleService.createSchedule(userId, shiftId, date, createdBy);
     res.json({ success: true, message: 'Schedule saved' });
   } catch (error) {
-    Logger.error("Error in createSchedule", error, "SCHEDULE_CONTROLLER");
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
-export const deleteSchedule = async (req, res) => {
+export const deleteSchedule = async (req, res, next) => {
   try {
     const { userId, date } = req.query; // Or req.body / req.params
-    if (!userId || !date) {
-      return res.status(400).json({ success: false, message: 'Missing userId or date' });
-    }
 
     await scheduleService.deleteSchedule(userId, date);
     res.json({ success: true, message: 'Schedule deleted' });
   } catch (error) {
-    Logger.error("Error in deleteSchedule", error, "SCHEDULE_CONTROLLER");
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 /**
  * POST /api/schedules/import
  */
-export const uploadImportSchedule = async (req, res) => {
+export const uploadImportSchedule = async (req, res, next) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ success: false, message: "File Excel wajib diupload." });
+      return next(new AppError("File Excel wajib diupload.", 400));
     }
 
     const jobId = await jobRepositories.createImportJob(
@@ -77,8 +65,7 @@ export const uploadImportSchedule = async (req, res) => {
       data: { jobId }
     });
   } catch (error) {
-    Logger.error("Error in uploadImportSchedule", error, "SCHEDULE_CONTROLLER");
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
@@ -88,7 +75,7 @@ export const uploadImportSchedule = async (req, res) => {
 /**
  * GET /api/schedules/template
  */
-export const downloadTemplate = async (req, res) => {
+export const downloadTemplate = async (req, res, next) => {
   try {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Import Schedule");
@@ -97,9 +84,6 @@ export const downloadTemplate = async (req, res) => {
     // Ambil User & Shift dari DB
     const [users] = await db.query("SELECT username FROM users WHERE is_active = 1 ORDER BY username");
     const [shifts] = await db.query("SELECT name FROM shifts ORDER BY name");
-
-    const userList = users.map(u => u.username).join(',');
-    const shiftList = shifts.map(s => s.name).join(',');
 
     // -- HIDDEN SHEET FOR DROPDOWN DATA --
     // Excel/LibreOffice often requires list data to be on a separate sheet for validation if the list is long
@@ -178,6 +162,6 @@ export const downloadTemplate = async (req, res) => {
 
   } catch (error) {
     Logger.error("Template Gen Error", error, "SCHEDULE_CONTROLLER");
-    res.status(500).send("Gagal generate template");
+    next(new AppError("Gagal generate template", 500));
   }
 };

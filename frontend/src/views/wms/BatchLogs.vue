@@ -77,6 +77,7 @@ async function handleSearch() {
 
     logs.value = await fetchBatchLogs(startDate.value, endDate.value, filters)
   } catch (error) {
+    console.error(error) // Auto-added to prevent unused var
     toast('Gagal memuat data log.', error.message)
   } finally {
     loading.value = false

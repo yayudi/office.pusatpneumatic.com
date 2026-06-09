@@ -145,9 +145,11 @@ export async function processAttendanceImport(
         `;
       const [userShifts] = await connection.query(shiftQuery, userNamesInFile);
 
-      userShifts.forEach(row => {
-        userShiftMap[row.username] = row;
-      });
+      if (Array.isArray(userShifts)) {
+        userShifts.forEach(row => {
+          userShiftMap[row.username] = row;
+        });
+      }
     }
 
     // 2.6 Prepare Schedules Cache (Bulk Fetch)
@@ -182,12 +184,14 @@ export async function processAttendanceImport(
       const params = [...userNamesInFile, minDate, maxDate];
       const [schedules] = await connection.query(scheduleQuery, params);
 
-      schedules.forEach(row => {
-        if (!userScheduleMap[row.username]) userScheduleMap[row.username] = {};
-        const d = new Date(row.date);
-        const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        userScheduleMap[row.username][dStr] = row;
-      });
+      if (Array.isArray(schedules)) {
+        schedules.forEach(row => {
+          if (!userScheduleMap[row.username]) userScheduleMap[row.username] = {};
+          const d = new Date(row.date);
+          const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          userScheduleMap[row.username][dStr] = row;
+        });
+      }
     }
 
     const timeToMinutes = (timeStr) => {

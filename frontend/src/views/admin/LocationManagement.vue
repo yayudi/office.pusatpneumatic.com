@@ -38,7 +38,7 @@ async function loadLocations() {
   try {
     allLocations.value = await masterData.getLocations(true)
   } catch {
-    toast('Gagal memuat data lokasi.', 'error')
+//     toast('Gagal memuat data lokasi.', 'error') // Removed to prevent double-toast
   } finally {
     loading.value = false
   }
@@ -78,7 +78,8 @@ async function handleSave() {
     isModalOpen.value = false
     loadLocations() // Muat ulang data
   } catch (error) {
-    toast(error.message || 'Gagal menyimpan data.', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.message || 'Gagal menyimpan data.', 'error') // Removed to prevent double-toast
   }
 }
 
@@ -93,7 +94,8 @@ async function handleDelete(locationId) {
       toast('Lokasi berhasil dihapus.', 'success')
       loadLocations() // Muat ulang data
     } catch (error) {
-      toast(error.message || 'Gagal menghapus lokasi.', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//       toast(error.message || 'Gagal menghapus lokasi.', 'error') // Removed to prevent double-toast
     }
   }
 }

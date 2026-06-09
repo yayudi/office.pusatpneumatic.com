@@ -1,4 +1,4 @@
-<!-- frontend\src\views\Login.vue -->
+<!-- frontend\src\views\auth\LoginView.vue -->
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
@@ -37,9 +37,9 @@ async function login() {
       router.push('/')
     }
   } catch (err) {
+    console.error(err)
     const message = err.response?.data?.message || 'Username atau password salah.'
     error.value = message
-    toast(`${message} ❌`, 'error')
   } finally {
     loading.value = false
   }

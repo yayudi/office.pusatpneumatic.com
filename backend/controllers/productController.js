@@ -6,45 +6,48 @@ import * as productRepo from "../repositories/productRepository.js";
 import * as jobRepo from "../repositories/jobRepository.js";
 import Logger from "../utils/logger.js";
 
+import AppError from "../utils/AppError.js";
 // ============================================================================
 // READ OPERATIONS (Direct Repo Access)
 // ============================================================================
 
 // GET /search
 // Mencari produk untuk autocomplete
-export const searchProducts = async (req, res) => {
+export const searchProducts = async (req, res, next) => {
   try {
     const { q, locationId } = req.query;
     const searchTerm = `%${q ? q.toLowerCase() : ""}%`;
     const results = await productRepo.searchProducts(db, searchTerm, locationId);
     res.json(results);
   } catch (error) {
-    Logger.error("Error searching products", error, "PRODUCT_CONTROLLER");
-    res.status(500).json({ message: "Server error" });
+    next(error);
   }
 };
 
 // GET /admin-list
 // Mengambil daftar ringkas untuk dropdown/list admin
-export const getAdminProductList = async (req, res) => {
+export const getAdminProductList = async (req, res, next) => {
   try {
     const rows = await productRepo.getAllActiveProducts(db);
     res.json({ success: true, data: rows });
   } catch (error) {
-    Logger.error("Error admin list", error, "PRODUCT_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal mengambil data produk." });
+    next(error);
   }
 };
 
 // GET /
 // Main Product List (Mendukung Filter Status, Tipe, Search, Sort)
-export const getProducts = async (req, res) => {
+export const getProducts = async (req, res, next) => {
   res.setHeader("Cache-Control", "no-store");
 
   try {
     const safeParse = (str) => {
       if (!str) return [];
-      try { return JSON.parse(str); } catch (e) { return Array.isArray(str) ? str : [str]; }
+      try {
+        return JSON.parse(str);
+      } catch {
+        return Array.isArray(str) ? str : [str];
+      }
     };
 
     const filters = {
@@ -56,8 +59,8 @@ export const getProducts = async (req, res) => {
       status: req.query.status || "active",
       is_package: req.query.is_package !== undefined ? req.query.is_package === "true" : undefined,
       packageOnly: req.query.packageOnly === "true",
-      stockStatus: req.query.minusOnly === "true" ? "minus" : (req.query.stockStatus || "all"),
-      
+      stockStatus: req.query.minusOnly === "true" ? "minus" : req.query.stockStatus || "all",
+
       // Tri-State Filters
       categoryInclude: safeParse(req.query.categoryInclude),
       categoryExclude: safeParse(req.query.categoryExclude),
@@ -65,12 +68,12 @@ export const getProducts = async (req, res) => {
       buildingExclude: safeParse(req.query.buildingExclude),
       floorInclude: safeParse(req.query.floorInclude),
       floorExclude: safeParse(req.query.floorExclude),
-      
+
       // Fallbacks
       building: req.query.building || "all",
       floor: req.query.floor || "all",
       categoryId: req.query.category_id || "",
-      
+
       sortBy: req.query.sortBy || "sku",
       sortOrder: req.query.sortOrder === "asc" ? "ASC" : "DESC",
     };
@@ -78,75 +81,71 @@ export const getProducts = async (req, res) => {
     const result = await productRepo.getProductsWithFilters(db, filters);
     res.json(result);
   } catch (error) {
-    Logger.error("Error fetching products", error, "PRODUCT_CONTROLLER");
-    res.status(500).json({
-      success: false,
-      message: "Gagal mengambil data produk.",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 // GET /:id
-export const getProductById = async (req, res) => {
+export const getProductById = async (req, res, next) => {
   const { id } = req.params;
   try {
     const product = await productRepo.getProductDetailWithStock(db, id);
     if (!product) {
-      return res.status(404).json({ success: false, message: "Produk tidak ditemukan" });
+      return next(new AppError("Produk tidak ditemukan", 404));
     }
 
     res.json({ success: true, data: product });
   } catch (error) {
-    Logger.error("Error fetching product detail", error, "PRODUCT_CONTROLLER");
-    res.status(500).json({ success: false, message: "Server Error" });
+    next(error);
   }
 };
 
 // GET /:id/stock-details
-export const getProductStockDetails = async (req, res) => {
+export const getProductStockDetails = async (req, res, next) => {
   const { id } = req.params;
   try {
     const rows = await productRepo.getProductStockDetails(db, id);
     res.json({ success: true, data: rows });
   } catch (error) {
-    Logger.error(`Error stok detail ID ${id}`, error, "PRODUCT_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal mengambil detail stok." });
+    next(error);
   }
 };
 
 // GET /:id/history
-export const getProductHistory = async (req, res) => {
+export const getProductHistory = async (req, res, next) => {
   try {
     const { id } = req.params;
     const history = await productRepo.getProductHistory(db, id);
     res.json({ success: true, data: history });
   } catch (error) {
-    Logger.error("Error fetching product history", error, "PRODUCT_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal mengambil riwayat produk." });
+    next(error);
   }
 };
 
 // GET /:id/stock-timeline
-export const getProductStockTimeline = async (req, res) => {
+export const getProductStockTimeline = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { page, limit, building } = req.query;
 
     let buildingsArray = [];
     if (building) {
-      buildingsArray = Array.isArray(building) ? building : building.split(',');
+      buildingsArray = Array.isArray(building) ? building : building.split(",");
     }
 
     const filters = {
       buildings: buildingsArray,
     };
 
-    const timeline = await productService.getHistoricalStockTimelineService(id, page, limit, filters);
+    const timeline = await productService.getHistoricalStockTimelineService(
+      id,
+      page,
+      limit,
+      filters,
+    );
     res.json({ success: true, data: timeline });
   } catch (error) {
-    Logger.error("Error fetching stock timeline", error, "PRODUCT_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal mengambil timeline stok." });
+    next(error);
   }
 };
 
@@ -156,7 +155,7 @@ export const getProductStockTimeline = async (req, res) => {
 
 // POST /
 // Membuat produk baru
-export const createProduct = async (req, res) => {
+export const createProduct = async (req, res, next) => {
   const { sku, name, category_id, price, weight, is_package } = req.body;
   let components = req.body.components;
 
@@ -164,7 +163,7 @@ export const createProduct = async (req, res) => {
   if (typeof components === "string") {
     try {
       components = JSON.parse(components);
-    } catch (e) {
+    } catch {
       components = [];
     }
   }
@@ -172,22 +171,10 @@ export const createProduct = async (req, res) => {
   const userId = req.user.id;
   const images = req.files || []; // Array of files
 
-  // Validasi Input
-  if (!sku || !name) {
-    return res.status(400).json({ success: false, message: "SKU & Nama wajib diisi." });
-  }
-  if (is_package === "true" || is_package === true) {
-    if (!components || components.length === 0) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Produk paket wajib memiliki komponen." });
-    }
-  }
-
   try {
     const productId = await productService.createProductService(
       { sku, name, category_id, price, weight, is_package, components, images },
-      userId
+      userId,
     );
 
     cache.flushAll(); // Reset cache WMS
@@ -195,15 +182,15 @@ export const createProduct = async (req, res) => {
   } catch (error) {
     Logger.error("Create Product Error", error, "PRODUCT_CONTROLLER");
     if (error.code === "DUPLICATE_SKU" || error.code === "ER_DUP_ENTRY") {
-      return res.status(409).json({ success: false, message: "SKU sudah terdaftar." });
+      return next(new AppError("SKU sudah terdaftar.", 409));
     }
-    res.status(500).json({ success: false, message: "Gagal membuat produk." });
+    return next(new AppError("Gagal membuat produk.", 500));
   }
 };
 
 // PUT /:id
 // Memperbarui produk
-export const updateProduct = async (req, res) => {
+export const updateProduct = async (req, res, next) => {
   const { id } = req.params;
   const { name, category_id, price, weight, is_package, is_active } = req.body;
 
@@ -211,7 +198,7 @@ export const updateProduct = async (req, res) => {
   if (typeof components === "string") {
     try {
       components = JSON.parse(components);
-    } catch (e) {
+    } catch {
       components = [];
     }
   }
@@ -226,19 +213,16 @@ export const updateProduct = async (req, res) => {
       cache.flushAll();
       return res.json({ success: true, message: "Produk berhasil dipulihkan." });
     } catch (error) {
-      Logger.error("Restore Error", error, "PRODUCT_CONTROLLER");
-      return res.status(500).json({ success: false, message: "Gagal memulihkan produk." });
+      next(error);
     }
   }
 
   // Regular Update
-  if (!name) return res.status(400).json({ success: false, message: "Nama wajib diisi." });
-
   try {
     await productService.updateProductService(
       id,
       { name, category_id, price, weight, is_package, components, images },
-      userId
+      userId,
     );
 
     cache.flushAll();
@@ -246,15 +230,15 @@ export const updateProduct = async (req, res) => {
   } catch (error) {
     Logger.error("Update Product Error", error, "PRODUCT_CONTROLLER");
     if (error.code === "PRODUCT_NOT_FOUND") {
-      return res.status(404).json({ success: false, message: "Produk tidak ditemukan." });
+      return next(new AppError("Produk tidak ditemukan.", 404));
     }
-    res.status(500).json({ success: false, message: "Gagal update produk." });
+    return next(new AppError("Gagal update produk.", 500));
   }
 };
 
 // DELETE /:id
 // Soft delete produk (set is_active = 0)
-export const deleteProduct = async (req, res) => {
+export const deleteProduct = async (req, res, next) => {
   const { id } = req.params;
   const userId = req.user.id;
   try {
@@ -262,19 +246,16 @@ export const deleteProduct = async (req, res) => {
     cache.flushAll();
     res.json({ success: true, message: "Produk berhasil diarsipkan." });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 // POST /:id/link-media
-export const linkMediaToProduct = async (req, res) => {
+export const linkMediaToProduct = async (req, res, next) => {
   const { id } = req.params;
   const userId = req.user.id;
   const { mediaIds } = req.body;
 
-  if (!mediaIds || !Array.isArray(mediaIds) || mediaIds.length === 0) {
-    return res.status(400).json({ success: false, message: "Media ID tidak valid atau kosong." });
-  }
 
   try {
     await productService.linkMediaToProductService(id, mediaIds, userId);
@@ -284,20 +265,19 @@ export const linkMediaToProduct = async (req, res) => {
       message: "Media berhasil disematkan.",
     });
   } catch (error) {
-    Logger.error("Link Media Error", error, "PRODUCT_CONTROLLER");
-    return res.status(500).json({ success: false, message: "Gagal menyematkan media." });
+    next(error);
   }
 };
 
 // POST /:id/images
-export const uploadMoreImages = async (req, res) => {
+export const uploadMoreImages = async (req, res, next) => {
   const { id } = req.params;
   const userId = req.user.id;
   const images = req.files;
 
   // Handle Raw Uploads (Old Flow / Backward Compat)
   if (!images || images.length === 0) {
-    return res.status(400).json({ success: false, message: "Tidak ada gambar yang diunggah." });
+    return next(new AppError("Tidak ada gambar yang diunggah.", 400));
   }
 
   try {
@@ -309,13 +289,12 @@ export const uploadMoreImages = async (req, res) => {
       message: `${images.length} gambar berhasil ditambahkan.`,
     });
   } catch (error) {
-    Logger.error("Upload Images Error", error, "PRODUCT_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal mengunggah gambar." });
+    next(error);
   }
 };
 
 // DELETE /:id/images/:imageId
-export const deleteProductImage = async (req, res) => {
+export const deleteProductImage = async (req, res, next) => {
   const { imageId } = req.params; // Get imageId from URL
   const userId = req.user.id;
 
@@ -324,13 +303,12 @@ export const deleteProductImage = async (req, res) => {
     cache.flushAll();
     res.json({ success: true, message: "Gambar berhasil dihapus." });
   } catch (error) {
-    Logger.error("Delete Image Error", error, "PRODUCT_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal menghapus gambar." });
+    next(error);
   }
 };
 
 // PUT /:id/images/:imageId/primary
-export const setPrimaryImage = async (req, res) => {
+export const setPrimaryImage = async (req, res, next) => {
   const { id, imageId } = req.params;
   const userId = req.user.id;
 
@@ -339,8 +317,7 @@ export const setPrimaryImage = async (req, res) => {
     cache.flushAll();
     res.json({ success: true, message: "Gambar utama berhasil diatur." });
   } catch (error) {
-    Logger.error("Set Primary Image Error", error, "PRODUCT_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal mengatur gambar utama." });
+    next(error);
   }
 };
 
@@ -352,7 +329,7 @@ export const setPrimaryImage = async (req, res) => {
  * GET /api/products/export
  * Mengenerate Job Export CSV berdasarkan filter yang aktif (untuk Template Edit Massal)
  */
-export const exportProducts = async (req, res) => {
+export const exportProducts = async (req, res, next) => {
   try {
     const filters = {
       search: req.query.search || "",
@@ -381,7 +358,6 @@ export const exportProducts = async (req, res) => {
       jobId,
     });
   } catch (error) {
-    Logger.error("Export Request Error", error, "PRODUCT_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal membuat permintaan ekspor." });
+    next(error);
   }
 };

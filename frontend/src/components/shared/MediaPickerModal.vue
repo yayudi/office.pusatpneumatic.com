@@ -190,12 +190,13 @@ async function saveNewImages() {
       }, 1500)
     }
   } catch (error) {
+    console.error(error) // Auto-added to prevent unused var
     const errData = error.response?.data
     if (errData?.error_code === 'DUPLICATE_MEDIA') {
       toast(`Duplikat: ${errData.message}`, 'warning')
     } else {
       console.error(error)
-      toast('Gagal mengupload gambar.', 'error')
+//       toast('Gagal mengupload gambar.', 'error') // Removed to prevent double-toast
     }
   } finally {
     loading.value = false

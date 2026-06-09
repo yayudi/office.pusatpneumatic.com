@@ -124,7 +124,8 @@ const fetchStatistics = async () => {
     fulfillmentData.value = response.fulfillment || []
     comparisonData.value = response.comparison || { current: {}, previous: {}, delta: {} }
   } catch (error) {
-    toast(error.message || 'Gagal mengambil data statistik performa toko', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.message || 'Gagal mengambil data statistik performa toko', 'error') // Removed to prevent double-toast
   } finally {
     isDataLoading.value = false
   }

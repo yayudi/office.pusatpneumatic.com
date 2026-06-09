@@ -24,6 +24,10 @@ async function ensureDir(dirPath) {
   }
 }
 
+/**
+ * @param {any} tahun
+ * @returns {Promise<any>}
+ */
 export async function loadHolidays(tahun) {
   const holidayMap = {};
   try {
@@ -49,6 +53,9 @@ export async function loadHolidays(tahun) {
   return holidayMap;
 }
 
+/**
+ * @returns {Promise<any>}
+ */
 export async function generateJsonIndex() {
   const baseDir = path.join(process.cwd(), "assets", "json", "absensi");
   const index = {};
@@ -76,6 +83,13 @@ export async function generateJsonIndex() {
   }
 }
 
+/**
+ * @param {any} jsonPath
+ * @param {any} tahun
+ * @param {any} bulan
+ * @param {number|string} holidayMap
+ * @returns {Promise<any>}
+ */
 export async function loadAndDecompactExistingData(jsonPath, tahun, bulan, holidayMap) {
   const userLogs = {};
   try {
@@ -119,6 +133,14 @@ export async function loadAndDecompactExistingData(jsonPath, tahun, bulan, holid
   return userLogs;
 }
 
+/**
+ * @param {any} processedData
+ * @param {any} tahun
+ * @param {any} bulan
+ * @param {number|string} holidayMap
+ * @param {any} outputFile
+ * @returns {Promise<any>}
+ */
 export async function generateFinalJsonAndSave(
   processedData,
   tahun,
@@ -177,6 +199,11 @@ export async function generateFinalJsonAndSave(
   return finalJsonOutput;
 }
 
+/**
+ * @param {any} processedData
+ * @param {any} debugRows
+ * @returns {Promise<any>}
+ */
 export async function saveDebugLogs(processedData, debugRows) {
   const logDir = path.join(process.cwd(), "logs");
   await ensureDir(logDir);
@@ -187,6 +214,11 @@ export async function saveDebugLogs(processedData, debugRows) {
   );
 }
 
+/**
+ * @param {any} year
+ * @param {any} month
+ * @returns {any}
+ */
 export function getDaysInMonth(year, month) {
   return new Date(year, month, 0).getDate();
 }

@@ -11,7 +11,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --fix",
-    "format": "prettier --write src/"
+    "format": "prettier --write src/",
+    "test:unit": "vitest"
   },
   "dependencies": {
     "@floating-ui/vue": "^1.1.11",
@@ -19,6 +20,7 @@
     "@fortawesome/free-brands-svg-icons": "^7.0.1",
     "@fortawesome/free-solid-svg-icons": "^7.0.1",
     "@fortawesome/vue-fontawesome": "^3.1.2",
+    "@tanstack/vue-query": "^5.101.0",
     "@vueuse/core": "^14.2.1",
     "@yeger/vue-masonry-wall": "^5.1.4",
     "apexcharts": "^5.3.6",
@@ -43,21 +45,25 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.31.0",
+    "@pinia/testing": "^1.0.3",
     "@rollup/plugin-terser": "^1.0.0",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/eslint-config-prettier": "^10.2.0",
+    "@vue/test-utils": "^2.4.11",
     "autoprefixer": "^10.4.22",
     "baseline-browser-mapping": "^2.10.18",
     "eslint": "^9.31.0",
     "eslint-plugin-vue": "~10.3.0",
     "globals": "^16.3.0",
+    "jsdom": "^29.1.1",
     "postcss": "^8.5.6",
     "prettier": "3.6.2",
     "serialize-javascript": "^7.0.5",
     "tailwindcss": "^3.4.18",
     "vite": "^7.0.6",
     "vite-plugin-pwa": "^1.2.0",
-    "vite-plugin-vue-devtools": "^8.0.0"
+    "vite-plugin-vue-devtools": "^8.0.0",
+    "vitest": "^4.1.8"
   },
   "description": "This template should help get you started developing with Vue 3 in Vite.",
   "main": "eslint.config.js",

@@ -85,7 +85,7 @@ const handleSearch = debounce(async () => {
     showSearchResults.value = true
   } catch (err) {
     console.error(err)
-    toast('Gagal mencari produk', 'error')
+//     toast('Gagal mencari produk', 'error') // Removed to prevent double-toast
   } finally {
     isSearching.value = false
   }

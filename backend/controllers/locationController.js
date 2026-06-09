@@ -1,25 +1,14 @@
 import * as locationService from "../services/locationService.js";
 import db from "../config/db.js";
 import { createLog } from "../repositories/systemLogRepository.js";
-import Logger from "../utils/logger.js";
-
 /**
  * Handle request to create a new location
  * @param {object} req
  * @param {object} res
  */
-export const createLocation = async (req, res) => {
+export const createLocation = async (req, res, next) => {
   try {
     const { code, building, floor, name, purpose } = req.body;
-
-    // 1. Structural Validation (Fail Fast)
-    if (!code || !building || !purpose) {
-      return res.status(400).json({
-        success: false,
-        message: "Code, Building, and Purpose are required fields.",
-        error_code: "VALIDATION_ERROR",
-      });
-    }
 
     // 2. Call Service
     const locationId = await locationService.addLocation({ code, building, floor, name, purpose });
@@ -42,20 +31,69 @@ export const createLocation = async (req, res) => {
       data: { locationId },
     });
   } catch (error) {
-    Logger.error("Error creating location", error, "LOCATION_CONTROLLER");
+    next(error);
+  }
+};
 
-    // Map Service Errors to HTTP Codes
-    if (error.message.includes("VALIDATION_ERROR")) {
-      return res.status(400).json({
-        success: false,
-        message: error.message.replace("VALIDATION_ERROR: ", ""),
-        error_code: "VALIDATION_ERROR",
-      });
-    }
+export const getAllLocations = async (req, res, next) => {
+  try {
+    const locations = await locationService.getAllLocations();
+    res.json({ success: true, data: locations });
+  } catch (error) {
+    next(error);
+  }
+};
 
-    return res.status(500).json({
-      success: false,
-      message: "Internal Server Error",
+export const getStockSample = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const sample = await locationService.getStockSample(id);
+    res.json({ success: true, data: sample });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateLocation = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    await locationService.updateLocation(id, req.body);
+
+    // LOGGING
+    await createLog(db, {
+      userId: req.user.id,
+      action: "UPDATE",
+      targetType: "LOCATION",
+      targetId: String(id),
+      changes: req.body,
+      ip: req.ip,
+      userAgent: req.headers["user-agent"],
     });
+
+    res.json({ success: true, message: "Lokasi berhasil diperbarui." });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteLocation = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    await locationService.deleteLocation(id);
+
+    // LOGGING
+    await createLog(db, {
+      userId: req.user.id,
+      action: "DELETE",
+      targetType: "LOCATION",
+      targetId: String(id),
+      changes: { note: "Deleted Location" },
+      ip: req.ip,
+      userAgent: req.headers["user-agent"],
+    });
+
+    res.json({ success: true, message: "Lokasi berhasil dihapus." });
+  } catch (error) {
+    next(error);
   }
 };

@@ -3,16 +3,17 @@ import * as stockService from "../services/stockService.js";
 import * as jobService from "../services/jobService.js";
 import Logger from "../utils/logger.js";
 
+import AppError from "../utils/AppError.js";
 // ============================================================================
 //                               READ OPERATIONS
 // ============================================================================
 
-export const getAllStocks = async (req, res) => {
+export const getAllStocks = async (req, res, next) => {
   try {
     const stocks = await stockService.getAllStocks(req.query);
     res.json({ success: true, data: stocks });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
@@ -24,10 +25,10 @@ export const getAllStocks = async (req, res) => {
  * Upload Stock Adjustment File (Job Queue Based).
  * Supports Dry Run mode via req.body.dryRun.
  */
-export const uploadAdjustment = async (req, res) => {
+export const uploadAdjustment = async (req, res, next) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ success: false, message: "Tidak ada file yang diunggah." });
+      return next(new AppError("Tidak ada file yang diunggah.", 400));
     }
 
     const userId = req.user.id;
@@ -49,22 +50,17 @@ export const uploadAdjustment = async (req, res) => {
       jobId: jobId,
     });
   } catch (error) {
-    Logger.error("Upload Error", error, "STOCK_CONTROLLER");
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 /**
  * Transfer Stock antar Lokasi
  */
-export const transferStock = async (req, res) => {
+export const transferStock = async (req, res, next) => {
   try {
     const { productId, fromLocationId, toLocationId, quantity, notes } = req.body;
     const userId = req.user.id;
-
-    if (!productId || !fromLocationId || !toLocationId || !quantity) {
-      return res.status(400).json({ success: false, message: "Data tidak lengkap." });
-    }
 
     await stockService.transferStockService({
       productId,
@@ -76,7 +72,7 @@ export const transferStock = async (req, res) => {
     });
     res.json({ success: true, message: "Transfer stok berhasil." });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
@@ -84,13 +80,11 @@ export const transferStock = async (req, res) => {
  * Adjust Stock Manual (Single Item)
  * Updated: Tidak lagi mewajibkan 'type'. Menggunakan quantity +/-.
  */
-export const adjustStock = async (req, res) => {
+export const adjustStock = async (req, res, next) => {
   try {
-    let { productId, locationId, quantity, type, notes } = req.body;
+    const { productId, locationId, type, notes } = req.body;
+    let { quantity } = req.body;
     const userId = req.user.id;
-    if (!productId || !locationId || quantity === undefined || quantity === null) {
-      return res.status(400).json({ success: false, message: "Data adjustment tidak lengkap." });
-    }
     if (type) {
       if ((type === "ADJUST_MINUS" || type === "OUT") && quantity > 0) {
         quantity = -quantity;
@@ -107,7 +101,7 @@ export const adjustStock = async (req, res) => {
     });
     res.json({ success: true, message: "Penyesuaian stok berhasil." });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
@@ -115,7 +109,7 @@ export const adjustStock = async (req, res) => {
 // BATCH PROCESS & HISTORY (Functions Restored)
 // ============================================================================
 
-export const downloadAdjustmentTemplate = async (req, res) => {
+export const downloadAdjustmentTemplate = async (req, res, next) => {
   try {
     const workbook = await stockService.generateAdjustmentTemplateService();
     res.setHeader(
@@ -126,11 +120,11 @@ export const downloadAdjustmentTemplate = async (req, res) => {
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
-    res.status(500).json({ success: false, message: "Gagal membuat template." });
+    next(error);
   }
 };
 
-export const getInboundTemplate = async (req, res) => {
+export const getInboundTemplate = async (req, res, next) => {
   try {
     const workbook = await stockService.generateInboundTemplateService();
     res.setHeader(
@@ -141,15 +135,14 @@ export const getInboundTemplate = async (req, res) => {
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
-    Logger.error("Template Inbound Error", error, "STOCK_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal membuat template inbound." });
+    next(error);
   }
 };
 
-export const importBatchInbound = async (req, res) => {
+export const importBatchInbound = async (req, res, next) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ success: false, message: "Tidak ada file yang diunggah." });
+      return next(new AppError("Tidak ada file yang diunggah.", 400));
     }
 
     const userId = req.user.id;
@@ -167,44 +160,38 @@ export const importBatchInbound = async (req, res) => {
       jobId: jobId,
     });
   } catch (error) {
-    Logger.error("Import Inbound Error", error, "STOCK_CONTROLLER");
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
-export const requestAdjustmentUpload = async (req, res) => {
+export const requestAdjustmentUpload = async (req, res, next) => {
   return uploadAdjustment(req, res);
 };
 
-export const getImportJobs = async (req, res) => {
+export const getImportJobs = async (req, res, next) => {
   try {
     const jobs = await jobService.getUserJobsService(req.user.id);
     res.json({ success: true, data: jobs });
   } catch (error) {
-    Logger.error("Get Jobs Error", error, "STOCK_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal mengambil riwayat." });
+    next(error);
   }
 };
 
-export const cancelImportJob = async (req, res) => {
+export const cancelImportJob = async (req, res, next) => {
   try {
     await jobService.cancelJobService(req.params.id, req.user.id);
     res.json({ success: true, message: "Antrian berhasil dibatalkan." });
   } catch (error) {
-    Logger.error("Cancel Job Error", error, "STOCK_CONTROLLER");
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 // ============================================================================
 // BATCH PROCESS & HISTORY
 // ============================================================================
-export const processBatchMovements = async (req, res) => {
+export const processBatchMovements = async (req, res, next) => {
   try {
     const { type, fromLocationId, toLocationId, notes, movements } = req.body;
-    if (!type || !Array.isArray(movements) || movements.length === 0) {
-      return res.status(400).json({ success: false, message: "Data batch tidak valid." });
-    }
 
     const result = await stockService.processBatchMovementsService({
       type,
@@ -217,12 +204,11 @@ export const processBatchMovements = async (req, res) => {
     });
     res.json({ success: true, message: `Batch ${type} berhasil.`, ...result });
   } catch (error) {
-    Logger.error("Batch Process Error", error, "STOCK_CONTROLLER");
-    res.status(400).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
-export const getStockHistory = async (req, res) => {
+export const getStockHistory = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const movementType = req.query.movementType || null;
@@ -233,17 +219,13 @@ export const getStockHistory = async (req, res) => {
     const result = await stockService.getStockHistoryService(req.params.productId, page, 15, movementType, startDate, endDate, locationId, user);
     res.json({ success: true, ...result });
   } catch (error) {
-    Logger.error("History Error", error, "STOCK_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal mengambil riwayat stok." });
+    next(error);
   }
 };
 
-export const batchTransfer = async (req, res) => {
+export const batchTransfer = async (req, res, next) => {
   try {
     const { fromLocationId, toLocationId, movements } = req.body;
-    if (!fromLocationId || !toLocationId || !Array.isArray(movements)) {
-      return res.status(400).json({ success: false, message: "Input tidak valid." });
-    }
 
     const result = await stockService.batchTransferService({
       fromLocationId,
@@ -255,17 +237,13 @@ export const batchTransfer = async (req, res) => {
     res.json({ success: true, message: "Batch transfer berhasil.", ...result });
   } catch (error) {
     Logger.error("Batch Transfer Error", error, "STOCK_CONTROLLER");
-    const status = error.message.includes("Akses ditolak") ? 403 : 400;
-    res.status(status).json({ success: false, message: error.message });
+    return next(error);
   }
 };
 
-export const getBatchLogs = async (req, res) => {
+export const getBatchLogs = async (req, res, next) => {
   try {
     const { startDate, endDate, productName, movementType, locationId, userId } = req.query;
-    if (!startDate || !endDate) {
-      return res.status(400).json({ success: false, message: "Tanggal wajib diisi." });
-    }
 
     const logs = await stockService.getBatchLogsService({
       startDate,
@@ -277,17 +255,13 @@ export const getBatchLogs = async (req, res) => {
     });
     res.json({ success: true, data: logs });
   } catch (error) {
-    Logger.error("Batch Log Error", error, "STOCK_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal mengambil log." });
+    next(error);
   }
 };
 
-export const validateReturn = async (req, res) => {
+export const validateReturn = async (req, res, next) => {
   try {
     const { pickingListItemId, returnToLocationId } = req.body;
-    if (!pickingListItemId || !returnToLocationId) {
-      return res.status(400).json({ success: false, message: "Data tidak lengkap." });
-    }
 
     const result = await stockService.validateReturnService({
       pickingListItemId,
@@ -296,7 +270,6 @@ export const validateReturn = async (req, res) => {
     });
     res.json(result);
   } catch (error) {
-    Logger.error("Validate Return Error", error, "STOCK_CONTROLLER");
-    res.status(400).json({ success: false, message: error.message });
+    next(error);
   }
 };

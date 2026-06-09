@@ -3,6 +3,23 @@
 // READ OPERATIONS (Complex Queries & Aggregations)
 // ============================================================================
 
+/**
+ * Mengambil daftar produk berdasarkan berbagai filter kompleks (pagination, pencarian, status, stok, dll)
+ * @param {import('mysql2/promise').Connection} connection - Koneksi database
+ * @param {Object} filters - Objek filter
+ * @param {number} filters.limit - Limit pagination
+ * @param {number} filters.offset - Offset pagination
+ * @param {string} [filters.search] - Kata kunci pencarian
+ * @param {string} [filters.searchBy] - 'sku' atau 'name'
+ * @param {string} [filters.location] - 'all', 'gudang', 'pajangan', 'ltc'
+ * @param {string} [filters.stockStatus] - 'all', 'minus', atau 'positive'
+ * @param {boolean} [filters.packageOnly] - Hanya ambil produk paket
+ * @param {boolean} [filters.is_package] - Filter tipe paket secara spesifik
+ * @param {string} [filters.status] - 'all', 'active', 'archived'
+ * @param {string} [filters.sortBy] - Kolom pengurutan (name, sku, price, updated_at, dll)
+ * @param {string} [filters.sortOrder] - 'ASC' atau 'DESC'
+ * @returns {Promise<{data: Array<Object>, total: number}>}
+ */
 export const getProductsWithFilters = async (connection, filters) => {
   const {
     limit,
@@ -24,8 +41,8 @@ export const getProductsWithFilters = async (connection, filters) => {
   const safeSortBy = allowedSortColumns.includes(sortBy) ? `p.${sortBy}` : "p.name";
 
   // LOGIKA STATUS: Menggunakan is_active DAN deleted_at
-  let whereClauses = [];
-  let queryParams = [];
+  const whereClauses = [];
+  const queryParams = [];
 
   // Filter Status
   if (status === "archived") {
@@ -67,7 +84,7 @@ export const getProductsWithFilters = async (connection, filters) => {
   else if (location === "ltc") purpose = "BRANCH";
 
   if (location !== "all") {
-    let existsConditions = ["l.purpose = ?"];
+    const existsConditions = ["l.purpose = ?"];
     queryParams.push(purpose);
 
     if (location === "gudang") {
@@ -107,8 +124,8 @@ export const getProductsWithFilters = async (connection, filters) => {
   }
 
   // Filter Pencarian
-  let keywordClauses = [];
   if (search) {
+    let keywordClauses;
     const keywords = search.split(" ").filter((k) => k.length > 0);
     if (searchBy === "sku") {
       keywordClauses = keywords.map(() => "(p.sku LIKE ?)");
@@ -191,8 +208,7 @@ export const getProductsWithFilters = async (connection, filters) => {
       ORDER BY ${safeSortBy} ${sortOrder}
       LIMIT ? OFFSET ?
     `;
-  let finalParams = [];
-  finalParams = [...queryParams, limit, offset];
+  const finalParams = [...queryParams, limit, offset];
 
   const [products] = await connection.query(productsQuery, finalParams);
 
@@ -237,7 +253,7 @@ export const getProductsWithFilters = async (connection, filters) => {
     `;
     const [componentRows] = await connection.query(componentsQuery, [packageIds]);
     const componentIds = [...new Set(componentRows.map((c) => c.id))];
-    let componentStockMap = {}; // Map<ComponentID, TotalStock>
+    const componentStockMap = {}; // Map<ComponentID, TotalStock>
 
     if (componentIds.length > 0) {
       let stockQuery = `
@@ -246,7 +262,7 @@ export const getProductsWithFilters = async (connection, filters) => {
           JOIN locations l ON sl.location_id = l.id
           WHERE sl.product_id IN (?)
       `;
-      let stockParams = [componentIds];
+      const stockParams = [componentIds];
       if (location !== "all") {
         stockQuery += " AND l.purpose = ?";
         stockParams.push(purpose);
@@ -315,6 +331,89 @@ export const getProductsWithFilters = async (connection, filters) => {
   return { data: productsWithStock, total: totalProducts };
 };
 
+/**
+ * Mengambil aliran (stream) data produk berdasarkan filter untuk keperluan ekspor masif (OOM Protection).
+ * @param {import('mysql2/promise').Connection} connection - Koneksi database
+ * @param {Object} filters - Objek filter
+ * @returns {import('stream').Readable}
+ */
+export const getProductsWithFiltersStream = (connection, filters) => {
+  const { search, searchBy, packageOnly, is_package, status, location, sortBy, sortOrder } = filters;
+  const allowedSortColumns = ["name", "sku", "price", "updated_at", "deleted_at", "weight"];
+  const safeSortBy = allowedSortColumns.includes(sortBy) ? `p.${sortBy}` : "p.name";
+  const whereClauses = [];
+  const queryParams = [];
+
+  if (status === "archived") {
+    whereClauses.push("(p.is_active = 0 OR p.deleted_at IS NOT NULL)");
+  } else if (status === "all") {
+    whereClauses.push("1=1");
+  } else {
+    whereClauses.push("(p.is_active = 1 AND p.deleted_at IS NULL)");
+  }
+
+  if (is_package !== undefined) {
+    whereClauses.push(`p.is_package = ?`);
+    queryParams.push(is_package ? 1 : 0);
+  } else if (packageOnly) {
+    whereClauses.push("p.is_package = 1");
+  }
+
+  if (filters.categoryInclude && filters.categoryInclude.length > 0) {
+    whereClauses.push("p.category_id IN (?)");
+    queryParams.push(filters.categoryInclude);
+  } else if (filters.categoryId && filters.categoryId !== "all") {
+    whereClauses.push("p.category_id = ?");
+    queryParams.push(filters.categoryId);
+  }
+
+  let purpose = "";
+  if (location === "gudang") purpose = "WAREHOUSE";
+  else if (location === "pajangan") purpose = "DISPLAY";
+  else if (location === "ltc") purpose = "BRANCH";
+
+  if (location !== "all" && location !== undefined) {
+    const existsConditions = ["l.purpose = ?"];
+    queryParams.push(purpose);
+    const existsSql = `EXISTS (
+        SELECT 1 FROM stock_locations sl
+        JOIN locations l ON sl.location_id = l.id
+        WHERE sl.product_id = p.id AND ${existsConditions.join(" AND ")}
+      )`;
+    whereClauses.push(existsSql);
+  }
+
+  if (search) {
+    let keywordClauses;
+    const keywords = search.split(" ").filter((k) => k.length > 0);
+    if (searchBy === "sku") {
+      keywordClauses = keywords.map(() => "(p.sku LIKE ?)");
+    } else {
+      keywordClauses = keywords.map(() => "(p.name LIKE ?)");
+    }
+    if (keywordClauses.length > 0) {
+      whereClauses.push(`(${keywordClauses.join(" AND ")})`);
+      keywords.forEach((keyword) => queryParams.push(`%${keyword}%`));
+    }
+  }
+
+  const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+  const productsQuery = `
+      SELECT p.id, p.sku, p.name, p.category_id, p.price, p.weight, p.is_package, p.is_active, p.deleted_at
+      FROM products p
+      ${whereSql}
+      ORDER BY ${safeSortBy} ${sortOrder || "ASC"}
+    `;
+
+  return connection.connection.query(productsQuery, queryParams).stream();
+};
+
+/**
+ * Mengambil detail produk lengkap termasuk gambar, lokasi stok, dan komponen (jika berupa paket).
+ * @param {import('mysql2/promise').Connection} connection - Koneksi database
+ * @param {number|string} id - ID Produk
+ * @returns {Promise<Object|null>}
+ */
 export const getProductDetailWithStock = async (connection, id) => {
   const [rows] = await connection.query(
     "SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?",
@@ -333,7 +432,7 @@ export const getProductDetailWithStock = async (connection, id) => {
   product.components = [];
   product.stock_locations = [];
 
-  let productIdsToCheck = [product.id];
+  const productIdsToCheck = [product.id];
 
   // 2. Jika Paket, Ambil Komponen
   if (product.is_package) {
@@ -374,6 +473,11 @@ export const getProductDetailWithStock = async (connection, id) => {
 // SIMPLE READS & LOOKUPS
 // ============================================================================
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} id
+ * @returns {Promise<any>}
+ */
 export const getProductById = async (connection, id) => {
   const [rows] = await connection.query(
     "SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?",
@@ -382,11 +486,21 @@ export const getProductById = async (connection, id) => {
   return rows.length > 0 ? rows[0] : null;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {any} sku
+ * @returns {Promise<any>}
+ */
 export const getIdBySku = async (connection, sku) => {
   const [rows] = await connection.query("SELECT id FROM products WHERE sku = ?", [sku]);
   return rows.length > 0 ? rows[0].id : null;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {boolean} skuList
+ * @returns {Promise<any>}
+ */
 export const getProductsBySkus = async (connection, skuList) => {
   if (!skuList || skuList.length === 0) return [];
   const [rows] = await connection.query(
@@ -396,6 +510,10 @@ export const getProductsBySkus = async (connection, skuList) => {
   return rows;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @returns {Promise<any>}
+ */
 export const getAllActiveProducts = async (connection) => {
   const [rows] = await connection.query(
     "SELECT p.id, p.sku, p.name, p.category_id, c.name as category_name, p.price, p.is_package, p.is_active FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.is_active = 1 ORDER BY p.name ASC"
@@ -403,6 +521,12 @@ export const getAllActiveProducts = async (connection) => {
   return rows;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {any} searchTerm
+ * @param {number|string} locationId
+ * @returns {Promise<any>}
+ */
 export const searchProducts = async (connection, searchTerm, locationId) => {
   let query, queryParams;
   if (locationId && locationId !== "null" && locationId !== "undefined" && locationId !== "") {
@@ -420,6 +544,11 @@ export const searchProducts = async (connection, searchTerm, locationId) => {
   return results;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} id
+ * @returns {Promise<any>}
+ */
 export const getProductStockDetails = async (connection, id) => {
   const query = `
     SELECT l.id as location_id, l.code as location_code, l.building, l.floor, l.purpose, COALESCE(sl.quantity, 0) as quantity
@@ -430,6 +559,12 @@ export const getProductStockDetails = async (connection, id) => {
   return rows;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} id
+ * @param {any} filters
+ * @returns {Promise<any>}
+ */
 export const getProductTotalStock = async (connection, id, filters = {}) => {
   const { buildings } = filters;
   let query = `SELECT SUM(sl.quantity) as total_stock FROM stock_locations sl`;
@@ -451,6 +586,12 @@ export const getProductTotalStock = async (connection, id, filters = {}) => {
   return rows[0]?.total_stock ? parseInt(rows[0].total_stock, 10) : 0;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} id
+ * @param {any} filters
+ * @returns {Promise<any>}
+ */
 export const getProductStockMovementsAll = async (connection, id, filters = {}) => {
   const { buildings } = filters;
   let query = `
@@ -483,6 +624,11 @@ export const getProductStockMovementsAll = async (connection, id, filters = {}) 
   return rows;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} packageProductIds
+ * @returns {Promise<any>}
+ */
 export const getBulkPackageComponents = async (connection, packageProductIds) => {
   if (packageProductIds.length === 0) return [];
   const [rows] = await connection.query(
@@ -500,6 +646,11 @@ export const getBulkPackageComponents = async (connection, packageProductIds) =>
   return rows;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {any} skuArray
+ * @returns {Promise<any>}
+ */
 export const getProductMapWithComponents = async (connection, skuArray) => {
   const productMap = new Map();
   if (!skuArray || skuArray.length === 0) return productMap;
@@ -518,7 +669,7 @@ export const getProductMapWithComponents = async (connection, skuArray) => {
   if (packageIds.length > 0) {
     const components = await getBulkPackageComponents(connection, packageIds);
     components.forEach((c) => {
-      for (const [sku, data] of productMap.entries()) {
+      for (const [, data] of productMap.entries()) {
         if (data.id === c.package_product_id) {
           data.components.push({
             id: c.component_product_id,
@@ -535,6 +686,11 @@ export const getProductMapWithComponents = async (connection, skuArray) => {
   return productMap;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} productId
+ * @returns {Promise<any>}
+ */
 export const getProductHistory = async (connection, productId) => {
   const [rows] = await connection.query(
     `SELECT
@@ -555,6 +711,10 @@ export const getProductHistory = async (connection, productId) => {
   return rows;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @returns {Promise<any>}
+ */
 export const getAllPackagesWithComponents = async (connection) => {
   const query = `
     SELECT
@@ -578,6 +738,18 @@ export const getAllPackagesWithComponents = async (connection) => {
 // WRITE OPERATIONS (ATOMIC SQL ONLY)
 // ============================================================================
 
+/**
+ * Menyimpan data produk baru ke dalam tabel products.
+ * @param {import('mysql2/promise').Connection} connection - Koneksi database
+ * @param {Object} productData - Data produk
+ * @param {string} productData.sku - SKU Produk
+ * @param {string} productData.name - Nama Produk
+ * @param {number} [productData.category_id] - ID Kategori
+ * @param {number} [productData.price] - Harga Produk
+ * @param {number} [productData.weight] - Berat Produk
+ * @param {boolean} [productData.is_package] - Apakah ini produk paket
+ * @returns {Promise<number>} ID Produk yang baru dibuat
+ */
 export const createProduct = async (connection, { sku, name, category_id, price, weight, is_package }) => {
   const [result] = await connection.query(
     "INSERT INTO products (sku, name, category_id, price, weight, is_package, is_active) VALUES (?, ?, ?, ?, ?, ?, 1)",
@@ -586,6 +758,12 @@ export const createProduct = async (connection, { sku, name, category_id, price,
   return result.insertId;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} id
+ * @param {Object} options
+ * @returns {Promise<any>}
+ */
 export const updateProduct = async (connection, id, { name, category_id, price, weight, is_package }) => {
   let sql = "UPDATE products SET name = ?, category_id = ?, price = ?, weight = ?, is_package = ?";
   const params = [name, category_id || null, parseFloat(price || 0), parseFloat(weight || 0), is_package ? 1 : 0];
@@ -597,6 +775,12 @@ export const updateProduct = async (connection, id, { name, category_id, price, 
 };
 
 // Menangani Soft Delete & Restore
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} id
+ * @param {boolean} isActive
+ * @returns {Promise<any>}
+ */
 export const updateProductStatus = async (connection, id, isActive) => {
   const deletedAt = isActive ? null : new Date(); // null for restore, Date for delete
   await connection.query("UPDATE products SET is_active = ?, deleted_at = ? WHERE id = ?", [
@@ -606,6 +790,12 @@ export const updateProductStatus = async (connection, id, isActive) => {
   ]);
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} packageId
+ * @param {any} components
+ * @returns {Promise<any>}
+ */
 export const insertComponents = async (connection, packageId, components) => {
   if (!components || components.length === 0) return;
 
@@ -616,6 +806,11 @@ export const insertComponents = async (connection, packageId, components) => {
   );
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} packageId
+ * @returns {Promise<any>}
+ */
 export const deleteComponents = async (connection, packageId) => {
   await connection.query("DELETE FROM package_components WHERE package_product_id = ?", [
     packageId,
@@ -641,7 +836,7 @@ export const updateProductTransaction = async (
   connection,
   id,
   updates,
-  components = [],
+  _,
   userId
 ) => {
   const [oldRows] = await connection.query("SELECT * FROM products WHERE id = ?", [id]);
@@ -718,10 +913,21 @@ export const updateProductTransaction = async (
 // ============================================================================
 // IMAGE MANAGEMENT
 // ============================================================================
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} imageId
+ * @returns {Promise<any>}
+ */
 export const deleteImage = async (connection, imageId) => {
   await connection.query("DELETE FROM product_images WHERE id = ?", [imageId]);
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} productId
+ * @param {number|string} mediaIds
+ * @returns {Promise<any>}
+ */
 export const linkMedia = async (connection, productId, mediaIds) => {
   if (!mediaIds || mediaIds.length === 0) return;
 
@@ -744,16 +950,31 @@ export const linkMedia = async (connection, productId, mediaIds) => {
   await connection.query("INSERT INTO product_images (product_id, media_id, is_primary) VALUES ?", [values]);
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} productId
+ * @returns {Promise<any>}
+ */
 export const resetPrimaryImage = async (connection, productId) => {
   await connection.query("UPDATE product_images SET is_primary = 0 WHERE product_id = ?", [
     productId,
   ]);
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} imageId
+ * @returns {Promise<any>}
+ */
 export const setPrimaryImage = async (connection, imageId) => {
   await connection.query("UPDATE product_images SET is_primary = 1 WHERE id = ?", [imageId]);
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} imageId
+ * @returns {Promise<any>}
+ */
 export const getImageById = async (connection, imageId) => {
   const [rows] = await connection.query("SELECT pi.*, ma.main_path as image_path FROM product_images pi JOIN media_assets ma ON pi.media_id = ma.id WHERE pi.id = ?", [imageId]);
   return rows.length > 0 ? rows[0] : null;

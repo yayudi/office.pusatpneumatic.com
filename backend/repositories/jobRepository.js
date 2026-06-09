@@ -16,6 +16,12 @@ export const create = async (
   return result.insertId;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} jobId
+ * @param {Object} options
+ * @returns {Promise<any>}
+ */
 export const update = async (connection, jobId, { status, summary, errorLog }) => {
   const errorLogStr = errorLog ? JSON.stringify(errorLog) : null;
   if (status === "PROCESSING") {
@@ -35,6 +41,12 @@ export const update = async (connection, jobId, { status, summary, errorLog }) =
   }
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} userId
+ * @param {number} limit
+ * @returns {Promise<any>}
+ */
 export const findByUser = async (connection, userId, limit = 20) => {
   const [rows] = await connection.query(
     `SELECT * FROM import_jobs WHERE user_id = ? ORDER BY created_at DESC LIMIT ?`,
@@ -43,6 +55,13 @@ export const findByUser = async (connection, userId, limit = 20) => {
   return rows;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} jobId
+ * @param {any} processed
+ * @param {any} total
+ * @returns {Promise<any>}
+ */
 export const updateProgress = async (connection, jobId, processed, total) => {
   return connection.query(
     `UPDATE import_jobs
@@ -52,6 +71,12 @@ export const updateProgress = async (connection, jobId, processed, total) => {
   );
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} jobId
+ * @param {number|string} userId
+ * @returns {Promise<any>}
+ */
 export const cancel = async (connection, jobId, userId) => {
   const [result] = await connection.query(
     `UPDATE import_jobs
@@ -80,6 +105,11 @@ export const getPendingImportJob = async (connection) => {
   return rows.length > 0 ? rows[0] : null;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} jobId
+ * @returns {Promise<any>}
+ */
 export const lockImportJob = async (connection, jobId) => {
   return connection.query(
     `UPDATE import_jobs SET status = 'PROCESSING', processing_started_at = NOW() WHERE id = ?`,
@@ -87,6 +117,13 @@ export const lockImportJob = async (connection, jobId) => {
   );
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} jobId
+ * @param {any} currentRetryCount
+ * @param {any} errorMessage
+ * @returns {Promise<any>}
+ */
 export const retryImportJob = async (connection, jobId, currentRetryCount, errorMessage) => {
   const nextRetry = currentRetryCount + 1;
   const note = `Retry #${nextRetry}: ${errorMessage.substring(0, 100)}...`;
@@ -118,6 +155,12 @@ export const completeImportJob = async (
   );
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} jobId
+ * @param {any} summary
+ * @returns {Promise<any>}
+ */
 export const failImportJob = async (connection, jobId, summary) => {
   return connection.query(
     `UPDATE import_jobs SET status = 'FAILED', log_summary = ?, updated_at = NOW() WHERE id = ?`,
@@ -125,6 +168,11 @@ export const failImportJob = async (connection, jobId, summary) => {
   );
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {any} timeoutMinutes
+ * @returns {Promise<any>}
+ */
 export const timeoutStuckImportJobs = async (connection, timeoutMinutes) => {
   return connection.query(
     `UPDATE import_jobs
@@ -142,6 +190,11 @@ export const timeoutStuckImportJobs = async (connection, timeoutMinutes) => {
 // ============================================================================
 
 // Fungsi untuk membuat Job Export baru
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {Object} options
+ * @returns {Promise<any>}
+ */
 export const createExportJob = async (connection, { userId, filters, jobType }) => {
   const filtersStr = JSON.stringify(filters);
   const [result] = await connection.query(
@@ -152,6 +205,10 @@ export const createExportJob = async (connection, { userId, filters, jobType }) 
   return result.insertId;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @returns {Promise<any>}
+ */
 export const getPendingExportJob = async (connection) => {
   const [rows] = await connection.query(
     `SELECT * FROM export_jobs WHERE status = 'PENDING' ORDER BY created_at ASC LIMIT 1`
@@ -159,6 +216,11 @@ export const getPendingExportJob = async (connection) => {
   return rows.length > 0 ? rows[0] : null;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} jobId
+ * @returns {Promise<any>}
+ */
 export const lockExportJob = async (connection, jobId) => {
   return connection.query(
     `UPDATE export_jobs SET status = 'PROCESSING', processing_started_at = NOW() WHERE id = ?`,
@@ -166,6 +228,12 @@ export const lockExportJob = async (connection, jobId) => {
   );
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} jobId
+ * @param {any} filename
+ * @returns {Promise<any>}
+ */
 export const completeExportJob = async (connection, jobId, filename) => {
   return connection.query(
     `UPDATE export_jobs SET status = 'COMPLETED', file_path = ? WHERE id = ?`,
@@ -173,6 +241,12 @@ export const completeExportJob = async (connection, jobId, filename) => {
   );
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} jobId
+ * @param {any} errorMessage
+ * @returns {Promise<any>}
+ */
 export const failExportJob = async (connection, jobId, errorMessage) => {
   return connection.query(
     `UPDATE export_jobs SET status = 'FAILED', error_message = ? WHERE id = ?`,
@@ -180,6 +254,11 @@ export const failExportJob = async (connection, jobId, errorMessage) => {
   );
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {any} timeoutMinutes
+ * @returns {Promise<any>}
+ */
 export const timeoutStuckExportJobs = async (connection, timeoutMinutes) => {
   return connection.query(
     `UPDATE export_jobs

@@ -266,11 +266,8 @@ export const generateProductExportStreaming = async (filters, filePath) => {
     }
 
     // --- QUERY DATA ---
-    // (Optimization: Fetch with stream if extremely large, but for now huge limit is fine)
-    // [PHASE 1] Force Regular Product Only (is_package=0)
-    const exportFilters = { ...filters, limit: 1000000, offset: 0 };
-    const result = await productRepo.getProductsWithFilters(connection, exportFilters);
-    const products = result.data;
+    const exportFilters = { ...filters };
+    const queryStream = productRepo.getProductsWithFiltersStream(connection, exportFilters);
 
     // --- WRITE DATA ---
     if (isCsv) {
@@ -286,7 +283,7 @@ export const generateProductExportStreaming = async (filters, filePath) => {
       });
 
       await pipeline(
-        Readable.from(products),
+        queryStream,
         fastCsv.format({ headers: true }).transform(transformRow),
         stream,
       );
@@ -308,20 +305,29 @@ export const generateProductExportStreaming = async (filters, filePath) => {
       sheet.getRow(1).values = headers;
       styleHeader(sheet, 1, headers.length, "FF4472C4", "FFFFFFFF");
 
-      products.forEach((p) => {
-        sheet
-          .addRow({
-            sku: p.sku,
-            name: p.name,
-            price: p.price,
-            weight: p.weight || 0,
-            is_active: p.is_active ? 1 : 0,
-          })
-          .commit();
+      await new Promise((resolve, reject) => {
+        queryStream.on("error", (err) => reject(err));
+        queryStream.on("data", (p) => {
+          sheet
+            .addRow({
+              sku: p.sku,
+              name: p.name,
+              price: p.price,
+              weight: p.weight || 0,
+              is_active: p.is_active ? 1 : 0,
+            })
+            .commit();
+        });
+        queryStream.on("end", async () => {
+          try {
+            sheet.commit();
+            await workbookWriter.commit();
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        });
       });
-
-      sheet.commit();
-      await workbookWriter.commit();
     }
 
     // Tunggu stream selesai benar (Hanya untuk Excel, karena Pipeline CSV sudah auto-wait)

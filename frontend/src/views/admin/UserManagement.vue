@@ -99,7 +99,7 @@ async function fetchData() {
     allRoles.value = rolesData
     allShifts.value = shiftsData
   } catch {
-    toast('Gagal memuat data pengguna.', 'error')
+//     toast('Gagal memuat data pengguna.', 'error') // Removed to prevent double-toast
   } finally {
     loading.value = false
   }
@@ -117,7 +117,8 @@ async function handleCreateUser() {
     newUser.value = { username: '', password: '', role_id: null, shift_id: null, nickname: '' } // Reset form
     fetchData() // Muat ulang data
   } catch (error) {
-    toast(error.response?.data?.message || 'Gagal membuat pengguna.', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.response?.data?.message || 'Gagal membuat pengguna.', 'error') // Removed to prevent double-toast
   }
 }
 
@@ -135,7 +136,8 @@ async function confirmDelete() {
     toast(response.message || 'Pengguna berhasil dihapus.', 'success')
     fetchData()
   } catch (error) {
-    toast(error.response?.data?.message || 'Gagal menghapus pengguna.', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.response?.data?.message || 'Gagal menghapus pengguna.', 'error') // Removed to prevent double-toast
   }
 }
 

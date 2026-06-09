@@ -1,16 +1,12 @@
 // backend/controllers/pickingController.js
 import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
 
 // --- SERVICES ---
 import * as pickingService from "../services/pickingDataService.js";
 import * as jobService from "../services/jobService.js";
 import Logger from "../utils/logger.js";
 
-// --- CONFIG ---
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+
 // (Direktori error report sekarang ditangani worker, tapi bisa dibiarkan jika ada logic download legacy)
 
 // ============================================================================
@@ -20,41 +16,38 @@ const __dirname = path.dirname(__filename);
 /**
  * Get all pending picking items.
  */
-export const getPendingItems = async (req, res) => {
+export const getPendingItems = async (req, res, next) => {
   try {
     const items = await pickingService.getPendingPickingItemsService();
     res.json({ success: true, data: items });
   } catch (error) {
-    Logger.error("Get Pending Items Error", error, "PICKING_CTRL");
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 /**
  * Get history of picking items.
  */
-export const getHistoryItems = async (req, res) => {
+export const getHistoryItems = async (req, res, next) => {
   try {
     const limit = parseInt(req.query.limit) || 1000;
     const items = await pickingService.getHistoryPickingItemsService(limit);
     res.json({ success: true, data: items });
   } catch (error) {
-    Logger.error("Get History Items Error", error, "PICKING_CTRL");
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 /**
  * Get details of a specific picking list.
  */
-export const getPickingDetail = async (req, res) => {
+export const getPickingDetail = async (req, res, next) => {
   try {
     const { id } = req.params;
     const items = await pickingService.fetchPickingListDetails(id);
     res.json({ success: true, data: items });
   } catch (error) {
-    Logger.error("Get Detail Error", error, "PICKING_CTRL");
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
@@ -66,7 +59,7 @@ export const getPickingDetail = async (req, res) => {
  * Upload Picking/Sales Files (Job Queue Based).
  * Supports Dry Run mode via req.body.dryRun.
  */
-export const uploadAndValidate = async (req, res) => {
+export const uploadAndValidate = async (req, res, next) => {
   try {
     if (!req.files || req.files.length === 0) {
       throw new Error("Tidak ada file yang diunggah.");
@@ -91,7 +84,7 @@ export const uploadAndValidate = async (req, res) => {
     }
 
     // Tentukan Base Job Type
-    let baseJobType = `IMPORT_SALES_${source.toUpperCase()}`;
+    const baseJobType = `IMPORT_SALES_${source.toUpperCase()}`;
 
     // Append suffix jika dry run (Worker akan memotong suffix ini nanti)
     const jobType = isDryRun ? `${baseJobType}_DRY_RUN` : baseJobType;
@@ -137,43 +130,36 @@ export const uploadAndValidate = async (req, res) => {
         if (fs.existsSync(f.path)) fs.unlinkSync(f.path);
       });
     }
-    res.status(500).json({ success: false, message: error.message });
+    return next(error);
   }
 };
 
 /**
  * Cancel a Picking List.
  */
-export const cancelPickingList = async (req, res) => {
+export const cancelPickingList = async (req, res, next) => {
   try {
     const { id } = req.params;
     const userId = req.user?.id || 1;
     await pickingService.cancelPickingListService(id, userId);
     res.json({ success: true, message: "Picking List dibatalkan." });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 /**
  * Complete Picking items.
  */
-export const completeItems = async (req, res) => {
+export const completeItems = async (req, res, next) => {
   try {
     const { items } = req.body;
     const userId = req.user?.id || 1;
 
-    if (!items || !Array.isArray(items)) {
-      throw new Error("Format data tidak valid. Harap kirim array items.");
-    }
 
     const result = await pickingService.completePickingItemsService(items, userId);
     res.json(result);
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-      errors: error.details || []
-    });
+    next(error);
   }
 };

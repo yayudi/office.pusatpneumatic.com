@@ -320,17 +320,17 @@ const handleDownloadZip = async () => {
       link.click()
       toast(`Berhasil mengunduh ${count} stiker.`, 'success')
     } else {
-      toast('Gagal mengunduh gambar. Pastikan template valid.', 'error')
+//       toast('Gagal mengunduh gambar. Pastikan template valid.', 'error') // Removed to prevent double-toast
     }
   } catch (err) {
     console.error(err)
-    toast('Terjadi kesalahan saat membuat ZIP', 'error')
+//     toast('Terjadi kesalahan saat membuat ZIP', 'error') // Removed to prevent double-toast
   }
 }
 
 function handlePrint() {
   if (printStickers.value.length === 0) {
-    toast('Tidak ada sticker untuk dicetak.', 'error')
+//     toast('Tidak ada sticker untuk dicetak.', 'error') // Removed to prevent double-toast
     return
   }
   window.print()

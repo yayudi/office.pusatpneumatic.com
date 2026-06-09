@@ -3,13 +3,12 @@ import db from "../config/db.js";
 import * as returnRepo from "../repositories/returnRepository.js";
 import * as locationRepo from "../repositories/locationRepository.js";
 import * as stockRepo from "../repositories/stockMovementRepository.js";
-import Logger from "../utils/logger.js";
 
 /**
  * GET: Ambil daftar barang yang statusnya RETURNED
  * (Barang retur dari marketplace yang sudah sampai gudang tapi belum divalidasi)
  */
-export const getPendingReturns = async (req, res) => {
+export const getPendingReturns = async (req, res, next) => {
   let connection;
   try {
     connection = await db.getConnection();
@@ -17,8 +16,7 @@ export const getPendingReturns = async (req, res) => {
 
     res.json({ success: true, data: items });
   } catch (error) {
-    Logger.error("Get Pending Error", error, "RETURN_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal mengambil antrian retur." });
+    next(error);
   } finally {
     if (connection) connection.release();
   }
@@ -28,7 +26,7 @@ export const getPendingReturns = async (req, res) => {
  * GET: Ambil Riwayat Retur
  * Menggabungkan data retur marketplace dan retur manual
  */
-export const getReturnHistory = async (req, res) => {
+export const getReturnHistory = async (req, res, next) => {
   let connection;
   try {
     connection = await db.getConnection();
@@ -39,8 +37,7 @@ export const getReturnHistory = async (req, res) => {
     const items = await returnRepo.getReturnHistory(connection, limit);
     res.json({ success: true, data: items });
   } catch (error) {
-    Logger.error("Get History Error", error, "RETURN_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal mengambil riwayat retur." });
+    next(error);
   } finally {
     if (connection) connection.release();
   }
@@ -50,17 +47,9 @@ export const getReturnHistory = async (req, res) => {
  * POST: Validasi & Terima Barang Retur (Picking Item)
  * Menangani Full Return maupun Partial Return (Split)
  */
-export const approveReturn = async (req, res) => {
-  const { itemId, qtyAccepted, condition, locationId, notes } = req.body;
+export const approveReturn = async (req, res, next) => {
+  const { itemId, qtyAccepted, locationId, condition, notes } = req.body;
   const userId = req.user?.id || 1;
-
-  // Validasi Input Dasar
-  if (!itemId || !qtyAccepted || !locationId || !condition) {
-    return res.status(400).json({
-      success: false,
-      message: "Data tidak lengkap. ID, Qty, Lokasi, dan Kondisi wajib diisi.",
-    });
-  }
 
   let connection;
   try {
@@ -129,8 +118,7 @@ export const approveReturn = async (req, res) => {
     });
   } catch (error) {
     if (connection) await connection.rollback();
-    Logger.error("Approve Error", error, "RETURN_CONTROLLER");
-    res.status(500).json({ success: false, message: error.message });
+    return next(error);
   } finally {
     if (connection) connection.release();
   }
@@ -139,16 +127,9 @@ export const approveReturn = async (req, res) => {
 /**
  * POST: Retur Manual (Barang Nyasar / Offline / Tanpa Picking List)
  */
-export const createManualReturn = async (req, res) => {
+export const createManualReturn = async (req, res, next) => {
   const { productId, quantity, condition, locationId, reference, notes } = req.body;
   const userId = req.user?.id || 1;
-
-  if (!productId || !quantity || !locationId) {
-    return res.status(400).json({
-      success: false,
-      message: "Produk, Qty, dan Lokasi Tujuan wajib diisi.",
-    });
-  }
 
   let connection;
   try {
@@ -184,8 +165,7 @@ export const createManualReturn = async (req, res) => {
     res.json({ success: true, message: "Retur manual berhasil dicatat." });
   } catch (error) {
     if (connection) await connection.rollback();
-    Logger.error("Manual Create Error", error, "RETURN_CONTROLLER");
-    res.status(500).json({ success: false, message: error.message });
+    return next(error);
   } finally {
     if (connection) connection.release();
   }

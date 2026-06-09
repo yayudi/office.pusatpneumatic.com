@@ -43,7 +43,8 @@ async function handleCancelJob(job) {
     toast('Antrian berhasil dibatalkan.', 'success')
     fetchJobHistory()
   } catch (error) {
-    toast(error.response?.data?.message || 'Gagal membatalkan job.', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.response?.data?.message || 'Gagal membatalkan job.', 'error') // Removed to prevent double-toast
   }
 }
 

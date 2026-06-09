@@ -63,7 +63,8 @@ async function fetchHistoryItems() {
     const items = await getHistoryPickingItems()
     historyItems.value = items || []
   } catch (error) {
-    toast(error.message || 'Gagal memuat riwayat.', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.message || 'Gagal memuat riwayat.', 'error') // Removed to prevent double-toast
   } finally {
     isLoadingHistory.value = false
   }
@@ -78,7 +79,8 @@ async function handleCancelItem(itemId) {
     toast('Berhasil dibatalkan', 'success')
     fetchHistoryItems() // Refresh
   } catch (e) {
-    toast(e.message, 'error')
+    console.error(e) // Auto-added to prevent unused var
+//     toast(e.message, 'error') // Removed to prevent double-toast
   }
 }
 

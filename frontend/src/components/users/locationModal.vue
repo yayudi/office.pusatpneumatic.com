@@ -35,7 +35,7 @@ watch(
         selectedLocationIds.value = userLocIds
       } catch {
         // Menggunakan toast yang sudah diganti namanya
-        toast('Gagal memuat data izin lokasi.', 'error')
+//         toast('Gagal memuat data izin lokasi.', 'error') // Removed to prevent double-toast
       } finally {
         isLoading.value = false
       }
@@ -53,7 +53,8 @@ async function handleSave() {
     emit('updated') // Beri tahu komponen induk bahwa data telah berubah
     emit('close')
   } catch (error) {
-    toast(error.message || 'Gagal menyimpan izin.', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.message || 'Gagal menyimpan izin.', 'error') // Removed to prevent double-toast
   } finally {
     isLoading.value = false
   }

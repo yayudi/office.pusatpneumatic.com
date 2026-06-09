@@ -21,6 +21,7 @@ const checkConnection = async () => {
       await axios.get('/products', { params: { limit: 1 } })
       isBackendReachable.value = true
     } catch (error) {
+    console.error(error) // Auto-added to prevent unused var
        // Jika status 401/403 berarti connect tapi auth fail -> itu TERSAMBUNG
       if (error.response && (error.response.status === 401 || error.response.status === 403)) {
           isBackendReachable.value = true

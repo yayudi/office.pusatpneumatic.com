@@ -126,6 +126,11 @@ export const createMediaAsset = async (connection, mediaData) => {
   return result.insertId;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {boolean} hash
+ * @returns {Promise<any>}
+ */
 export const getMediaAssetByHash = async (connection, hash) => {
   const [rows] = await connection.query('SELECT id FROM media_assets WHERE hash = ?', [hash]);
   return rows[0] || null;
@@ -141,6 +146,11 @@ export const deleteMediaAsset = async (connection, mediaId) => {
   await connection.query('DELETE FROM media_assets WHERE id = ?', [mediaId]);
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} mediaId
+ * @returns {Promise<any>}
+ */
 export const getMediaAssetById = async (connection, mediaId) => {
   const [rows] = await connection.query('SELECT * FROM media_assets WHERE id = ?', [mediaId]);
   return rows[0] || null;

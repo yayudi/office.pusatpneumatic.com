@@ -446,6 +446,9 @@ export const batchTransferService = async ({
 // READ SERVICES (Legacy Logic Refactored)
 // ==============================================================================
 
+/**
+ * @returns {Promise<any>}
+ */
 export const generateAdjustmentTemplateService = async () => {
   const connection = await db.getConnection();
   try {
@@ -485,6 +488,9 @@ export const generateAdjustmentTemplateService = async () => {
   }
 };
 
+/**
+ * @returns {Promise<any>}
+ */
 export const generateInboundTemplateService = async () => {
   const connection = await db.getConnection();
   try {
@@ -524,12 +530,23 @@ export const generateInboundTemplateService = async () => {
   }
 };
 
+/**
+ * @param {number|string} productId
+ * @param {any} page
+ * @param {number} limit
+ * @param {any} movementType
+ * @param {any} startDate
+ * @param {any} endDate
+ * @param {number|string} locationId
+ * @param {any} user
+ * @returns {Promise<any>}
+ */
 export const getStockHistoryService = async (productId, page = 1, limit = 15, movementType = null, startDate = null, endDate = null, locationId = null, user = null) => {
   const offset = (page - 1) * limit;
   const connection = await db.getConnection();
   try {
     let countQuery = "SELECT COUNT(*) as total FROM stock_movements sm JOIN users u ON sm.user_id = u.id WHERE sm.product_id = ?";
-    let countParams = [productId];
+    const countParams = [productId];
 
     let historyQuery = `
     SELECT
@@ -546,7 +563,7 @@ export const getStockHistoryService = async (productId, page = 1, limit = 15, mo
     LEFT JOIN locations from_loc ON sm.from_location_id = from_loc.id
     LEFT JOIN locations to_loc ON sm.to_location_id = to_loc.id
     WHERE sm.product_id = ?`;
-    let historyParams = [productId];
+    const historyParams = [productId];
 
     if (movementType && movementType !== 'all') {
       countQuery += " AND sm.movement_type = ?";
@@ -658,6 +675,10 @@ const buildTriStateWhereLocations = (filterValue, queryParams) => {
   return clauses;
 };
 
+/**
+ * @param {Object} options
+ * @returns {Promise<any>}
+ */
 export const getBatchLogsService = async ({ startDate, endDate, productName, movementType, locationId, userId }) => {
   const connection = await db.getConnection();
   try {
@@ -710,6 +731,10 @@ export const getBatchLogsService = async ({ startDate, endDate, productName, mov
   }
 };
 
+/**
+ * @param {Object} options
+ * @returns {Promise<any>}
+ */
 export const validateReturnService = async ({ pickingListItemId, returnToLocationId, userId }) => {
   const connection = await db.getConnection();
   await connection.beginTransaction();

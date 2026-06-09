@@ -3,7 +3,6 @@ import { getReportFilters } from "../repositories/reportRepository.js";
 import db from "../config/db.js";
 import * as jobRepo from "../repositories/jobRepository.js";
 import Logger from "../utils/logger.js";
-
 // [FIX V5] Tentukan URL Backend Secara Dinamis
 // Agar bisa jalan di Localhost maupun Production tanpa ubah code
 const getBaseUrl = (req) => {
@@ -13,7 +12,7 @@ const getBaseUrl = (req) => {
 /**
  * Menerima permintaan ekspor dan menambahkannya ke antrian.
  */
-export const requestStockReport = async (req, res) => {
+export const requestStockReport = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const filters = req.body;
@@ -29,16 +28,14 @@ export const requestStockReport = async (req, res) => {
       jobId,
     });
   } catch (error) {
-    Logger.error("Error saat requestStockReport", error, "REPORT_CONTROLLER");
-    res.status(500).json({ message: "Gagal membuat permintaan ekspor." });
+    next(error);
   }
 };
-
 
 /**
  * Mengambil daftar pekerjaan ekspor untuk pengguna yang sedang login.
  */
-export const getUserExportJobs = async (req, res) => {
+export const getUserExportJobs = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
@@ -48,7 +45,7 @@ export const getUserExportJobs = async (req, res) => {
         WHERE user_id = ?
         ORDER BY created_at DESC
         LIMIT 20`,
-      [userId]
+      [userId],
     );
 
     // Ubah file_path menjadi URL Lengkap (Absolute URL) & Parse Filters
@@ -60,8 +57,9 @@ export const getUserExportJobs = async (req, res) => {
           const parsed = JSON.parse(job.filters);
           if (parsed.exportType) exportType = parsed.exportType;
         }
-      } catch (e) {
-        // Ignore parse error
+      } catch (error) {
+        // Log error tanpa menghentikan proses map
+        Logger.warn(`Gagal mem-parsing filters untuk job ID ${job.id}`, error, "REPORT_CONTROLLER");
       }
       job.type = exportType;
 
@@ -77,20 +75,15 @@ export const getUserExportJobs = async (req, res) => {
 
     res.status(200).json({ success: true, data: jobsWithUrl });
   } catch (error) {
-    Logger.error("Error saat getUserExportJobs", error, "REPORT_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal mengambil riwayat pekerjaan." });
+    next(error);
   }
 };
 
-export const fetchReportFilters = async (req, res) => {
+export const fetchReportFilters = async (req, res, next) => {
   try {
     const filters = await getReportFilters();
     res.status(200).json({ success: true, data: filters });
   } catch (error) {
-    Logger.error("Error di reportController fetchReportFilters", error, "REPORT_CONTROLLER");
-    res.status(500).json({
-      success: false,
-      message: "Gagal mengambil data filter laporan.",
-    });
+    next(error);
   }
 };

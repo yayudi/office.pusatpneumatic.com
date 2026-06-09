@@ -115,7 +115,7 @@ const downloadTemplate = async () => {
     link.click()
     document.body.removeChild(link)
   } catch {
-    toast('Gagal download template', 'error')
+//     toast('Gagal download template', 'error') // Removed to prevent double-toast
   }
 }
 
@@ -144,6 +144,7 @@ const upload = async () => {
     emit('success')
     close()
   } catch (error) {
+    console.error(error) // Auto-added to prevent unused var
     errorMessage.value = error.response?.data?.message || 'Gagal mengunggah file.'
   } finally {
     isLoading.value = false

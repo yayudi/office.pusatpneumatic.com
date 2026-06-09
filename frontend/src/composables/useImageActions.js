@@ -17,7 +17,7 @@ export function useImageActions() {
       await navigator.clipboard.writeText(url)
       toast('Tautan gambar berhasil disalin!', 'success')
     } catch (err) {
-      toast('Gagal menyalin tautan gambar', 'error')
+//       toast('Gagal menyalin tautan gambar', 'error') // Removed to prevent double-toast
       console.error(err)
     }
   }
@@ -34,7 +34,7 @@ export function useImageActions() {
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })])
       toast('Gambar berhasil disalin ke clipboard!', 'success')
     } catch (err) {
-      toast('Gagal menyalin gambar ke clipboard', 'error')
+//       toast('Gagal menyalin gambar ke clipboard', 'error') // Removed to prevent double-toast
       console.error(err)
     }
   }
@@ -57,7 +57,7 @@ export function useImageActions() {
       a.remove()
       URL.revokeObjectURL(a.href)
     } catch (err) {
-      toast('Gagal mengunduh gambar', 'error')
+//       toast('Gagal mengunduh gambar', 'error') // Removed to prevent double-toast
       console.error(err)
     }
   }

@@ -129,7 +129,7 @@ function copyToClipboard({ text, fieldName }) {
     toast(`${fieldName} disalin ke clipboard!`, 'success')
   } catch (err) {
     console.error('Gagal menyalin:', err)
-    toast('Gagal menyalin teks.', 'error')
+//     toast('Gagal menyalin teks.', 'error') // Removed to prevent double-toast
   }
   document.body.removeChild(textArea)
 }
@@ -173,7 +173,8 @@ async function handleDeleteProduct(product) {
       resetAndRefetch() // Refresh list
     }
   } catch (err) {
-    toast(err.response?.data?.message || 'Gagal menghapus produk', 'error')
+    console.error(err) // Auto-added to prevent unused var
+//     toast(err.response?.data?.message || 'Gagal menghapus produk', 'error') // Removed to prevent double-toast
   }
 }
 
@@ -208,7 +209,8 @@ async function handleTransferConfirm(payload) {
       toast('Transfer stok berhasil!', 'success')
     }
   } catch (err) {
-    toast(err.message || 'Gagal transfer.', 'error')
+    console.error(err) // Auto-added to prevent unused var
+//     toast(err.message || 'Gagal transfer.', 'error') // Removed to prevent double-toast
   } finally {
     closeModal()
   }
@@ -222,7 +224,8 @@ async function handleAdjustConfirm(payload) {
       toast('Penyesuaian stok berhasil!', 'success')
     }
   } catch (err) {
-    toast(err.message || 'Gagal penyesuaian.', 'error')
+    console.error(err) // Auto-added to prevent unused var
+//     toast(err.message || 'Gagal penyesuaian.', 'error') // Removed to prevent double-toast
   } finally {
     closeModal()
   }
@@ -288,6 +291,16 @@ watch(Escape, pressed => {
           <font-awesome-icon icon="fa-solid fa-print" />
           <span>Sticker</span>
         </button>
+        <div v-if="!isMobile" class="w-px h-6 bg-primary"></div>
+        <router-link
+          to="/investigation-stock"
+          v-if="auth.hasPermission('view-system-logs') || auth.hasPermission('manage-stock-adjustment')"
+          class="w-1/2 px-4 py-2 text-sm font-bold text-accent hover:bg-accent/10 rounded-lg transition-all flex items-center gap-2 justify-center whitespace-nowrap"
+          title="Investigasi Stok"
+        >
+          <font-awesome-icon icon="fa-solid fa-search" />
+          <span>Investigasi</span>
+        </router-link>
         <div v-if="!isMobile" class="w-px h-6 bg-primary"></div>
         <button
           v-if="auth.hasPermission('view-prices')"

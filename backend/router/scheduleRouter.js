@@ -3,12 +3,14 @@ import * as scheduleController from '../controllers/scheduleController.js';
 import authenticateToken from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+import { validate } from '../middleware/validate.js';
+import { createScheduleSchema, getSchedulesSchema, deleteScheduleSchema } from '../validators/hrisValidator.js';
 
 router.use(authenticateToken);
 
-router.get('/', scheduleController.getSchedules);
-router.post('/', scheduleController.createSchedule);
-router.delete('/', scheduleController.deleteSchedule);
+router.get('/', validate(getSchedulesSchema, 'query'), scheduleController.getSchedules);
+router.post('/', validate(createScheduleSchema), scheduleController.createSchedule);
+router.delete('/', validate(deleteScheduleSchema, 'query'), scheduleController.deleteSchedule);
 
 // Import Routes
 router.get('/template', scheduleController.downloadTemplate);

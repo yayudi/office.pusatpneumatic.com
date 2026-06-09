@@ -100,6 +100,10 @@ export const getStockMovementStatistics = async (filters) => {
   }
 };
 
+/**
+ * @param {any} filters
+ * @returns {Promise<any>}
+ */
 export const getStockTimelineStatistics = async (filters) => {
   const { searchQuery, building, status, movement } = filters;
   let connection;
@@ -170,6 +174,11 @@ export const getInventoryValueStatistics = async (filters) => {
 };
 
 
+/**
+ * @param {any} filters
+ * @param {any} filePath
+ * @returns {Promise<any>}
+ */
 export const generateStatisticExport = async (filters, filePath) => {
   Logger.info(`Starting export to: ${filePath}`, "STATISTIC_SERVICE");
   const stream = fs.createWriteStream(filePath);

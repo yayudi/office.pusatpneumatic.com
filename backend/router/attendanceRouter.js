@@ -7,6 +7,8 @@ import { canAccess } from "../middleware/permissionMiddleware.js";
 import * as attendanceController from "../controllers/attendanceController.js";
 
 const router = express.Router();
+import { validate } from "../middleware/validate.js";
+import { dateRangeSchema, monthlyDataSchema, updateLogSchema } from "../validators/hrisValidator.js";
 
 // --- KONFIGURASI UPLOAD (MULTER) ---
 // Pastikan folder upload ada
@@ -53,21 +55,21 @@ router.post(
  * GET /range
  * Mengambil data absensi berdasarkan rentang tanggal (Summary & Detail Log).
  */
-router.get("/range", attendanceController.getRangeData);
+router.get("/range", validate(dateRangeSchema, 'query'), attendanceController.getRangeData);
 
 /**
  * GET /:year/:month
  * Mengambil data absensi bulanan (Summary & Detail Log).
  */
-router.get("/:year/:month", attendanceController.getMonthlyData);
+router.get("/:year/:month", validate(monthlyDataSchema, 'params'), attendanceController.getMonthlyData);
 
 /**
  * GET /history
  * Mengambil data history absensi realtime berdasarkan range tanggal.
  */
 // Route baru untuk manual update (Upsert)
-router.post('/update', attendanceController.updateLog);
+router.post('/update', validate(updateLogSchema), attendanceController.updateLog);
 
-router.get("/history", attendanceController.getHistory);
+router.get("/history", validate(dateRangeSchema, 'query'), attendanceController.getHistory);
 
 export default router;

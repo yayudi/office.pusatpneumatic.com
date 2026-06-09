@@ -112,7 +112,8 @@ const fetchStatistics = async () => {
       statisticsList.value = Array.isArray(payload) ? payload : []
     }
   } catch (error) {
-    toast(error.message || 'Gagal mengambil data statistik', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.message || 'Gagal mengambil data statistik', 'error') // Removed to prevent double-toast
   } finally {
     isDataLoading.value = false
   }
@@ -127,7 +128,8 @@ const handleExport = async () => {
       toast(data.message || 'Sedang memproses export ke background', 'success')
     }
   } catch (error) {
-    toast(error.message || 'Gagal request export', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.message || 'Gagal request export', 'error') // Removed to prevent double-toast
   } finally {
     isExporting.value = false
   }

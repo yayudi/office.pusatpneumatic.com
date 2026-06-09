@@ -75,7 +75,7 @@ async function loadInitialData() {
       selectRole(roles[0])
     }
   } catch {
-    toast('Gagal memuat data peran & izin.', 'error')
+//     toast('Gagal memuat data peran & izin.', 'error') // Removed to prevent double-toast
   } finally {
     isLoadingRoles.value = false
   }
@@ -97,7 +97,7 @@ async function selectRole(role) {
     selectedPermissionIds.value = permissionIds
     originalPermissionIds.value = [...permissionIds] // Simpan state asli
   } catch {
-    toast(`Gagal memuat izin untuk peran ${role.name}.`, 'error')
+//     toast(`Gagal memuat izin untuk peran ${role.name}.`, 'error') // Removed to prevent double-toast
     selectedPermissionIds.value = []
     originalPermissionIds.value = []
   } finally {
@@ -116,7 +116,8 @@ async function handleSavePermissions() {
     originalPermissionIds.value = [...selectedPermissionIds.value] // Set state asli baru
     toast(`Izin untuk peran ${selectedRole.value.name} berhasil diperbarui.`, 'success')
   } catch (error) {
-    toast(error.message || 'Gagal menyimpan perubahan izin.', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.message || 'Gagal menyimpan perubahan izin.', 'error') // Removed to prevent double-toast
   } finally {
     isSaving.value = false
   }
@@ -168,7 +169,8 @@ async function handleSaveRole() {
     isRoleModalOpen.value = false
     roleForm.value = { id: null, name: '', description: '' } // Reset form
   } catch (error) {
-    toast(error.message || 'Gagal menyimpan peran.', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.message || 'Gagal menyimpan peran.', 'error') // Removed to prevent double-toast
   } finally {
     isSaving.value = false
   }
@@ -191,7 +193,8 @@ async function handleDeleteRole(role) {
     }
     toast('Peran berhasil dihapus.', 'success')
   } catch (error) {
-    toast(error.message || 'Gagal menghapus peran.', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.message || 'Gagal menghapus peran.', 'error') // Removed to prevent double-toast
   } finally {
     isSaving.value = false
   }

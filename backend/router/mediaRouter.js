@@ -2,11 +2,12 @@ import express from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { canAccess } from "../middleware/permissionMiddleware.js";
 import * as mediaController from "../controllers/mediaController.js";
 import Logger from "../utils/logger.js";
 
 const router = express.Router();
+import { validate } from "../middleware/validate.js";
+import { updateTagsSchema, updateTitleSchema } from "../validators/mediaValidator.js";
 
 // Setup Multer for raw uploads before processing via Pustaka Media worker
 const tempUploadDir = "uploads/temp/";
@@ -40,7 +41,7 @@ router.get("/status", mediaController.getMediaStatus);
 router.get("/:id", mediaController.getMediaById);
 router.post("/upload", upload.array("images", 20), mediaController.uploadMedia);
 router.delete("/:id", mediaController.deleteMedia);
-router.put("/:id/tags", mediaController.updateMediaTagsController);
-router.put("/:id/title", mediaController.updateMediaTitleController);
+router.put("/:id/tags", validate(updateTagsSchema), mediaController.updateMediaTagsController);
+router.put("/:id/title", validate(updateTitleSchema), mediaController.updateMediaTitleController);
 
 export default router;

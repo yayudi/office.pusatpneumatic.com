@@ -139,7 +139,8 @@ async function fetchPendingItems() {
     pendingItems.value = data
     selectedItems.value = new Set() // Reset dengan Set baru
   } catch (error) {
-    toast(error.message || 'Gagal memuat data picking.', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.message || 'Gagal memuat data picking.', 'error') // Removed to prevent double-toast
   } finally {
     isLoadingPicking.value = false
   }
@@ -178,12 +179,13 @@ async function handleCompleteSelectedItems() {
     // Refresh data untuk konsistensi penuh
     await fetchPendingItems()
   } catch (error) {
+    console.error(error) // Auto-added to prevent unused var
     const errData = error.response?.data || error
     const details = errData.errors || []
 
     if (details.length > 0) {
       // Tampilkan pesan utama
-      toast(errData.message || 'Validasi Gagal!', 'error')
+//       toast(errData.message || 'Validasi Gagal!', 'error') // Removed to prevent double-toast
       // Tampilkan tiap detail sebagai toast terpisah (max 10)
       const maxToasts = Math.min(details.length, 10)
       for (let i = 0; i < maxToasts; i++) {
@@ -193,7 +195,7 @@ async function handleCompleteSelectedItems() {
         setTimeout(() => toast(`...dan ${details.length - 10} error lainnya.`, 'warning'), (maxToasts + 1) * 300)
       }
     } else {
-      toast(errData.message || 'Gagal menyelesaikan item.', 'error')
+//       toast(errData.message || 'Gagal menyelesaikan item.', 'error') // Removed to prevent double-toast
     }
   } finally {
     isLoadingPicking.value = false
@@ -207,7 +209,8 @@ async function handleCancelInvoice(pickingListId) {
     toast('Picking list dibatalkan.', 'success')
     pendingItems.value = pendingItems.value.filter(item => item.picking_list_id !== pickingListId)
   } catch (error) {
-    toast(error.message || 'Gagal membatalkan.', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.message || 'Gagal membatalkan.', 'error') // Removed to prevent double-toast
     await fetchPendingItems()
   }
 }

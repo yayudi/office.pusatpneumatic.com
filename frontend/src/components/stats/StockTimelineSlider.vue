@@ -28,6 +28,7 @@ const fetchTimeline = async () => {
     const res = await getProductStockTimeline(props.productId, page.value, limit.value, props.buildings);
     timelineResult.value = res.data;
   } catch (err) {
+    console.error(err) // Auto-added to prevent unused var
     error.value = err;
   } finally {
     isPending.value = false;

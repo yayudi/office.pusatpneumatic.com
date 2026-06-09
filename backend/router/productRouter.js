@@ -6,7 +6,10 @@ import fs from "fs";
 import { canAccess } from "../middleware/permissionMiddleware.js";
 import * as productController from "../controllers/productController.js";
 import { createJobService } from "../services/jobService.js";
+import AppError from "../utils/AppError.js";
 import Logger from "../utils/logger.js";
+import { validate } from "../middleware/validate.js";
+import { productSchema, linkMediaSchema } from "../validators/productValidator.js";
 
 const router = express.Router();
 
@@ -82,10 +85,10 @@ router.post(
   "/batch/product-update",
   canAccess("manage-products"),
   upload.single("file"),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ message: "File tidak ditemukan." });
+        return next(new AppError("File tidak ditemukan.", 400));
       }
       const { dryRun } = req.body;
       const jobType = dryRun === "true" ? "BATCH_EDIT_PRODUCT_DRY_RUN" : "BATCH_EDIT_PRODUCT";
@@ -103,10 +106,9 @@ router.post(
         jobId: jobId,
       });
     } catch (error) {
-      Logger.error("Upload Price Error", error, "PRODUCT_ROUTER");
-      res.status(500).json({ message: "Gagal memproses upload.", error: error.message });
+      next(new AppError(`Gagal memproses upload: ${error.message}`, 500));
     }
-  }
+  },
 );
 
 /**
@@ -177,7 +179,8 @@ router.post(
   "/",
   canAccess("product.image.upload"),
   productUpload.array("images", 5),
-  productController.createProduct
+  validate(productSchema),
+  productController.createProduct,
 );
 
 /**
@@ -188,7 +191,8 @@ router.put(
   "/:id",
   canAccess("product.image.upload"),
   productUpload.array("images", 5),
-  productController.updateProduct
+  validate(productSchema),
+  productController.updateProduct,
 );
 
 /**
@@ -208,7 +212,8 @@ router.delete("/:id", canAccess("product.image.delete"), productController.delet
 router.post(
   "/:id/link-media",
   canAccess("product.image.upload"),
-  productController.linkMediaToProduct
+  validate(linkMediaSchema),
+  productController.linkMediaToProduct,
 );
 
 /**
@@ -219,7 +224,7 @@ router.post(
   "/:id/images",
   canAccess("product.image.upload"),
   productUpload.any(), // DEBUG: Allow any field to inspect what is being sent
-  productController.uploadMoreImages
+  productController.uploadMoreImages,
 );
 
 /**
@@ -229,7 +234,7 @@ router.post(
 router.put(
   "/:id/images/:imageId/primary",
   canAccess("product.image.upload"),
-  productController.setPrimaryImage
+  productController.setPrimaryImage,
 );
 
 /**
@@ -239,7 +244,7 @@ router.put(
 router.delete(
   "/:id/images/:imageId",
   canAccess("product.image.delete"),
-  productController.deleteProductImage
+  productController.deleteProductImage,
 );
 
 export default router;

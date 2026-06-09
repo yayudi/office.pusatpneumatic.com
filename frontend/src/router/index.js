@@ -7,7 +7,7 @@ const routes = [
   {
     path: '/login',
     name: 'Login',
-    component: () => import('../views/auth/Login.vue'),
+    component: () => import('../views/auth/LoginView.vue'),
     meta: { guestOnly: true }
   },
 
@@ -61,6 +61,12 @@ const routes = [
     name: 'WMS',
     component: () => import('../views/wms/WmsDashboard.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/investigation-stock',
+    name: 'InvestigationStock',
+    component: () => import('../views/InvestigationStock.vue'),
+    meta: { requiresAuth: true, title: 'Investigasi Stok' }
   },
   {
     path: '/media',

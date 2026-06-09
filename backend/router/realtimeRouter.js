@@ -27,7 +27,10 @@ router.get("/stock-updates", (req, res) => {
 export function broadcastStockUpdate(updatedProducts) {
   // Tidak melakukan apa-apa.
   // Central logger opsional untuk debugging dev mode saja:
-  Logger.info(`Stock updated for ${updatedProducts.length} items (Polling Mode)`, "REALTIME_ROUTER");
+  Logger.info(
+    `Stock updated for ${updatedProducts.length} items (Polling Mode)`,
+    "REALTIME_ROUTER",
+  );
 }
 
 export default router;

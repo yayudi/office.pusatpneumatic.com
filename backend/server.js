@@ -11,15 +11,28 @@ import jwt from "jsonwebtoken";
 
 import apiRouter from "./router/index.js";
 import assetsRouter from "./router/assetsRouter.js";
+import AppError from "./utils/AppError.js";
 
+import errorHandler from "./middleware/errorHandler.js";
+
+import helmet from "helmet";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// ==================================================================
+// Keamanan API (Helmet)
+// ==================================================================
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false, // Izinkan frontend memuat gambar dari /uploads
+  }),
+);
+
 // Enable Trust Proxy for Reverse Proxies (Cloudflare/Nginx)
 // Ensure req.protocol detects 'https' correctly
-app.set('trust proxy', true);
+app.set("trust proxy", true);
 
 // ==================================================================
 // Konfigurasi CORS Permissive
@@ -89,33 +102,39 @@ app.use("/uploads", (req, res, next) => {
 // ==================================================================
 // Melayani file statis dari folder 'uploads'.
 // Ditaruh SEBELUM router lain untuk menghindari 404 palsu.
-app.use("/uploads", express.static(path.join(__dirname, "uploads"), {
-  setHeaders: (res, filePath) => {
-    const ext = path.extname(filePath).toLowerCase();
-    const inlineExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "uploads"), {
+    setHeaders: (res, filePath) => {
+      const ext = path.extname(filePath).toLowerCase();
+      const inlineExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"];
 
-    if (inlineExtensions.includes(ext)) {
-      res.setHeader("Content-Disposition", "inline");
-    } else {
-      res.setHeader("Content-Disposition", `attachment; filename="${path.basename(filePath)}"`);
-    }
+      if (inlineExtensions.includes(ext)) {
+        res.setHeader("Content-Disposition", "inline");
+      } else {
+        res.setHeader("Content-Disposition", `attachment; filename="${path.basename(filePath)}"`);
+      }
 
-    res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
-  }
-}));
+      res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+    },
+  }),
+);
 
 // Routing API Utama
 app.use("/api", apiRouter);
 app.use("/", assetsRouter);
 
 // 404 Handler Global
-app.use((req, res) => {
+app.use((req, res, next) => {
   // Hanya log jika bukan request favicon/robots.txt yang annoying
   if (!req.originalUrl.includes("favicon") && !req.originalUrl.includes("robots")) {
     Logger.debug(`URL tidak ditemukan: ${req.originalUrl}`, "404_MISSING");
   }
-  res.status(404).json({ success: false, message: "Endpoint tidak ditemukan." });
+  next(new AppError("Endpoint tidak ditemukan.", 404, "NOT_FOUND"));
 });
+
+// Global Error Handler
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

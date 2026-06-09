@@ -1,6 +1,7 @@
 // backend\middleware\permissionMiddleware.js
 import db from "../config/db.js";
 import Logger from "../utils/logger.js";
+import AppError from "../utils/AppError.js";
 
 // Fungsi ini adalah "middleware factory" (pabrik middleware)
 // Ia akan membuat fungsi middleware berdasarkan izin yang kita minta
@@ -9,9 +10,7 @@ export function canAccess(permissionName) {
     const userRoleId = req.user.role_id;
 
     if (!userRoleId) {
-      return res
-        .status(403)
-        .json({ success: false, message: "Akses ditolak. Role tidak terdefinisi." });
+      return next(new AppError("Akses ditolak. Role tidak terdefinisi.", 403));
     }
 
     try {
@@ -29,13 +28,11 @@ export function canAccess(permissionName) {
       if (rows.length > 0) {
         next(); // Pengguna punya izin, lanjutkan
       } else {
-        res
-          .status(403)
-          .json({ success: false, message: `Akses ditolak. Memerlukan izin: '${permissionName}'` });
+        return next(new AppError(`Akses ditolak. Memerlukan izin: '${permissionName}'`, 403));
       }
     } catch (error) {
       Logger.error("Error saat memeriksa izin", error, "PERMISSION_MIDDLEWARE");
-      res.status(500).json({ success: false, message: "Server error saat memeriksa izin." });
+      return next(new AppError("Server error saat memeriksa izin.", 500));
     }
   };
 }

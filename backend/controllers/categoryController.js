@@ -1,10 +1,12 @@
+// backend/controllers/categoryController.js
 import * as categoryService from "../services/categoryService.js";
 import Logger from "../utils/logger.js";
 
+import AppError from "../utils/AppError.js";
 /**
  * Mengambil semua kategori yang aktif
  */
-export const getCategories = async (req, res) => {
+export const getCategories = async (req, res, next) => {
   try {
     const data = await categoryService.getAllCategories();
     res.status(200).json({
@@ -13,27 +15,15 @@ export const getCategories = async (req, res) => {
       data,
     });
   } catch (error) {
-    Logger.error("Error getCategories", error, "CATEGORY_CONTROLLER");
-    res.status(500).json({
-      success: false,
-      message: "Gagal mengambil data kategori",
-      error_code: "INTERNAL_SERVER_ERROR",
-    });
+    next(error);
   }
 };
 
 /**
  * Membuat kategori baru
  */
-export const createCategory = async (req, res) => {
+export const createCategory = async (req, res, next) => {
   const { name } = req.body;
-  if (!name) {
-    return res.status(400).json({
-      success: false,
-      message: "Nama kategori harus diisi",
-      error_code: "VALIDATION_ERROR",
-    });
-  }
 
   try {
     const data = await categoryService.createCategory(name);
@@ -44,35 +34,19 @@ export const createCategory = async (req, res) => {
     });
   } catch (error) {
     Logger.error("Error createCategory", error, "CATEGORY_CONTROLLER");
-    if (error.code === 'DUPLICATE_ENTRY') {
-      return res.status(400).json({
-        success: false,
-        message: error.message,
-        error_code: "DUPLICATE_ENTRY",
-      });
+    if (error.code === "DUPLICATE_ENTRY") {
+      return next(error);
     }
-    res.status(500).json({
-      success: false,
-      message: "Gagal membuat kategori",
-      error_code: "INTERNAL_SERVER_ERROR",
-    });
+    return next(new AppError("Gagal membuat kategori", 500));
   }
 };
 
 /**
  * Mengupdate kategori
  */
-export const updateCategory = async (req, res) => {
+export const updateCategory = async (req, res, next) => {
   const { id } = req.params;
   const { name } = req.body;
-
-  if (!name) {
-    return res.status(400).json({
-      success: false,
-      message: "Nama kategori harus diisi",
-      error_code: "VALIDATION_ERROR",
-    });
-  }
 
   try {
     await categoryService.updateCategory(id, name);
@@ -82,25 +56,17 @@ export const updateCategory = async (req, res) => {
     });
   } catch (error) {
     Logger.error("Error updateCategory", error, "CATEGORY_CONTROLLER");
-    if (error.code === 'NOT_FOUND') {
-      return res.status(404).json({
-        success: false,
-        message: error.message,
-        error_code: "NOT_FOUND",
-      });
+    if (error.code === "NOT_FOUND") {
+      return next(error);
     }
-    res.status(500).json({
-      success: false,
-      message: "Gagal mengupdate kategori",
-      error_code: "INTERNAL_SERVER_ERROR",
-    });
+    return next(new AppError("Gagal mengupdate kategori", 500));
   }
 };
 
 /**
  * Menghapus kategori (Soft Delete)
  */
-export const deleteCategory = async (req, res) => {
+export const deleteCategory = async (req, res, next) => {
   const { id } = req.params;
 
   try {
@@ -111,17 +77,9 @@ export const deleteCategory = async (req, res) => {
     });
   } catch (error) {
     Logger.error("Error deleteCategory", error, "CATEGORY_CONTROLLER");
-    if (error.code === 'NOT_FOUND') {
-      return res.status(404).json({
-        success: false,
-        message: error.message,
-        error_code: "NOT_FOUND",
-      });
+    if (error.code === "NOT_FOUND") {
+      return next(error);
     }
-    res.status(500).json({
-      success: false,
-      message: "Gagal menghapus kategori",
-      error_code: "INTERNAL_SERVER_ERROR",
-    });
+    return next(new AppError("Gagal menghapus kategori", 500));
   }
 };

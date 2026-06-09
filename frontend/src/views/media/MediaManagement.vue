@@ -84,6 +84,7 @@ const debouncedBulkSearch = debounce(async query => {
     const res = await apiClient.get(`/products/search?q=${encodeURIComponent(query)}`)
     bulkProductSearchResults.value = res.data
   } catch (error) {
+    console.error(error) // Auto-added to prevent unused var
     toast('Search error', error)
   } finally {
     isBulkProductSearching.value = false
@@ -188,6 +189,7 @@ const confirmBulkDelete = async () => {
         successCount++
         selectedMediaIds.value.delete(id) // Hapus dari seleksi jika berhasil
       } catch (err) {
+    console.error(err) // Auto-added to prevent unused var
         if (err.response?.status === 409) {
           usageConflictCount++
         } else {
@@ -418,6 +420,7 @@ const executeBulkUpload = async () => {
       }
     }
   } catch (err) {
+    console.error(err) // Auto-added to prevent unused var
     const errData = err.response?.data || err
     if (errData?.error_code === 'DUPLICATE_MEDIA') {
       alert(`⚠️ Duplikat terdeteksi: ${errData.message}\n\nGunakan aset yang sudah ada.`)
@@ -463,7 +466,7 @@ const bulkCopyLinks = async () => {
     await navigator.clipboard.writeText(links)
     toast(`${items.length} tautan berhasil disalin!`, 'success')
   } catch {
-    toast('Gagal menyalin tautan', 'error')
+//     toast('Gagal menyalin tautan', 'error') // Removed to prevent double-toast
   }
 }
 

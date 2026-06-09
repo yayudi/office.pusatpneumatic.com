@@ -3,6 +3,10 @@ import db from '../config/db.js';
 import * as salesChannelRepo from '../repositories/salesChannelRepository.js';
 import Logger from '../utils/logger.js';
 
+/**
+ * @param {any} onlyActive
+ * @returns {Promise<any>}
+ */
 export const getAllChannels = async (onlyActive = false) => {
   let connection;
   try {
@@ -16,6 +20,10 @@ export const getAllChannels = async (onlyActive = false) => {
   }
 };
 
+/**
+ * @param {number|string} id
+ * @returns {Promise<any>}
+ */
 export const getChannelById = async (id) => {
   let connection;
   try {
@@ -33,6 +41,11 @@ export const getChannelById = async (id) => {
   }
 };
 
+/**
+ * @param {any} channelData
+ * @param {number|string} userId
+ * @returns {Promise<any>}
+ */
 export const createChannel = async (channelData, userId) => {
   let connection;
   try {
@@ -58,6 +71,12 @@ export const createChannel = async (channelData, userId) => {
   }
 };
 
+/**
+ * @param {number|string} id
+ * @param {any} channelData
+ * @param {number|string} userId
+ * @returns {Promise<any>}
+ */
 export const updateChannel = async (id, channelData, userId) => {
   let connection;
   try {
@@ -86,6 +105,11 @@ export const updateChannel = async (id, channelData, userId) => {
   }
 };
 
+/**
+ * @param {number|string} id
+ * @param {number|string} userId
+ * @returns {Promise<any>}
+ */
 export const deleteChannel = async (id, userId) => {
   let connection;
   try {

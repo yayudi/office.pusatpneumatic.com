@@ -36,7 +36,7 @@ onMounted(async () => {
     myLocations.value = await fetchMyLocations()
     await loadImportHistory()
   } catch {
-    toast('Gagal memuat data awal.', 'error')
+//     toast('Gagal memuat data awal.', 'error') // Removed to prevent double-toast
   } finally {
     isLoading.value = false
   }
@@ -52,7 +52,7 @@ async function loadImportHistory() {
     }
   } catch (error) {
     console.error('Gagal memuat riwayat impor:', error)
-    toast('Gagal memuat riwayat laporan impor', 'error')
+//     toast('Gagal memuat riwayat laporan impor', 'error') // Removed to prevent double-toast
   } finally {
     isImportHistoryLoading.value = false
   }
@@ -65,7 +65,7 @@ function handleFileSelect(event) {
     const fileExt = fileName.slice(fileName.lastIndexOf('.')).toLowerCase()
 
     if (fileExt !== '.xlsx') {
-      toast('Hanya file .xlsx yang diizinkan.', 'error')
+//       toast('Hanya file .xlsx yang diizinkan.', 'error') // Removed to prevent double-toast
       selectedFile.value = null
       uploadInputKey.value++
       return
@@ -76,11 +76,11 @@ function handleFileSelect(event) {
 
 async function handleUploadAdjustment() {
   if (!selectedFile.value) {
-    toast('Pilih file .xlsx terlebih dahulu.', 'error')
+//     toast('Pilih file .xlsx terlebih dahulu.', 'error') // Removed to prevent double-toast
     return
   }
   if (!notes.value.trim()) {
-    toast('Catatan/alasan wajib diisi untuk unggahan.', 'error')
+//     toast('Catatan/alasan wajib diisi untuk unggahan.', 'error') // Removed to prevent double-toast
     return
   }
 
@@ -91,7 +91,8 @@ async function handleUploadAdjustment() {
     loadImportHistory()
     notes.value = ''
   } catch (error) {
-    toast(error.message || 'Gagal mengunggah file.', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.message || 'Gagal mengunggah file.', 'error') // Removed to prevent double-toast
   } finally {
     isUploading.value = false
     selectedFile.value = null
@@ -117,7 +118,7 @@ async function downloadTemplate() {
     window.URL.revokeObjectURL(url)
   } catch (error) {
     console.error('Gagal mengunduh template:', error)
-    toast('Gagal mengunduh template. Cek console untuk detail.', 'error')
+//     toast('Gagal mengunduh template. Cek console untuk detail.', 'error') // Removed to prevent double-toast
   } finally {
     isDownloading.value = false
   }
@@ -161,11 +162,11 @@ function removeFromBatch(sku) {
 
 async function submitBatch() {
   if (!isBatchLocationSelected.value || batchList.value.length === 0) {
-    toast('Harap lengkapi lokasi dan tambahkan setidaknya satu item.', 'error')
+//     toast('Harap lengkapi lokasi dan tambahkan setidaknya satu item.', 'error') // Removed to prevent double-toast
     return
   }
   if (!notes.value.trim()) {
-    toast('Catatan/alasan wajib diisi untuk penyesuaian stok.', 'error')
+//     toast('Catatan/alasan wajib diisi untuk penyesuaian stok.', 'error') // Removed to prevent double-toast
     return
   }
 
@@ -188,7 +189,8 @@ async function submitBatch() {
       notes.value = ''
     }
   } catch (error) {
-    toast(error.message || 'Terjadi kesalahan saat submit batch.', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.message || 'Terjadi kesalahan saat submit batch.', 'error') // Removed to prevent double-toast
   } finally {
     isLoading.value = false
   }

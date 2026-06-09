@@ -7,8 +7,15 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import { getTimestampString_YYMMDDHHSS } from "../services/helpers/sharedHelpers.js";
 import Logger from "../utils/logger.js";
-
-import { canAccess } from "../middleware/permissionMiddleware.js"; // Uncomment jika middleware sudah siap
+import { validate } from "../middleware/validate.js";
+import { 
+  stockTransferSchema, 
+  stockAdjustSchema,
+  batchProcessSchema,
+  batchTransferSchema,
+  validateReturnSchema,
+  batchLogsSchema
+} from "../validators/stockValidator.js";
 
 const router = express.Router();
 
@@ -65,31 +72,31 @@ const upload = multer({
  * POST /api/stock/transfer
  * Memindahkan stok (Support Auto-Breakdown Paket)
  */
-router.post("/transfer", stockController.transferStock);
+router.post("/transfer", validate(stockTransferSchema), stockController.transferStock);
 
 /**
  * POST /api/stock/adjust
  * Penyesuaian stok (Opname)
  */
-router.post("/adjust", stockController.adjustStock);
+router.post("/adjust", validate(stockAdjustSchema), stockController.adjustStock);
 
 /**
  * POST /api/stock/batch-process
  * Memproses berbagai jenis pergerakan stok dalam satu request
  */
-router.post("/batch-process", stockController.processBatchMovements);
+router.post("/batch-process", validate(batchProcessSchema), stockController.processBatchMovements);
 
 /**
  * POST /api/stock/batch-transfer
  * Transfer banyak item sekaligus
  */
-router.post("/batch-transfer", stockController.batchTransfer);
+router.post("/batch-transfer", validate(batchTransferSchema), stockController.batchTransfer);
 
 /**
  * POST /api/stock/validate-return
  * Validasi barang retur dari picking list
  */
-router.post("/validate-return", stockController.validateReturn);
+router.post("/validate-return", validate(validateReturnSchema), stockController.validateReturn);
 
 // ============================================================================
 // READ / HISTORY
@@ -105,7 +112,7 @@ router.get("/history/:productId", stockController.getStockHistory);
  * GET /api/stock/batch-log
  * Log batch pergerakan berdasarkan tanggal
  */
-router.get("/batch-log", stockController.getBatchLogs);
+router.get("/batch-log", validate(batchLogsSchema, 'query'), stockController.getBatchLogs);
 
 // ============================================================================
 // IMPORT / EXPORT (Stock Opname)
@@ -136,7 +143,7 @@ router.get("/download-adjustment-template", stockController.downloadAdjustmentTe
 router.post(
   "/request-adjustment-upload",
   upload.single("adjustmentFile"),
-  stockController.requestAdjustmentUpload
+  stockController.requestAdjustmentUpload,
 );
 
 /**

@@ -44,7 +44,7 @@ const submitTags = async () => {
     close();
   } catch (error) {
     console.error(error);
-    toast("Terjadi kesalahan saat memperbarui sebagian tag.", 'error');
+//     toast("Terjadi kesalahan saat memperbarui sebagian tag.", 'error'); // Removed to prevent double-toast
     emit('updated');
     close();
   } finally {

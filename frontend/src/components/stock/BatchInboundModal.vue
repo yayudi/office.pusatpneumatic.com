@@ -403,7 +403,7 @@ const loadInboundContext = async () => {
     locations.value = locRes.data.data || []
   } catch (err) {
     console.error('Failed to load system context:', err)
-    toast('Gagal memuat daftar produk/lokasi sistem', 'error')
+//     toast('Gagal memuat daftar produk/lokasi sistem', 'error') // Removed to prevent double-toast
   }
 }
 
@@ -431,7 +431,7 @@ const downloadTemplate = async () => {
     toast('Template berhasil diunduh', 'success')
   } catch (error) {
     console.error('Download error:', error)
-    toast('Gagal mengunduh template', 'error')
+//     toast('Gagal mengunduh template', 'error') // Removed to prevent double-toast
   } finally {
     isDownloading.value = false
   }
@@ -456,12 +456,12 @@ const validateAndSetFile = (selectedFile) => {
   const isPDF = selectedFile.type === 'application/pdf' || selectedFile.name.endsWith('.pdf')
 
   if (!isExcel && !isPDF) {
-    toast('Hanya file Excel (.xlsx) atau PDF (.pdf) yang diperbolehkan', 'error')
+//     toast('Hanya file Excel (.xlsx) atau PDF (.pdf) yang diperbolehkan', 'error') // Removed to prevent double-toast
     return
   }
 
   if (selectedFile.size > 10 * 1024 * 1024) {
-    toast('Ukuran file maksimal 10MB', 'error')
+//     toast('Ukuran file maksimal 10MB', 'error') // Removed to prevent double-toast
     return
   }
 
@@ -570,7 +570,7 @@ const parsePDFAndShowReview = async (pdfFile) => {
     await pdfDocument.destroy()
 
     if (allParsedRows.length === 0) {
-      toast('Tidak ada baris barang yang terbaca dari PDF. Harap gunakan template yang benar.', 'error')
+//       toast('Tidak ada baris barang yang terbaca dari PDF. Harap gunakan template yang benar.', 'error') // Removed to prevent double-toast
       file.value = null
     } else {
       reviewRows.value = allParsedRows
@@ -580,7 +580,7 @@ const parsePDFAndShowReview = async (pdfFile) => {
     }
   } catch (error) {
     console.error('Failed to parse PDF:', error)
-    toast('Gagal memproses file PDF: ' + (error.message || 'Format salah'), 'error')
+//     toast('Gagal memproses file PDF: ' + (error.message || 'Format salah'), 'error') // Removed to prevent double-toast
     file.value = null
   } finally {
     isUploading.value = false
@@ -654,7 +654,7 @@ const submitBatchJSON = async () => {
     }
   } catch (error) {
     console.error('Submit JSON Error:', error)
-    toast(error.message || 'Gagal menyimpan inbound stok', 'error')
+//     toast(error.message || 'Gagal menyimpan inbound stok', 'error') // Removed to prevent double-toast
   } finally {
     isSubmitting.value = false
   }
@@ -681,7 +681,7 @@ const uploadExcelFile = async () => {
     }
   } catch (error) {
     console.error('Upload Error:', error)
-    toast(error.response?.data?.message || 'Gagal mengupload file', 'error')
+//     toast(error.response?.data?.message || 'Gagal mengupload file', 'error') // Removed to prevent double-toast
   } finally {
     isUploading.value = false
   }

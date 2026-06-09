@@ -17,6 +17,11 @@ const styleHeader = (worksheet, rowNumber, colCount, bgColor = "FFD9E1F2") => {
   row.commit();
 };
 
+/**
+ * @param {any} filters
+ * @param {any} filePath
+ * @returns {Promise<any>}
+ */
 export const generatePackageExport = async (filters, filePath) => {
   Logger.info(`Starting export to: ${filePath}`, "PACKAGE_EXPORT");
   let connection;

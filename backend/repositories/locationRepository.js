@@ -3,11 +3,20 @@
 // READ OPERATIONS
 // ============================================================================
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {any} code
+ * @returns {Promise<any>}
+ */
 export const getIdByCode = async (connection, code) => {
   const [rows] = await connection.query("SELECT id FROM locations WHERE code = ?", [code]);
   return rows.length > 0 ? rows[0].id : null;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @returns {Promise<any>}
+ */
 export const getAllLocationCodes = async (connection) => {
   const [rows] = await connection.query(
     "SELECT DISTINCT code FROM locations WHERE code IS NOT NULL AND code != '' ORDER BY code ASC"
@@ -15,6 +24,10 @@ export const getAllLocationCodes = async (connection) => {
   return rows.map((r) => r.code);
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @returns {Promise<any>}
+ */
 export const getLocationMap = async (connection) => {
   const [rows] = await connection.query("SELECT id, code FROM locations");
   const map = new Map();
@@ -24,6 +37,41 @@ export const getLocationMap = async (connection) => {
   return map;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @returns {Promise<any>}
+ */
+export const getAllLocations = async (connection) => {
+  const [locations] = await connection.query(
+    "SELECT id, code, building, floor, name, purpose FROM locations ORDER BY id ASC"
+  );
+  return locations;
+};
+
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} locationId
+ * @returns {Promise<any>}
+ */
+export const getStockSample = async (connection, locationId) => {
+  const query = `
+    SELECT p.sku, p.name, sl.quantity
+    FROM stock_locations sl
+    JOIN products p ON sl.product_id = p.id
+    WHERE sl.location_id = ? AND sl.quantity > 0
+    LIMIT 10
+  `;
+  const [results] = await connection.query(query, [locationId]);
+  return results;
+};
+
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} productId
+ * @param {number|string} locationId
+ * @param {any} forUpdate
+ * @returns {Promise<any>}
+ */
 export const getStockAtLocation = async (connection, productId, locationId, forUpdate = false) => {
   let query = "SELECT quantity FROM stock_locations WHERE product_id = ? AND location_id = ?";
   if (forUpdate) query += " FOR UPDATE";
@@ -114,6 +162,13 @@ export const upsertStock = async (connection, productId, locationId, newQty) => 
   return connection.query(query, [productId, locationId, newQty, newQty]);
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} productId
+ * @param {number|string} locationId
+ * @param {any} quantity
+ * @returns {Promise<any>}
+ */
 export const deductStock = async (connection, productId, locationId, quantity) => {
   return connection.query(
     `UPDATE stock_locations
@@ -123,6 +178,13 @@ export const deductStock = async (connection, productId, locationId, quantity) =
   );
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} productId
+ * @param {number|string} locationId
+ * @param {any} quantity
+ * @returns {Promise<any>}
+ */
 export const incrementStock = async (connection, productId, locationId, quantity) => {
   return connection.query(
     `INSERT INTO stock_locations (product_id, location_id, quantity)
@@ -133,9 +195,9 @@ export const incrementStock = async (connection, productId, locationId, quantity
 };
 
 /**
- * Membuat lokasi baru
- * @param {object} connection - DB Connection
- * @param {object} data - { code, building, floor, name, purpose }
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {Object} options
+ * @returns {Promise<any>}
  */
 export const createLocation = async (connection, { code, building, floor, name, purpose }) => {
   const [result] = await connection.query(
@@ -145,3 +207,28 @@ export const createLocation = async (connection, { code, building, floor, name, 
   );
   return result.insertId;
 };
+
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} id
+ * @param {Object} options
+ * @returns {Promise<any>}
+ */
+export const updateLocation = async (connection, id, { code, building, floor, name, purpose }) => {
+  const [result] = await connection.query(
+    "UPDATE locations SET code = ?, building = ?, floor = ?, name = ?, purpose = ? WHERE id = ?",
+    [code, building, floor || null, name || null, purpose, id]
+  );
+  return result.affectedRows > 0;
+};
+
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} id
+ * @returns {Promise<any>}
+ */
+export const deleteLocation = async (connection, id) => {
+  const [result] = await connection.query("DELETE FROM locations WHERE id = ?", [id]);
+  return result.affectedRows > 0;
+};
+

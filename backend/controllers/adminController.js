@@ -1,18 +1,17 @@
 // backend/controllers/adminController.js
 import * as adminService from "../services/adminService.js";
-import Logger from "../utils/logger.js";
 
+import AppError from "../utils/AppError.js";
 /**
  * GET /api/admin/users
  * Mengambil semua user aktif.
  */
-export const getUsers = async (req, res) => {
+export const getUsers = async (req, res, next) => {
   try {
     const users = await adminService.getAllUsers();
     res.json({ success: true, users });
   } catch (err) {
-    Logger.error("Error fetching users", err, "ADMIN_CONTROLLER");
-    res.status(500).json({ success: false, message: "Server error" });
+    next(err);
   }
 };
 
@@ -20,15 +19,8 @@ export const getUsers = async (req, res) => {
  * POST /api/admin/users
  * Membuat user baru.
  */
-export const createUser = async (req, res) => {
+export const createUser = async (req, res, next) => {
   const { username, password, role_id, nickname, shift_id, exclude_from_attendance } = req.body;
-
-  // Validasi struktural
-  if (!username || !password || !role_id) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Semua field (username, password, role) wajib diisi." });
-  }
 
   try {
     const newUser = await adminService.createUser({
@@ -46,10 +38,9 @@ export const createUser = async (req, res) => {
     res.status(201).json({ success: true, message: "Pengguna berhasil dibuat.", data: newUser });
   } catch (error) {
     if (error.code === "ER_DUP_ENTRY") {
-      return res.status(409).json({ success: false, message: "Username sudah digunakan." });
+      return next(new AppError("Username sudah digunakan.", 409));
     }
-    Logger.error("Error creating user", error, "ADMIN_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal membuat pengguna." });
+    return next(new AppError("Gagal membuat pengguna.", 500));
   }
 };
 
@@ -57,13 +48,12 @@ export const createUser = async (req, res) => {
  * GET /api/admin/users/roles
  * Mengambil semua role.
  */
-export const getRoles = async (req, res) => {
+export const getRoles = async (req, res, next) => {
   try {
     const roles = await adminService.getAllRoles();
     res.json({ success: true, roles });
   } catch (err) {
-    Logger.error("Error fetching roles", err, "ADMIN_CONTROLLER");
-    res.status(500).json({ success: false, message: "Server error" });
+    next(err);
   }
 };
 
@@ -71,14 +61,9 @@ export const getRoles = async (req, res) => {
  * PUT /api/admin/users/:id
  * Update data user.
  */
-export const updateUser = async (req, res) => {
+export const updateUser = async (req, res, next) => {
   const { id } = req.params;
-  const { username, role_id } = req.body;
-
-  // Validasi struktural
-  if (!username || !role_id) {
-    return res.status(400).json({ success: false, message: "Username dan role wajib diisi." });
-  }
+  const { username } = req.body;
 
   try {
     await adminService.updateUser({
@@ -92,12 +77,9 @@ export const updateUser = async (req, res) => {
     res.json({ success: true, message: "Data pengguna berhasil diperbarui." });
   } catch (error) {
     if (error.code === "ER_DUP_ENTRY") {
-      return res
-        .status(409)
-        .json({ success: false, message: `Username '${username}' sudah digunakan.` });
+      return next(new AppError(`Username '${username}' sudah digunakan.`, 409));
     }
-    Logger.error("Error updating user", error, "ADMIN_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal memperbarui data pengguna." });
+    return next(new AppError("Gagal memperbarui data pengguna.", 500));
   }
 };
 
@@ -105,7 +87,7 @@ export const updateUser = async (req, res) => {
  * DELETE /api/admin/users/:id
  * Soft delete user.
  */
-export const deleteUser = async (req, res) => {
+export const deleteUser = async (req, res, next) => {
   const { id } = req.params;
 
   try {
@@ -119,10 +101,9 @@ export const deleteUser = async (req, res) => {
     res.json({ success: true, message: "User berhasil dihapus." });
   } catch (error) {
     if (error.statusCode === 400) {
-      return res.status(400).json({ success: false, message: error.message });
+      return next(error);
     }
-    Logger.error("Error deleting user", error, "ADMIN_CONTROLLER");
-    res.status(500).json({ success: false, message: "Server error" });
+    return next(new AppError("Server error", 500));
   }
 };
 
@@ -130,15 +111,14 @@ export const deleteUser = async (req, res) => {
  * GET /api/admin/users/:id/locations
  * Mengambil lokasi yang diizinkan untuk user.
  */
-export const getUserLocations = async (req, res) => {
+export const getUserLocations = async (req, res, next) => {
   const { id } = req.params;
 
   try {
     const locationIds = await adminService.getUserLocations(parseInt(id, 10));
     res.json({ success: true, data: locationIds });
   } catch (error) {
-    Logger.error("Error fetching user locations", error, "ADMIN_CONTROLLER");
-    res.status(500).json({ success: false, message: "Server error" });
+    next(error);
   }
 };
 
@@ -146,14 +126,9 @@ export const getUserLocations = async (req, res) => {
  * PUT /api/admin/users/:id/locations
  * Update lokasi yang diizinkan untuk user.
  */
-export const updateUserLocations = async (req, res) => {
+export const updateUserLocations = async (req, res, next) => {
   const { id } = req.params;
   const { locationIds } = req.body;
-
-  // Validasi struktural
-  if (!Array.isArray(locationIds)) {
-    return res.status(400).json({ success: false, message: "Input harus berupa array ID lokasi." });
-  }
 
   try {
     await adminService.updateUserLocations({
@@ -167,11 +142,8 @@ export const updateUserLocations = async (req, res) => {
     res.json({ success: true, message: "Izin lokasi pengguna berhasil diperbarui." });
   } catch (error) {
     if (error.code === "ER_NO_REFERENCED_ROW_2") {
-      return res
-        .status(400)
-        .json({ success: false, message: "Satu atau lebih ID lokasi tidak valid." });
+      return next(new AppError("Satu atau lebih ID lokasi tidak valid.", 400));
     }
-    Logger.error("Error updating user locations", error, "ADMIN_CONTROLLER");
-    res.status(500).json({ success: false, message: "Server error" });
+    return next(new AppError("Server error", 500));
   }
 };

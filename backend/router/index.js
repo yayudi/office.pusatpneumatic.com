@@ -28,7 +28,10 @@ import categoryRoutes from "./categoryRouter.js";
 import salesChannelsRoutes from "./salesChannels.js";
 import notificationRoutes from "./notificationRouter.js";
 import stickerTemplateRoutes from "./stickerTemplateRouter.js";
+import investigationRoutes from "./investigationRouter.js";
 // import cronRouter from "./cronRouter.js";
+
+import AppError from "../utils/AppError.js";
 
 // Impor middleware yang diperlukan
 import authenticateToken from "../middleware/authMiddleware.js";
@@ -68,10 +71,11 @@ apiRouter.use("/categories", authenticateToken, categoryRoutes);
 apiRouter.use("/sales-channels", salesChannelsRoutes);
 apiRouter.use("/notifications", authenticateToken, notificationRoutes);
 apiRouter.use("/sticker-templates", authenticateToken, stickerTemplateRoutes);
+apiRouter.use("/investigation", authenticateToken, investigationRoutes);
 // apiRouter.use("/cron", authenticateToken, cronRouter);
 
 // Rute tes "canary"
-apiRouter.get("/test", async (req, res) => {
+apiRouter.get("/test", async (req, res, next) => {
   try {
     const [rows] = await db.query("SELECT 1 + 1 AS solution");
     res.status(200).json({
@@ -81,11 +85,7 @@ apiRouter.get("/test", async (req, res) => {
     });
   } catch (error) {
     Logger.error("TES KONEKSI DB GAGAL", error, "ROUTER_INDEX");
-    res.status(500).json({
-      success: false,
-      message: "Gagal terhubung ke database.",
-      error: error.message,
-    });
+    next(new AppError(`Gagal terhubung ke database. Detail: ${error.message}`, 500));
   }
 });
 

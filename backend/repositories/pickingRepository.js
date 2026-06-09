@@ -6,6 +6,10 @@ import Logger from "../utils/logger.js";
 // READ OPERATIONS
 // ============================================================================
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @returns {Promise<any>}
+ */
 export const getPendingItems = async (connection) => {
   const query = `
     SELECT
@@ -47,6 +51,11 @@ export const getPendingItems = async (connection) => {
   return rows;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number} limit
+ * @returns {Promise<any>}
+ */
 export const getHistoryItems = async (connection, limit = 1000) => {
   const query = `
     SELECT
@@ -67,6 +76,11 @@ export const getHistoryItems = async (connection, limit = 1000) => {
   return rows;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} pickingListId
+ * @returns {Promise<any>}
+ */
 export const getListDetails = async (connection, pickingListId) => {
   const query = `
     SELECT
@@ -86,6 +100,11 @@ export const getListDetails = async (connection, pickingListId) => {
 };
 
 // Added original_sku so Service can log errors properly
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} itemIds
+ * @returns {Promise<any>}
+ */
 export const getItemsByIds = async (connection, itemIds) => {
   if (itemIds.length === 0) return [];
   const [rows] = await connection.query(
@@ -96,6 +115,11 @@ export const getItemsByIds = async (connection, itemIds) => {
   return rows;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} listId
+ * @returns {Promise<any>}
+ */
 export const countPendingItems = async (connection, listId) => {
   const [rows] = await connection.query(
     `SELECT COUNT(*) as count FROM picking_list_items
@@ -105,6 +129,11 @@ export const countPendingItems = async (connection, listId) => {
   return rows[0].count;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} invoiceId
+ * @returns {Promise<any>}
+ */
 export const findActiveHeaderByInvoice = async (connection, invoiceId) => {
   const [rows] = await connection.query(
     "SELECT id, status FROM picking_lists WHERE original_invoice_id = ? AND is_active = 1",
@@ -114,6 +143,11 @@ export const findActiveHeaderByInvoice = async (connection, invoiceId) => {
 };
 
 // Required for Safety Check in pickingDataService
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} listId
+ * @returns {Promise<any>}
+ */
 export const getHeaderById = async (connection, listId) => {
   const [rows] = await connection.query(
     "SELECT id, original_invoice_id, status, is_active, marketplace_status, location_purpose FROM picking_lists WHERE id = ?",
@@ -122,6 +156,11 @@ export const getHeaderById = async (connection, listId) => {
   return rows.length > 0 ? rows[0] : null;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} listId
+ * @returns {Promise<any>}
+ */
 export const getItemsForComparison = async (connection, listId) => {
   const [rows] = await connection.query(
     "SELECT original_sku as sku, quantity as qty FROM picking_list_items WHERE picking_list_id = ?",
@@ -130,6 +169,11 @@ export const getItemsForComparison = async (connection, listId) => {
   return rows;
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} listId
+ * @returns {Promise<any>}
+ */
 export const getExistingItemSkus = async (connection, listId) => {
   const [rows] = await connection.query(
     "SELECT original_sku FROM picking_list_items WHERE picking_list_id = ?",
@@ -142,6 +186,11 @@ export const getExistingItemSkus = async (connection, listId) => {
 // WRITE OPERATIONS (UPDATE)
 // ============================================================================
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} listId
+ * @returns {Promise<any>}
+ */
 export const cancelHeader = async (connection, listId) => {
   return connection.query(
     `UPDATE picking_lists SET status = ?, is_active = NULL, updated_at = NOW() WHERE id = ?`,
@@ -150,6 +199,13 @@ export const cancelHeader = async (connection, listId) => {
 };
 
 // Update Header Status
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} listId
+ * @param {any} status
+ * @param {boolean} isActive
+ * @returns {Promise<any>}
+ */
 export const updateHeaderStatus = async (connection, listId, status, isActive) => {
   return connection.query(`UPDATE picking_lists SET status = ?, is_active = ? WHERE id = ?`, [
     status,
@@ -159,6 +215,12 @@ export const updateHeaderStatus = async (connection, listId, status, isActive) =
 };
 
 // Update Items Status by List ID
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} listId
+ * @param {any} status
+ * @returns {Promise<any>}
+ */
 export const updateItemsStatusByListId = async (connection, listId, status) => {
   return connection.query(`UPDATE picking_list_items SET status = ? WHERE picking_list_id = ?`, [
     status,
@@ -167,6 +229,11 @@ export const updateItemsStatusByListId = async (connection, listId, status) => {
 };
 
 // Archives header by renaming with _REV_ suffix
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} listId
+ * @returns {Promise<any>}
+ */
 export const archiveHeader = async (connection, listId) => {
   return connection.query(
     `UPDATE picking_lists
@@ -179,6 +246,11 @@ export const archiveHeader = async (connection, listId) => {
   );
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} listId
+ * @returns {Promise<any>}
+ */
 export const cancelItemsByListId = async (connection, listId) => {
   return connection.query(`UPDATE picking_list_items SET status = ? WHERE picking_list_id = ?`, [
     WMS_STATUS.CANCEL,
@@ -186,6 +258,12 @@ export const cancelItemsByListId = async (connection, listId) => {
   ]);
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} itemId
+ * @param {number|string} locationId
+ * @returns {Promise<any>}
+ */
 export const updateSuggestedLocation = async (connection, itemId, locationId) => {
   Logger.info("Updating suggested location", "PICKING_REPO", { itemId, locationId });
   return connection.query(`UPDATE picking_list_items SET suggested_location_id = ? WHERE id = ?`, [
@@ -195,6 +273,12 @@ export const updateSuggestedLocation = async (connection, itemId, locationId) =>
 };
 
 // PENTING: Fungsi ini mengupdate status sekaligus mengunci lokasi final
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} itemId
+ * @param {number|string} locationId
+ * @returns {Promise<any>}
+ */
 export const validateItem = async (connection, itemId, locationId) => {
   return connection.query(
     `UPDATE picking_list_items
@@ -205,6 +289,12 @@ export const validateItem = async (connection, itemId, locationId) => {
 };
 
 // Opsional: Jika Anda butuh fungsi khusus untuk update status saja tanpa lokasi
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} itemId
+ * @param {any} status
+ * @returns {Promise<any>}
+ */
 export const updateItemStatus = async (connection, itemId, status) => {
   return connection.query(`UPDATE picking_list_items SET status = ? WHERE id = ?`, [
     status,
@@ -213,6 +303,13 @@ export const updateItemStatus = async (connection, itemId, status) => {
 };
 
 // Marks specific item as RETURNED with condition notes
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} itemId
+ * @param {any} condition
+ * @param {any} notes
+ * @returns {Promise<any>}
+ */
 export const markItemAsReturned = async (connection, itemId, condition, notes) => {
   return connection.query(
     `UPDATE picking_list_items
@@ -224,6 +321,11 @@ export const markItemAsReturned = async (connection, itemId, condition, notes) =
   );
 };
 
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} listId
+ * @returns {Promise<any>}
+ */
 export const validateHeader = async (connection, listId) => {
   return connection.query(
     `UPDATE picking_lists SET status = 'VALIDATED', updated_at = NOW() WHERE id = ?`,
@@ -232,6 +334,13 @@ export const validateHeader = async (connection, listId) => {
 };
 
 // Updates Marketplace status, optionally syncing WMS status too
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} listId
+ * @param {any} mpStatus
+ * @param {any} wmsStatus
+ * @returns {Promise<any>}
+ */
 export const updateMarketplaceStatus = async (connection, listId, mpStatus, wmsStatus = null) => {
   if (wmsStatus) {
     return connection.query(
@@ -246,6 +355,11 @@ export const updateMarketplaceStatus = async (connection, listId, mpStatus, wmsS
 };
 
 // Bulk Check Existing Invoices (ACTIVE ONLY)
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} invoiceIds
+ * @returns {Promise<any>}
+ */
 export const getActiveHeadersByInvoiceIds = async (connection, invoiceIds) => {
   if (invoiceIds.length === 0) return [];
   const [rows] = await connection.query(
@@ -259,6 +373,11 @@ export const getActiveHeadersByInvoiceIds = async (connection, invoiceIds) => {
 
 // Bulk Check Existing Invoices (ALL - Active & Inactive/Cancelled)
 // Ini diperlukan untuk mendeteksi duplicate entry pada order yang sudah dicancel
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number|string} invoiceIds
+ * @returns {Promise<any>}
+ */
 export const getAllHeadersByInvoiceIds = async (connection, invoiceIds) => {
   if (invoiceIds.length === 0) return [];
   const [rows] = await connection.query(
@@ -276,7 +395,7 @@ export const getAllHeadersByInvoiceIds = async (connection, invoiceIds) => {
 
 export const createHeader = async (
   connection,
-  { userId, source, invoiceId, customer, orderDate, status, mpStatus, filename, locationPurpose, shopName }
+  { userId, source, invoiceId, customer, orderDate, status, mpStatus, locationPurpose, shopName }
 ) => {
   const [res] = await connection.query(
     `INSERT INTO picking_lists (user_id, source, original_invoice_id, customer_name, order_date, status, marketplace_status, is_active, created_at, location_purpose, shop_name)
@@ -298,6 +417,11 @@ export const createItem = async (
 };
 
 // Bulk Create Items
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {any} rows
+ * @returns {Promise<any>}
+ */
 export const createItemsBulk = async (connection, rows) => {
   if (rows.length === 0) return;
   return connection.query(

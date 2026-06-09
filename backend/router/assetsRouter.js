@@ -5,6 +5,7 @@ import fs from "fs";
 import mime from "mime-types";
 import { fileURLToPath } from "url";
 import Logger from "../utils/logger.js";
+import AppError from "../utils/AppError.js";
 
 const router = express.Router();
 
@@ -18,7 +19,7 @@ router.get("*", (req, res, next) => {
 
   // Keamanan: Pastikan path yang diminta tidak mencoba keluar dari folder 'assets'
   if (!requestedPath.startsWith(assetsPath)) {
-    return res.status(403).send("Forbidden");
+    return next(new AppError("Forbidden", 403));
   }
 
   // [FIX] Gunakan fs.stat untuk cek file vs directory — mencegah EISDIR crash
@@ -36,7 +37,7 @@ router.get("*", (req, res, next) => {
     stream.on("error", (streamErr) => {
       Logger.error("Stream error", streamErr, "ASSETS_ROUTER");
       if (!res.headersSent) {
-        res.status(500).send("Internal Server Error");
+        next(new AppError("Internal Server Error", 500));
       }
     });
     stream.pipe(res);

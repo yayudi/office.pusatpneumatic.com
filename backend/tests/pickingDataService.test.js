@@ -166,7 +166,7 @@ describe("PickingDataService - Complete Items Logic", () => {
 
     // ASSERT
     expect(result.success).toBe(true);
-    expect(locationRepo.findBestStock).toHaveBeenCalledWith(mockConnection, 88, 2);
+    expect(locationRepo.findBestStock).toHaveBeenCalledWith(mockConnection, 88, 2, "DISPLAY");
     // Should update the item with the new location
     expect(pickingRepo.updateSuggestedLocation).toHaveBeenCalledWith(mockConnection, 202, 50);
     // Should deduct from the NEW location (50)

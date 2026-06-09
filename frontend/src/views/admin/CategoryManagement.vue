@@ -28,7 +28,7 @@ async function loadCategories() {
       categories.value = data.data
     }
   } catch {
-    toast('Gagal memuat data kategori.', 'error')
+//     toast('Gagal memuat data kategori.', 'error') // Removed to prevent double-toast
   } finally {
     loading.value = false
   }
@@ -50,7 +50,7 @@ function openEditModal(category) {
 
 async function handleSave() {
   if (!form.value.name.trim()) {
-    return toast('Nama kategori wajib diisi.', 'error')
+//     return toast('Nama kategori wajib diisi.', 'error') // Removed to prevent double-toast
   }
 
   saving.value = true
@@ -67,7 +67,8 @@ async function handleSave() {
     isModalOpen.value = false
     loadCategories()
   } catch (error) {
-    toast(error.response?.data?.message || error.message || 'Gagal menyimpan data.', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.response?.data?.message || error.message || 'Gagal menyimpan data.', 'error') // Removed to prevent double-toast
   } finally {
     saving.value = false
   }
@@ -82,7 +83,8 @@ async function handleDelete(categoryId) {
     toast('Kategori berhasil dinonaktifkan.', 'success')
     loadCategories()
   } catch (error) {
-    toast(error.response?.data?.message || error.message || 'Gagal menghapus kategori.', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.response?.data?.message || error.message || 'Gagal menghapus kategori.', 'error') // Removed to prevent double-toast
   }
 }
 

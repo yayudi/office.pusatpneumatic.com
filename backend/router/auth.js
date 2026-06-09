@@ -1,95 +1,25 @@
-// router/auth.js
+// backend/router/auth.js
 import express from "express";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import db from "../config/db.js";
-import { createLog } from "../repositories/systemLogRepository.js";
-import Logger from "../utils/logger.js";
+import rateLimit from "express-rate-limit";
+import { validate } from "../middleware/validate.js";
+import { loginSchema } from "../validators/authValidator.js";
+import * as authController from "../controllers/authController.js";
 
 const router = express.Router();
 
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 menit
+  max: 5, // Batasi 5 percobaan gagal
+  message: { success: false, message: "Terlalu banyak percobaan login, silakan coba lagi setelah 15 menit." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { trustProxy: false },
+});
+
 // LOGIN
-router.post("/login", async (req, res) => {
-  const { username, password } = req.body;
+router.post("/login", loginLimiter, validate(loginSchema), authController.login);
 
-  if (!username || !password) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Username dan password tidak boleh kosong." });
-  }
-
-  try {
-    const [rows] = await db.query("SELECT * FROM users WHERE username = ?", [username]);
-
-    if (rows.length === 0) {
-      return res.status(401).json({ success: false, message: "User tidak ditemukan" });
-    }
-
-    const user = rows[0];
-
-    if (!user.password_hash) {
-      Logger.error(`User '${username}' tidak memiliki hash password di database`, null, "AUTH_ROUTER");
-      return res
-        .status(500)
-        .json({ success: false, message: "Konfigurasi akun error. Hubungi administrator." });
-    }
-
-    const match = await bcrypt.compare(password, user.password_hash);
-
-    if (!match) {
-      return res.status(401).json({ success: false, message: "Password salah" });
-    }
-
-    const [roleRows] = await db.query(
-      `
-      SELECT r.name as role, p.name as permission
-      FROM roles r
-      LEFT JOIN role_permission rp ON r.id = rp.role_id
-      LEFT JOIN permissions p ON rp.permission_id = p.id
-      WHERE r.id = ?
-      `,
-      [user.role_id]
-    );
-
-    const permissions = roleRows.map((row) => row.permission).filter((p) => p);
-    const role = roleRows[0]?.role || "user";
-
-    const payload = {
-      id: user.id,
-      username: user.username,
-      role: role,
-      role_id: user.role_id,
-      permissions: permissions,
-    };
-
-    // LOGGING
-    await createLog(db, {
-      userId: user.id,
-      action: "LOGIN",
-      targetType: "USER",
-      targetId: String(user.id),
-      changes: { note: "User logged in via Web" },
-      ip: req.ip,
-      userAgent: req.headers["user-agent"] || "Unknown"
-    });
-
-    // JWT_SECRET dari .env
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1d" });
-
-    res.json({
-      success: true,
-      token,
-      user: payload,
-    });
-  } catch (err) {
-    Logger.error("Login error", err, "AUTH_ROUTER");
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-});
-
-// LOGOUT (opsional, cukup hapus token di frontend)
-router.post("/logout", (req, res) => {
-  res.json({ success: true, message: "Logged out" });
-});
+// LOGOUT
+router.post("/logout", authController.logout);
 
 export default router;

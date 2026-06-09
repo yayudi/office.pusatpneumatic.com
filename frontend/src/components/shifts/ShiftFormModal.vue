@@ -81,7 +81,8 @@ async function handleSave() {
     emit('updated')
     emit('close')
   } catch (error) {
-    toast(error.response?.data?.message || 'Gagal menyimpan shift', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.response?.data?.message || 'Gagal menyimpan shift', 'error') // Removed to prevent double-toast
   } finally {
     isLoading.value = false
   }

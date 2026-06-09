@@ -170,7 +170,7 @@ export class BaseParser {
 
       for (let r = 1; r <= maxRow; r++) {
         const row = sheet.getRow(r);
-        let currentMap = {};
+        const currentMap = {};
         let score = 0;
 
         // Optimasi: Cek hanya jika row punya value
@@ -233,7 +233,7 @@ export class BaseParser {
   }
 
   _processRow(getter, orders, rowNumber) {
-    let data = this.mapper.extract(getter);
+    const data = this.mapper.extract(getter);
 
     if (!data || !data.invoiceId) {
       const fallbackId = getter([

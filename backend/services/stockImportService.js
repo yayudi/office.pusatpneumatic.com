@@ -6,6 +6,12 @@ import * as locationRepo from "../repositories/locationRepository.js";
 import * as productRepo from "../repositories/productRepository.js";
 import Logger from "../utils/logger.js";
 
+/**
+ * @param {number|string} jobId
+ * @param {any} filePath
+ * @param {number|string} userId
+ * @returns {Promise<any>}
+ */
 export const processStockInboundImport = async (jobId, filePath, userId) => {
   let connection;
   const errors = [];
@@ -114,7 +120,7 @@ export const processStockImport = async (
 ) => {
   const errors = [];
   const movements = [];
-  let stats = { success: 0, failed: 0 };
+  const stats = { success: 0, failed: 0 };
   let logSummary = "";
 
   try {

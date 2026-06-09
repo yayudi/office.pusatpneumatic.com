@@ -23,7 +23,7 @@ const { toast } = useToast()
 
 // --- STATE ---
 const products = ref([])
-const loading = ref(false)
+// loading state is now handled by Vue Query
 const searchQuery = ref('')
 const searchBy = ref('name')
 const filterType = ref('all')
@@ -76,43 +76,44 @@ const downloadStore = useDownloadStore()
 // Export State
 const isExporting = ref(false)
 
-// --- API ACTIONS ---
+// --- API ACTIONS (TanStack Vue Query) ---
+import { useQuery, keepPreviousData } from '@tanstack/vue-query'
 
-const fetchProducts = async () => {
-  loading.value = true
-  try {
-    const params = {
-      page: pagination.page,
-      limit: pagination.limit,
-      search: searchQuery.value,
-      searchBy: searchBy.value,
-      sortBy: sortBy.value,
-      sortOrder: sortOrder.value,
-      is_package: filterType.value === 'all' ? undefined : filterType.value === 'package',
-      status: filterStatus.value,
-      categoryInclude: JSON.stringify(filterCategory.value.include),
-      categoryExclude: JSON.stringify(filterCategory.value.exclude)
-    }
-    const response = await axios.get('/products', { params })
-    const resData = response.data
+const queryParams = computed(() => ({
+  page: pagination.page,
+  limit: pagination.limit,
+  search: searchQuery.value,
+  searchBy: searchBy.value,
+  sortBy: sortBy.value,
+  sortOrder: sortOrder.value,
+  is_package: filterType.value === 'all' ? undefined : filterType.value === 'package',
+  status: filterStatus.value,
+  categoryInclude: JSON.stringify(filterCategory.value.include),
+  categoryExclude: JSON.stringify(filterCategory.value.exclude)
+}))
+
+const { data: productsData, isLoading: loading, refetch: fetchProducts } = useQuery({
+  queryKey: ['products', queryParams],
+  queryFn: async () => {
+    const response = await axios.get('/products', { params: queryParams.value })
+    return response.data
+  },
+  placeholderData: keepPreviousData,
+  staleTime: 60 * 1000 // 1 minute
+})
+
+watch(productsData, (resData) => {
+  if (resData) {
     const items = resData.data || resData.products || []
-
-    if (Array.isArray(items)) {
-      products.value = items
-      pagination.total = resData.meta?.total || resData.total || 0
-      pagination.totalPages = resData.meta?.last_page || Math.ceil(pagination.total / pagination.limit) || 1
-    } else {
-      products.value = []
-      pagination.total = 0
-      pagination.totalPages = 1
-    }
-  } catch (err) {
-    console.error(err)
-    toast('Gagal memuat data produk.', 'error')
-  } finally {
-    loading.value = false
+    products.value = items
+    pagination.total = resData.meta?.total || resData.total || 0
+    pagination.totalPages = resData.meta?.last_page || Math.ceil(pagination.total / pagination.limit) || 1
+  } else {
+    products.value = []
+    pagination.total = 0
+    pagination.totalPages = 1
   }
-}
+}, { immediate: true })
 
 // --- HANDLERS (Dioper ke Child Components) ---
 
@@ -177,7 +178,7 @@ const handleDelete = async product => {
     fetchProducts()
   } catch (err) {
     console.error(err)
-    toast('Gagal menghapus produk.', 'error')
+//     toast('Gagal menghapus produk.', 'error') // Removed to prevent double-toast
   }
 }
 
@@ -190,7 +191,7 @@ const handleRestore = async product => {
     fetchProducts()
   } catch (err) {
     console.error(err)
-    toast('Gagal memulihkan produk.', 'error')
+//     toast('Gagal memulihkan produk.', 'error') // Removed to prevent double-toast
   }
 }
 
@@ -232,7 +233,7 @@ const performBulkAction = async actionType => {
     selectedIds.value.clear()
     fetchProducts()
   } catch {
-    toast('Terjadi kesalahan saat batch processing.', 'error')
+//     toast('Terjadi kesalahan saat batch processing.', 'error') // Removed to prevent double-toast
   } finally {
     isProcessingBulk.value = false
   }
@@ -276,7 +277,7 @@ const handleExport = async ({ format }) => {
     }
   } catch (err) {
     console.error(err)
-    toast('Gagal request export.', 'error')
+//     toast('Gagal request export.', 'error') // Removed to prevent double-toast
   } finally {
     isExporting.value = false
   }
@@ -293,7 +294,7 @@ const handleImport = async formData => {
     fetchProducts()
   } catch (err) {
     console.error(err)
-    toast(err.response?.data?.message || 'Gagal mengunggah file.', 'error')
+//     toast(err.response?.data?.message || 'Gagal mengunggah file.', 'error') // Removed to prevent double-toast
   }
 }
 

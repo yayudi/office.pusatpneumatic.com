@@ -1,22 +1,26 @@
 // backend/controllers/statisticController.js
-import * as statisticService from '../services/statisticService.js';
-import db from '../config/db.js';
-import * as jobRepo from '../repositories/jobRepository.js';
-import Logger from '../utils/logger.js';
-
-export const getStockMovements = async (req, res) => {
+import * as statisticService from "../services/statisticService.js";
+import db from "../config/db.js";
+import * as jobRepo from "../repositories/jobRepository.js";
+export const getStockMovements = async (req, res, next) => {
   try {
-    const { startDate, endDate, searchQuery, status, movement, building, timeResolution, categoryId } = req.query;
-    if (!startDate || !endDate) {
-      return res.status(400).json({ success: false, message: 'startDate dan endDate diperlukan.' });
-    }
+    const {
+      startDate,
+      endDate,
+      searchQuery,
+      status,
+      movement,
+      building,
+      timeResolution,
+      categoryId,
+    } = req.query;
 
     let buildingsArray = [];
     if (building) {
-      if (typeof building === 'object' && !Array.isArray(building)) {
+      if (typeof building === "object" && !Array.isArray(building)) {
         buildingsArray = building;
       } else {
-        buildingsArray = Array.isArray(building) ? building : building.split(',');
+        buildingsArray = Array.isArray(building) ? building : building.split(",");
       }
     }
 
@@ -28,28 +32,23 @@ export const getStockMovements = async (req, res) => {
       movement,
       buildings: buildingsArray,
       timeResolution,
-      categoryId
+      categoryId,
     };
 
     const data = await statisticService.getStockMovementStatistics(filters);
     res.json({
       success: true,
-      data
+      data,
     });
   } catch (error) {
-    Logger.error('Error getStockMovements', error, 'STATISTIC_CONTROLLER');
-    res.status(500).json({ success: false, message: 'Gagal memuat statistik stok.' });
+    next(error);
   }
 };
 
-export const requestStockMovementsExport = async (req, res) => {
+export const requestStockMovementsExport = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const { startDate, endDate, searchQuery, status, movement, building, categoryId } = req.body;
-
-    if (!startDate || !endDate) {
-      return res.status(400).json({ success: false, message: 'startDate dan endDate diperlukan.' });
-    }
 
     const filters = {
       startDate,
@@ -59,13 +58,13 @@ export const requestStockMovementsExport = async (req, res) => {
       movement,
       buildings: building, // array if passed from UI usually
       categoryId,
-      exportType: "STATISTICS_STOCK_MOVEMENT"
+      exportType: "STATISTICS_STOCK_MOVEMENT",
     };
 
     const jobId = await jobRepo.createExportJob(db, {
       userId,
       filters,
-      jobType: "STATISTICS_STOCK_MOVEMENT"
+      jobType: "STATISTICS_STOCK_MOVEMENT",
     });
 
     res.status(202).json({
@@ -74,21 +73,20 @@ export const requestStockMovementsExport = async (req, res) => {
       jobId,
     });
   } catch (error) {
-    Logger.error("Error at requestStockMovementsExport", error, "STATISTIC_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal membuat permintaan ekspor." });
+    next(error);
   }
 };
 
-export const getStockTimeline = async (req, res) => {
+export const getStockTimeline = async (req, res, next) => {
   try {
     const { searchQuery, building, status, movement } = req.query;
 
     let buildingsArray = [];
     if (building) {
-      if (typeof building === 'object' && !Array.isArray(building)) {
+      if (typeof building === "object" && !Array.isArray(building)) {
         buildingsArray = building;
       } else {
-        buildingsArray = Array.isArray(building) ? building : building.split(',');
+        buildingsArray = Array.isArray(building) ? building : building.split(",");
       }
     }
 
@@ -105,55 +103,49 @@ export const getStockTimeline = async (req, res) => {
       data,
     });
   } catch (error) {
-    Logger.error('Error getStockTimeline', error, 'STATISTIC_CONTROLLER');
-    res.status(500).json({ success: false, message: 'Gagal memuat statistik timeline stok.' });
+    next(error);
   }
 };
 
-export const requestStockTimelineExport = async (req, res) => {
+export const requestStockTimelineExport = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const { searchQuery, building, status, movement } = req.body;
 
-    if (!searchQuery) {
-      return res.status(400).json({ success: false, message: 'searchQuery diperlukan.' });
-    }
-
     const filters = {
       searchQuery,
-      status: status || 'all',
-      movement: movement || 'all',
+      status: status || "all",
+      movement: movement || "all",
       buildings: building || [],
-      exportType: 'STATISTICS_STOCK_TIMELINE',
+      exportType: "STATISTICS_STOCK_TIMELINE",
     };
 
     const jobId = await jobRepo.createExportJob(db, {
       userId,
       filters,
-      jobType: 'STATISTICS_STOCK_TIMELINE',
+      jobType: "STATISTICS_STOCK_TIMELINE",
     });
 
     res.status(202).json({
       success: true,
-      message: 'Permintaan ekspor statistik timeline stok diterima. File sedang diproses.',
+      message: "Permintaan ekspor statistik timeline stok diterima. File sedang diproses.",
       jobId,
     });
   } catch (error) {
-    Logger.error('Error requestStockTimelineExport', error, 'STATISTIC_CONTROLLER');
-    res.status(500).json({ success: false, message: 'Gagal membuat permintaan ekspor.' });
+    next(error);
   }
 };
 
-export const getInventoryValue = async (req, res) => {
+export const getInventoryValue = async (req, res, next) => {
   try {
     const { searchQuery, building, purpose, isPackage, stockStatus, categoryId } = req.query;
 
     let buildingsArray = [];
     if (building) {
-      if (typeof building === 'object' && !Array.isArray(building)) {
+      if (typeof building === "object" && !Array.isArray(building)) {
         buildingsArray = building;
       } else {
-        buildingsArray = Array.isArray(building) ? building : building.split(',');
+        buildingsArray = Array.isArray(building) ? building : building.split(",");
       }
     }
 
@@ -163,37 +155,31 @@ export const getInventoryValue = async (req, res) => {
       purpose,
       isPackage,
       stockStatus,
-      categoryId
+      categoryId,
     };
 
     const data = await statisticService.getInventoryValueStatistics(filters);
     res.json({
       success: true,
-      data
+      data,
     });
   } catch (error) {
-    Logger.error('Error getInventoryValue', error, 'STATISTIC_CONTROLLER');
-    res.status(500).json({ success: false, message: 'Gagal memuat statistik nilai inventaris.' });
+    next(error);
   }
 };
 
-export const getShopPerformance = async (req, res) => {
+export const getShopPerformance = async (req, res, next) => {
   try {
     const { startDate, endDate, source, shopName, prevStartDate, prevEndDate } = req.query;
-    
-    if (!startDate || !endDate) {
-      return res.status(400).json({ success: false, message: 'startDate dan endDate diperlukan.' });
-    }
 
     const filters = { startDate, endDate, source, shopName, prevStartDate, prevEndDate };
     const data = await statisticService.getShopPerformanceStats(filters);
-    
+
     res.json({
       success: true,
-      data
+      data,
     });
   } catch (error) {
-    Logger.error('Error getShopPerformance', error, 'STATISTIC_CONTROLLER');
-    res.status(500).json({ success: false, message: 'Gagal memuat statistik performa toko.' });
+    next(error);
   }
 };

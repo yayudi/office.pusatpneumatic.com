@@ -10,6 +10,9 @@ import { canAccess } from "../middleware/permissionMiddleware.js";
 
 // Controllers
 import * as pickingController from "../controllers/pickingController.js";
+import AppError from "../utils/AppError.js";
+import { validate } from "../middleware/validate.js";
+import { completeItemsSchema } from "../validators/pickingValidator.js";
 
 const router = express.Router();
 
@@ -61,13 +64,13 @@ router.post(
 );
 
 // ACTIONS (User Operations)
-router.post("/complete-items", canAccess("confirm-picking-list"), pickingController.completeItems);
+router.post("/complete-items", canAccess("confirm-picking-list"), validate(completeItemsSchema), pickingController.completeItems);
 
 router.post("/cancel/:id", canAccess("void-picking-list"), pickingController.cancelPickingList);
 
 // LEGACY FALLBACK (Opsional)
-router.post("/upload-sales-report", (req, res) => {
-  res.status(410).json({ message: "API Deprecated. Use /upload-and-validate" });
+router.post("/upload-sales-report", (req, res, next) => {
+  next(new AppError("API Deprecated. Use /upload-and-validate", 410));
 });
 
 export default router;

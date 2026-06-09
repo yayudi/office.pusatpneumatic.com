@@ -113,8 +113,9 @@ async function loadKpiData() {
     const data = await fetchKpiSummary()
     kpiData.value = data
   } catch (error) {
+    console.error(error) // Auto-added to prevent unused var
     errorMessage.value = error.message || 'Gagal terhubung ke server.'
-    toast(errorMessage.value, 'error')
+//     toast(errorMessage.value, 'error') // Removed to prevent double-toast
   } finally {
     isLoading.value = false
   }
@@ -142,7 +143,7 @@ async function loadHistory() {
     }
   } catch (error) {
     console.error('Gagal memuat riwayat:', error)
-    toast('Gagal memuat riwayat laporan', 'error')
+//     toast('Gagal memuat riwayat laporan', 'error') // Removed to prevent double-toast
   } finally {
     isHistoryLoading.value = false
   }
@@ -216,7 +217,8 @@ async function handleRequestExport() {
     // Mulai polling di Global Download Manager
     downloadStore.startPolling()
   } catch (error) {
-    toast(error.message || 'Gagal membuat permintaan.', 'error')
+    console.error(error) // Auto-added to prevent unused var
+//     toast(error.message || 'Gagal membuat permintaan.', 'error') // Removed to prevent double-toast
   } finally {
     isRequesting.value = false
   }

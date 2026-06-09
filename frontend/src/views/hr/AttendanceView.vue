@@ -40,7 +40,7 @@ const users = ref([])
 const filterValues = ref({
   startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
   endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
-  name: [],
+  name: []
 })
 const allUsersForFilter = ref([])
 const dataNotFoundForCurrentUser = ref(false)
@@ -50,15 +50,15 @@ const isDataLoading = ref(false)
 const { isMobile } = useMobile()
 const mobileLayout = ref(isMobile.value ? 'card' : 'compact') // 'card' | 'compact'
 
-watch(isMobile, (mobile) => {
+watch(isMobile, mobile => {
   mobileLayout.value = mobile ? 'card' : 'compact'
 })
 const canViewAll = computed(() => authStore.user?.permissions?.includes('view-other-attendance'))
 
 const displayedUsers = computed(() => {
   if (canViewAll.value && filterValues.value.name && filterValues.value.name.length > 0) {
-    const selectedIds = filterValues.value.name.map((n) => n.value)
-    return users.value.filter((u) => selectedIds.includes(u.id))
+    const selectedIds = filterValues.value.name.map(n => n.value)
+    return users.value.filter(u => selectedIds.includes(u.id))
   }
   return users.value
 })
@@ -85,16 +85,14 @@ async function fetchAttendanceData() {
 
     // Logika RBAC (Role Based Access Control)
     if (!canViewAll.value) {
-      const currentUserData = fetchedUsers.find(
-        (u) => u.nama.toLowerCase() === authStore.user.username.toLowerCase(),
-      )
+      const currentUserData = fetchedUsers.find(u => u.nama.toLowerCase() === authStore.user.username.toLowerCase())
       users.value = currentUserData ? [currentUserData] : []
       dataNotFoundForCurrentUser.value = !currentUserData
     } else {
       users.value = fetchedUsers
     }
   } catch (err) {
-    toast('Gagal memuat data absensi.', 'error')
+    //     toast('Gagal memuat data absensi.', 'error') // Removed to prevent double-toast
     console.error('Fetch absensi error:', err)
     users.value = []
     summary.value = null
@@ -104,13 +102,10 @@ async function fetchAttendanceData() {
 }
 
 // --- WATCHERS & LIFECYCLE ---
-watch(
-  [() => filterValues.value.startDate, () => filterValues.value.endDate, () => authStore.user],
-  () => {
-    // Basic debounce or check if valid
-    fetchAttendanceData()
-  }
-)
+watch([() => filterValues.value.startDate, () => filterValues.value.endDate, () => authStore.user], () => {
+  // Basic debounce or check if valid
+  fetchAttendanceData()
+})
 
 function handleRefresh() {
   fetchAttendanceData()
@@ -120,7 +115,7 @@ function handleRefresh() {
 // 3. Watcher User Login: Init Data Awal
 watch(
   () => authStore.user,
-  async (user) => {
+  async user => {
     if (user) {
       fetchAttendanceData() // Fetch initial
 
@@ -128,12 +123,12 @@ watch(
         isLoadingUsers.value = true
         try {
           const usersList = await masterData.getUsers()
-          allUsersForFilter.value = usersList.map((u) => ({
+          allUsersForFilter.value = usersList.map(u => ({
             label: u.nickname || u.username,
-            value: u.id,
+            value: u.id
           }))
         } catch (err) {
-          toast('Gagal memuat daftar nama user untuk filter.', 'error')
+          //           toast('Gagal memuat daftar nama user untuk filter.', 'error') // Removed to prevent double-toast
           console.error('Gagal mengambil daftar user:', err)
         } finally {
           isLoadingUsers.value = false
@@ -141,7 +136,7 @@ watch(
       }
     }
   },
-  { immediate: true },
+  { immediate: true }
 )
 
 function clearFilters() {
@@ -181,8 +176,6 @@ async function handleUpload(formData) {
       throw new Error(response.message || 'Terjadi kesalahan di server.')
     }
   } catch (error) {
-    const errorMessage = error.response?.data?.message || error.message || 'Gagal mengupload file.'
-    toast(errorMessage, 'error')
     console.error('Upload error:', error)
   } finally {
     isUploading.value = false
@@ -206,9 +199,9 @@ async function handleExportExcel() {
         'Hadir (Hari)': stats.hadirDays,
         'Libur (Hari)': stats.holidayDays,
         'Absen (Hari)': stats.absenceDays,
-        'Telat': stats.telatHours,
+        Telat: stats.telatHours,
         'Pulang Cepat': stats.earlyOutHours,
-        'Lembur': stats.lemburHours,
+        Lembur: stats.lemburHours,
         'Denda Telat (Rp)': stats.dendaTelat,
         'Uang Lembur (Rp)': stats.uangLembur
       }
@@ -227,11 +220,13 @@ async function handleExportExcel() {
 
         detailData.push({
           'Nama Karyawan': user.nama || user.username || '-',
-          'Tanggal': day.fullDate || `${currentYear.value}-${String(currentMonth.value).padStart(2, '0')}-${String(day.tanggal).padStart(2, '0')}`,
+          Tanggal:
+            day.fullDate ||
+            `${currentYear.value}-${String(currentMonth.value).padStart(2, '0')}-${String(day.tanggal).padStart(2, '0')}`,
           'Jam Masuk': day.rawMasuk || '-',
           'Jam Keluar': day.rawKeluar || '-',
-          'Status': status,
-          'Keterangan': day.notes?.join(', ') || ''
+          Status: status,
+          Keterangan: day.notes?.join(', ') || ''
         })
       })
     })
@@ -251,53 +246,82 @@ async function handleExportExcel() {
     toast('Berhasil mengunduh Excel', 'success')
   } catch (err) {
     console.error('Export Excel failed:', err)
-    toast('Gagal mengekspor file', 'error')
+    //     toast('Gagal mengekspor file', 'error') // Removed to prevent double-toast
   }
 }
 </script>
 <template>
   <header
-    class="flex flex-col gap-2 bg-background shadow-md fixed left-0 top-[53px] w-full z-30 px-6 py-1 transition-all duration-300">
-    <transition enter-active-class="transition-all duration-300 ease-out"
+    class="flex flex-col gap-2 bg-background shadow-md fixed left-0 top-[53px] w-full z-30 px-6 py-1 transition-all duration-300"
+  >
+    <transition
+      enter-active-class="transition-all duration-300 ease-out"
       enter-from-class="transform -translate-y-4 opacity-0 max-h-0"
       enter-to-class="transform translate-y-0 opacity-100 max-h-[500px]"
       leave-active-class="transition-all duration-300 ease-in"
       leave-from-class="transform translate-y-0 opacity-100 max-h-[500px]"
-      leave-to-class="transform -translate-y-4 opacity-0 max-h-0">
+      leave-to-class="transform -translate-y-4 opacity-0 max-h-0"
+    >
       <div v-show="isHeaderExpanded" class="overflow-hidden py-2 px-1 sm:px-0">
         <div class="flex flex-col md:flex-row mx-auto justify-center items-center gap-3">
-          <BaseTabs :tabs="[
-            { label: 'Statistik', value: 'statistik' },
-            { label: 'Ringkasan', value: 'summary' },
-            { label: 'Detail Log', value: 'detail' },
-          ]" v-model="activeTab" class="overflow-x-auto shrink-0" />
+          <BaseTabs
+            :tabs="[
+              { label: 'Statistik', value: 'statistik' },
+              { label: 'Ringkasan', value: 'summary' },
+              { label: 'Detail Log', value: 'detail' }
+            ]"
+            v-model="activeTab"
+            class="overflow-x-auto shrink-0"
+          />
 
           <FilterBar :filters="[]" v-model="filterValues" @clear="clearFilters">
             <template #prepend>
               <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
-                <DateRangeFilter v-model:startDate="filterValues.startDate" v-model:endDate="filterValues.endDate"
-                  align="left" class="w-full sm:w-fit" />
+                <DateRangeFilter
+                  v-model:startDate="filterValues.startDate"
+                  v-model:endDate="filterValues.endDate"
+                  align="left"
+                  class="w-full sm:w-fit"
+                />
 
                 <div v-if="canViewAll" class="w-full md:w-[30vw] lg:w-[20vw]">
-                  <BaseSelect v-model="filterValues.name" :options="allUsersForFilter" :multiple="true"
-                    :loading="isLoadingUsers" :disabled="isLoadingUsers" label="label" track-by="value"
-                    placeholder="Cari nama karyawan..." />
+                  <BaseSelect
+                    v-model="filterValues.name"
+                    :options="allUsersForFilter"
+                    :multiple="true"
+                    :loading="isLoadingUsers"
+                    :disabled="isLoadingUsers"
+                    label="label"
+                    track-by="value"
+                    placeholder="Cari nama karyawan..."
+                  />
                 </div>
               </div>
             </template>
             <template #actions>
               <div
-                class="flex items-center bg-secondary/20 rounded-lg p-1 border border-secondary/20 lg:hidden ml-auto md:ml-0">
-                <button @click="mobileLayout = 'card'"
+                class="flex items-center bg-secondary/20 rounded-lg p-1 border border-secondary/20 lg:hidden ml-auto md:ml-0"
+              >
+                <button
+                  @click="mobileLayout = 'card'"
                   class="p-2 rounded-md transition-all duration-200 flex items-center justify-center w-8 h-8"
-                  :class="mobileLayout === 'card' ? 'bg-primary text-secondary shadow-sm' : 'text-text/60 hover:text-primary'"
-                  title="Tampilan Card">
+                  :class="
+                    mobileLayout === 'card' ? 'bg-primary text-secondary shadow-sm' : 'text-text/60 hover:text-primary'
+                  "
+                  title="Tampilan Card"
+                >
                   <font-awesome-icon icon="fa-solid fa-grip" />
                 </button>
-                <button @click="mobileLayout = 'compact'"
+                <button
+                  @click="mobileLayout = 'compact'"
                   class="p-2 rounded-md transition-all duration-200 flex items-center justify-center w-8 h-8"
-                  :class="mobileLayout === 'compact' ? 'bg-primary text-secondary shadow-sm' : 'text-text/60 hover:text-primary'"
-                  title="Tampilan Compact">
+                  :class="
+                    mobileLayout === 'compact'
+                      ? 'bg-primary text-secondary shadow-sm'
+                      : 'text-text/60 hover:text-primary'
+                  "
+                  title="Tampilan Compact"
+                >
                   <font-awesome-icon icon="fa-solid fa-list" />
                 </button>
               </div>
@@ -305,20 +329,29 @@ async function handleExportExcel() {
           </FilterBar>
 
           <div class="flex flex-row gap-3 shrink-0">
-            <button v-if="canViewAll" @click="handleExportExcel"
-              class="bg-success/10 border border-success/30 text-success hover:bg-success/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap flex-1 md:flex-none">
+            <button
+              v-if="canViewAll"
+              @click="handleExportExcel"
+              class="bg-success/10 border border-success/30 text-success hover:bg-success/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap flex-1 md:flex-none"
+            >
               <font-awesome-icon icon="fa-solid fa-file-excel" />
               <span v-if="!isMobile">Export Excel</span>
             </button>
 
-            <button v-if="canViewAll" @click="isExclusionsModalOpen = true"
-              class="bg-accent/10 border border-accent/30 text-accent hover:bg-accent/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap flex-1 md:flex-none">
+            <button
+              v-if="canViewAll"
+              @click="isExclusionsModalOpen = true"
+              class="bg-accent/10 border border-accent/30 text-accent hover:bg-accent/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap flex-1 md:flex-none"
+            >
               <font-awesome-icon icon="fa-solid fa-user-shield" />
               <span v-if="!isMobile">Pengecualian Absen</span>
             </button>
 
-            <button v-if="canViewAll" @click="isUploadModalOpen = true"
-              class="bg-primary/10 border border-primary/30 text-primary hover:bg-primary/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap flex-1 md:flex-none">
+            <button
+              v-if="canViewAll"
+              @click="isUploadModalOpen = true"
+              class="bg-primary/10 border border-primary/30 text-primary hover:bg-primary/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap flex-1 md:flex-none"
+            >
               <font-awesome-icon icon="fa-solid fa-file-import" />
               <span v-if="!isMobile">Import Data</span>
             </button>
@@ -328,52 +361,75 @@ async function handleExportExcel() {
     </transition>
 
     <!-- Toggle Handle -->
-    <div @click="isHeaderExpanded = !isHeaderExpanded"
+    <div
+      @click="isHeaderExpanded = !isHeaderExpanded"
       class="lg:hidden flex justify-center items-center py-1 cursor-pointer hover:bg-secondary/10 text-text/40 hover:text-primary transition-colors border-t border-secondary/10"
-      title="Toggle Header">
+      title="Toggle Header"
+    >
       <font-awesome-icon :icon="isHeaderExpanded ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'" />
     </div>
   </header>
 
   <main class="mt-10 lg:mt-20">
-    <div class="bg-secondary/20 rounded-xl shadow-md border border-secondary/20 p-6 space-y-6 ">
+    <div class="bg-secondary/20 rounded-xl shadow-md border border-secondary/20 p-6 space-y-6">
       <KeepAlive>
         <div v-if="activeTab === 'summary'" key="summary">
           <p v-if="dataNotFoundForCurrentUser" class="text-center text-text/60 py-10">
             Data absensi Anda untuk periode ini tidak ditemukan.
           </p>
-          <SummaryView v-else-if="displayedUsers.length > 0 || isDataLoading" :users="displayedUsers"
-            :start-date="filterValues.startDate" :end-date="filterValues.endDate" :year="currentYear"
-            :month="currentMonth" :global-info="summary" :loading="isDataLoading" :mobile-layout="mobileLayout" />
+          <SummaryView
+            v-else-if="displayedUsers.length > 0 || isDataLoading"
+            :users="displayedUsers"
+            :start-date="filterValues.startDate"
+            :end-date="filterValues.endDate"
+            :year="currentYear"
+            :month="currentMonth"
+            :global-info="summary"
+            :loading="isDataLoading"
+            :mobile-layout="mobileLayout"
+          />
           <p v-else class="text-center text-text/60 py-10">
             Pilih tanggal untuk menampilkan data, atau tidak ada data yang cocok dengan filter.
           </p>
         </div>
 
         <div v-else-if="activeTab === 'statistik'" key="statistik">
-          <AttendanceStats :users="displayedUsers" :summary-info="summary || {}" :start-date="filterValues.startDate"
-            :end-date="filterValues.endDate" :year="currentYear" :month="currentMonth" :loading="isDataLoading"
-            :mobile-layout="mobileLayout" />
+          <AttendanceStats
+            :users="displayedUsers"
+            :summary-info="summary || {}"
+            :start-date="filterValues.startDate"
+            :end-date="filterValues.endDate"
+            :year="currentYear"
+            :month="currentMonth"
+            :loading="isDataLoading"
+            :mobile-layout="mobileLayout"
+          />
         </div>
 
         <div v-else-if="activeTab === 'detail'" key="detail">
           <p v-if="dataNotFoundForCurrentUser" class="text-center text-text/60 py-10">
             Data absensi Anda untuk periode ini tidak ditemukan.
           </p>
-          <DetailView v-else-if="displayedUsers.length > 0" :user="filterValues.name.length === 1
-            ? displayedUsers[0]
-            : !canViewAll
-              ? displayedUsers[0]
-              : null
-            " :users="filterValues.name.length > 1
-              ? displayedUsers
-              : canViewAll && filterValues.name.length === 0
-                ? users
-                : !canViewAll
-                  ? displayedUsers
-                  : null
-              " :start-date="filterValues.startDate" :end-date="filterValues.endDate" :year="currentYear"
-            :month="currentMonth" :loading="isDataLoading" @refresh="handleRefresh" :mobile-layout="mobileLayout" />
+          <DetailView
+            v-else-if="displayedUsers.length > 0"
+            :user="filterValues.name.length === 1 ? displayedUsers[0] : !canViewAll ? displayedUsers[0] : null"
+            :users="
+              filterValues.name.length > 1
+                ? displayedUsers
+                : canViewAll && filterValues.name.length === 0
+                  ? users
+                  : !canViewAll
+                    ? displayedUsers
+                    : null
+            "
+            :start-date="filterValues.startDate"
+            :end-date="filterValues.endDate"
+            :year="currentYear"
+            :month="currentMonth"
+            :loading="isDataLoading"
+            @refresh="handleRefresh"
+            :mobile-layout="mobileLayout"
+          />
           <p v-else class="text-center text-text/60 py-10">Belum ada log detail.</p>
         </div>
       </KeepAlive>
@@ -383,18 +439,28 @@ async function handleExportExcel() {
   <!-- MODAL UPLOAD -->
   <BaseModal :show="isUploadModalOpen" @close="isUploadModalOpen = false" title="Upload File Absensi">
     <!-- Menggunakan Component UploadForm Baru dengan Drag Drop & Dry Run -->
-    <UploadForm @submit="handleUpload" :loading="isUploading" accept=".csv" submit-label="Mulai Import"
-      :show-dry-run="true" />
+    <UploadForm
+      @submit="handleUpload"
+      :loading="isUploading"
+      accept=".csv"
+      submit-label="Mulai Import"
+      :show-dry-run="true"
+    />
 
     <template #footer>
-      <button @click="isUploadModalOpen = false"
-        class="bg-background border border-secondary/30 text-text/80 hover:bg-secondary/20 text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+      <button
+        @click="isUploadModalOpen = false"
+        class="bg-background border border-secondary/30 text-text/80 hover:bg-secondary/20 text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+      >
         Tutup
       </button>
     </template>
   </BaseModal>
 
   <!-- MODAL PENGECUALIAN ABSEN -->
-  <AttendanceExclusionsModal :is-open="isExclusionsModalOpen" @close="isExclusionsModalOpen = false"
-    @updated="handleRefresh" />
+  <AttendanceExclusionsModal
+    :is-open="isExclusionsModalOpen"
+    @close="isExclusionsModalOpen = false"
+    @updated="handleRefresh"
+  />
 </template>

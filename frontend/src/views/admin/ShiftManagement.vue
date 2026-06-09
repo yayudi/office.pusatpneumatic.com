@@ -21,7 +21,7 @@ const getShifts = async () => {
     const data = await fetchShifts()
     shifts.value = data
   } catch {
-    toast('Gagal memuat data shift', 'error')
+//     toast('Gagal memuat data shift', 'error') // Removed to prevent double-toast
   } finally {
     loading.value = false
   }
@@ -45,7 +45,7 @@ const deleteShift = async id => {
     toast('Shift dihapus', 'success')
     getShifts()
   } catch {
-    toast('Gagal menghapus shift', 'error')
+//     toast('Gagal menghapus shift', 'error') // Removed to prevent double-toast
   }
 }
 

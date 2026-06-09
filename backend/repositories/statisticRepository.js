@@ -1,5 +1,11 @@
 // backend/repositories/statisticRepository.js
 
+/**
+ * @param {any} field
+ * @param {any} filter
+ * @param {any} queryParams
+ * @returns {any}
+ */
 export const buildTriStateWhere = (field, filter, queryParams) => {
   const clauses = [];
   if (filter) {
@@ -31,7 +37,7 @@ export const buildTriStateWhere = (field, filter, queryParams) => {
 export const getStockMovementStats = async (connection, filters) => {
   const { startDate, endDate, searchQuery, buildings, categoryId } = filters;
 
-  let queryParams = [];
+  const queryParams = [];
 
   // Stock Locations Subquery (Filtered by Building)
   let locSubquery = `
@@ -56,7 +62,7 @@ export const getStockMovementStats = async (connection, filters) => {
 
   // Stock Movements Subquery (Filtered by Building)
   let movFilter = "";
-  let movParams = [startDate, endDate];
+  const movParams = [startDate, endDate];
   
   if (buildings) {
     if (Array.isArray(buildings) && buildings.length > 0) {
@@ -149,7 +155,7 @@ export const getStockMovementStats = async (connection, filters) => {
 export const getInventoryValueStats = async (connection, filters) => {
   const { searchQuery, building, purpose, isPackage, stockStatus, categoryId } = filters;
 
-  let whereClauses = ["p.is_active = 1"];
+  const whereClauses = ["p.is_active = 1"];
   const queryParams = [];
 
   // Logic Filter

@@ -7,7 +7,7 @@ import Logger from "../utils/logger.js";
  * Mengembalikan STREAM object, bukan promise result biasa.
  */
 export const getStockReportStream = (connection, filters) => {
-  let whereClauses = ["p.is_active = 1"];
+  const whereClauses = ["p.is_active = 1"];
   const queryParams = [];
 
   // Logic Filter
@@ -128,6 +128,9 @@ export const getStockReportStream = (connection, filters) => {
 //   };
 // };
 
+/**
+ * @returns {Promise<any>}
+ */
 export const getReportFilters = async () => {
   let connection;
   try {

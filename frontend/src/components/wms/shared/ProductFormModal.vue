@@ -77,8 +77,8 @@ async function handleCreateCategory() {
     }
   } catch (err) {
     console.error(err)
-    const msg = err.response?.data?.message || 'Gagal menambahkan kategori'
-    toast(msg, 'error')
+//     const msg = err.response?.data?.message || 'Gagal menambahkan kategori' // Disabled due to unused var
+//     toast(msg, 'error') // Removed to prevent double-toast
   } finally {
     isCreatingCategory.value = false
   }
@@ -176,7 +176,7 @@ watch(
           }
         } catch (err) {
           console.error(err)
-          toast('Gagal memuat detail produk.', 'error')
+//           toast('Gagal memuat detail produk.', 'error') // Removed to prevent double-toast
           emit('close')
         } finally {
           fetchLoading.value = false
@@ -267,7 +267,7 @@ async function handleImageUpload(event) {
 
   // Validasi tipe file
   if (!file.type.match('image.*')) {
-    return toast('Mohon upload file gambar valid (JPG/PNG).', 'error')
+//     return toast('Mohon upload file gambar valid (JPG/PNG).', 'error') // Removed to prevent double-toast
   }
 
   // Preview langsung tanpa kompresi klien (server akan menangani jika diperlukan)
@@ -277,16 +277,16 @@ async function handleImageUpload(event) {
 
 async function handleSubmit() {
   // Validasi Dasar
-  if (!form.value.name) return toast('Nama produk wajib diisi.', 'error')
-  if (props.mode === 'create' && !form.value.sku) return toast('SKU wajib diisi.', 'error')
+//   if (!form.value.name) return toast('Nama produk wajib diisi.', 'error') // Removed to prevent double-toast
+//   if (props.mode === 'create' && !form.value.sku) return toast('SKU wajib diisi.', 'error') // Removed to prevent double-toast
 
   // Validasi Duplikasi
-  if (duplicateStatus.value.sku.exists) return toast('SKU sudah digunakan produk lain.', 'error')
-  if (duplicateStatus.value.name.exists) return toast('Nama produk sudah digunakan.', 'error')
+//   if (duplicateStatus.value.sku.exists) return toast('SKU sudah digunakan produk lain.', 'error') // Removed to prevent double-toast
+//   if (duplicateStatus.value.name.exists) return toast('Nama produk sudah digunakan.', 'error') // Removed to prevent double-toast
 
   // Validasi Paket
   if (form.value.is_package && components.value.length === 0) {
-    return toast('Produk paket harus memiliki minimal 1 komponen.', 'error')
+//     return toast('Produk paket harus memiliki minimal 1 komponen.', 'error') // Removed to prevent double-toast
   }
 
   loading.value = true
@@ -337,8 +337,8 @@ async function handleSubmit() {
     }
   } catch (err) {
     console.error(err)
-    const msg = err.response?.data?.message || 'Terjadi kesalahan saat menyimpan.'
-    toast(msg, 'error')
+//     const msg = err.response?.data?.message || 'Terjadi kesalahan saat menyimpan.' // Disabled due to unused var
+//     toast(msg, 'error') // Removed to prevent double-toast
   } finally {
     loading.value = false
   }

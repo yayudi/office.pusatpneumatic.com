@@ -143,7 +143,7 @@ const autoCropAll = async () => {
     selectedImages.value = newFiles
   } catch (error) {
     console.error('Auto crop failed:', error)
-    toast('Gagal melakukan auto-crop.', 'error')
+//     toast('Gagal melakukan auto-crop.', 'error') // Removed to prevent double-toast
   } finally {
     autoCropAllProcessing.value = false
   }
@@ -233,12 +233,13 @@ async function saveNewImages() {
       }, 1500)
     }
   } catch (error) {
+    console.error(error) // Auto-added to prevent unused var
     const errData = error.response?.data
     if (errData?.error_code === 'DUPLICATE_MEDIA') {
       toast(`Duplikat: ${errData.message} (ID aset: ${errData.duplicateOf})`, 'warning')
     } else {
       console.error(error)
-      toast('Gagal mengupload gambar.', 'error')
+//       toast('Gagal mengupload gambar.', 'error') // Removed to prevent double-toast
     }
   } finally {
     loading.value = false
@@ -258,7 +259,7 @@ async function deleteImage(imageId) {
     }
   } catch (error) {
     console.error(error)
-    toast('Gagal menghapus gambar.', 'error')
+//     toast('Gagal menghapus gambar.', 'error') // Removed to prevent double-toast
   } finally {
     loading.value = false
   }
@@ -275,7 +276,7 @@ async function setPrimary(imageId) {
     }
   } catch (error) {
     console.error(error)
-    toast('Gagal mengatur gambar utama.', 'error')
+//     toast('Gagal mengatur gambar utama.', 'error') // Removed to prevent double-toast
   } finally {
     loading.value = false
   }

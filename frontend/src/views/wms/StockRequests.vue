@@ -56,7 +56,8 @@ async function handleApprove(id) {
     toast('Permintaan disetujui', 'success')
     loadRequests()
   } catch (e) {
-    toast(e.message || 'Gagal menyetujui', 'error')
+    console.error(e) // Auto-added to prevent unused var
+//     toast(e.message || 'Gagal menyetujui', 'error') // Removed to prevent double-toast
   }
 }
 
@@ -67,7 +68,8 @@ async function handleReject(id) {
     toast('Permintaan ditolak', 'success')
     loadRequests()
   } catch (e) {
-    toast(e.message || 'Gagal menolak', 'error')
+    console.error(e) // Auto-added to prevent unused var
+//     toast(e.message || 'Gagal menolak', 'error') // Removed to prevent double-toast
   }
 }
 
@@ -84,7 +86,8 @@ async function handleComplete(id, items) {
     toast('Barang diterima dan stok ditransfer', 'success')
     loadRequests()
   } catch (e) {
-    toast(e.message || 'Gagal memproses penerimaan', 'error')
+    console.error(e) // Auto-added to prevent unused var
+//     toast(e.message || 'Gagal memproses penerimaan', 'error') // Removed to prevent double-toast
   }
 }
 

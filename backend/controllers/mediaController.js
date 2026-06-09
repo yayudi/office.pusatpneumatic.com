@@ -7,21 +7,13 @@ import db from "../config/db.js";
 import Logger from "../utils/logger.js";
 import * as productRepo from "../repositories/productRepository.js";
 
-const createTempDir = async () => {
-  const tempDir = path.resolve('uploads/temp');
-  try {
-    await fs.mkdir(tempDir, { recursive: true });
-  } catch (err) {
-    Logger.error("Gagal membuat direktori temp", err, "MEDIA_CONTROLLER");
-  }
-  return tempDir;
-};
+import AppError from "../utils/AppError.js";
 
 /**
  * GET /api/media
  * list paginated
  */
-export const listMedia = async (req, res) => {
+export const listMedia = async (req, res, next) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 20;
   const offset = (page - 1) * limit;
@@ -51,8 +43,7 @@ export const listMedia = async (req, res) => {
       }
     });
   } catch (error) {
-    Logger.error("Error listing media", error, "MEDIA_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal mengambil daftar media" });
+    next(error);
   } finally {
     if (connection) connection.release();
   }
@@ -62,19 +53,18 @@ export const listMedia = async (req, res) => {
  * GET /api/media/:id
  * Mengambil detail lengkap satu media beserta produk yang terikat
  */
-export const getMediaById = async (req, res) => {
+export const getMediaById = async (req, res, next) => {
   const { id } = req.params;
   let connection;
   try {
     connection = await db.getConnection();
     const asset = await mediaRepo.getMediaDetailsWithProducts(connection, id);
     if (!asset) {
-      return res.status(404).json({ success: false, message: "Aset tidak ditemukan" });
+      return next(new AppError("Aset tidak ditemukan", 404));
     }
     res.json({ success: true, data: asset });
   } catch (error) {
-    Logger.error("Error retrieving media", error, "MEDIA_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal mengambil detail media" });
+    next(error);
   } finally {
     if (connection) connection.release();
   }
@@ -84,7 +74,7 @@ export const getMediaById = async (req, res) => {
  * GET /api/media/status
  * Ambil status beberapa asset via query parameter ids=1,2,3
  */
-export const getMediaStatus = async (req, res) => {
+export const getMediaStatus = async (req, res, next) => {
   const idsStr = req.query.ids;
   if (!idsStr) {
     return res.json({ success: true, data: [] });
@@ -102,8 +92,7 @@ export const getMediaStatus = async (req, res) => {
     const assets = await mediaRepo.getMediaAssetsByIds(connection, mediaIds);
     res.json({ success: true, data: assets });
   } catch (error) {
-    Logger.error("Error retrieving media status", error, "MEDIA_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal mengambil status media" });
+    next(error);
   } finally {
     if (connection) connection.release();
   }
@@ -113,9 +102,9 @@ export const getMediaStatus = async (req, res) => {
  * POST /api/media/upload
  * Menerima file, simpan ke temp, insert PENDING ke media_assets
  */
-export const uploadMedia = async (req, res) => {
+export const uploadMedia = async (req, res, next) => {
   if (!req.files || req.files.length === 0) {
-    return res.status(400).json({ success: false, message: "Tidak ada file yang diunggah" });
+    return next(new AppError("Tidak ada file yang diunggah", 400));
   }
 
   const userId = req.user.id;
@@ -125,7 +114,7 @@ export const uploadMedia = async (req, res) => {
     if (typeof req.body.tags === 'string') {
       try {
         tags = JSON.parse(req.body.tags);
-      } catch (e) {
+      } catch {
         // Fallback untuk raw string koma (FormData browser)
         tags = req.body.tags.split(',').map(t => t.trim()).filter(Boolean);
       }
@@ -142,7 +131,7 @@ export const uploadMedia = async (req, res) => {
   if (req.body.titles) {
     try {
       titles = JSON.parse(req.body.titles);
-    } catch (e) {
+    } catch {
       titles = [];
     }
   }
@@ -171,7 +160,7 @@ export const uploadMedia = async (req, res) => {
         let productIds = [];
         if (typeof req.body.products === 'string') {
           try { productIds = JSON.parse(req.body.products); }
-          catch (e) { productIds = req.body.products.split(',').map(id => id.trim()).filter(Boolean); }
+          catch { productIds = req.body.products.split(',').map(id => id.trim()).filter(Boolean); }
         } else if (Array.isArray(req.body.products)) {
           productIds = req.body.products;
         }
@@ -205,16 +194,10 @@ export const uploadMedia = async (req, res) => {
     }
 
     if (error.isDuplicate) {
-      return res.status(409).json({
-        success: false,
-        message: `Gambar ${error.filename} sudah ada`,
-        error_code: "DUPLICATE_MEDIA",
-        duplicateOf: error.duplicateOf
-      });
+      return next(new AppError(`Gambar ${error.filename} sudah ada`, 409));
     }
 
-    Logger.error("Error uploading media", error, "MEDIA_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal mengunggah media" });
+    return next(new AppError("Gagal mengunggah media", 500));
   } finally {
     if (connection) connection.release();
   }
@@ -224,7 +207,7 @@ export const uploadMedia = async (req, res) => {
  * DELETE /api/media/:id
  * Menghapus file fisik dan record DB, dilindungi FK constraint
  */
-export const deleteMedia = async (req, res) => {
+export const deleteMedia = async (req, res, next) => {
   const { id } = req.params;
   let connection;
   try {
@@ -233,7 +216,7 @@ export const deleteMedia = async (req, res) => {
     // Check asset
     const asset = await mediaRepo.getMediaAssetById(connection, id);
     if (!asset) {
-      return res.status(404).json({ success: false, message: "Aset tidak ditemukan" });
+      return next(new AppError("Aset tidak ditemukan", 404));
     }
 
     // Attempt delete (RESTRICT FK will throw if used)
@@ -261,10 +244,9 @@ export const deleteMedia = async (req, res) => {
     res.json({ success: true, message: "Aset berhasil dihapus" });
   } catch (error) {
     if (error.code === 'ER_ROW_IS_REFERENCED_2') {
-      return res.status(409).json({ success: false, message: "Tidak bisa dihapus karena sedang dipakai oleh produk" });
+      return next(new AppError("Tidak bisa dihapus karena sedang dipakai oleh produk", 409));
     }
-    Logger.error("Error deleting media", error, "MEDIA_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal menghapus media" });
+    return next(new AppError("Gagal menghapus media", 500));
   } finally {
     if (connection) connection.release();
   }
@@ -274,27 +256,22 @@ export const deleteMedia = async (req, res) => {
  * PUT /api/media/:id/tags
  * Memperbarui tag aset
  */
-export const updateMediaTagsController = async (req, res) => {
+export const updateMediaTagsController = async (req, res, next) => {
   const { id } = req.params;
   const { tags } = req.body;
-
-  if (!Array.isArray(tags)) {
-    return res.status(400).json({ success: false, message: "Tag harus berupa array" });
-  }
 
   let connection;
   try {
     connection = await db.getConnection();
 
     const asset = await mediaRepo.getMediaAssetById(connection, id);
-    if (!asset) return res.status(404).json({ success: false, message: "Aset tidak ditemukan" });
+    if (!asset) return next(new AppError("Aset tidak ditemukan", 404));
 
     await mediaRepo.updateMediaTags(connection, id, tags);
     res.json({ success: true, message: "Tags berhasil diperbarui" });
 
   } catch (error) {
-    Logger.error("Error updating tags", error, "MEDIA_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal memperbarui tag" });
+    next(error);
   } finally {
     if (connection) connection.release();
   }
@@ -304,27 +281,22 @@ export const updateMediaTagsController = async (req, res) => {
  * PUT /api/media/:id/title
  * Memperbarui judul (title) aset
  */
-export const updateMediaTitleController = async (req, res) => {
+export const updateMediaTitleController = async (req, res, next) => {
   const { id } = req.params;
   const { title } = req.body;
-
-  if (!title || typeof title !== 'string' || title.trim() === '') {
-    return res.status(400).json({ success: false, message: "Judul tidak boleh kosong" });
-  }
 
   let connection;
   try {
     connection = await db.getConnection();
 
     const asset = await mediaRepo.getMediaAssetById(connection, id);
-    if (!asset) return res.status(404).json({ success: false, message: "Aset tidak ditemukan" });
+    if (!asset) return next(new AppError("Aset tidak ditemukan", 404));
 
     await mediaRepo.updateMediaTitle(connection, id, title.trim());
     res.json({ success: true, message: "Judul berhasil diperbarui" });
 
   } catch (error) {
-    Logger.error("Error updating title", error, "MEDIA_CONTROLLER");
-    res.status(500).json({ success: false, message: "Gagal memperbarui judul" });
+    next(error);
   } finally {
     if (connection) connection.release();
   }
