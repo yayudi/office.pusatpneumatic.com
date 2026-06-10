@@ -63,12 +63,6 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
-    path: '/investigation-stock',
-    name: 'InvestigationStock',
-    component: () => import('../views/InvestigationStock.vue'),
-    meta: { requiresAuth: true, title: 'Investigasi Stok' }
-  },
-  {
     path: '/media',
     name: 'MediaManagement',
     component: () => import('../views/media/MediaManagement.vue'),
@@ -114,6 +108,12 @@ const routes = [
         name: 'StockRequests',
         component: () => import('../views/wms/StockRequests.vue'),
         meta: { title: 'Permintaan Stok' }
+      },
+      {
+        path: 'investigation-stock',
+        name: 'InvestigationStock',
+        component: () => import('../views/InvestigationStock.vue'),
+        meta: { requiresPermission: 'view-system-logs', title: 'Investigasi Stok' }
       }
     ]
   },

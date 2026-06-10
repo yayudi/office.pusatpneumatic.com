@@ -36,8 +36,8 @@ export const processQueue = async () => {
     // Clean Up Stuck Jobs
     await jobRepo.timeoutStuckExportJobs(connection, JOB_TIMEOUT_MINUTES);
 
-    // Ambil Job Pending
-    const job = await jobRepo.getPendingExportJob(connection);
+    // Ambil Job Pending dan Lock secara atomik
+    const job = await jobRepo.getAndLockPendingExportJob(connection);
     if (!job) {
       connection.release();
       return;
@@ -45,11 +45,6 @@ export const processQueue = async () => {
 
     jobId = job.id;
     Logger.info(`Memulai Job ID: ${jobId}`, "EXPORT_WORKER");
-
-    // Lock Job
-    Logger.info(`Locking Job ${jobId}...`, "EXPORT_WORKER");
-    await jobRepo.lockExportJob(connection, jobId);
-    Logger.info(`Job ${jobId} LOCKED. Releasing main connection.`, "EXPORT_WORKER");
     connection.release();
 
     // Parse Filters & Determine Type

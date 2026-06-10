@@ -92,29 +92,39 @@ export const cancel = async (connection, jobId, userId) => {
 // ============================================================================
 
 /**
- * Ambil Job Pending ATAU Job Retrying yang sudah menunggu > 10 detik
+ * Ambil Job Pending ATAU Job Retrying yang sudah menunggu > 10 detik secara atomik
+ * Mencegah Race Condition antar cron.
  */
-export const getPendingImportJob = async (connection) => {
-  const [rows] = await connection.query(
-    `SELECT * FROM import_jobs
-      WHERE status = 'PENDING'
-      OR (status = 'RETRYING' AND updated_at <= NOW() - INTERVAL 10 SECOND)
-      ORDER BY created_at ASC
-      LIMIT 1`
-  );
-  return rows.length > 0 ? rows[0] : null;
-};
+export const getAndLockPendingImportJob = async (connection) => {
+  await connection.beginTransaction();
+  try {
+    const [rows] = await connection.query(
+      `SELECT * FROM import_jobs
+        WHERE status = 'PENDING'
+        OR (status = 'RETRYING' AND updated_at <= NOW() - INTERVAL 10 SECOND)
+        ORDER BY created_at ASC
+        LIMIT 1
+        FOR UPDATE`
+    );
 
-/**
- * @param {import('mysql2/promise').Connection} connection
- * @param {number|string} jobId
- * @returns {Promise<any>}
- */
-export const lockImportJob = async (connection, jobId) => {
-  return connection.query(
-    `UPDATE import_jobs SET status = 'PROCESSING', processing_started_at = NOW() WHERE id = ?`,
-    [jobId]
-  );
+    if (rows.length === 0) {
+      await connection.commit();
+      return null;
+    }
+
+    const job = rows[0];
+
+    await connection.query(
+      `UPDATE import_jobs SET status = 'PROCESSING', processing_started_at = NOW() WHERE id = ?`,
+      [job.id]
+    );
+
+    await connection.commit();
+    return job;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  }
 };
 
 /**
@@ -206,26 +216,35 @@ export const createExportJob = async (connection, { userId, filters, jobType }) 
 };
 
 /**
+ * Ambil dan lock Job Export secara atomik
  * @param {import('mysql2/promise').Connection} connection
  * @returns {Promise<any>}
  */
-export const getPendingExportJob = async (connection) => {
-  const [rows] = await connection.query(
-    `SELECT * FROM export_jobs WHERE status = 'PENDING' ORDER BY created_at ASC LIMIT 1`
-  );
-  return rows.length > 0 ? rows[0] : null;
-};
+export const getAndLockPendingExportJob = async (connection) => {
+  await connection.beginTransaction();
+  try {
+    const [rows] = await connection.query(
+      `SELECT * FROM export_jobs WHERE status = 'PENDING' ORDER BY created_at ASC LIMIT 1 FOR UPDATE`
+    );
 
-/**
- * @param {import('mysql2/promise').Connection} connection
- * @param {number|string} jobId
- * @returns {Promise<any>}
- */
-export const lockExportJob = async (connection, jobId) => {
-  return connection.query(
-    `UPDATE export_jobs SET status = 'PROCESSING', processing_started_at = NOW() WHERE id = ?`,
-    [jobId]
-  );
+    if (rows.length === 0) {
+      await connection.commit();
+      return null;
+    }
+
+    const job = rows[0];
+
+    await connection.query(
+      `UPDATE export_jobs SET status = 'PROCESSING', processing_started_at = NOW() WHERE id = ?`,
+      [job.id]
+    );
+
+    await connection.commit();
+    return job;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  }
 };
 
 /**

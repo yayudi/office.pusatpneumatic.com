@@ -17,6 +17,11 @@ jest.unstable_mockModule("../repositories/pickingRepository.js", () => ({
   markItemAsReturned: jest.fn(),
 }));
 
+jest.unstable_mockModule("../repositories/stockMovementRepository.js", () => ({
+  __esModule: true,
+  createLog: jest.fn(),
+}));
+
 jest.unstable_mockModule("../repositories/productRepository.js", () => ({
   __esModule: true,
   getProductsBySkus: jest.fn(),
@@ -27,10 +32,13 @@ jest.unstable_mockModule("../repositories/locationRepository.js", () => ({
   __esModule: true,
   getTotalStockByProductIds: jest.fn(),
   getLocationsByProductIds: jest.fn(),
+  incrementStock: jest.fn(),
 }));
 
 // 2. Import Modul (Gunakan dynamic import untuk helper agar mock ter-apply)
 const pickingRepo = await import("../repositories/pickingRepository.js");
+const locationRepo = await import("../repositories/locationRepository.js");
+const stockRepo = await import("../repositories/stockMovementRepository.js");
 const validationHelper = await import("../services/helpers/pickingValidationHelper.js");
 const { WMS_STATUS } = await import("../config/wmsConstants.js");
 
@@ -39,7 +47,7 @@ const mockConn = {
   beginTransaction: jest.fn(),
   commit: jest.fn(),
   rollback: jest.fn(),
-  query: jest.fn(), // Penting untuk query manual di helper
+  query: jest.fn().mockResolvedValue([[]]), // Default return empty array to prevent destructuring error
   release: jest.fn(),
 };
 
@@ -141,6 +149,58 @@ describe("pickingValidationHelper", () => {
         WMS_STATUS.RETURNED,
         expect.anything()
       );
+    });
+
+    test("Scenario: Revisi Order (Archive) -> Harus memanggil restockValidatedItems jika item sudah VALIDATED", async () => {
+      pickingRepo.getAllHeadersByInvoiceIds.mockResolvedValue([
+        { id: 200, original_invoice_id: "INV-REVISI", status: "VALIDATED", is_active: 1 },
+      ]);
+
+      const items = [{ invoiceId: "INV-REVISI", status: "NEW", items: [] }];
+
+      // Mock query result for restockValidatedItems
+      mockConn.query.mockResolvedValueOnce([
+        [{ product_id: 1, quantity: 2, confirmed_location_id: 10 }]
+      ]);
+
+      const result = await validationHelper.handleExistingInvoices(mockConn, items, 99);
+
+      // Pastikan archive terpanggil
+      expect(pickingRepo.archiveHeader).toHaveBeenCalledWith(mockConn, 200);
+      
+      // Pastikan restock terpanggil
+      expect(locationRepo.incrementStock).toHaveBeenCalledWith(mockConn, 1, 10, 2);
+      expect(stockRepo.createLog).toHaveBeenCalledWith(mockConn, expect.objectContaining({
+        type: "CANCEL_RESTOCK",
+        userId: 99
+      }));
+
+      // Items to process returned
+      expect(result).toHaveLength(1);
+    });
+
+    test("Scenario: Cancel via Sync -> Harus memanggil restockValidatedItems jika item sudah VALIDATED", async () => {
+      pickingRepo.getAllHeadersByInvoiceIds.mockResolvedValue([
+        { id: 201, original_invoice_id: "INV-CANCEL-RESTOCK", status: "VALIDATED", is_active: 1 },
+      ]);
+
+      const items = [{ invoiceId: "INV-CANCEL-RESTOCK", status: "CANCELLED", items: [] }];
+
+      mockConn.query.mockResolvedValueOnce([
+        [{ product_id: 2, quantity: 5, confirmed_location_id: 20 }]
+      ]);
+
+      await validationHelper.handleExistingInvoices(mockConn, items, 99);
+
+      // Pastikan order di cancel
+      expect(pickingRepo.cancelHeader).toHaveBeenCalledWith(mockConn, 201);
+      
+      // Pastikan restock terpanggil
+      expect(locationRepo.incrementStock).toHaveBeenCalledWith(mockConn, 2, 20, 5);
+      expect(stockRepo.createLog).toHaveBeenCalledWith(mockConn, expect.objectContaining({
+        type: "CANCEL_RESTOCK",
+        userId: 99
+      }));
     });
   });
 

@@ -47,8 +47,8 @@ jest.unstable_mockModule("exceljs", () => ({
 
 // Mock Repositories
 const mockJobRepo = {
-  getPendingImportJob: jest.fn(),
-  lockImportJob: jest.fn(),
+  getAndLockPendingImportJob: jest.fn(),
+  timeoutStuckImportJobs: jest.fn(),
   updateProgress: jest.fn(),
   completeImportJob: jest.fn(),
   failImportJob: jest.fn(),
@@ -86,14 +86,13 @@ describe("ImportQueue Worker (Basic Flow)", () => {
 
   test("Scenario 1: Should exit gracefully if no pending job", async () => {
     // Setup: Tidak ada job pending
-    mockJobRepo.getPendingImportJob.mockResolvedValue(null);
+    mockJobRepo.getAndLockPendingImportJob.mockResolvedValue(null);
 
     await importQueue();
 
     expect(mockDb.getConnection).toHaveBeenCalled();
-    expect(mockJobRepo.getPendingImportJob).toHaveBeenCalled();
+    expect(mockJobRepo.getAndLockPendingImportJob).toHaveBeenCalled();
     // Pastikan tidak ada aksi lanjutan
-    expect(mockJobRepo.lockImportJob).not.toHaveBeenCalled();
     expect(mockConn.release).toHaveBeenCalled();
   });
 
@@ -106,7 +105,7 @@ describe("ImportQueue Worker (Basic Flow)", () => {
       user_id: 101,
       original_filename: "tokopedia.csv",
     };
-    mockJobRepo.getPendingImportJob.mockResolvedValue(jobData);
+    mockJobRepo.getAndLockPendingImportJob.mockResolvedValue(jobData);
 
     // Setup Parser Output
     mockParserEngine.run.mockResolvedValue({
@@ -125,7 +124,6 @@ describe("ImportQueue Worker (Basic Flow)", () => {
     await importQueue();
 
     // Verifications
-    expect(mockJobRepo.lockImportJob).toHaveBeenCalledWith(mockConn, 1);
     expect(mockParserEngine.run).toHaveBeenCalled();
     expect(mockPickingImport.syncOrdersToDB).toHaveBeenCalled();
 
@@ -150,7 +148,7 @@ describe("ImportQueue Worker (Basic Flow)", () => {
       original_filename: "attendance.csv", // [FIX] Ditambahkan agar sesuai ekspektasi service
       options: '{"opt": "val"}', // JSON String
     };
-    mockJobRepo.getPendingImportJob.mockResolvedValue(jobData);
+    mockJobRepo.getAndLockPendingImportJob.mockResolvedValue(jobData);
 
     // Setup Service Output
     mockAttendanceImport.processAttendanceImport.mockResolvedValue({

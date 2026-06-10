@@ -12,7 +12,8 @@ const actionRoutes = [
   { name: 'Picking List', path: '/wms/actions/picking-list', icon: 'fa-solid fa-boxes-packing' },
   { name: 'Request Stok', path: '/wms/actions/stock-requests', icon: 'fa-solid fa-file-import' },
   { name: 'Opname', path: '/wms/actions/batch-adjustment', icon: 'fa-solid fa-clipboard-list' },
-  { name: 'Batch Log', path: '/wms/actions/batch-log', icon: 'fa-solid fa-clock-rotate-left' }
+  { name: 'Batch Log', path: '/wms/actions/batch-log', icon: 'fa-solid fa-clock-rotate-left' },
+  { name: 'Investigasi', path: '/wms/actions/investigation-stock', icon: 'fa-solid fa-search' }
 ]
 
 const routeMetaMap = {
@@ -45,6 +46,11 @@ const routeMetaMap = {
     title: "Batch <span class='text-warning'>Log</span>",
     iconClass: 'text-warning',
     description: 'Pantau riwayat aktivitas transaksi & mutasi log untuk setiap batch barang.'
+  },
+  '/wms/actions/investigation-stock': {
+    title: "Investigasi <span class='text-accent'>Stok</span>",
+    iconClass: 'text-accent',
+    description: 'Deteksi duplikasi transaksi & analisis pergerakan stok anomali.'
   }
 }
 

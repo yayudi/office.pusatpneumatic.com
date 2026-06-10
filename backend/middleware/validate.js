@@ -17,9 +17,13 @@ export const validate = (schema, source = "body") => {
       next();
     } catch (error) {
       // Menangkap error dari Zod
-      if (error.name === "ZodError") {
+      if (error && error.name === "ZodError") {
         // Gabungkan semua pesan error Zod
-        const messages = error.errors.map((err) => `${err.path.join(".")}: ${err.message}`).join(", ");
+        const errList = error.errors || error.issues || [];
+        const messages = errList.map((err) => {
+            const path = err.path ? err.path.join(".") : "field";
+            return `${path}: ${err.message}`;
+        }).join(", ");
         return next(new AppError(messages, 400, "VALIDATION_ERROR"));
       }
       next(error);

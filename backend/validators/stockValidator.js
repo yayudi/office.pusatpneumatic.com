@@ -22,8 +22,12 @@ export const batchProcessSchema = z.object({
   toLocationId: z.coerce.number().optional(),
   notes: z.string().optional(),
   movements: z.array(z.object({
-    productId: z.union([z.string(), z.number()]),
-    quantity: z.coerce.number()
+    productId: z.union([z.string(), z.number()]).optional(),
+    sku: z.string().optional(),
+    quantity: z.coerce.number(),
+    fromLocationId: z.coerce.number().optional(),
+    toLocationId: z.coerce.number().optional(),
+    notes: z.string().optional()
   })).min(1, "Minimal satu pergerakan stok")
 });
 
@@ -31,8 +35,10 @@ export const batchTransferSchema = z.object({
   fromLocationId: z.coerce.number({ required_error: "Lokasi asal wajib diisi" }),
   toLocationId: z.coerce.number({ required_error: "Lokasi tujuan wajib diisi" }),
   movements: z.array(z.object({
-    productId: z.union([z.string(), z.number()]),
-    quantity: z.coerce.number()
+    productId: z.union([z.string(), z.number()]).optional(),
+    sku: z.string().optional(),
+    quantity: z.coerce.number(),
+    notes: z.string().optional()
   })).min(1, "Minimal satu pergerakan stok")
 });
 

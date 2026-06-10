@@ -119,6 +119,7 @@ function addItemToBatch() {
   } else {
     batchList.value.push({
       id: crypto.randomUUID(), // ID unik untuk key v-for
+      productId: selectedProduct.value.id,
       sku: selectedProduct.value.sku,
       name: selectedProduct.value.name,
       fromLocationId: fromLocation.value.location_id,
@@ -171,6 +172,7 @@ async function submitDetailedBatch() {
       notes: notes.value,
       // API /batch-process universal akan menerima ID lokasi di dalam movements
       movements: batchList.value.map(item => ({
+        productId: item.productId,
         sku: item.sku,
         quantity: item.quantity,
         fromLocationId: item.fromLocationId,

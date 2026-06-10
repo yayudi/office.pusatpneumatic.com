@@ -2,6 +2,7 @@
 import * as locationRepo from "../../repositories/locationRepository.js";
 import * as productRepo from "../../repositories/productRepository.js";
 import * as pickingRepo from "../../repositories/pickingRepository.js";
+import * as stockRepo from "../../repositories/stockMovementRepository.js";
 import { WMS_STATUS, MP_STATUS } from "../../config/wmsConstants.js";
 import Logger from "../../utils/logger.js";
 
@@ -13,10 +14,43 @@ function logTrace(stage, message, data = null) {
 }
 
 /**
+ * HELPER INTERNAL: Restock item yang sudah VALIDATED (karena batal atau revisi)
+ */
+async function restockValidatedItems(connection, listId, userId, reason) {
+  const [itemsToRestock] = await connection.query(
+    `SELECT product_id, quantity, confirmed_location_id
+      FROM picking_list_items
+      WHERE picking_list_id = ? AND status = 'VALIDATED' AND confirmed_location_id IS NOT NULL`,
+    [listId]
+  );
+
+  if (itemsToRestock.length > 0) {
+    logTrace("RESTOCK", `Mengembalikan stok untuk ${itemsToRestock.length} item pada list #${listId} (${reason})`);
+    for (const item of itemsToRestock) {
+      await locationRepo.incrementStock(
+        connection,
+        item.product_id,
+        item.confirmed_location_id,
+        item.quantity
+      );
+
+      await stockRepo.createLog(connection, {
+        productId: item.product_id,
+        quantity: item.quantity,
+        toLocationId: item.confirmed_location_id,
+        type: "CANCEL_RESTOCK",
+        userId: userId,
+        notes: `Auto Restock via Import: ${reason} (List #${listId})`,
+      });
+    }
+  }
+}
+
+/**
  * HELPER 1: Smart Upsert Logic (Sync Status & Revisions)
  * Menangani update status marketplace, retur (Partial/Full), pembatalan, dan revisi.
  */
-export async function handleExistingInvoices(connection, items) {
+export async function handleExistingInvoices(connection, items, userId = 1) {
   logTrace("UPSERT", `Menerima ${items.length} item untuk dicek.`);
 
   const normalize = (str) =>
@@ -155,6 +189,7 @@ export async function handleExistingInvoices(connection, items) {
   // Archives
   const uniqueArchiveIds = [...new Set(archives)];
   for (const id of uniqueArchiveIds) {
+    await restockValidatedItems(connection, id, userId, "Revisi Invoice");
     await pickingRepo.archiveHeader(connection, id);
     await pickingRepo.cancelItemsByListId(connection, id);
   }
@@ -194,6 +229,7 @@ export async function handleExistingInvoices(connection, items) {
   // 3. Cancels
   const uniqueCancelIds = [...new Set(cancels)];
   for (const id of uniqueCancelIds) {
+    await restockValidatedItems(connection, id, userId, "Auto-Cancel via Sync");
     await pickingRepo.cancelHeader(connection, id);
     await pickingRepo.cancelItemsByListId(connection, id);
     await pickingRepo.updateMarketplaceStatus(connection, id, MP_STATUS.CANCELLED);

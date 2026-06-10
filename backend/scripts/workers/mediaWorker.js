@@ -20,8 +20,7 @@ os.cpus = originalCpus
 // -------------------------------------------------------------
 import Logger from "../../utils/logger.js";
 import {
-  getPendingMediaJobs,
-  lockMediaJobs,
+  getAndLockPendingMediaJobs,
   completeMediaJob,
   failMediaJob,
   cleanupMediaJobs
@@ -48,8 +47,8 @@ export const runMediaWorker = async () => {
     // 1. Cleanup Jobs Terjebak
     await cleanupMediaJobs()
 
-    // 2. Ambil max 5 job pending
-    const jobs = await getPendingMediaJobs(5)
+    // 2. Ambil max 5 job pending dan langsung di-lock secara atomik
+    const jobs = await getAndLockPendingMediaJobs(5)
     if (jobs.length === 0) {
       Logger.info('No pending media jobs.', "MEDIA_WORKER");
       return false
@@ -57,11 +56,7 @@ export const runMediaWorker = async () => {
 
     const jobIds = jobs.map((j) => j.id)
 
-    // 3. Langsung lock job menjadi processing
-    const lockedRows = await lockMediaJobs(jobIds)
-    if (lockedRows === 0) return false
-
-    Logger.info(`Processing ${lockedRows} media jobs: [${jobIds.join(',')}]`, "MEDIA_WORKER");
+    Logger.info(`Processing ${jobs.length} media jobs: [${jobIds.join(',')}]`, "MEDIA_WORKER");
 
     const vips = await initVips()
 

@@ -205,7 +205,7 @@ export const completePickingItemsService = async (payloadItems, userId) => {
       }
 
       // Cek apakah status sudah Cancelled
-      if (header.status === "CANCELLED") {
+      if (header.status === "CANCELLED" || header.status === "CANCEL") {
         throw new Error(`Order #${listId} telah dibatalkan. Tidak dapat diproses.`);
       }
 
@@ -223,7 +223,6 @@ export const completePickingItemsService = async (payloadItems, userId) => {
 
     for (const itemData of dbItems) {
       const {
-        id: itemId,
         product_id: prodId,
         quantity: qty,
         suggested_location_id: initialLocId,
@@ -233,8 +232,17 @@ export const completePickingItemsService = async (payloadItems, userId) => {
 
       const locationPurpose = purposeMap.get(picking_list_id) || "DISPLAY";
 
+      // Cek apakah item sudah diproses
+      if (itemData.status !== "PENDING" && itemData.status !== "BACKORDER") {
+        const invRef = invoiceMap.get(picking_list_id) || "UNKNOWN-INV";
+        validationErrors.push(
+          `INV [${invRef}] - SKU ${sku || "Prod ID " + prodId}: Item sudah diproses (Status: ${itemData.status}).`
+        );
+        continue;
+      }
+
       // Cek ketersediaan stok & lokasi
-      const { locationId, isChanged, currentStock } = await ensureStockLocation(
+      const { locationId, isChanged } = await ensureStockLocation(
         connection,
         prodId,
         qty,

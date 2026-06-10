@@ -17,98 +17,183 @@
  */
 export const findDuplicateTransactions = async (
   connection,
-  { startDate, endDate, includeNotes, excludeNotes, movementType, productName, username, location }
+  { startDate, endDate, includeNotes, excludeNotes, movementType, productName, username, location, exactQuantity },
+  limit = 10,
+  offset = 0
 ) => {
-  const cteParams = [];
-  const cteConditions = ["sm.notes IS NOT NULL", "sm.notes != ''"];
+  const params = [];
+  const conditions = ["sm.notes IS NOT NULL", "sm.notes != ''"];
 
   if (startDate && endDate) {
-    cteConditions.push("DATE(sm.created_at) BETWEEN ? AND ?");
-    cteParams.push(startDate, endDate);
+    conditions.push("DATE(sm.created_at) BETWEEN ? AND ?");
+    params.push(startDate, endDate);
   } else if (startDate) {
-    cteConditions.push("DATE(sm.created_at) >= ?");
-    cteParams.push(startDate);
+    conditions.push("DATE(sm.created_at) >= ?");
+    params.push(startDate);
   }
 
   if (movementType) {
-    cteConditions.push("sm.movement_type = ?");
-    cteParams.push(movementType);
+    conditions.push("sm.movement_type = ?");
+    params.push(movementType);
   }
 
   if (includeNotes) {
-    cteConditions.push("sm.notes REGEXP ?");
-    cteParams.push(includeNotes);
+    conditions.push("sm.notes REGEXP ?");
+    params.push(includeNotes);
   }
 
   if (excludeNotes) {
-    cteConditions.push("sm.notes NOT REGEXP ?");
-    cteParams.push(excludeNotes);
+    conditions.push("sm.notes NOT REGEXP ?");
+    params.push(excludeNotes);
   }
 
-  const cteWhereClause = cteConditions.length > 0 ? `WHERE ${cteConditions.join(" AND ")}` : "";
-
-  // Main query conditions
-  const mainParams = [...cteParams];
-  const mainConditions = [];
-
   if (productName) {
-    mainConditions.push("(p.name LIKE ? OR p.sku LIKE ?)");
-    mainParams.push(`%${productName}%`, `%${productName}%`);
+    conditions.push("(p.name LIKE ? OR p.sku LIKE ?)");
+    params.push(`%${productName}%`, `%${productName}%`);
   }
 
   if (username) {
-    mainConditions.push("u.username LIKE ?");
-    mainParams.push(`%${username}%`);
+    conditions.push("u.username LIKE ?");
+    params.push(`%${username}%`);
   }
 
   if (location) {
-    mainConditions.push("(fl.code LIKE ? OR tl.code LIKE ?)");
-    mainParams.push(`%${location}%`, `%${location}%`);
+    conditions.push("(fl.code LIKE ? OR tl.code LIKE ?)");
+    params.push(`%${location}%`, `%${location}%`);
   }
 
-  const mainWhereAddendum = mainConditions.length > 0 ? `AND ${mainConditions.join(" AND ")}` : "";
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
   const query = `
-    WITH duplicate_groups AS (
-      SELECT notes, product_id, movement_type
+    WITH filtered_movements AS (
+      SELECT 
+        sm.id, sm.product_id, sm.quantity, sm.from_location_id, sm.to_location_id, sm.movement_type, sm.user_id, sm.notes, sm.created_at,
+        p.name as product_name, p.sku, 
+        u.username, 
+        fl.code as from_location_code, 
+        tl.code as to_location_code
       FROM stock_movements sm
-      ${cteWhereClause}
-      GROUP BY notes, product_id, movement_type
+      LEFT JOIN products p ON sm.product_id = p.id
+      LEFT JOIN users u ON sm.user_id = u.id
+      LEFT JOIN locations fl ON sm.from_location_id = fl.id
+      LEFT JOIN locations tl ON sm.to_location_id = tl.id
+      ${whereClause}
+    ),
+    duplicate_groups AS (
+      SELECT 
+        SUBSTRING_INDEX(notes, ' (Item', 1) as base_note, 
+        product_id, 
+        movement_type
+        ${exactQuantity ? ', quantity' : ''}
+      FROM filtered_movements
+      GROUP BY base_note, product_id, movement_type ${exactQuantity ? ', quantity' : ''}
       HAVING COUNT(*) > 1
+      ORDER BY base_note ASC, MAX(created_at) DESC
+      LIMIT ? OFFSET ?
     )
     SELECT 
-      sm.id,
-      sm.product_id,
-      sm.quantity,
-      sm.from_location_id,
-      fl.code as from_location_code,
-      sm.to_location_id,
-      tl.code as to_location_code,
-      sm.movement_type,
-      sm.user_id,
-      u.username,
-      sm.notes,
-      sm.created_at,
-      p.sku,
-      p.name as product_name
-    FROM stock_movements sm
+      fm.id,
+      fm.product_id,
+      fm.quantity,
+      fm.from_location_id,
+      fm.from_location_code,
+      fm.to_location_id,
+      fm.to_location_code,
+      fm.movement_type,
+      fm.user_id,
+      fm.username,
+      fm.notes,
+      fm.created_at,
+      fm.sku,
+      fm.product_name
+    FROM filtered_movements fm
     JOIN duplicate_groups dg 
-      ON sm.notes = dg.notes 
-      AND sm.product_id = dg.product_id 
-      AND sm.movement_type = dg.movement_type
-    LEFT JOIN products p ON sm.product_id = p.id
-    LEFT JOIN users u ON sm.user_id = u.id
-    LEFT JOIN locations fl ON sm.from_location_id = fl.id
-    LEFT JOIN locations tl ON sm.to_location_id = tl.id
-    ${cteWhereClause}
-    ${mainWhereAddendum}
-    ORDER BY sm.notes ASC, sm.created_at DESC
+      ON SUBSTRING_INDEX(fm.notes, ' (Item', 1) = dg.base_note 
+      AND fm.product_id = dg.product_id 
+      AND fm.movement_type = dg.movement_type
+      ${exactQuantity ? 'AND fm.quantity = dg.quantity' : ''}
+    ORDER BY SUBSTRING_INDEX(fm.notes, ' (Item', 1) ASC, fm.created_at DESC
   `;
 
-  const finalParams = [...cteParams, ...mainParams];
+  // Final params include standard params then limit/offset for the duplicate_groups CTE
+  const finalParams = [...params, Number(limit), Number(offset)];
 
   const [rows] = await connection.query(query, finalParams);
   return rows;
+};
+
+/**
+ * Menghitung total grup transaksi ganda untuk keperluan pagination.
+ */
+export const countDuplicateGroups = async (
+  connection,
+  { startDate, endDate, includeNotes, excludeNotes, movementType, productName, username, location, exactQuantity }
+) => {
+  const params = [];
+  const conditions = ["sm.notes IS NOT NULL", "sm.notes != ''"];
+
+  if (startDate && endDate) {
+    conditions.push("DATE(sm.created_at) BETWEEN ? AND ?");
+    params.push(startDate, endDate);
+  } else if (startDate) {
+    conditions.push("DATE(sm.created_at) >= ?");
+    params.push(startDate);
+  }
+
+  if (movementType) {
+    conditions.push("sm.movement_type = ?");
+    params.push(movementType);
+  }
+
+  if (includeNotes) {
+    conditions.push("sm.notes REGEXP ?");
+    params.push(includeNotes);
+  }
+
+  if (excludeNotes) {
+    conditions.push("sm.notes NOT REGEXP ?");
+    params.push(excludeNotes);
+  }
+
+  if (productName) {
+    conditions.push("(p.name LIKE ? OR p.sku LIKE ?)");
+    params.push(`%${productName}%`, `%${productName}%`);
+  }
+
+  if (username) {
+    conditions.push("u.username LIKE ?");
+    params.push(`%${username}%`);
+  }
+
+  if (location) {
+    conditions.push("(fl.code LIKE ? OR tl.code LIKE ?)");
+    params.push(`%${location}%`, `%${location}%`);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const query = `
+    WITH filtered_movements AS (
+      SELECT 
+        sm.id, sm.product_id, sm.quantity, sm.movement_type, sm.notes
+      FROM stock_movements sm
+      LEFT JOIN products p ON sm.product_id = p.id
+      LEFT JOIN users u ON sm.user_id = u.id
+      LEFT JOIN locations fl ON sm.from_location_id = fl.id
+      LEFT JOIN locations tl ON sm.to_location_id = tl.id
+      ${whereClause}
+    ),
+    duplicate_groups AS (
+      SELECT 1
+      FROM filtered_movements
+      GROUP BY SUBSTRING_INDEX(notes, ' (Item', 1), product_id, movement_type ${exactQuantity ? ', quantity' : ''}
+      HAVING COUNT(*) > 1
+    )
+    SELECT COUNT(*) as total FROM duplicate_groups
+  `;
+
+  const [rows] = await connection.query(query, params);
+  return rows[0].total;
 };
 
 /**

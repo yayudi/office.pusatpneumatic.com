@@ -44,8 +44,8 @@ export const importQueue = async () => {
     // 0. SELF-HEALING
     await jobRepo.timeoutStuckImportJobs(connection, JOB_TIMEOUT_MINUTES);
 
-    // 1. Ambil Job
-    const job = await jobRepo.getPendingImportJob(connection);
+    // 1. Ambil Job (Atomik dengan Row-Level Lock)
+    const job = await jobRepo.getAndLockPendingImportJob(connection);
 
     if (!job) {
       connection.release();
@@ -53,7 +53,6 @@ export const importQueue = async () => {
     }
 
     jobId = job.id;
-    await jobRepo.lockImportJob(connection, jobId);
     connection.release();
     let absoluteFilePath = job.file_path;
     if (!path.isAbsolute(absoluteFilePath)) {
@@ -88,7 +87,9 @@ export const importQueue = async () => {
     const updateJobProgress = async (processed, total) => {
       try {
         await jobRepo.updateProgress(connection, jobId, processed, total);
-      } catch (e) {}
+      } catch {
+        // Abaikan error update progress
+      }
     };
 
     const isDryRun = job.job_type.endsWith("_DRY_RUN");
@@ -291,7 +292,7 @@ export const importQueue = async () => {
             : errors,
       };
       errorLogJSON = JSON.stringify(payload);
-    } catch (e) {
+    } catch {
       errorLogJSON = JSON.stringify({ message: "Error log format invalid" });
     }
 
@@ -306,7 +307,9 @@ export const importQueue = async () => {
     if (fs.existsSync(absoluteFilePath)) {
       try {
         fs.unlinkSync(absoluteFilePath);
-      } catch (err) {}
+      } catch {
+        // Abaikan jika file sudah tidak ada
+      }
     }
 
     Logger.info(`Job ${jobId} Finished: ${finalStatus} (DryRun: ${isDryRun})`, "IMPORT_WORKER");
@@ -320,6 +323,8 @@ export const importQueue = async () => {
           [jobId],
         );
         const currentRetry = jobQuery[0][0]?.retry_count || 0;
+
+        const isRetriableError = (err) => err.message.includes('deadlock') || err.message.includes('timeout') || err.message.includes('ECONNRESET');
 
         if (isRetriableError(error) && currentRetry < MAX_RETRIES) {
           Logger.warn(`Transient Error. Scheduling Retry #${currentRetry + 1}...`, "IMPORT_WORKER");

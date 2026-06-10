@@ -6,7 +6,7 @@ import Logger from "../utils/logger.js";
  * @param {Object} options
  * @returns {Promise<any>}
  */
-export const createMediaJob = async ({ productId, tempFilepath }) => {
+export const createMediaJob = async () => {
   // Legacy function: NO-OP or redirect
   throw new Error("createMediaJob is deprecated. Use mediaController to upload natively.");
 };
@@ -42,29 +42,41 @@ export const retryJob = async (jobId) => {
 };
 
 /**
+ * Ambil dan Lock Media Jobs secara atomik untuk mencegah Race Condition
  * @param {number} limit
- * @returns {Promise<any>}
+ * @returns {Promise<any[]>}
  */
-export const getPendingMediaJobs = async (limit = 5) => {
-  const [rows] = await db.query(
-    `SELECT id, main_path as temp_filepath FROM media_assets WHERE status = 'PENDING' ORDER BY created_at ASC LIMIT ?`,
-    [limit]
-  );
-  return rows;
-};
+export const getAndLockPendingMediaJobs = async (limit = 5) => {
+  const connection = await db.getConnection();
+  await connection.beginTransaction();
+  try {
+    const [rows] = await connection.query(
+      `SELECT id, main_path as temp_filepath FROM media_assets WHERE status = 'PENDING' ORDER BY created_at ASC LIMIT ? FOR UPDATE`,
+      [limit]
+    );
 
-/**
- * @param {number|string} jobIds
- * @returns {Promise<any>}
- */
-export const lockMediaJobs = async (jobIds) => {
-  if (!jobIds || jobIds.length === 0) return 0;
-  const placeholders = jobIds.map(() => '?').join(',');
-  const [result] = await db.query(
-    `UPDATE media_assets SET status = 'PROCESSING', updated_at = NOW() WHERE id IN (${placeholders}) AND status = 'PENDING'`,
-    jobIds
-  );
-  return result.affectedRows;
+    if (rows.length === 0) {
+      await connection.commit();
+      connection.release();
+      return [];
+    }
+
+    const jobIds = rows.map(r => r.id);
+    const placeholders = jobIds.map(() => '?').join(',');
+
+    await connection.query(
+      `UPDATE media_assets SET status = 'PROCESSING', updated_at = NOW() WHERE id IN (${placeholders})`,
+      jobIds
+    );
+
+    await connection.commit();
+    connection.release();
+    return rows;
+  } catch (error) {
+    await connection.rollback();
+    connection.release();
+    throw error;
+  }
 };
 
 /**

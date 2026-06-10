@@ -292,16 +292,6 @@ watch(Escape, pressed => {
           <span>Sticker</span>
         </button>
         <div v-if="!isMobile" class="w-px h-6 bg-primary"></div>
-        <router-link
-          to="/investigation-stock"
-          v-if="auth.hasPermission('view-system-logs') || auth.hasPermission('manage-stock-adjustment')"
-          class="w-1/2 px-4 py-2 text-sm font-bold text-accent hover:bg-accent/10 rounded-lg transition-all flex items-center gap-2 justify-center whitespace-nowrap"
-          title="Investigasi Stok"
-        >
-          <font-awesome-icon icon="fa-solid fa-search" />
-          <span>Investigasi</span>
-        </router-link>
-        <div v-if="!isMobile" class="w-px h-6 bg-primary"></div>
         <button
           v-if="auth.hasPermission('view-prices')"
           @click="isSimulationModalOpen = true"

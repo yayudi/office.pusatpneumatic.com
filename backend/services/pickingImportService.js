@@ -1,5 +1,4 @@
 // backend/services/pickingImportService.js
-import db from "../config/db.js";
 import * as validationHelper from "./helpers/pickingValidationHelper.js";
 import Logger from "../utils/logger.js";
 
@@ -49,7 +48,8 @@ export const syncOrdersToDB = async (
 
       const newOrdersToInsert = await validationHelper.handleExistingInvoices(
         connection,
-        ordersToProcess
+        ordersToProcess,
+        userId
       );
 
       log(`✨ ${newOrdersToInsert.length} order baru siap divalidasi & insert.`);
@@ -126,6 +126,6 @@ export const syncOrdersToDB = async (
  * @param {any} payload
  * @returns {Promise<any>}
  */
-export const performPickingValidation = async (payload) => {
+export const performPickingValidation = async (_) => {
   throw new Error("Deprecated: Use Job Queue Import instead.");
 };

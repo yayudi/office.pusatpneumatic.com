@@ -1,5 +1,7 @@
 import db from "../config/db.js";
 import * as investigationRepo from "../repositories/investigationRepository.js";
+import * as locationRepo from "../repositories/locationRepository.js";
+import * as stockRepo from "../repositories/stockMovementRepository.js";
 import AppError from "../utils/AppError.js";
 
 /**
@@ -16,7 +18,7 @@ import AppError from "../utils/AppError.js";
  * @param {string} [filters.location]
  * @returns {Promise<Array>}
  */
-export const getDuplicateTransactionsService = async (filters) => {
+export const getDuplicateTransactionsService = async (filters, page = 1, limit = 10) => {
   const connection = await db.getConnection();
   try {
     // Validasi basic
@@ -26,61 +28,64 @@ export const getDuplicateTransactionsService = async (filters) => {
       }
     }
 
-    const duplicates = await investigationRepo.findDuplicateTransactions(connection, filters);
+    const offset = (page - 1) * limit;
+
+    const totalGroups = await investigationRepo.countDuplicateGroups(connection, filters);
+    const duplicates = await investigationRepo.findDuplicateTransactions(connection, filters, limit, offset);
     
     const invoiceSet = new Set();
     const itemIdSet = new Set();
     const invoiceRegex = /Sale Ref:\s+(.*?)\s+\(Item/i;
-    const itemRegex = /Sale Ref:\s*Item\s*#(\d+)/i;
 
     // Grouping for better frontend consumption
-    // We group by notes + product_id
+    // We group by baseNote (Invoice Reference)
     const grouped = duplicates.reduce((acc, curr) => {
-      const key = `${curr.notes}_${curr.product_id}`;
+      const baseNote = curr.notes ? curr.notes.split(' (Item')[0].trim() : 'Unknown';
+      const key = baseNote;
+      
       if (!acc[key]) {
         let extractedInvoice = null;
-        let extractedItemId = null;
         if (curr.notes) {
           const matchInv = curr.notes.match(invoiceRegex);
           if (matchInv && matchInv[1]) {
             extractedInvoice = matchInv[1].trim();
             invoiceSet.add(extractedInvoice);
-          } else {
-            const matchItem = curr.notes.match(itemRegex);
-            if (matchItem && matchItem[1]) {
-              extractedItemId = parseInt(matchItem[1], 10);
-              itemIdSet.add(extractedItemId);
-            }
           }
         }
         
         acc[key] = {
-          notes: curr.notes,
-          productId: curr.product_id,
-          productName: curr.product_name,
-          sku: curr.sku,
+          baseNote: baseNote,
           movementType: curr.movement_type,
           extractedInvoice,
-          extractedItemId,
           pickingList: null,
           totalQuantity: 0,
-          occurrences: 0,
+          occurrences: 0, // Will be calculated based on unique timestamps
           transactions: []
         };
       }
-      acc[key].occurrences += 1;
+      
       acc[key].totalQuantity += curr.quantity;
       acc[key].transactions.push({
         id: curr.id,
+        productId: curr.product_id,
+        productName: curr.product_name,
+        sku: curr.sku,
         quantity: curr.quantity,
         fromLocationCode: curr.from_location_code,
         toLocationCode: curr.to_location_code,
         userId: curr.user_id,
         username: curr.username,
-        createdAt: curr.created_at
+        createdAt: curr.created_at,
+        notes: curr.notes
       });
       return acc;
     }, {});
+
+    // Calculate occurrences based on unique execution times (created_at)
+    Object.values(grouped).forEach(group => {
+      const uniqueTimes = new Set(group.transactions.map(t => new Date(t.createdAt).getTime()));
+      group.occurrences = uniqueTimes.size;
+    });
 
     const invoiceIds = Array.from(invoiceSet);
     const itemIds = Array.from(itemIdSet);
@@ -133,8 +138,6 @@ export const getDuplicateTransactionsService = async (filters) => {
       Object.values(grouped).forEach(group => {
         if (group.extractedInvoice && pickingByInvoice[group.extractedInvoice]) {
           group.pickingList = pickingByInvoice[group.extractedInvoice];
-        } else if (group.extractedItemId && pickingByItemId[group.extractedItemId]) {
-          group.pickingList = pickingByItemId[group.extractedItemId];
         }
       });
     }
@@ -157,7 +160,70 @@ export const getDuplicateTransactionsService = async (filters) => {
       });
     }
 
-    return finalGrouped;
+    return {
+      data: finalGrouped,
+      meta: {
+        totalGroups,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(totalGroups / limit)
+      }
+    };
+  } finally {
+    connection.release();
+  }
+};
+
+/**
+ * Service to revert a specific duplicate stock transaction.
+ * @param {number} transactionId
+ * @param {number} userId
+ */
+export const revertTransactionService = async (transactionId, userId) => {
+  const connection = await db.getConnection();
+  await connection.beginTransaction();
+  try {
+    // 1. Fetch original transaction
+    const [rows] = await connection.query(`SELECT * FROM stock_movements WHERE id = ?`, [transactionId]);
+    if (rows.length === 0) {
+      throw new AppError("Transaksi tidak ditemukan", 404);
+    }
+    const originalTrx = rows[0];
+
+    // 2. Prevent double revert by checking notes
+    const revertNotesPattern = `%Reversal of Trx #${transactionId}%`;
+    const [revertRows] = await connection.query(`SELECT id FROM stock_movements WHERE notes LIKE ?`, [revertNotesPattern]);
+    if (revertRows.length > 0) {
+      throw new AppError("Transaksi ini sudah di-revert sebelumnya", 400);
+    }
+
+    // 3. Restore Physical Stock
+    if (originalTrx.from_location_id) {
+       // It was taken FROM a location (deduction). We put it back.
+       await locationRepo.incrementStock(connection, originalTrx.product_id, originalTrx.from_location_id, originalTrx.quantity);
+    } else if (originalTrx.to_location_id) {
+       // It was added TO a location. We deduct it.
+       await locationRepo.deductStock(connection, originalTrx.product_id, originalTrx.to_location_id, originalTrx.quantity);
+    } else {
+       throw new AppError("Transaksi tidak valid (tidak ada from_location maupun to_location)", 400);
+    }
+
+    // 4. Log Reversal
+    await stockRepo.createLog(connection, {
+       productId: originalTrx.product_id,
+       quantity: originalTrx.quantity,
+       toLocationId: originalTrx.from_location_id, // Putting back to where it was taken from
+       fromLocationId: originalTrx.to_location_id, // Taking from where it went to
+       type: "REVERSAL",
+       userId: userId,
+       notes: `Reversal of Trx #${transactionId} - ${originalTrx.notes}`,
+    });
+
+    await connection.commit();
+    return { success: true, message: "Transaksi berhasil di-revert dan stok dikembalikan." };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
   } finally {
     connection.release();
   }

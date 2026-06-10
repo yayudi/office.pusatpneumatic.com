@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll.js'
 import { useTaskGrouping } from '@/composables/useTaskGrouping.js'
@@ -9,13 +9,32 @@ import PickingListCard from '@/components/picking/PickingListCard.vue'
 import PickingListCardCompact from '@/components/picking/PickingListCardCompact.vue'
 import PickingListRow from '@/components/picking/PickingListRow.vue'
 import MasonryWall from '@yeger/vue-masonry-wall'
+import { useQuery } from '@tanstack/vue-query'
 
 const { toast } = useToast()
 
+// --- ACTIONS (API CALLS) ---
+const { isLoading: isLoadingPicking, data: queryData, refetch: fetchPendingItems } = useQuery({
+  queryKey: ['pendingPickingItems'],
+  queryFn: async () => {
+    const response = await getPendingPickingItems()
+    let data = []
+    if (Array.isArray(response)) data = response
+    else if (response?.data && Array.isArray(response.data)) data = response.data
+    return data
+  },
+  refetchOnWindowFocus: false, // Prevent unneeded re-fetches
+})
+
+const pendingItems = computed(() => queryData.value || [])
+
 // --- STATE ---
-const isLoadingPicking = ref(false)
-const pendingItems = ref([])
+const isCancelling = ref(false)
 const selectedItems = ref(new Set())
+
+watch(queryData, () => {
+  selectedItems.value = new Set()
+})
 
 const selectionStats = computed(() => {
   const uniqueInvoices = new Set()
@@ -59,11 +78,13 @@ const itemsMap = computed(() => {
 // --- COMPUTED: SHOP OPTIONS ---
 const shopOptions = computed(() => {
   const shops = new Set()
-  pendingItems.value.forEach(item => {
-    if (item.shop_name) {
-      shops.add(item.shop_name)
-    }
-  })
+  if (pendingItems.value) {
+    pendingItems.value.forEach(item => {
+      if (item.shop_name) {
+        shops.add(item.shop_name)
+      }
+    })
+  }
 
   const options = [{ id: 'ALL', label: 'Semua Channel/Toko' }]
   Array.from(shops)
@@ -127,24 +148,7 @@ function canSelectItem(item) {
   return true // SELALU IZINKAN (Trust Backend)
 }
 
-// --- ACTIONS (API CALLS) ---
-async function fetchPendingItems() {
-  isLoadingPicking.value = true
-  try {
-    const response = await getPendingPickingItems()
-    let data = []
-    if (Array.isArray(response)) data = response
-    else if (response?.data && Array.isArray(response.data)) data = response.data
 
-    pendingItems.value = data
-    selectedItems.value = new Set() // Reset dengan Set baru
-  } catch (error) {
-    console.error(error) // Auto-added to prevent unused var
-//     toast(error.message || 'Gagal memuat data picking.', 'error') // Removed to prevent double-toast
-  } finally {
-    isLoadingPicking.value = false
-  }
-}
 
 async function handleCompleteSelectedItems() {
   if (selectedItems.value.size === 0) return
@@ -199,6 +203,50 @@ async function handleCompleteSelectedItems() {
     }
   } finally {
     isLoadingPicking.value = false
+  }
+}
+
+async function handleCancelSelectedItems() {
+  if (selectedItems.value.size === 0) return
+
+  // Dapatkan daftar picking_list_id unik dari item yang terpilih
+  const uniqueInvoices = new Set()
+  selectedItems.value.forEach(itemId => {
+    const item = itemsMap.value.get(itemId)
+    if (item) {
+      uniqueInvoices.add(item.picking_list_id)
+    }
+  })
+
+  if (!confirm(`Batalkan ${uniqueInvoices.size} pesanan ini? Stok akan dikembalikan.`)) return
+
+  isCancelling.value = true
+  let successCount = 0
+  let failCount = 0
+
+  try {
+    // Batalkan setiap list ID satu per satu
+    for (const listId of uniqueInvoices) {
+      try {
+        await cancelPickingList(listId)
+        successCount++
+      } catch (err) {
+        console.error(`Gagal membatalkan list ${listId}:`, err)
+        failCount++
+      }
+    }
+
+    if (successCount > 0) {
+      toast(`Berhasil membatalkan ${successCount} pesanan.`, 'success')
+      selectedItems.value = new Set() // Reset setelah berhasil
+    }
+    if (failCount > 0) {
+      toast(`Gagal membatalkan ${failCount} pesanan.`, 'warning')
+    }
+    
+    await fetchPendingItems()
+  } finally {
+    isCancelling.value = false
   }
 }
 
@@ -278,9 +326,7 @@ defineExpose({
   })
 })
 
-onMounted(() => {
-  fetchPendingItems()
-})
+
 </script>
 
 <template>
@@ -329,21 +375,38 @@ onMounted(() => {
           <div v-else class="text-xs text-text/30 italic px-1 hidden md:block">Belum ada pesanan dipilih</div>
 
           <!-- Tombol Eksekusi -->
-          <button
-            @click="handleCompleteSelectedItems"
-            class="flex-1 sm:flex-none group relative overflow-hidden bg-primary hover:bg-primary/90 text-background px-4 sm:pl-6 sm:pr-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg hover:shadow-primary/30 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:bg-secondary disabled:text-text/50 disabled:shadow-none"
-            :disabled="isLoadingPicking || selectedItems.size === 0"
-          >
-            <div
-              class="absolute inset-0 bg-background/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"
-            ></div>
-            <span class="relative">Selesaikan</span>
-            <font-awesome-icon
-              :icon="isLoadingPicking ? 'fa-solid fa-spinner' : 'fa-solid fa-arrow-right'"
-              :class="isLoadingPicking ? 'animate-spin' : 'group-hover:translate-x-1 transition-transform'"
-              class="relative"
-            />
-          </button>
+          <div class="flex items-center gap-2 flex-1 sm:flex-none">
+            <!-- Tombol Cancel -->
+            <button
+              @click="handleCancelSelectedItems"
+              class="group relative overflow-hidden bg-danger hover:bg-danger/90 text-white px-3 sm:px-4 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg hover:shadow-danger/30 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:bg-secondary disabled:text-text/50 disabled:shadow-none"
+              :disabled="isCancelling || isLoadingPicking || selectedItems.size === 0"
+              title="Batalkan Pesanan Terpilih"
+            >
+              <font-awesome-icon
+                :icon="isCancelling ? 'fa-solid fa-spinner' : 'fa-solid fa-ban'"
+                :class="{'animate-spin': isCancelling}"
+              />
+              <span class="hidden sm:inline">Cancel</span>
+            </button>
+
+            <!-- Tombol Selesaikan -->
+            <button
+              @click="handleCompleteSelectedItems"
+              class="flex-1 sm:flex-none group relative overflow-hidden bg-primary hover:bg-primary/90 text-background px-4 sm:pl-6 sm:pr-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg hover:shadow-primary/30 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:bg-secondary disabled:text-text/50 disabled:shadow-none"
+              :disabled="isLoadingPicking || isCancelling || selectedItems.size === 0"
+            >
+              <div
+                class="absolute inset-0 bg-background/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"
+              ></div>
+              <span class="relative">Selesaikan</span>
+              <font-awesome-icon
+                :icon="isLoadingPicking ? 'fa-solid fa-spinner' : 'fa-solid fa-arrow-right'"
+                :class="isLoadingPicking ? 'animate-spin' : 'group-hover:translate-x-1 transition-transform'"
+                class="relative"
+              />
+            </button>
+          </div>
         </div>
       </transition>
     </Teleport>
