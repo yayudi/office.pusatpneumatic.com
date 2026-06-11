@@ -15,10 +15,10 @@
  * @param {string} [filters.movementType] - Type of movement (e.g., 'SALE')
  * @returns {Promise<Array>} List of stock movements indicating duplicates
  */
-export const findDuplicateTransactions = async (
+export const getDuplicateGroups = async (
   connection,
-  { startDate, endDate, includeNotes, excludeNotes, movementType, productName, username, location, exactQuantity },
-  limit = 10,
+  { startDate, endDate, includeNotes, excludeNotes, movementType, productName, username, location, exactQuantity, revertStatus, minOccurrences, maxOccurrences, minSku, maxSku, maxTimeGap, sortBy = 'latest_created_at', sortDirection = 'DESC' },
+  limit = 20,
   offset = 0
 ) => {
   const params = [];
@@ -33,8 +33,18 @@ export const findDuplicateTransactions = async (
   }
 
   if (movementType) {
-    conditions.push("sm.movement_type = ?");
-    params.push(movementType);
+    if (movementType.include && movementType.include.length > 0) {
+      conditions.push(`sm.movement_type IN (${movementType.include.map(() => '?').join(',')})`);
+      params.push(...movementType.include);
+    }
+    if (movementType.exclude && movementType.exclude.length > 0) {
+      conditions.push(`sm.movement_type NOT IN (${movementType.exclude.map(() => '?').join(',')})`);
+      params.push(...movementType.exclude);
+    }
+    if (typeof movementType === 'string') {
+      conditions.push("sm.movement_type = ?");
+      params.push(movementType);
+    }
   }
 
   if (includeNotes) {
@@ -64,6 +74,40 @@ export const findDuplicateTransactions = async (
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
+  const havingConditions = [];
+  const havingParams = [];
+  
+  if (minOccurrences) {
+    havingConditions.push("occurrences >= ?");
+    havingParams.push(minOccurrences);
+  }
+  if (maxOccurrences) {
+    havingConditions.push("occurrences <= ?");
+    havingParams.push(maxOccurrences);
+  }
+  if (minSku) {
+    havingConditions.push("total_sku >= ?");
+    havingParams.push(minSku);
+  }
+  if (maxSku) {
+    havingConditions.push("total_sku <= ?");
+    havingParams.push(maxSku);
+  }
+  if (maxTimeGap) {
+    havingConditions.push("TIMESTAMPDIFF(MINUTE, MIN(fm.created_at), MAX(fm.created_at)) <= ?");
+    havingParams.push(maxTimeGap);
+  }
+
+  const havingClause = havingConditions.length > 0 ? `HAVING ${havingConditions.join(" AND ")}` : "";
+  
+  let orderCol = "latest_created_at";
+  if (sortBy === 'OCCURRENCES') orderCol = "occurrences";
+  else if (sortBy === 'TOTAL_SKU') orderCol = "total_sku";
+  else if (sortBy === 'TOTAL_QTY') orderCol = "total_qty";
+  
+  const sortDir = sortDirection?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+  const orderByClause = `ORDER BY ${orderCol} ${sortDir}, base_note ASC`;
+
   const query = `
     WITH filtered_movements AS (
       SELECT 
@@ -79,7 +123,7 @@ export const findDuplicateTransactions = async (
       LEFT JOIN locations tl ON sm.to_location_id = tl.id
       ${whereClause}
     ),
-    duplicate_groups AS (
+    duplicate_products AS (
       SELECT 
         SUBSTRING_INDEX(notes, ' (Item', 1) as base_note, 
         product_id, 
@@ -88,7 +132,26 @@ export const findDuplicateTransactions = async (
       FROM filtered_movements
       GROUP BY base_note, product_id, movement_type ${exactQuantity ? ', quantity' : ''}
       HAVING COUNT(*) > 1
-      ORDER BY base_note ASC, MAX(created_at) DESC
+      ${revertStatus === 'REVERTED' ? "AND SUM(CASE WHEN notes LIKE '%[REVERTED]%' THEN 1 ELSE 0 END) > 0" : ""}
+      ${revertStatus === 'NOT_REVERTED' ? "AND SUM(CASE WHEN notes LIKE '%[REVERTED]%' THEN 1 ELSE 0 END) = 0" : ""}
+    ),
+    duplicate_groups AS (
+      SELECT 
+        dp.base_note,
+        dp.movement_type,
+        COUNT(DISTINCT fm.product_id) as total_sku,
+        COUNT(DISTINCT fm.created_at) as occurrences,
+        SUM(fm.quantity) as total_qty,
+        MAX(fm.created_at) as latest_created_at
+      FROM duplicate_products dp
+      JOIN filtered_movements fm 
+        ON dp.base_note = SUBSTRING_INDEX(fm.notes, ' (Item', 1)
+        AND dp.product_id = fm.product_id
+        AND dp.movement_type = fm.movement_type
+        ${exactQuantity ? 'AND dp.quantity = fm.quantity' : ''}
+      GROUP BY dp.base_note, dp.movement_type
+      ${havingClause}
+      ${orderByClause}
       LIMIT ? OFFSET ?
     )
     SELECT 
@@ -107,16 +170,19 @@ export const findDuplicateTransactions = async (
       fm.sku,
       fm.product_name
     FROM filtered_movements fm
+    JOIN duplicate_products dp 
+      ON SUBSTRING_INDEX(fm.notes, ' (Item', 1) = dp.base_note 
+      AND fm.product_id = dp.product_id 
+      AND fm.movement_type = dp.movement_type
+      ${exactQuantity ? 'AND fm.quantity = dp.quantity' : ''}
     JOIN duplicate_groups dg 
-      ON SUBSTRING_INDEX(fm.notes, ' (Item', 1) = dg.base_note 
-      AND fm.product_id = dg.product_id 
-      AND fm.movement_type = dg.movement_type
-      ${exactQuantity ? 'AND fm.quantity = dg.quantity' : ''}
-    ORDER BY SUBSTRING_INDEX(fm.notes, ' (Item', 1) ASC, fm.created_at DESC
+      ON dp.base_note = dg.base_note 
+      AND dp.movement_type = dg.movement_type
+    ORDER BY dg.${orderCol} ${sortDir}, SUBSTRING_INDEX(fm.notes, ' (Item', 1) ASC, fm.created_at DESC
   `;
 
-  // Final params include standard params then limit/offset for the duplicate_groups CTE
-  const finalParams = [...params, Number(limit), Number(offset)];
+  // Final params include standard params then having params, then limit/offset
+  const finalParams = [...params, ...havingParams, Number(limit), Number(offset)];
 
   const [rows] = await connection.query(query, finalParams);
   return rows;
@@ -127,7 +193,7 @@ export const findDuplicateTransactions = async (
  */
 export const countDuplicateGroups = async (
   connection,
-  { startDate, endDate, includeNotes, excludeNotes, movementType, productName, username, location, exactQuantity }
+  { startDate, endDate, includeNotes, excludeNotes, movementType, productName, username, location, exactQuantity, revertStatus, minOccurrences, maxOccurrences, minSku, maxSku, maxTimeGap }
 ) => {
   const params = [];
   const conditions = ["sm.notes IS NOT NULL", "sm.notes != ''"];
@@ -141,8 +207,18 @@ export const countDuplicateGroups = async (
   }
 
   if (movementType) {
-    conditions.push("sm.movement_type = ?");
-    params.push(movementType);
+    if (movementType.include && movementType.include.length > 0) {
+      conditions.push(`sm.movement_type IN (${movementType.include.map(() => '?').join(',')})`);
+      params.push(...movementType.include);
+    }
+    if (movementType.exclude && movementType.exclude.length > 0) {
+      conditions.push(`sm.movement_type NOT IN (${movementType.exclude.map(() => '?').join(',')})`);
+      params.push(...movementType.exclude);
+    }
+    if (typeof movementType === 'string') {
+      conditions.push("sm.movement_type = ?");
+      params.push(movementType);
+    }
   }
 
   if (includeNotes) {
@@ -172,10 +248,36 @@ export const countDuplicateGroups = async (
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
+  const havingConditions = [];
+  const havingParams = [];
+  
+  if (minOccurrences) {
+    havingConditions.push("occurrences >= ?");
+    havingParams.push(minOccurrences);
+  }
+  if (maxOccurrences) {
+    havingConditions.push("occurrences <= ?");
+    havingParams.push(maxOccurrences);
+  }
+  if (minSku) {
+    havingConditions.push("total_sku >= ?");
+    havingParams.push(minSku);
+  }
+  if (maxSku) {
+    havingConditions.push("total_sku <= ?");
+    havingParams.push(maxSku);
+  }
+  if (maxTimeGap) {
+    havingConditions.push("TIMESTAMPDIFF(MINUTE, MIN(fm.created_at), MAX(fm.created_at)) <= ?");
+    havingParams.push(maxTimeGap);
+  }
+
+  const havingClause = havingConditions.length > 0 ? `HAVING ${havingConditions.join(" AND ")}` : "";
+
   const query = `
     WITH filtered_movements AS (
       SELECT 
-        sm.id, sm.product_id, sm.quantity, sm.movement_type, sm.notes
+        sm.id, sm.product_id, sm.quantity, sm.movement_type, sm.notes, sm.created_at
       FROM stock_movements sm
       LEFT JOIN products p ON sm.product_id = p.id
       LEFT JOIN users u ON sm.user_id = u.id
@@ -183,16 +285,37 @@ export const countDuplicateGroups = async (
       LEFT JOIN locations tl ON sm.to_location_id = tl.id
       ${whereClause}
     ),
-    duplicate_groups AS (
-      SELECT 1
+    duplicate_products AS (
+      SELECT 
+        SUBSTRING_INDEX(notes, ' (Item', 1) as base_note, 
+        product_id, 
+        movement_type
+        ${exactQuantity ? ', quantity' : ''}
       FROM filtered_movements
-      GROUP BY SUBSTRING_INDEX(notes, ' (Item', 1), product_id, movement_type ${exactQuantity ? ', quantity' : ''}
+      GROUP BY base_note, product_id, movement_type ${exactQuantity ? ', quantity' : ''}
       HAVING COUNT(*) > 1
+      ${revertStatus === 'REVERTED' ? "AND SUM(CASE WHEN notes LIKE '%[REVERTED]%' THEN 1 ELSE 0 END) > 0" : ""}
+      ${revertStatus === 'NOT_REVERTED' ? "AND SUM(CASE WHEN notes LIKE '%[REVERTED]%' THEN 1 ELSE 0 END) = 0" : ""}
+    ),
+    duplicate_groups AS (
+      SELECT 
+        COUNT(DISTINCT fm.product_id) as total_sku,
+        COUNT(DISTINCT fm.created_at) as occurrences
+      FROM duplicate_products dp
+      JOIN filtered_movements fm 
+        ON dp.base_note = SUBSTRING_INDEX(fm.notes, ' (Item', 1)
+        AND dp.product_id = fm.product_id
+        AND dp.movement_type = fm.movement_type
+        ${exactQuantity ? 'AND dp.quantity = fm.quantity' : ''}
+      GROUP BY dp.base_note, dp.movement_type
+      ${havingClause}
     )
     SELECT COUNT(*) as total FROM duplicate_groups
   `;
 
-  const [rows] = await connection.query(query, params);
+  const finalParams = [...params, ...havingParams];
+
+  const [rows] = await connection.query(query, finalParams);
   return rows[0].total;
 };
 

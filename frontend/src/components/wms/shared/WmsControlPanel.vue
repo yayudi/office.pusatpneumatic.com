@@ -152,7 +152,7 @@ useEventListener(
         <button
           v-if="searchValue"
           @click="clearSearch"
-          class="absolute inset-y-0 right-0 flex items-center text-text/40 hover:text-danger cursor-pointer transition-colors"
+          class="absolute inset-y-0 right-0 flex items-center pr-4 text-text/40 hover:text-danger cursor-pointer transition-colors"
           title="Bersihkan pencarian"
         >
           <font-awesome-icon icon="fa-solid fa-times-circle" />

@@ -36,7 +36,9 @@ const movementTypeOptions = [
   { id: 'RETURN', label: 'RETURN' },
   { id: 'ADJUSTMENT', label: 'ADJUSTMENT' },
   { id: 'OPNAME', label: 'OPNAME' },
-  { id: 'PICKING', label: 'PICKING' }
+  { id: 'PICKING', label: 'PICKING' },
+  { id: 'SALE', label: 'SALE' },
+  { id: 'REVERSAL', label: 'REVERSAL' }
 ]
 
 const locationOptions = computed(() => locations.value.map(loc => ({ id: loc.id, label: loc.code })))

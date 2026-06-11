@@ -202,6 +202,29 @@ describe("pickingValidationHelper", () => {
         userId: 99
       }));
     });
+
+    test("Scenario: Cancel via Sync -> TIDAK BOLEH merestock item jika status masih PENDING (stok belum dipotong)", async () => {
+      // Setup data header sebagai PENDING
+      pickingRepo.getAllHeadersByInvoiceIds.mockResolvedValue([
+        { id: 202, original_invoice_id: "INV-CANCEL-PENDING", status: "PENDING", is_active: 1 },
+      ]);
+
+      const items = [{ invoiceId: "INV-CANCEL-PENDING", status: "CANCELLED", items: [] }];
+
+      // Mock query SELECT itemsToRestock mengembalikan array kosong (karena WHERE status = 'VALIDATED' tidak terpenuhi)
+      mockConn.query.mockResolvedValueOnce([[]]);
+
+      await validationHelper.handleExistingInvoices(mockConn, items, 99);
+
+      // Pastikan order tetap dicancel
+      expect(pickingRepo.cancelHeader).toHaveBeenCalledWith(mockConn, 202);
+      
+      // Pastikan restock TIDAK terpanggil sama sekali!
+      expect(locationRepo.incrementStock).not.toHaveBeenCalledWith(mockConn, expect.anything(), expect.anything(), expect.anything());
+      expect(stockRepo.createLog).not.toHaveBeenCalledWith(mockConn, expect.objectContaining({
+        type: "CANCEL_RESTOCK"
+      }));
+    });
   });
 
   // ==========================================================

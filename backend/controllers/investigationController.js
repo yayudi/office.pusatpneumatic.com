@@ -5,18 +5,40 @@ import * as investigationService from "../services/investigationService.js";
  */
 export const getDuplicateTransactions = async (req, res, next) => {
   try {
-    const { startDate, endDate, includeNotes, excludeNotes, movementType, productName, username, location, exactQuantity, page = 1, limit = 10 } = req.query;
+    const { 
+      startDate, endDate, includeNotes, excludeNotes, movementType, 
+      productName, username, location, exactQuantity, page = 1, limit = 10,
+      revertStatus, plSource, plStatus, plMarketplaceStatus, plCustomer,
+      minOccurrences, maxOccurrences, minSku, maxSku, sortBy, sortDirection, maxTimeGap
+    } = req.query;
+
+    const parseTriState = (val) => {
+      if (!val) return null;
+      try { return typeof val === 'string' ? JSON.parse(val) : val; } catch { return val; }
+    };
 
     const result = await investigationService.getDuplicateTransactionsService({
       startDate,
       endDate,
       includeNotes,
       excludeNotes,
-      movementType,
+      movementType: parseTriState(movementType),
       productName,
       username,
       location,
       exactQuantity: exactQuantity === 'true',
+      revertStatus,
+      plSource: parseTriState(plSource),
+      plStatus: parseTriState(plStatus),
+      plMarketplaceStatus,
+      plCustomer,
+      minOccurrences: minOccurrences ? Number(minOccurrences) : undefined,
+      maxOccurrences: maxOccurrences ? Number(maxOccurrences) : undefined,
+      minSku: minSku ? Number(minSku) : undefined,
+      maxSku: maxSku ? Number(maxSku) : undefined,
+      maxTimeGap: maxTimeGap ? Number(maxTimeGap) : undefined,
+      sortBy,
+      sortDirection
     }, Number(page), Number(limit));
 
     res.json({ success: true, ...result });

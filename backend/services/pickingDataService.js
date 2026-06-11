@@ -24,7 +24,13 @@ const logger = {
  * Helper Cerdas untuk Menentukan Lokasi Stok (Re-Check & Search)
  * Menggunakan Repository sepenuhnya.
  */
-async function ensureStockLocation(connection, productId, qtyNeeded, currentLocId, locationPurpose = "DISPLAY") {
+async function ensureStockLocation(
+  connection,
+  productId,
+  qtyNeeded,
+  currentLocId,
+  locationPurpose = "DISPLAY",
+) {
   // Skenario 1: Cek Lokasi Eksisting (Re-validasi)
   if (currentLocId) {
     // Menggunakan locationRepo dengan locking (true)
@@ -32,20 +38,25 @@ async function ensureStockLocation(connection, productId, qtyNeeded, currentLocI
       connection,
       productId,
       currentLocId,
-      true
+      true,
     );
 
     if (currentStock >= qtyNeeded) {
       return { locationId: currentLocId, isChanged: false, currentStock };
     } else {
       fileLog(
-        `⚠️ Lokasi lama (ID ${currentLocId}) stok tidak cukup. Sisa: ${currentStock}, Butuh: ${qtyNeeded}. Mencari ulang...`
+        `⚠️ Lokasi lama (ID ${currentLocId}) stok tidak cukup. Sisa: ${currentStock}, Butuh: ${qtyNeeded}. Mencari ulang...`,
       );
     }
   }
 
   // Skenario 2: Cari Lokasi Baru (JIT Lookup - Strict Display via Repo)
-  const newBestLocId = await locationRepo.findBestStock(connection, productId, qtyNeeded, locationPurpose);
+  const newBestLocId = await locationRepo.findBestStock(
+    connection,
+    productId,
+    qtyNeeded,
+    locationPurpose,
+  );
 
   if (newBestLocId) {
     // [SAFETY CHECK] Verifikasi stok di lokasi baru
@@ -54,7 +65,7 @@ async function ensureStockLocation(connection, productId, qtyNeeded, currentLocI
       connection,
       productId,
       newBestLocId,
-      true
+      true,
     );
 
     if (newStock >= qtyNeeded) {
@@ -62,7 +73,7 @@ async function ensureStockLocation(connection, productId, qtyNeeded, currentLocI
     }
 
     fileLog(
-      `⚠️ Lokasi alternatif (ID ${newBestLocId}) juga tidak cukup. Sisa: ${newStock}, Butuh: ${qtyNeeded}.`
+      `⚠️ Lokasi alternatif (ID ${newBestLocId}) juga tidak cukup. Sisa: ${newStock}, Butuh: ${qtyNeeded}.`,
     );
   }
 
@@ -130,7 +141,7 @@ export const cancelPickingListService = async (pickingListId, userId) => {
       `SELECT product_id, quantity, confirmed_location_id
         FROM picking_list_items
         WHERE picking_list_id = ? AND status = 'VALIDATED' AND confirmed_location_id IS NOT NULL`,
-      [pickingListId]
+      [pickingListId],
     );
 
     if (itemsToRestock.length > 0) {
@@ -140,7 +151,7 @@ export const cancelPickingListService = async (pickingListId, userId) => {
           connection,
           item.product_id,
           item.confirmed_location_id,
-          item.quantity
+          item.quantity,
         );
 
         await stockRepo.createLog(connection, {
@@ -200,13 +211,30 @@ export const completePickingItemsService = async (payloadItems, userId) => {
       if (header.original_invoice_id && header.original_invoice_id.includes("_REV_")) {
         throw new Error(
           `PERHATIAN: Order ${header.original_invoice_id} telah direvisi oleh Admin! ` +
-          `Data Anda usang. Mohon refresh halaman dan kerjakan revisi terbaru.`
+            `Data Anda usang. Mohon refresh halaman dan kerjakan revisi terbaru.`,
         );
       }
 
       // Cek apakah status sudah Cancelled
       if (header.status === "CANCELLED" || header.status === "CANCEL") {
         throw new Error(`Order #${listId} telah dibatalkan. Tidak dapat diproses.`);
+      }
+
+      // --- ANTI PARTIAL PROCESS CHECK ---
+      // Blokir jika ada item yang tidak bisa dipenuhi (habis / tidak ada lokasi)
+      const [unfulfillable] = await connection.query(
+        `SELECT original_sku FROM picking_list_items
+          WHERE picking_list_id = ?
+            AND (status = 'BACKORDER' OR (status = 'PENDING' AND suggested_location_id IS NULL))`,
+        [listId],
+      );
+
+      if (unfulfillable.length > 0) {
+        const skuList = unfulfillable.map((u) => u.original_sku || "UNKNOWN").join(", ");
+        throw new Error(
+          `Pesanan ${header.original_invoice_id} memiliki item kosong/out-of-stock (SKU: ${skuList}). ` +
+            `Pemrosesan parsial tidak diizinkan. Harap lengkapi stok terlebih dahulu atau batalkan pesanan.`,
+        );
       }
 
       invoiceMap.set(listId, header.original_invoice_id);
@@ -236,7 +264,7 @@ export const completePickingItemsService = async (payloadItems, userId) => {
       if (itemData.status !== "PENDING" && itemData.status !== "BACKORDER") {
         const invRef = invoiceMap.get(picking_list_id) || "UNKNOWN-INV";
         validationErrors.push(
-          `INV [${invRef}] - SKU ${sku || "Prod ID " + prodId}: Item sudah diproses (Status: ${itemData.status}).`
+          `INV [${invRef}] - SKU ${sku || "Prod ID " + prodId}: Item sudah diproses (Status: ${itemData.status}).`,
         );
         continue;
       }
@@ -247,14 +275,14 @@ export const completePickingItemsService = async (payloadItems, userId) => {
         prodId,
         qty,
         initialLocId,
-        locationPurpose
+        locationPurpose,
       );
 
       if (!locationId) {
         // Gagal: Stok tidak ditemukan sama sekali
         const invRef = invoiceMap.get(picking_list_id) || "UNKNOWN-INV";
         validationErrors.push(
-          `INV [${invRef}] - SKU ${sku || "Prod ID " + prodId}: Stok habis/tidak cukup di lokasi manapun.`
+          `INV [${invRef}] - SKU ${sku || "Prod ID " + prodId}: Stok habis/tidak cukup di lokasi manapun.`,
         );
       } else {
         // Sukses: Simpan rencana eksekusi

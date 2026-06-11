@@ -38,18 +38,36 @@
           </div>
 
           <!-- Movement Type -->
-          <div>
+          <div class="z-50">
             <label class="block text-sm font-medium text-text/80 mb-1">Tipe Pergerakan</label>
-            <select
+            <TriStateSelect
               v-model="filters.movementType"
-              class="w-full px-3 py-2 bg-background border border-secondary/30 text-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-            >
-              <option value="">Semua Tipe</option>
-              <option value="SALE">SALE</option>
-              <option value="TRANSFER">TRANSFER</option>
-              <option value="INBOUND">INBOUND</option>
-              <option value="ADJUST_OPNAME">ADJUST_OPNAME</option>
-            </select>
+              :options="[
+                { id: 'SALE', label: 'SALE' },
+                { id: 'PURCHASE', label: 'PURCHASE' },
+                { id: 'ADJUST_OPNAME', label: 'ADJUST_OPNAME' },
+                { id: 'TRANSFER', label: 'TRANSFER' },
+                { id: 'ADJUSTMENT', label: 'ADJUSTMENT' },
+                { id: 'INBOUND', label: 'INBOUND' },
+                { id: 'SALE_RETURN', label: 'SALE_RETURN' },
+                { id: 'ADJUST_UPLOAD', label: 'ADJUST_UPLOAD' },
+                { id: 'RETURN', label: 'RETURN' },
+                { id: 'MANUAL_RETURN', label: 'MANUAL_RETURN' },
+                { id: 'RETURN_INBOUND', label: 'RETURN_INBOUND' },
+                { id: 'OPNAME', label: 'OPNAME' },
+                { id: 'CANCEL_RESTOCK', label: 'CANCEL_RESTOCK' },
+                { id: 'REVERSAL', label: 'REVERSAL' }
+              ]"
+              placeholder="Pilih Tipe..."
+              label="label"
+              track-by="id"
+              class="w-full"
+              :class="[
+                filters.movementType?.include?.length > 0 || filters.movementType?.exclude?.length > 0
+                  ? 'bg-accent/5 border-accent text-accent'
+                  : 'bg-background border-secondary/30 text-text/60 hover:text-text'
+              ]"
+            />
           </div>
 
           <!-- Include Notes -->
@@ -119,15 +137,18 @@
             </div>
           </div>
 
-          <!-- Lokasi -->
+          <!-- Kode Lokasi -->
           <div>
             <label class="block text-sm font-medium text-text/80 mb-1">Kode Lokasi</label>
-            <input
-              type="text"
+            <select
               v-model="filters.location"
-              placeholder="Contoh: A19-01"
               class="w-full px-3 py-2 bg-background border border-secondary/30 text-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-            />
+            >
+              <option value="">Semua Lokasi</option>
+              <option v-for="loc in locationOptions" :key="loc.id" :value="loc.code">
+                {{ loc.code }} {{ loc.name ? '- ' + loc.name : '' }}
+              </option>
+            </select>
           </div>
 
           <!-- Barang -->
@@ -153,32 +174,48 @@
           </div>
 
           <!-- PL Source -->
-          <div>
+          <div class="z-40">
             <label class="block text-sm font-medium text-text/80 mb-1">Source (Order)</label>
-            <select
+            <TriStateSelect
               v-model="filters.plSource"
-              class="w-full px-3 py-2 bg-background border border-secondary/30 text-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-            >
-              <option value="">Semua Source</option>
-              <option value="Tokopedia">Tokopedia</option>
-              <option value="Shopee">Shopee</option>
-              <option value="Offline">Offline</option>
-            </select>
+              :options="[
+                { id: 'Tokopedia', label: 'Tokopedia' },
+                { id: 'Shopee', label: 'Shopee' },
+                { id: 'Offline', label: 'Offline' }
+              ]"
+              placeholder="Pilih Source..."
+              label="label"
+              track-by="id"
+              class="w-full"
+              :class="[
+                filters.plSource?.include?.length > 0 || filters.plSource?.exclude?.length > 0
+                  ? 'bg-accent/5 border-accent text-accent'
+                  : 'bg-background border-secondary/30 text-text/60 hover:text-text'
+              ]"
+            />
           </div>
 
           <!-- PL Status -->
-          <div>
+          <div class="z-30">
             <label class="block text-sm font-medium text-text/80 mb-1">Status Internal Order</label>
-            <select
+            <TriStateSelect
               v-model="filters.plStatus"
-              class="w-full px-3 py-2 bg-background border border-secondary/30 text-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-            >
-              <option value="">Semua Status</option>
-              <option value="PENDING">PENDING</option>
-              <option value="VALIDATED">VALIDATED</option>
-              <option value="COMPLETED">COMPLETED</option>
-              <option value="CANCELLED">CANCELLED</option>
-            </select>
+              :options="[
+                { id: 'PENDING', label: 'PENDING' },
+                { id: 'VALIDATED', label: 'VALIDATED' },
+                { id: 'COMPLETED', label: 'COMPLETED' },
+                { id: 'CANCELLED', label: 'CANCELLED' }
+              ]"
+              placeholder="Pilih Status..."
+              label="label"
+              track-by="id"
+              class="w-full"
+              :class="[
+                filters.plStatus?.include?.length > 0 || filters.plStatus?.exclude?.length > 0
+                  ? 'bg-accent/5 border-accent text-accent'
+                  : 'bg-background border-secondary/30 text-text/60 hover:text-text'
+              ]"
+            />
           </div>
 
           <!-- PL Marketplace Status -->
@@ -203,6 +240,92 @@
             />
           </div>
 
+          <!-- Revert Status -->
+          <div class="z-20">
+            <label class="block text-sm font-medium text-text/80 mb-1">Status Revert</label>
+            <TriStateSelect
+              v-model="filters.revertStatus"
+              :options="[{ id: 'REVERTED', label: 'Di-revert' }]"
+              placeholder="Status Revert"
+              label="label"
+              track-by="id"
+              class="w-full"
+              :class="[
+                filters.revertStatus?.include?.length > 0 || filters.revertStatus?.exclude?.length > 0
+                  ? 'bg-accent/5 border-accent text-accent'
+                  : 'bg-background border-secondary/30 text-text/60 hover:text-text'
+              ]"
+            />
+          </div>
+
+          <!-- Total Transaksi (Occurrences) -->
+          <div>
+            <label class="block text-sm font-medium text-text/80 mb-1">Total Transaksi</label>
+            <div class="flex space-x-2">
+              <input
+                type="number"
+                v-model="filters.minOccurrences"
+                placeholder="Min"
+                min="1"
+                class="w-1/2 px-3 py-2 bg-background border border-secondary/30 text-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+              />
+              <input
+                type="number"
+                v-model="filters.maxOccurrences"
+                placeholder="Max"
+                min="1"
+                class="w-1/2 px-3 py-2 bg-background border border-secondary/30 text-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+              />
+            </div>
+          </div>
+
+          <!-- Total SKU -->
+          <div>
+            <label class="block text-sm font-medium text-text/80 mb-1">Total SKU</label>
+            <div class="flex space-x-2">
+              <input
+                type="number"
+                v-model="filters.minSku"
+                placeholder="Min"
+                min="1"
+                class="w-1/2 px-3 py-2 bg-background border border-secondary/30 text-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+              />
+              <input
+                type="number"
+                v-model="filters.maxSku"
+                placeholder="Max"
+                min="1"
+                class="w-1/2 px-3 py-2 bg-background border border-secondary/30 text-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+              />
+            </div>
+          </div>
+
+          <!-- Sorting -->
+          <div class="col-span-1 md:col-span-2 grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-text/80 mb-1">Urutkan Berdasarkan</label>
+              <select
+                v-model="filters.sortBy"
+                class="w-full px-3 py-2 bg-background border border-secondary/30 text-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+              >
+                <option value="LATEST">Waktu Eksekusi</option>
+                <option value="OCCURRENCES">Total Transaksi</option>
+                <option value="TOTAL_SKU">Total SKU</option>
+                <option value="TOTAL_QTY">Total Qty Movement</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-text/80 mb-1">Arah Urutan</label>
+              <select
+                v-model="filters.sortDirection"
+                class="w-full px-3 py-2 bg-background border border-secondary/30 text-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+              >
+                <option value="DESC">Menurun (Terbesar/Terbaru)</option>
+                <option value="ASC">Menaik (Terkecil/Terlama)</option>
+              </select>
+            </div>
+          </div>
+
           <!-- Exact Quantity Toggle -->
           <div class="flex items-center mt-6">
             <input
@@ -214,6 +337,21 @@
             <label for="exactQtyCheck" class="ml-2 text-sm font-medium text-text/80">
               Eksak Qty (Abaikan duplikat jika Qty berbeda)
             </label>
+          </div>
+
+          <!-- Max Time Gap -->
+          <div class="mt-4">
+            <label class="block text-sm font-medium text-text/80 mb-1">Maksimal Jeda (Menit)</label>
+            <input
+              type="number"
+              v-model="filters.maxTimeGap"
+              placeholder="Contoh: 5"
+              min="1"
+              class="w-full md:w-1/2 px-3 py-2 bg-background border border-secondary/30 text-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+            />
+            <p class="text-xs text-text/50 mt-1">
+              Hanya tampilkan jika jarak antara transaksi pertama & terakhir kurang dari angka ini. Kosongkan untuk melihat semua.
+            </p>
           </div>
 
           <!-- Buttons -->
@@ -247,8 +385,8 @@
       </div>
 
       <!-- Results Data -->
-      <div class="bg-secondary/35 rounded-xl shadow-sm border border-secondary/20 overflow-hidden">
-        <div class="p-5 border-b border-secondary/20 flex justify-between items-center bg-secondary/10">
+      <div class="bg-secondary/50 rounded-xl shadow-sm border border-secondary/20 overflow-hidden">
+        <div class="p-5 border-b border-secondary/20 flex justify-between items-center bg-primary/10">
           <h2 class="text-lg font-semibold text-text">Hasil Investigasi</h2>
           <span class="text-sm text-text/70">
             Ditemukan: <strong class="text-accent">{{ meta.totalGroups || 0 }}</strong> grup duplikat
@@ -273,29 +411,32 @@
               :class="{ 'bg-accent/10': openGroups.includes(idx) }"
             >
               <div class="flex-1">
-                <div class="flex items-center space-x-2">
-                  <span class="px-2 py-0.5 text-xs font-semibold bg-accent/20 text-accent rounded-full">
-                    {{ group.occurrences }}x Terjadi
-                  </span>
-                  <span
-                    class="text-sm font-medium text-text/80 border border-secondary/40 px-2 py-0.5 rounded bg-background"
-                  >
-                    {{ group.movementType }}
-                  </span>
-                </div>
                 <h3 class="font-medium text-text mt-2 break-words">{{ group.baseNote }}</h3>
                 <div class="text-sm text-text/60 mt-1 flex flex-wrap gap-3">
                   <span><strong>Total Qty Movement:</strong> {{ group.totalQuantity }}</span>
+                  <span class="text-text/40"> | </span>
+                  <span><strong>Total Transaksi:</strong> {{ group.occurrences }}</span>
+                  <span class="text-text/40"> | </span>
+                  <span><strong>Total SKU:</strong> {{ group.uniqueItemsCount }}</span>
                 </div>
               </div>
 
-              <div class="text-xs space-x-2 flex">
-                <span class="px-2 py-1 bg-background rounded border border-secondary/30">{{
-                  group.pickingList.source
-                }}</span>
-                <span class="px-2 py-1 bg-background rounded border border-secondary/30 font-medium text-text/80">{{
-                  group.pickingList.status
-                }}</span>
+              <div class="text-xs flex space-x-2">
+                <span
+                  v-if="group.pickingList"
+                  class="px-2 py-1 bg-background rounded border border-secondary/30 text-text/80 text-sm font-medium"
+                  >{{ group.pickingList.source }}</span
+                >
+                <span
+                  v-if="group.pickingList"
+                  class="px-2 py-1 bg-background rounded border border-secondary/30 text-text/80 text-sm font-medium"
+                  >{{ group.pickingList.status }}</span
+                >
+                <span
+                  class="px-2 py-1 bg-background rounded border border-secondary/30 text-text/80 text-sm font-medium"
+                >
+                  {{ group.movementType }}
+                </span>
               </div>
 
               <div
@@ -379,7 +520,9 @@
               </h4>
               <table class="min-w-full divide-y divide-secondary/20 text-sm">
                 <thead>
-                  <tr class="text-left text-xs font-medium text-text/60 uppercase tracking-wider">
+                  <tr
+                    class="text-left bg-primary/5 border-b border-secondary text-xs font-medium text-text/60 uppercase tracking-wider"
+                  >
                     <th class="px-4 py-2">Waktu Eksekusi</th>
                     <th class="px-4 py-2">Lokasi</th>
                     <th class="px-4 py-2">Qty</th>
@@ -390,7 +533,7 @@
                 <tbody class="divide-y divide-secondary/10 bg-background rounded-lg">
                   <template v-for="skuGroup in groupTransactionsBySku(group.transactions)" :key="skuGroup.sku">
                     <!-- SKU Group Header -->
-                    <tr class="bg-secondary/5 border-t border-secondary/20">
+                    <tr class="bg-secondary/10 border-y border-secondary">
                       <td colspan="5" class="px-4 py-2">
                         <div class="flex items-center justify-between">
                           <div>
@@ -458,7 +601,7 @@
 
                       <!-- Collapsible Trx Details (Item ID & Notes) -->
                       <tr v-if="openTrx.includes(trx.id)">
-                        <td colspan="5" class="p-0 border-t border-secondary/10 bg-secondary/5 inset-shadow">
+                        <td colspan="5" class="p-0 border-t border-secondary/10 bg-secondary/20 inset-shadow">
                           <div class="px-8 py-3 text-sm flex items-start justify-between border-l-2 border-primary/30">
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
                               <div>
@@ -488,17 +631,21 @@
                             <div class="ml-4 flex-shrink-0 self-center">
                               <button
                                 @click="confirmRevert(trx)"
-                                :disabled="trx.notes && trx.notes.includes('Reversal')"
+                                :disabled="
+                                  trx.notes && (trx.notes.includes('Reversal') || trx.notes.includes('[REVERTED]'))
+                                "
                                 :class="[
                                   'px-3 py-1.5 rounded border text-xs font-semibold transition-colors flex items-center',
-                                  trx.notes && trx.notes.includes('Reversal')
+                                  trx.notes && (trx.notes.includes('Reversal') || trx.notes.includes('[REVERTED]'))
                                     ? 'bg-secondary/20 text-text/40 border-secondary/20 cursor-not-allowed'
                                     : 'bg-accent/10 text-accent hover:bg-accent hover:text-white border-accent/30'
                                 ]"
                               >
                                 <font-awesome-icon icon="fa-solid fa-rotate-left" class="mr-1.5" />
                                 {{
-                                  trx.notes && trx.notes.includes('Reversal') ? 'Sudah Di-revert' : 'Revert Transaksi'
+                                  trx.notes && (trx.notes.includes('Reversal') || trx.notes.includes('[REVERTED]'))
+                                    ? 'Sudah Di-revert'
+                                    : 'Revert Transaksi'
                                 }}
                               </button>
                             </div>
@@ -534,12 +681,15 @@ import { ref, onMounted } from 'vue'
 import api from '@/api/axios' // Asumsi letak axios setup
 import { useToast } from '@/composables/useToast.js'
 import BasePagination from '@/components/ui/BasePagination.vue'
+import TriStateSelect from '@/components/ui/TriStateSelect.vue'
+import { fetchAllLocations } from '@/api/helpers/locations.js'
 
 const { toast } = useToast()
 const loading = ref(false)
 const results = ref([])
 const openGroups = ref([])
 const openTrx = ref([])
+const locationOptions = ref([])
 
 const meta = ref({
   totalGroups: 0,
@@ -551,17 +701,25 @@ const meta = ref({
 const filters = ref({
   startDate: '',
   endDate: '',
-  movementType: 'SALE',
+  movementType: { include: ['SALE'], exclude: [] },
   includeNotes: 'Sale Ref.*Item #',
   excludeNotes: '',
   location: '',
   productName: '',
   username: '',
-  plSource: '',
-  plStatus: '',
+  plSource: { include: [], exclude: [] },
+  plStatus: { include: [], exclude: [] },
   plMarketplaceStatus: '',
   plCustomer: '',
-  exactQuantity: false
+  exactQuantity: false,
+  revertStatus: { include: [], exclude: [] },
+  minOccurrences: '',
+  maxOccurrences: '',
+  minSku: '',
+  maxSku: '',
+  maxTimeGap: '',
+  sortBy: 'LATEST',
+  sortDirection: 'DESC'
 })
 
 // Helper for formatting date
@@ -631,17 +789,25 @@ const resetFilters = () => {
   const d = new Date()
   filters.value.startDate = new Date(d.setDate(d.getDate() - 30)).toISOString().split('T')[0]
   filters.value.endDate = new Date().toISOString().split('T')[0]
-  filters.value.movementType = 'SALE'
+  filters.value.movementType = { include: ['SALE'], exclude: [] }
   filters.value.includeNotes = 'Sale Ref.*Item #'
   filters.value.excludeNotes = ''
   filters.value.location = ''
   filters.value.productName = ''
   filters.value.username = ''
-  filters.value.plSource = ''
-  filters.value.plStatus = ''
+  filters.value.plSource = { include: [], exclude: [] }
+  filters.value.plStatus = { include: [], exclude: [] }
   filters.value.plMarketplaceStatus = ''
   filters.value.plCustomer = ''
   filters.value.exactQuantity = false
+  filters.value.revertStatus = { include: [], exclude: [] }
+  filters.value.minOccurrences = ''
+  filters.value.maxOccurrences = ''
+  filters.value.minSku = ''
+  filters.value.maxSku = ''
+  filters.value.maxTimeGap = ''
+  filters.value.sortBy = 'LATEST'
+  filters.value.sortDirection = 'DESC'
   results.value = []
   openGroups.value = []
   openTrx.value = []
@@ -685,9 +851,30 @@ const fetchData = async (resetPage = true) => {
       page: meta.value.page,
       limit: meta.value.limit
     }
+
+    if (params.revertStatus && typeof params.revertStatus === 'object') {
+      if (params.revertStatus.include && params.revertStatus.include.includes('REVERTED')) {
+        params.revertStatus = 'REVERTED'
+      } else if (params.revertStatus.exclude && params.revertStatus.exclude.includes('REVERTED')) {
+        params.revertStatus = 'NOT_REVERTED'
+      } else {
+        params.revertStatus = ''
+      }
+    }
+
+    if (params.movementType && typeof params.movementType === 'object') {
+      params.movementType = JSON.stringify(params.movementType)
+    }
+    if (params.plSource && typeof params.plSource === 'object') {
+      params.plSource = JSON.stringify(params.plSource)
+    }
+    if (params.plStatus && typeof params.plStatus === 'object') {
+      params.plStatus = JSON.stringify(params.plStatus)
+    }
+
     // Only send non-empty filters
     Object.keys(params).forEach(k => {
-      if (params[k] === '' || params[k] === null) delete params[k]
+      if (params[k] === '' || params[k] === null || params[k] === undefined) delete params[k]
     })
 
     const response = await api.get('/investigation/duplicates', { params })
@@ -708,7 +895,7 @@ const fetchData = async (resetPage = true) => {
 }
 
 const confirmRevert = async trx => {
-  if (trx.notes && trx.notes.includes('Reversal')) return
+  if (trx.notes && (trx.notes.includes('Reversal') || trx.notes.includes('[REVERTED]'))) return
 
   const isConfirmed = window.confirm(
     `Apakah Anda yakin ingin membalikkan transaksi stok ganda ini?\n\nID Trx: #${trx.id}\nSKU: ${trx.sku}\nQty: ${trx.quantity}\n\nSistem akan membuat transaksi baru untuk menyeimbangkan stok.`
@@ -791,7 +978,17 @@ const exportToCSV = () => {
   URL.revokeObjectURL(url)
 }
 
-onMounted(() => {
+onMounted(async () => {
+  try {
+    const locs = await fetchAllLocations()
+    // ensure locs is an array
+    if (Array.isArray(locs)) {
+      locationOptions.value = locs
+    }
+  } catch (error) {
+    console.error('Failed to fetch locations', error)
+  }
+
   // Set default dates to last 30 days
   resetFilters()
   // We can choose to auto-fetch or wait for user interaction
