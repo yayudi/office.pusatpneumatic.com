@@ -20,12 +20,7 @@ export function useInfiniteScroll(sourceArray, options = {}) {
 
   const loadMore = () => {
     if (hasMore.value) {
-      console.log(
-        `[InfiniteScroll] loadMore dipanggil. Menambah dari ${displayedCount.value} ke ${displayedCount.value + step}`
-      )
       displayedCount.value += step
-    } else {
-      console.log(`[InfiniteScroll] loadMore dipanggil, tapi hasMore = false.`)
     }
   }
 
@@ -39,9 +34,6 @@ export function useInfiniteScroll(sourceArray, options = {}) {
     observer = new IntersectionObserver(
       entries => {
         const entry = entries[0]
-        console.log(
-          `[InfiniteScroll] Sensor berstatus isIntersecting: ${entry.isIntersecting}, hasMore: ${hasMore.value}`
-        )
         if (entry.isIntersecting && hasMore.value) {
           loadMore()
         }
@@ -73,7 +65,6 @@ export function useInfiniteScroll(sourceArray, options = {}) {
   watch(displayedCount, () => {
     setTimeout(() => {
       if (loaderRef.value && observer) {
-        console.log(`[InfiniteScroll] Re-observe sensor setelah displayedCount berubah.`)
         observer.unobserve(loaderRef.value)
         observer.observe(loaderRef.value)
       }

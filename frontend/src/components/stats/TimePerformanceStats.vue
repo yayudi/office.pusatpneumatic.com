@@ -119,7 +119,6 @@ const fetchStatistics = async () => {
     }
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
-//     toast(error.message || 'Gagal mengambil data statistik performa waktu', 'error') // Removed to prevent double-toast
   } finally {
     isDataLoading.value = false
   }

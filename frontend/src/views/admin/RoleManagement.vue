@@ -1,4 +1,5 @@
 <script setup>
+import { swalConfirm } from '@/composables/useSweetAlert'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 
 import { ref, onMounted, computed, watch } from 'vue'
@@ -75,7 +76,6 @@ async function loadInitialData() {
       selectRole(roles[0])
     }
   } catch {
-//     toast('Gagal memuat data peran & izin.', 'error') // Removed to prevent double-toast
   } finally {
     isLoadingRoles.value = false
   }
@@ -87,7 +87,7 @@ onMounted(loadInitialData)
  * Memilih peran dan memuat izin (permissions) yang terkait.
  */
 async function selectRole(role) {
-  if (isSaving.value || (isDirty.value && !confirm('Ada perubahan belum disimpan. Yakin pindah?'))) {
+  if (isSaving.value || (isDirty.value && !await swalConfirm('Ada perubahan belum disimpan. Yakin pindah?'))) {
     return
   }
   selectedRole.value = role
@@ -97,7 +97,6 @@ async function selectRole(role) {
     selectedPermissionIds.value = permissionIds
     originalPermissionIds.value = [...permissionIds] // Simpan state asli
   } catch {
-//     toast(`Gagal memuat izin untuk peran ${role.name}.`, 'error') // Removed to prevent double-toast
     selectedPermissionIds.value = []
     originalPermissionIds.value = []
   } finally {
@@ -117,7 +116,6 @@ async function handleSavePermissions() {
     toast(`Izin untuk peran ${selectedRole.value.name} berhasil diperbarui.`, 'success')
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
-//     toast(error.message || 'Gagal menyimpan perubahan izin.', 'error') // Removed to prevent double-toast
   } finally {
     isSaving.value = false
   }
@@ -170,7 +168,6 @@ async function handleSaveRole() {
     roleForm.value = { id: null, name: '', description: '' } // Reset form
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
-//     toast(error.message || 'Gagal menyimpan peran.', 'error') // Removed to prevent double-toast
   } finally {
     isSaving.value = false
   }
@@ -180,7 +177,7 @@ async function handleSaveRole() {
  * Menghapus peran (setelah konfirmasi).
  */
 async function handleDeleteRole(role) {
-  if (!confirm(`Apakah Anda yakin ingin menghapus peran "${role.name}"? Ini tidak bisa dibatalkan.`)) {
+  if (!await swalConfirm(`Apakah Anda yakin ingin menghapus peran "${role.name}"? Ini tidak bisa dibatalkan.`)) {
     return
   }
   isSaving.value = true
@@ -194,7 +191,6 @@ async function handleDeleteRole(role) {
     toast('Peran berhasil dihapus.', 'success')
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
-//     toast(error.message || 'Gagal menghapus peran.', 'error') // Removed to prevent double-toast
   } finally {
     isSaving.value = false
   }

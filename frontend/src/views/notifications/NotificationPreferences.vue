@@ -75,11 +75,13 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/api/axios'
+import { useToast } from '@/composables/useToast'
 
 const router = useRouter()
 const loading = ref(true)
 const saving = ref(false)
 const preferences = ref([])
+const { toast } = useToast()
 
 onMounted(async () => {
   try {
@@ -87,8 +89,8 @@ onMounted(async () => {
     if (response.data.success) {
       preferences.value = response.data.data
     }
-  } catch (error) {
-    console.error('Failed to load preferences:', error)
+  } catch {
+    toast('Gagal memuat preferensi', 'error')
   } finally {
     loading.value = false
   }
@@ -105,11 +107,10 @@ const savePreferences = async () => {
       preferences: preferences.value,
     })
     if (response.data.success) {
-      // Show success toast here if toast utility is available
-      console.log('Preferences saved')
+      toast('Preferensi disimpan', 'success')
     }
-  } catch (error) {
-    console.error('Failed to save preferences:', error)
+  } catch {
+    toast('Gagal menyimpan preferensi', 'error')
   } finally {
     saving.value = false
   }

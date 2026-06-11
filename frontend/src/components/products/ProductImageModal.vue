@@ -1,5 +1,6 @@
 <!-- frontend/src/components/products/ProductImageModal.vue -->
 <script setup>
+import { swalConfirm } from '@/composables/useSweetAlert'
 import { ref, computed, watch, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { useAuthStore } from '@/stores/auth.js'
@@ -59,7 +60,7 @@ async function fetchImages() {
   }
 }
 
-const handlePaste = (event) => {
+const handlePaste = async (event) => {
   if (!props.show) return
   if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return
 
@@ -143,7 +144,6 @@ const autoCropAll = async () => {
     selectedImages.value = newFiles
   } catch (error) {
     console.error('Auto crop failed:', error)
-//     toast('Gagal melakukan auto-crop.', 'error') // Removed to prevent double-toast
   } finally {
     autoCropAllProcessing.value = false
   }
@@ -239,7 +239,6 @@ async function saveNewImages() {
       toast(`Duplikat: ${errData.message} (ID aset: ${errData.duplicateOf})`, 'warning')
     } else {
       console.error(error)
-//       toast('Gagal mengupload gambar.', 'error') // Removed to prevent double-toast
     }
   } finally {
     loading.value = false
@@ -247,7 +246,7 @@ async function saveNewImages() {
 }
 
 async function deleteImage(imageId) {
-  if (!confirm('Hapus gambar ini permanen?')) return
+  if (!await swalConfirm('Hapus gambar ini permanen?')) return
 
   loading.value = true
   try {
@@ -259,7 +258,6 @@ async function deleteImage(imageId) {
     }
   } catch (error) {
     console.error(error)
-//     toast('Gagal menghapus gambar.', 'error') // Removed to prevent double-toast
   } finally {
     loading.value = false
   }
@@ -276,7 +274,6 @@ async function setPrimary(imageId) {
     }
   } catch (error) {
     console.error(error)
-//     toast('Gagal mengatur gambar utama.', 'error') // Removed to prevent double-toast
   } finally {
     loading.value = false
   }

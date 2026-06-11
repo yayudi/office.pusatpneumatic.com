@@ -1,4 +1,5 @@
 <script setup>
+import { swalConfirm } from '@/composables/useSweetAlert'
 import { ref, computed, watch } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll.js'
@@ -120,7 +121,7 @@ const stockUsage = computed(() => {
 })
 
 // Logika Validasi Seleksi Item
-function canSelectItem(item) {
+async function canSelectItem(item) {
   if (!item) return false
 
   // Debugging log
@@ -139,7 +140,7 @@ function canSelectItem(item) {
 
   if (currentUsage + qtyNeeded > available && !selectedItems.value.has(item.id)) {
     console.warn(
-      `${debugTag} ❌ GAGAL: Stok Tidak Cukup di ${item.location_code}. Butuh: ${qtyNeeded}, Sisa Hitungan: ${
+      `${debugTag} GAGAL: Stok Tidak Cukup di ${item.location_code}. Butuh: ${qtyNeeded}, Sisa Hitungan: ${
         available - currentUsage
       }. Item tetap diizinkan agar Backend bisa Re-route.`
     )
@@ -189,7 +190,6 @@ async function handleCompleteSelectedItems() {
 
     if (details.length > 0) {
       // Tampilkan pesan utama
-//       toast(errData.message || 'Validasi Gagal!', 'error') // Removed to prevent double-toast
       // Tampilkan tiap detail sebagai toast terpisah (max 10)
       const maxToasts = Math.min(details.length, 10)
       for (let i = 0; i < maxToasts; i++) {
@@ -199,7 +199,6 @@ async function handleCompleteSelectedItems() {
         setTimeout(() => toast(`...dan ${details.length - 10} error lainnya.`, 'warning'), (maxToasts + 1) * 300)
       }
     } else {
-//       toast(errData.message || 'Gagal menyelesaikan item.', 'error') // Removed to prevent double-toast
     }
   } finally {
     isLoadingPicking.value = false
@@ -218,7 +217,7 @@ async function handleCancelSelectedItems() {
     }
   })
 
-  if (!confirm(`Batalkan ${uniqueInvoices.size} pesanan ini? Stok akan dikembalikan.`)) return
+  if (!await swalConfirm(`Batalkan ${uniqueInvoices.size} pesanan ini? Stok akan dikembalikan.`)) return
 
   isCancelling.value = true
   let successCount = 0
@@ -251,14 +250,13 @@ async function handleCancelSelectedItems() {
 }
 
 async function handleCancelInvoice(pickingListId) {
-  if (!confirm('Batalkan seluruh pesanan ini? Stok akan dikembalikan.')) return
+  if (!await swalConfirm('Batalkan seluruh pesanan ini? Stok akan dikembalikan.')) return
   try {
     await cancelPickingList(pickingListId)
     toast('Picking list dibatalkan.', 'success')
     pendingItems.value = pendingItems.value.filter(item => item.picking_list_id !== pickingListId)
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
-//     toast(error.message || 'Gagal membatalkan.', 'error') // Removed to prevent double-toast
     await fetchPendingItems()
   }
 }
@@ -280,7 +278,7 @@ function handleToggleInvoice({ inv, checked }) {
       if (canSelectItem(item)) {
         newSet.add(item.id)
       } else {
-        console.warn(`[Toggle Invoice] Item #${item.id} (${item.sku}) ditolak oleh validasi.`)
+        toast(`Item ${item.sku} ditolak oleh validasi.`, 'warning')
       }
     } else {
       newSet.delete(item.id)

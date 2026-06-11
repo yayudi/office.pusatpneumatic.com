@@ -1,5 +1,6 @@
 <!-- frontend/src/views/media/MediaManagement.vue -->
 <script setup>
+import { swalConfirm, swalAlert } from '@/composables/useSweetAlert'
 import { ref, onMounted, onUnmounted, watch, defineAsyncComponent } from 'vue'
 import debounce from 'lodash/debounce'
 import { useToast } from '@/composables/useToast.js'
@@ -49,7 +50,7 @@ const isUsageTooltipVisible = ref(false)
 const usageTooltipTarget = ref(null)
 const hoveredMediaItem = ref(null)
 
-const handleTooltipOpen = (event, item) => {
+const handleTooltipOpen = async (event, item) => {
   if (item.usage_count > 0) {
     usageTooltipTarget.value = event.currentTarget
     hoveredMediaItem.value = item
@@ -166,7 +167,7 @@ const toggleSelectAll = e => {
 const confirmBulkDelete = async () => {
   if (selectedMediaIds.value.size === 0) return
   if (
-    !confirm(`Hapus ${selectedMediaIds.value.size} gambar terpilih secara permanen? Aksi ini tidak dapat dibatalkan.`)
+    !await swalConfirm(`Hapus ${selectedMediaIds.value.size} gambar terpilih secara permanen? Aksi ini tidak dapat dibatalkan.`)
   )
     return
 
@@ -199,10 +200,10 @@ const confirmBulkDelete = async () => {
       }
     }
 
-    let msg = `Selesai memproses pemusnahan massal.\n✓ Berhasil: ${successCount}`
-    if (usageConflictCount > 0) msg += `\n⚠️ Dilewati: ${usageConflictCount} gambar (Masih ditautkan ke produk)`
-    if (failCount > 0) msg += `\n❌ Gagal sistem: ${failCount} gambar`
-    alert(msg)
+    let msg = `Selesai memproses pemusnahan massal.\nBerhasil: ${successCount}`
+    if (usageConflictCount > 0) msg += `\nDilewati: ${usageConflictCount} gambar (Masih ditautkan ke produk)`
+    if (failCount > 0) msg += `\nGagal sistem: ${failCount} gambar`
+    await swalAlert(msg)
   } finally {
     fetchMedia(pagination.value.page, true)
     isLoading.value = false
@@ -226,13 +227,13 @@ const fetchMedia = async (page = 1, silent = false) => {
     }
   } catch (error) {
     console.error('Failed to load media:', error)
-    alert(error.response?.data?.message || 'Gagal memuat galeri media.')
+    await swalAlert(error.response?.data?.message || 'Gagal memuat galeri media.')
   } finally {
     isLoading.value = false
   }
 }
 
-const triggerUpload = () => {
+const triggerUpload = async () => {
   if (uploaderInput.value) {
     uploaderInput.value.click()
   }
@@ -317,13 +318,13 @@ const autoCropAll = async () => {
     selectedFiles.value = newFiles
   } catch (error) {
     console.error('Auto crop failed:', error)
-    alert('Gagal melakukan auto-crop.')
+    await swalAlert('Gagal melakukan auto-crop.')
   } finally {
     autoCropAllProcessing.value = false
   }
 }
 
-const handlePaste = event => {
+const handlePaste = async event => {
   // Abaikan paste jika pengguna sedang mengetik di dalam input/textarea (misal sedang ngetik pencarian)
   if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
     return
@@ -423,10 +424,10 @@ const executeBulkUpload = async () => {
     console.error(err) // Auto-added to prevent unused var
     const errData = err.response?.data || err
     if (errData?.error_code === 'DUPLICATE_MEDIA') {
-      alert(`⚠️ Duplikat terdeteksi: ${errData.message}\n\nGunakan aset yang sudah ada.`)
+      await swalAlert(`Duplikat terdeteksi: ${errData.message}\n\nGunakan aset yang sudah ada.`)
     } else {
       console.error('Upload Error:', err)
-      alert(errData?.message || 'Gagal mengunggah beberapa gambar.')
+      await swalAlert(errData?.message || 'Gagal mengunggah beberapa gambar.')
     }
   } finally {
     isUploading.value = false
@@ -439,10 +440,10 @@ const executeBulkUpload = async () => {
 
 const deleteMedia = async (id, usageCount) => {
   if (usageCount > 0) {
-    alert('Media ini sedang digunakan oleh ' + usageCount + ' produk. Tidak bisa dihapus.')
+    await swalAlert('Media ini sedang digunakan oleh ' + usageCount + ' produk. Tidak bisa dihapus.')
     return
   }
-  if (!confirm('Yakin ingin menghapus aset media ini?')) return
+  if (!await swalConfirm('Yakin ingin menghapus aset media ini?')) return
 
   try {
     const res = await apiClient.delete(`/media/${id}`)
@@ -451,7 +452,7 @@ const deleteMedia = async (id, usageCount) => {
     }
   } catch (error) {
     console.error('Delete Error:', error)
-    alert(error.response?.data?.message || 'Gagal menghapus gambar.')
+    await swalAlert(error.response?.data?.message || 'Gagal menghapus gambar.')
   }
 }
 
@@ -466,7 +467,6 @@ const bulkCopyLinks = async () => {
     await navigator.clipboard.writeText(links)
     toast(`${items.length} tautan berhasil disalin!`, 'success')
   } catch {
-//     toast('Gagal menyalin tautan', 'error') // Removed to prevent double-toast
   }
 }
 
@@ -479,7 +479,7 @@ const bulkDownloadImages = async () => {
   toast(`${items.length} gambar sedang diunduh.`, 'success')
 }
 
-const startPolling = () => {
+const startPolling = async () => {
   pollInterval = setInterval(() => {
     // Hindari Ghost Polling (Page Visibility API) & Hindari UI Conflict
     if (document.visibilityState === 'visible' && !isBulkModalOpen.value) {
@@ -511,7 +511,7 @@ const handleDragOver = e => {
   isDragging.value = true
 }
 
-const handleDrop = e => {
+const handleDrop = async e => {
   e.preventDefault()
   isDragging.value = false
 
@@ -520,7 +520,7 @@ const handleDrop = e => {
 
   const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'))
   if (imageFiles.length === 0) {
-    alert('Hanya format/tipe file gambar yang didukung.')
+    await swalAlert('Hanya format/tipe file gambar yang didukung.')
     return
   }
 

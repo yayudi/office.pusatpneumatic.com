@@ -5,6 +5,7 @@ import { ref, onMounted, toRaw, computed, watch } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
 import { useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast.js'
+import { swalAlert } from '@/composables/useSweetAlert'
 import api from '@/api/axios'
 import ProductSearchSelector from '@/components/wms/transfer/ProductSearchSelector.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
@@ -67,7 +68,6 @@ async function submitForm() {
     if (!item.selectedProduct) return toast(`Baris ke-${index + 1}: Produk belum dipilih!`, 'warning')
 
     const productId = item.selectedProduct.id || item.selectedProduct.product_id
-//     if (!productId) return toast(`Baris ke-${index + 1}: Data produk korup.`, 'error') // Removed to prevent double-toast
 
     if (!item.quantity || item.quantity < 1) return toast(`Baris ke-${index + 1}: Qty minimal 1.`, 'warning')
     if (!item.locationId) return toast(`Baris ke-${index + 1}: Lokasi belum dipilih!`, 'warning')
@@ -94,7 +94,6 @@ async function submitForm() {
         successCount++
       } catch (err) {
         console.error('Gagal memproses item:', itemPayload, err)
-//         toast(`Gagal item ${itemPayload.reference}: ${err.response?.data?.message || 'Error'}`, 'error') // Removed to prevent double-toast
       }
     }
 
@@ -102,11 +101,9 @@ async function submitForm() {
       toast(`Berhasil memproses ${successCount} item. Stok telah bertambah.`, 'success')
       router.go(-1)
     } else {
-//       toast('Gagal memproses semua data. Silakan coba lagi.', 'error') // Removed to prevent double-toast
     }
-  } catch (e) {
-    console.error('Submit System Error:', e)
-//     toast('Terjadi kesalahan sistem.', 'error') // Removed to prevent double-toast
+  } catch {
+    swalAlert('Gagal Memproses', 'Terjadi kesalahan sistem saat menyimpan data', 'error')
   } finally {
     isLoading.value = false
   }

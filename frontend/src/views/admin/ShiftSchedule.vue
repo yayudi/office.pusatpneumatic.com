@@ -96,7 +96,6 @@ const loadInitialData = async () => {
     users.value = usersData
     shifts.value = shiftsData
   } catch {
-//     toast('Gagal memuat data awal', 'error') // Removed to prevent double-toast
   } finally {
     loading.value = false
   }
@@ -119,7 +118,6 @@ const loadSchedules = async () => {
     const data = await fetchSchedules(selectedUserId.value, startDate, endDate)
     schedules.value = Array.isArray(data) ? data : []
   } catch {
-//     toast('Gagal memuat jadwal', 'error') // Removed to prevent double-toast
   } finally {
     loading.value = false
   }
@@ -170,7 +168,6 @@ const selectShift = async shiftId => {
     await loadSchedules() // Reload to reflect changes
     toast('Jadwal diperbarui', 'success')
   } catch {
-//     toast('Gagal menyimpan jadwal', 'error') // Removed to prevent double-toast
   } finally {
     isProcessing.value = false
   }
@@ -186,7 +183,6 @@ const clearSchedule = async () => {
     await loadSchedules()
     toast('Jadwal dikembalikan ke default', 'success')
   } catch {
-//     toast('Gagal menghapus jadwal', 'error') // Removed to prevent double-toast
   } finally {
     isProcessing.value = false
   }

@@ -1,5 +1,6 @@
 <!-- frontend\src\components\picking\PickingListCard.vue -->
 <script setup>
+import { swalConfirm } from '@/composables/useSweetAlert'
 import { computed, ref } from 'vue'
 import { formatDate } from '@/api/helpers/time.js'
 import { useAuthStore } from '@/stores/auth'
@@ -33,11 +34,11 @@ const {
 } = usePickingCardState(props, authStore)
 
 // --- ACTIONS ---
-function onToggleInvoice(event) {
+async function onToggleInvoice(event) {
   emit('toggle-invoice', { inv: props.inv, checked: event.target.checked })
 }
 async function onCancelInvoice() {
-  if (!confirm(`Batalkan pesanan ${props.inv.invoice}?`)) return
+  if (!await swalConfirm(`Batalkan pesanan ${props.inv.invoice}?`)) return
   try {
     isLoading.value = true
     emit('cancel-invoice', props.inv.id)

@@ -1,5 +1,6 @@
 <!-- frontend\src\views\wms\WmsDashboard.vue -->
 <script setup>
+import { swalConfirm } from '@/composables/useSweetAlert'
 import axios from '@/api/axios.js'
 import { ref, watch, computed } from 'vue'
 import { useToast } from '@/composables/useToast.js'
@@ -73,8 +74,8 @@ async function loadCategories() {
   try {
     const categories = await masterData.getCategories()
     categoryOptions.value = categories.map(c => ({ id: c.id, label: c.name }))
-  } catch (error) {
-    console.error('Failed to load categories', error)
+  } catch {
+    toast('Gagal memuat kategori dari server', 'error')
   }
 }
 
@@ -127,9 +128,8 @@ function copyToClipboard({ text, fieldName }) {
   try {
     document.execCommand('copy')
     toast(`${fieldName} disalin ke clipboard!`, 'success')
-  } catch (err) {
-    console.error('Gagal menyalin:', err)
-//     toast('Gagal menyalin teks.', 'error') // Removed to prevent double-toast
+  } catch {
+    toast('Gagal menyalin teks.', 'error')
   }
   document.body.removeChild(textArea)
 }
@@ -165,7 +165,7 @@ function openEditProductModal(product) {
 }
 
 async function handleDeleteProduct(product) {
-  if (!confirm(`Yakin ingin menghapus "${product.name}"?`)) return
+  if (!await swalConfirm(`Yakin ingin menghapus "${product.name}"?`)) return
   try {
     const response = await axios.delete(`/products/${product.id}`)
     if (response.data.success) {
@@ -174,7 +174,6 @@ async function handleDeleteProduct(product) {
     }
   } catch (err) {
     console.error(err) // Auto-added to prevent unused var
-//     toast(err.response?.data?.message || 'Gagal menghapus produk', 'error') // Removed to prevent double-toast
   }
 }
 
@@ -210,7 +209,6 @@ async function handleTransferConfirm(payload) {
     }
   } catch (err) {
     console.error(err) // Auto-added to prevent unused var
-//     toast(err.message || 'Gagal transfer.', 'error') // Removed to prevent double-toast
   } finally {
     closeModal()
   }
@@ -225,7 +223,6 @@ async function handleAdjustConfirm(payload) {
     }
   } catch (err) {
     console.error(err) // Auto-added to prevent unused var
-//     toast(err.message || 'Gagal penyesuaian.', 'error') // Removed to prevent double-toast
   } finally {
     closeModal()
   }

@@ -39,7 +39,6 @@ async function loadDetails() {
     }
   } catch {
     error.value = 'Gagal memuat detail item.'
-//     toast(error.value, 'error') // Removed to prevent double-toast
   } finally {
     loading.value = false
   }

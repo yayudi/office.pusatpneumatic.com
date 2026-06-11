@@ -6,6 +6,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import { fetchRoles, fetchShifts, createUser, deleteUser } from '@/api/helpers/admin.js'
+import { swalConfirm } from '@/composables/useSweetAlert'
 import { useMasterDataStore } from '@/stores/masterData'
 
 const masterData = useMasterDataStore()
@@ -35,8 +36,6 @@ const searchShift = ref({ include: [], exclude: [] })
 const isCreateModalOpen = ref(false)
 const isLocationModalOpen = ref(false)
 const isEditModalOpen = ref(false)
-const isDeleteConfirmOpen = ref(false)
-const pendingDeleteUserId = ref(null)
 
 const newUser = ref({ username: '', password: '', role_id: null, shift_id: null, nickname: '' })
 const { toast } = useToast()
@@ -99,7 +98,7 @@ async function fetchData() {
     allRoles.value = rolesData
     allShifts.value = shiftsData
   } catch {
-//     toast('Gagal memuat data pengguna.', 'error') // Removed to prevent double-toast
+    toast('Gagal memuat data pengguna.', 'error')
   } finally {
     loading.value = false
   }
@@ -117,27 +116,25 @@ async function handleCreateUser() {
     newUser.value = { username: '', password: '', role_id: null, shift_id: null, nickname: '' } // Reset form
     fetchData() // Muat ulang data
   } catch (error) {
-    console.error(error) // Auto-added to prevent unused var
-//     toast(error.response?.data?.message || 'Gagal membuat pengguna.', 'error') // Removed to prevent double-toast
+    toast(error.response?.data?.message || 'Gagal membuat pengguna.', 'error')
   }
 }
 
-function handleDeleteUser(userId) {
-  pendingDeleteUserId.value = userId
-  isDeleteConfirmOpen.value = true
-}
+async function handleDeleteUser(userId) {
+  if (
+    !(await swalConfirm(
+      'Konfirmasi Hapus',
+      'Apakah Anda yakin ingin menghapus pengguna ini? Pengguna akan dinonaktifkan dan tidak dapat login lagi.'
+    ))
+  )
+    return
 
-async function confirmDelete() {
-  const userId = pendingDeleteUserId.value
-  isDeleteConfirmOpen.value = false
-  pendingDeleteUserId.value = null
   try {
     const response = await deleteUser(userId)
     toast(response.message || 'Pengguna berhasil dihapus.', 'success')
     fetchData()
   } catch (error) {
-    console.error(error) // Auto-added to prevent unused var
-//     toast(error.response?.data?.message || 'Gagal menghapus pengguna.', 'error') // Removed to prevent double-toast
+    toast(error.response?.data?.message || 'Gagal menghapus pengguna.', 'error')
   }
 }
 
@@ -380,33 +377,6 @@ onMounted(fetchData)
     @close="isEditModalOpen = false"
     @updated="fetchData"
   />
-
-  <!-- Modal Konfirmasi Hapus -->
-  <BaseModal :show="isDeleteConfirmOpen" @close="isDeleteConfirmOpen = false" title="Konfirmasi Hapus">
-    <div class="text-center space-y-4">
-      <div class="mx-auto w-14 h-14 rounded-full bg-danger/10 flex items-center justify-center">
-        <font-awesome-icon icon="fa-solid fa-triangle-exclamation" class="text-danger text-2xl" />
-      </div>
-      <p class="text-text font-medium">Apakah Anda yakin ingin menghapus pengguna ini?</p>
-      <p class="text-text/50 text-sm">Pengguna akan dinonaktifkan dan tidak dapat login lagi.</p>
-    </div>
-    <template #footer>
-      <button
-        @click="isDeleteConfirmOpen = false"
-        class="bg-background border border-secondary/30 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-secondary/20 flex items-center gap-2"
-      >
-        <font-awesome-icon icon="fa-solid fa-times" />
-        <span>Batal</span>
-      </button>
-      <button
-        @click="confirmDelete"
-        class="bg-danger text-secondary px-4 py-2 rounded-lg text-sm font-semibold hover:bg-danger/90 flex items-center gap-2"
-      >
-        <font-awesome-icon icon="fa-solid fa-trash" />
-        <span>Hapus</span>
-      </button>
-    </template>
-  </BaseModal>
 
   <!-- Modal untuk Tambah Pengguna -->
   <BaseModal :show="isCreateModalOpen" @close="isCreateModalOpen = false" title="Tambah Pengguna Baru">

@@ -1,4 +1,5 @@
 <script setup>
+import { swalConfirm } from '@/composables/useSweetAlert'
 import { ref, reactive, onMounted, watch, computed } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
@@ -86,7 +87,6 @@ const fetchProducts = async () => {
     }
   } catch (err) {
     console.error(err)
-//     toast('Gagal memuat data paket.', 'error') // Removed to prevent double-toast
   } finally {
     loading.value = false
   }
@@ -95,7 +95,7 @@ const fetchProducts = async () => {
 // --- HANDLERS ---
 
 // Pagination & Sorting
-const handleChangePage = page => {
+const handleChangePage = async page => {
   pagination.page = page
   fetchProducts()
 }
@@ -136,7 +136,7 @@ const toggleSelectAll = () => {
 
 // CRUD
 const handleDelete = async product => {
-  if (!confirm(`Arsipkan paket "${product.name}"?`)) return
+  if (!await swalConfirm(`Arsipkan paket "${product.name}"?`)) return
   try {
     await axios.delete(`/products/${product.id}`)
     toast('Paket berhasil diarsipkan.', 'success')
@@ -144,12 +144,11 @@ const handleDelete = async product => {
     fetchProducts()
   } catch (err) {
     console.error(err)
-//     toast('Gagal menghapus produk.', 'error') // Removed to prevent double-toast
   }
 }
 
 const handleRestore = async product => {
-  if (!confirm(`Pulihkan paket "${product.name}"?`)) return
+  if (!await swalConfirm(`Pulihkan paket "${product.name}"?`)) return
   try {
     await axios.put(`/products/${product.id}`, { is_active: true })
     toast('Paket dipulihkan.', 'success')
@@ -157,12 +156,11 @@ const handleRestore = async product => {
     fetchProducts()
   } catch (err) {
     console.error(err)
-//     toast('Gagal memulihkan produk.', 'error') // Removed to prevent double-toast
   }
 }
 
 // Modals
-const openAddModal = () => {
+const openAddModal = async () => {
   productFormMode.value = 'create'
   selectedProduct.value = {}
   showProductForm.value = true
@@ -178,7 +176,7 @@ const performBulkAction = async actionType => {
   if (!selectedIds.value.size) return
 
   const msg = actionType === 'archive' ? 'Arsipkan' : 'Pulihkan'
-  if (!confirm(`${msg} ${selectionCount.value} paket terpilih?`)) return
+  if (!await swalConfirm(`${msg} ${selectionCount.value} paket terpilih?`)) return
 
   isProcessingBulk.value = true
   const ids = [...selectedIds.value]
@@ -194,7 +192,6 @@ const performBulkAction = async actionType => {
     selectedIds.value.clear()
     fetchProducts()
   } catch {
-//     toast('Terjadi kesalahan saat batch processing.', 'error') // Removed to prevent double-toast
   } finally {
     isProcessingBulk.value = false
   }
@@ -222,7 +219,6 @@ const handleExport = async ({ format }) => {
     }
   } catch (err) {
     console.error(err)
-//     toast('Gagal request export paket.', 'error') // Removed to prevent double-toast
   } finally {
     isExporting.value = false
   }
@@ -239,7 +235,6 @@ const handleImport = async formData => {
     fetchProducts()
   } catch (err) {
     console.error(err)
-//     toast(err.response?.data?.message || 'Gagal mengunggah file paket.', 'error') // Removed to prevent double-toast
   }
 }
 const handleProductSaved = () => {

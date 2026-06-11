@@ -37,7 +37,6 @@ async function loadUsers() {
   try {
     users.value = await masterData.getUsers()
   } catch (err) {
-//     toast('Gagal memuat daftar pengguna.', 'error') // Removed to prevent double-toast
     console.error('Error loading users for exclusions:', err)
   } finally {
     loading.value = false
@@ -74,7 +73,6 @@ async function toggleExclusion(user) {
     emit('updated')
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
-//     toast(`Gagal menyimpan perubahan untuk ${user.username}`, 'error') // Removed to prevent double-toast
     console.error(error)
   } finally {
     updatingId.value = null

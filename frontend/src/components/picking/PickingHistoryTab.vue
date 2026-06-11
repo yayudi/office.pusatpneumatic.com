@@ -1,5 +1,6 @@
 <!-- frontend/src/components/picking/PickingHistoryTab.vue -->
 <script setup>
+import { swalConfirm } from '@/composables/useSweetAlert'
 import { ref, onMounted, watch, computed } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll.js'
@@ -64,7 +65,6 @@ async function fetchHistoryItems() {
     historyItems.value = items || []
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
-//     toast(error.message || 'Gagal memuat riwayat.', 'error') // Removed to prevent double-toast
   } finally {
     isLoadingHistory.value = false
   }
@@ -73,14 +73,13 @@ async function fetchHistoryItems() {
 // --- HANDLERS ---
 
 async function handleCancelItem(itemId) {
-  if (!confirm('Apakah Anda yakin ingin membatalkan arsip ini? (Hanya admin)')) return
+  if (!await swalConfirm('Apakah Anda yakin ingin membatalkan arsip ini? (Hanya admin)')) return
   try {
     await cancelPickingList(itemId)
     toast('Berhasil dibatalkan', 'success')
     fetchHistoryItems() // Refresh
   } catch (e) {
     console.error(e) // Auto-added to prevent unused var
-//     toast(e.message, 'error') // Removed to prevent double-toast
   }
 }
 

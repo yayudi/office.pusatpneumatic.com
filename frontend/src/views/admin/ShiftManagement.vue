@@ -1,4 +1,5 @@
 <script setup>
+import { swalConfirm } from '@/composables/useSweetAlert'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 
 import { ref, onMounted, watch } from 'vue'
@@ -21,13 +22,12 @@ const getShifts = async () => {
     const data = await fetchShifts()
     shifts.value = data
   } catch {
-//     toast('Gagal memuat data shift', 'error') // Removed to prevent double-toast
   } finally {
     loading.value = false
   }
 }
 
-const openCreate = () => {
+const openCreate = async () => {
   selectedShift.value = null
   isModalOpen.value = true
 }
@@ -38,14 +38,13 @@ const openEdit = shift => {
 }
 
 const deleteShift = async id => {
-  if (!confirm('Hapus shift ini? User yang menggunakan shift ini akan kembali ke default.')) return
+  if (!await swalConfirm('Hapus shift ini? User yang menggunakan shift ini akan kembali ke default.')) return
 
   try {
     await axios.delete(`/shifts/${id}`)
     toast('Shift dihapus', 'success')
     getShifts()
   } catch {
-//     toast('Gagal menghapus shift', 'error') // Removed to prevent double-toast
   }
 }
 

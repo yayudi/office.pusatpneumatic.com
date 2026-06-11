@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import api from '@/api/axios.js'
+import { swalConfirm } from '@/composables/useSweetAlert'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 
@@ -23,8 +24,7 @@ const formData = ref({
 
 const platformOptions = ['Shopee', 'Tokopedia', 'Offline', 'Lainnya']
 
-const isDeleteModalOpen = ref(false)
-const itemToDelete = ref(null)
+// Modal hapus diganti dengan swalConfirm
 
 onMounted(() => {
   fetchChannels()
@@ -37,7 +37,6 @@ const fetchChannels = async () => {
     channels.value = res.data?.data || []
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
-//     toast(error.response?.data?.message || 'Gagal memuat saluran penjualan.', 'error') // Removed to prevent double-toast
   } finally {
     isLoading.value = false
   }
@@ -98,30 +97,20 @@ const saveChannel = async () => {
     fetchChannels()
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
-//     toast(error.response?.data?.message || 'Gagal menyimpan saluran penjualan.', 'error') // Removed to prevent double-toast
   } finally {
     isSaving.value = false
   }
 }
 
-const confirmDelete = item => {
-  itemToDelete.value = item
-  isDeleteModalOpen.value = true
-}
-
-const handleDelete = async () => {
-  if (!itemToDelete.value) return
+const confirmDelete = async item => {
+  if (!await swalConfirm('Konfirmasi Hapus', `Apakah Anda yakin ingin menghapus saluran ${item.name}? Data ini akan dinonaktifkan (soft delete) untuk menjaga integritas data riwayat penjualan.`)) return
 
   try {
-    await api.delete(`/sales-channels/${itemToDelete.value.id}`)
+    await api.delete(`/sales-channels/${item.id}`)
     toast('Saluran berhasil dihapus.', 'success')
     fetchChannels()
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
-//     toast(error.response?.data?.message || 'Gagal menghapus saluran.', 'error') // Removed to prevent double-toast
-  } finally {
-    isDeleteModalOpen.value = false
-    itemToDelete.value = null
   }
 }
 </script>
@@ -303,67 +292,7 @@ const handleDelete = async () => {
         </template>
       </BaseModal>
 
-      <!-- Delete Confirmation Modal -->
-      <BaseModal :show="isDeleteModalOpen" @close="isDeleteModalOpen = false" maxWidth="max-w-sm" class="mt-[-10vh]">
-        <template #title>Konfirmasi Hapus</template>
-        <div class="py-2">
-          <p class="text-sm text-text/80">
-            Apakah Anda yakin ingin menghapus saluran
-            <span class="font-bold text-text">{{ itemToDelete?.name }}</span
-            >?
-          </p>
-          <p class="text-xs text-text/50 mt-2">
-            Data ini akan dinonaktifkan (soft delete) untuk menjaga integritas data riwayat penjualan.
-          </p>
-        </div>
-        <template #footer>
-          <div class="flex justify-end gap-3 w-full">
-            <button
-              @click="isDeleteModalOpen = false"
-              class="px-4 py-2 text-sm font-bold text-text/60 hover:text-text transition-colors"
-            >
-              Batal
-            </button>
-            <button
-              @click="handleDelete"
-              class="px-6 py-2 bg-danger text-secondary text-sm font-bold rounded-lg hover:bg-danger/90 transition-colors"
-            >
-              Hapus
-            </button>
-          </div>
-        </template>
-      </BaseModal>
-
-      <!-- Delete Confirmation Modal -->
-      <BaseModal :show="isDeleteModalOpen" @close="isDeleteModalOpen = false" maxWidth="max-w-sm" class="mt-[-10vh]">
-        <template #title>Konfirmasi Hapus</template>
-        <div class="py-2">
-          <p class="text-sm text-text/80">
-            Apakah Anda yakin ingin menghapus saluran
-            <span class="font-bold text-text">{{ itemToDelete?.name }}</span
-            >?
-          </p>
-          <p class="text-xs text-text/50 mt-2">
-            Data ini akan dinonaktifkan (soft delete) untuk menjaga integritas data riwayat penjualan.
-          </p>
-        </div>
-        <template #footer>
-          <div class="flex justify-end gap-3 w-full">
-            <button
-              @click="isDeleteModalOpen = false"
-              class="px-4 py-2 text-sm font-bold text-text/60 hover:text-text transition-colors"
-            >
-              Batal
-            </button>
-            <button
-              @click="handleDelete"
-              class="px-6 py-2 bg-danger text-secondary text-sm font-bold rounded-lg hover:bg-danger/90 transition-colors"
-            >
-              Hapus
-            </button>
-          </div>
-        </template>
-      </BaseModal>
+      <!-- Delete Confirmation Modal (Dihapus karena sudah menggunakan swalConfirm) -->
     </Teleport>
   </div>
 </template>

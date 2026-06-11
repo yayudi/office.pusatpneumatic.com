@@ -3,6 +3,7 @@ import { useRouter } from 'vue-router'
 import { useMagicKeys } from '@vueuse/core'
 import { useTheme } from './useTheme'
 import { useAuthStore } from '../stores/auth'
+import Swal from 'sweetalert2'
 
 export const isCheatSheetOpen = ref(false)
 
@@ -10,15 +11,15 @@ export function useAppHotkeys(emitLogout) {
   const router = useRouter()
   const auth = useAuthStore()
   const { themes, currentTheme, applyTheme } = useTheme()
-  const { Escape, Alt_1, Alt_2, Alt_3, Alt_4, Alt_5, Alt_H, Alt_T, Alt_Slash, Alt_Shift_L } = useMagicKeys()
+  const { Escape, Alt_1, Alt_2, Alt_3, Alt_4, Alt_5, Alt_H, Alt_T, Alt_Slash, Alt_Shift_L, Enter } = useMagicKeys()
 
   // Navigation
-  watch(Alt_H, (pressed) => {
+  watch(Alt_H, pressed => {
     if (pressed) router.push('/guide')
   })
 
   // Cycle Theme
-  watch(Alt_T, (pressed) => {
+  watch(Alt_T, pressed => {
     if (pressed) {
       const currentIndex = themes.indexOf(currentTheme.value)
       const nextIndex = (currentIndex + 1) % themes.length
@@ -26,30 +27,48 @@ export function useAppHotkeys(emitLogout) {
     }
   })
 
-  watch(Escape, (pressed) => {
+  watch(Escape, pressed => {
     if (pressed) {
       isCheatSheetOpen.value = false
     }
   })
 
   // Navigation
-  watch(Alt_1, (pressed) => { if (pressed) router.push('/wms') })
-  watch(Alt_2, (pressed) => { if (pressed && auth.user?.permissions?.includes('product.image.view')) router.push('/media') })
-  watch(Alt_3, (pressed) => { if (pressed) router.push('/absensi') })
-  watch(Alt_4, (pressed) => { if (pressed && auth.user?.permissions?.includes('view-reports')) router.push('/stats') })
-  watch(Alt_5, (pressed) => { if (pressed && auth.user?.permissions?.includes('manage-users')) router.push('/admin/users') })
+  watch(Alt_1, pressed => {
+    if (pressed) router.push('/wms')
+  })
+  watch(Alt_2, pressed => {
+    if (pressed && auth.user?.permissions?.includes('product.image.view')) router.push('/media')
+  })
+  watch(Alt_3, pressed => {
+    if (pressed) router.push('/absensi')
+  })
+  watch(Alt_4, pressed => {
+    if (pressed && auth.user?.permissions?.includes('view-reports')) router.push('/stats')
+  })
+  watch(Alt_5, pressed => {
+    if (pressed && auth.user?.permissions?.includes('manage-users')) router.push('/admin/users')
+  })
 
   // Toggle Cheat Sheet
-  watch(Alt_Slash, (pressed) => {
+  watch(Alt_Slash, pressed => {
     if (pressed) {
       isCheatSheetOpen.value = !isCheatSheetOpen.value
     }
   })
 
   // Logout
-  watch(Alt_Shift_L, (pressed) => {
+  watch(Alt_Shift_L, pressed => {
     if (pressed) {
       emitLogout && emitLogout()
+    }
+  })
+
+  // SweetAlert2 Global Hotkeys (swalConfirm / swalAlert)
+  watch(Enter, pressed => {
+    if (pressed) {
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return
+      if (Swal.isVisible()) Swal.clickConfirm()
     }
   })
 

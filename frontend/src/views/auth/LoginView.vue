@@ -33,7 +33,7 @@ async function login() {
 
     if (res.data.success && res.data.token) {
       auth.setToken(res.data.token)
-      toast('Login berhasil 🚀', 'success')
+      toast('Login berhasil', 'success')
       router.push('/')
     }
   } catch (err) {

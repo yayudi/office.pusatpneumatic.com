@@ -677,6 +677,7 @@
 </template>
 
 <script setup>
+import { swalConfirm } from '@/composables/useSweetAlert'
 import { ref, onMounted } from 'vue'
 import api from '@/api/axios' // Asumsi letak axios setup
 import { useToast } from '@/composables/useToast.js'
@@ -723,7 +724,7 @@ const filters = ref({
 })
 
 // Helper for formatting date
-const formatDate = dateStr => {
+const formatDate = async dateStr => {
   if (!dateStr) return '-'
   const d = new Date(dateStr)
   return d.toLocaleString('id-ID', {
@@ -897,7 +898,7 @@ const fetchData = async (resetPage = true) => {
 const confirmRevert = async trx => {
   if (trx.notes && (trx.notes.includes('Reversal') || trx.notes.includes('[REVERTED]'))) return
 
-  const isConfirmed = window.confirm(
+  const isConfirmed = await swalConfirm(
     `Apakah Anda yakin ingin membalikkan transaksi stok ganda ini?\n\nID Trx: #${trx.id}\nSKU: ${trx.sku}\nQty: ${trx.quantity}\n\nSistem akan membuat transaksi baru untuk menyeimbangkan stok.`
   )
 

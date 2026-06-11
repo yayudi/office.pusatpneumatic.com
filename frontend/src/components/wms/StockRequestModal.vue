@@ -72,15 +72,12 @@ function removeFromBatch(sku) {
 
 async function submitRequest() {
   if (!fromLocationId.value || !toLocationId.value) {
-//     toast('Lokasi asal dan tujuan harus diisi.', 'error') // Removed to prevent double-toast
     return
   }
   if (fromLocationId.value === toLocationId.value) {
-//     toast('Lokasi asal dan tujuan tidak boleh sama.', 'error') // Removed to prevent double-toast
     return
   }
   if (batchList.value.length === 0) {
-//     toast('Tambahkan minimal satu produk.', 'error') // Removed to prevent double-toast
     return
   }
 
@@ -102,7 +99,6 @@ async function submitRequest() {
     closeModal()
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
-//     toast(error.message || 'Gagal membuat permintaan stok', 'error') // Removed to prevent double-toast
   } finally {
     isLoading.value = false
   }

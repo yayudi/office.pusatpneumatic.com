@@ -1,11 +1,9 @@
 <!-- frontend\src\App.vue -->
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { RouterView, useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import AppHeader from '@/components/layout/AppHeader.vue'
-import MessageToast from '@/components/ui/MessageToast.vue'
-import { registerToast } from '@/composables/useToast.js'
 import { useTheme } from '@/composables/useTheme'
 import PwaUpdatePrompt from '@/components/ui/PwaUpdatePrompt.vue'
 import PwaInstallBanner from '@/components/ui/PwaInstallBanner.vue'
@@ -18,14 +16,10 @@ const auth = useAuthStore()
 const { initTheme } = useTheme()
 const { isMobile } = useMobile()
 
-const toastComponentRef = ref(null)
 const showHeader = computed(() => route.name && route.name !== 'Login' && auth.isAuthenticated)
 
 onMounted(() => {
   initTheme()
-  if (toastComponentRef.value) {
-    registerToast(toastComponentRef.value)
-  }
 })
 
 function handleLogout() {
@@ -36,7 +30,6 @@ function handleLogout() {
 
 <template>
   <div class="bg-background text-text min-h-screen font-sans custom-scrollbar overflow-y-auto">
-    <MessageToast ref="toastComponentRef" />
     <PwaUpdatePrompt />
     <PwaInstallBanner />
 

@@ -196,7 +196,6 @@ async function saveNewImages() {
       toast(`Duplikat: ${errData.message}`, 'warning')
     } else {
       console.error(error)
-//       toast('Gagal mengupload gambar.', 'error') // Removed to prevent double-toast
     }
   } finally {
     loading.value = false

@@ -1,4 +1,5 @@
 <script setup>
+import { swalConfirm, swalAlert } from '@/composables/useSweetAlert'
 import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
@@ -85,7 +86,7 @@ const templateVariables = computed(() => {
   }
 })
 
-const openNewBuilder = () => {
+const openNewBuilder = async () => {
   editTemplateData.value = null
   showBuilder.value = true
 }
@@ -114,10 +115,10 @@ const onTemplateSaved = () => {
 const deleteTemplate = async id => {
   console.log('Menghapus template id:', id, 'selectedTemplate:', selectedTemplate.value)
   if (!id) {
-    alert('ID template tidak ditemukan pada object. Harap refresh.')
+    await swalAlert('ID template tidak ditemukan pada object. Harap refresh.')
     return
   }
-  if (!confirm(`Hapus template ini (ID: ${id})?`)) return
+  if (!await swalConfirm(`Hapus template ini (ID: ${id})?`)) return
   try {
     const res = await fetch(`/api/sticker-templates/${id}`, {
       method: 'DELETE',
@@ -128,7 +129,7 @@ const deleteTemplate = async id => {
       if (selectedTemplate.value?.id === id) selectedTemplate.value = null
       fetchTemplates()
     } else {
-      alert(data.message)
+      await swalAlert(data.message)
     }
   } catch (e) {
     console.error(e)
@@ -320,17 +321,14 @@ const handleDownloadZip = async () => {
       link.click()
       toast(`Berhasil mengunduh ${count} stiker.`, 'success')
     } else {
-//       toast('Gagal mengunduh gambar. Pastikan template valid.', 'error') // Removed to prevent double-toast
     }
   } catch (err) {
     console.error(err)
-//     toast('Terjadi kesalahan saat membuat ZIP', 'error') // Removed to prevent double-toast
   }
 }
 
 function handlePrint() {
   if (printStickers.value.length === 0) {
-//     toast('Tidak ada sticker untuk dicetak.', 'error') // Removed to prevent double-toast
     return
   }
   window.print()

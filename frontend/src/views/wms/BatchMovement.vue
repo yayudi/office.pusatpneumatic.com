@@ -42,7 +42,6 @@ onMounted(async () => {
     myLocations.value = myLocs
     allLocations.value = allLocs
   } catch {
-//     toast('Gagal memuat data lokasi.', 'error') // Removed to prevent double-toast
   } finally {
     isLoading.value = false
   }
@@ -96,7 +95,6 @@ async function copyFromSku() {
     toast('Daftar transfer berhasil disalin ke clipboard.', 'success')
   } catch (err) {
     console.error('Failed to copy text: ', err)
-//     toast('Gagal menyalin daftar transfer.', 'error') // Removed to prevent double-toast
   }
 }
 
@@ -106,7 +104,6 @@ function removeFromBatch(sku) {
 
 async function submitBatch() {
   if (!isBatchLocationSelected.value || batchList.value.length === 0) {
-//     toast('Harap lengkapi semua field dan tambahkan setidaknya satu item.', 'error') // Removed to prevent double-toast
     return
   }
 
@@ -132,7 +129,6 @@ async function submitBatch() {
     }
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
-//     toast(error.message || 'Terjadi kesalahan saat submit batch.', 'error') // Removed to prevent double-toast
   } finally {
     isLoading.value = false
   }

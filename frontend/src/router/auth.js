@@ -4,6 +4,7 @@ import { ref, computed } from 'vue'
 import { jwtDecode } from 'jwt-decode' // Impor library decoder
 import router from '../router' // Impor router untuk navigasi
 import api from '../api/axios' // Impor instance axios terpusat
+import { swalAlert } from '@/composables/useSweetAlert'
 
 export const useAuthStore = defineStore('auth', () => {
   // --- STATE ---
@@ -62,7 +63,7 @@ export const useAuthStore = defineStore('auth', () => {
    * Memuat ulang data pengguna dari token yang ada di localStorage.
    * Ini penting untuk menjaga state saat halaman di-refresh.
    */
-  function fetchUser() {
+  async function fetchUser() {
     const storedToken = localStorage.getItem('token')
     if (storedToken) {
       try {
@@ -71,7 +72,7 @@ export const useAuthStore = defineStore('auth', () => {
 
         // Cek apakah token sudah kadaluarsa
         if (decoded.exp * 1000 < Date.now()) {
-          console.warn('Token sudah kadaluarsa. Melakukan logout...')
+          await swalAlert('Sesi Berakhir', 'Sesi Anda telah habis, silakan login kembali.', 'warning')
           logout()
         } else {
           // Jika token valid, pulihkan state

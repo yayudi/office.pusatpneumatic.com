@@ -1,5 +1,6 @@
 <!-- frontend/src/views/wms/StockRequests.vue -->
 <script setup>
+import { swalConfirm } from '@/composables/useSweetAlert'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useToast } from '@/composables/useToast'
 import {
@@ -50,31 +51,29 @@ onMounted(() => {
 const filteredRequests = computed(() => requests.value)
 
 async function handleApprove(id) {
-  if (!confirm('Apakah Anda yakin menyetujui permintaan ini?')) return
+  if (!await swalConfirm('Apakah Anda yakin menyetujui permintaan ini?')) return
   try {
     await approveStockRequest(id)
     toast('Permintaan disetujui', 'success')
     loadRequests()
   } catch (e) {
     console.error(e) // Auto-added to prevent unused var
-//     toast(e.message || 'Gagal menyetujui', 'error') // Removed to prevent double-toast
   }
 }
 
 async function handleReject(id) {
-  if (!confirm('Apakah Anda yakin menolak permintaan ini?')) return
+  if (!await swalConfirm('Apakah Anda yakin menolak permintaan ini?')) return
   try {
     await rejectStockRequest(id)
     toast('Permintaan ditolak', 'success')
     loadRequests()
   } catch (e) {
     console.error(e) // Auto-added to prevent unused var
-//     toast(e.message || 'Gagal menolak', 'error') // Removed to prevent double-toast
   }
 }
 
 async function handleComplete(id, items) {
-  if (!confirm('Tandai telah diterima? Pastikan barang fisik sudah sesuai.')) return
+  if (!await swalConfirm('Tandai telah diterima? Pastikan barang fisik sudah sesuai.')) return
   try {
     const safeItems = Array.isArray(items) ? items : []
     const receivedItems = safeItems.map(item => ({
@@ -87,7 +86,6 @@ async function handleComplete(id, items) {
     loadRequests()
   } catch (e) {
     console.error(e) // Auto-added to prevent unused var
-//     toast(e.message || 'Gagal memproses penerimaan', 'error') // Removed to prevent double-toast
   }
 }
 

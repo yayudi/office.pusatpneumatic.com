@@ -5,6 +5,7 @@ import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import { fetchMyLocations } from '@/api/helpers/user.js'
 import { processBatchMovement, requestAdjustmentUpload, getImportJobs } from '@/api/helpers/stock.js'
+import { swalAlert } from '@/composables/useSweetAlert'
 import api from '@/api/axios.js'
 import { useMobile } from '@/composables/useMobile.js'
 
@@ -36,7 +37,6 @@ onMounted(async () => {
     myLocations.value = await fetchMyLocations()
     await loadImportHistory()
   } catch {
-//     toast('Gagal memuat data awal.', 'error') // Removed to prevent double-toast
   } finally {
     isLoading.value = false
   }
@@ -50,9 +50,8 @@ async function loadImportHistory() {
     if (response.success) {
       importJobHistory.value = response.data
     }
-  } catch (error) {
-    console.error('Gagal memuat riwayat impor:', error)
-//     toast('Gagal memuat riwayat laporan impor', 'error') // Removed to prevent double-toast
+  } catch {
+    toast('Gagal memuat riwayat impor', 'error')
   } finally {
     isImportHistoryLoading.value = false
   }
@@ -65,7 +64,6 @@ function handleFileSelect(event) {
     const fileExt = fileName.slice(fileName.lastIndexOf('.')).toLowerCase()
 
     if (fileExt !== '.xlsx') {
-//       toast('Hanya file .xlsx yang diizinkan.', 'error') // Removed to prevent double-toast
       selectedFile.value = null
       uploadInputKey.value++
       return
@@ -76,11 +74,9 @@ function handleFileSelect(event) {
 
 async function handleUploadAdjustment() {
   if (!selectedFile.value) {
-//     toast('Pilih file .xlsx terlebih dahulu.', 'error') // Removed to prevent double-toast
     return
   }
   if (!notes.value.trim()) {
-//     toast('Catatan/alasan wajib diisi untuk unggahan.', 'error') // Removed to prevent double-toast
     return
   }
 
@@ -91,8 +87,7 @@ async function handleUploadAdjustment() {
     loadImportHistory()
     notes.value = ''
   } catch (error) {
-    console.error(error) // Auto-added to prevent unused var
-//     toast(error.message || 'Gagal mengunggah file.', 'error') // Removed to prevent double-toast
+    swalAlert('Gagal Upload', error.message || 'Terjadi kesalahan saat mengunggah file.', 'error')
   } finally {
     isUploading.value = false
     selectedFile.value = null
@@ -116,9 +111,8 @@ async function downloadTemplate() {
     link.click()
     link.parentNode.removeChild(link)
     window.URL.revokeObjectURL(url)
-  } catch (error) {
-    console.error('Gagal mengunduh template:', error)
-//     toast('Gagal mengunduh template. Cek console untuk detail.', 'error') // Removed to prevent double-toast
+  } catch {
+    toast('Gagal mengunduh template', 'error')
   } finally {
     isDownloading.value = false
   }
@@ -162,11 +156,9 @@ function removeFromBatch(sku) {
 
 async function submitBatch() {
   if (!isBatchLocationSelected.value || batchList.value.length === 0) {
-//     toast('Harap lengkapi lokasi dan tambahkan setidaknya satu item.', 'error') // Removed to prevent double-toast
     return
   }
   if (!notes.value.trim()) {
-//     toast('Catatan/alasan wajib diisi untuk penyesuaian stok.', 'error') // Removed to prevent double-toast
     return
   }
 
@@ -190,7 +182,6 @@ async function submitBatch() {
     }
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
-//     toast(error.message || 'Terjadi kesalahan saat submit batch.', 'error') // Removed to prevent double-toast
   } finally {
     isLoading.value = false
   }

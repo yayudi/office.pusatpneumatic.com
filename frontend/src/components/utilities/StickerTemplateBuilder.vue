@@ -1,4 +1,5 @@
 <script setup>
+import { swalAlert } from '@/composables/useSweetAlert'
 import { ref, onMounted, onUnmounted, watch, shallowRef, computed } from 'vue'
 import * as fabric from 'fabric'
 import JsBarcode from 'jsbarcode'
@@ -77,7 +78,7 @@ const activeObjStroke = ref('#000000')
 const activeObjStrokeWidth = ref(0)
 const activeObjOpacity = ref(1)
 
-const handleSelection = () => {
+const handleSelection = async () => {
   const active = fabricCanvas?.getActiveObject()
   if (active) {
     activeObject.value = active
@@ -1122,11 +1123,11 @@ const addBarcode = async () => {
     }
   } catch (err) {
     console.error('Failed to generate barcode/qrcode', err)
-    alert('Gagal membuat Barcode/QR Code. Pastikan format teks valid.')
+    await swalAlert('Gagal membuat Barcode/QR Code. Pastikan format teks valid.')
   }
 }
 
-const addRectangle = () => {
+const addRectangle = async () => {
   if (!fabricCanvas) return
   const rect = new fabric.Rect({
     left: 50,
@@ -1207,7 +1208,7 @@ const duplicateSelected = () => {
 
 const saveTemplate = async () => {
   if (!templateName.value.trim()) {
-    alert('Nama template tidak boleh kosong!')
+    await swalAlert('Nama template tidak boleh kosong!')
     return
   }
   if (!fabricCanvas) return
@@ -1269,11 +1270,11 @@ const saveTemplate = async () => {
       emit('saved', { id: result.data.id, name: templateName.value })
       emit('close')
     } else {
-      alert('Gagal menyimpan: ' + result.message)
+      await swalAlert('Gagal menyimpan: ' + result.message)
     }
   } catch (err) {
     console.error('Save error', err)
-    alert('Terjadi kesalahan jaringan.')
+    await swalAlert('Terjadi kesalahan jaringan.')
   } finally {
     isSaving.value = false
   }

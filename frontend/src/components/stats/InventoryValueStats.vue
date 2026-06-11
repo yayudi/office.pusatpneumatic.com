@@ -32,7 +32,6 @@ const fetchStatistics = async () => {
     statisticsList.value = data.data || []
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
-//     toast(error.message || 'Gagal mengambil data statistik', 'error') // Removed to prevent double-toast
   } finally {
     isDataLoading.value = false
   }

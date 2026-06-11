@@ -1,4 +1,5 @@
 <script setup>
+import { swalConfirm } from '@/composables/useSweetAlert'
 import { ref, computed, watch } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
 import instance from '@/api/axios'
@@ -44,7 +45,6 @@ async function fetchMediaDetails() {
     }
   } catch (error) {
     console.error('Fetch Media Failed', error)
-    //     toast('Gagal mengambil rincian media', 'error') // Removed to prevent double-toast
   } finally {
     fetching.value = false
   }
@@ -88,7 +88,6 @@ async function saveTags() {
     }
   } catch (err) {
     console.error('Update Tags Error', err)
-    //     toast(err.response?.data?.message || 'Gagal menyimpan tag', 'error') // Removed to prevent double-toast
   } finally {
     loadingTags.value = false
   }
@@ -122,14 +121,13 @@ async function linkProduct(product) {
     }
   } catch (err) {
     console.error(err)
-    //     toast('Gagal menyematkan produk.', 'error') // Removed to prevent double-toast
   } finally {
     loading.value = false
   }
 }
 
 async function unlinkProduct(productRaw) {
-  if (!confirm(`Lepaskan gambar dari produk ${productRaw.sku}?`)) return
+  if (!await swalConfirm(`Lepaskan gambar dari produk ${productRaw.sku}?`)) return
   loading.value = true
   try {
     const { data } = await instance.delete(`/products/${productRaw.id}/images/${productRaw.pivot_id}`)
@@ -140,7 +138,6 @@ async function unlinkProduct(productRaw) {
     }
   } catch (err) {
     console.error(err)
-    //     toast('Gagal melepaskan produk.', 'error') // Removed to prevent double-toast
   } finally {
     loading.value = false
   }
@@ -172,7 +169,6 @@ const saveTitle = async () => {
     }
   } catch (err) {
     console.error(err)
-    //     toast(err.response?.data?.message || 'Gagal memperbarui judul', 'error') // Removed to prevent double-toast
   } finally {
     loadingTitle.value = false
   }

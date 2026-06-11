@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/auth.js'
 export function useSummary(props) {
   const auth = useAuthStore()
   const summaries = computed(() => {
-    console.log(`🚀 Menghitung ulang ringkasan untuk ${props.users.length} user...`)
+    console.log(`Menghitung ulang ringkasan untuk ${props.users.length} user...`)
 
     if (!props.users || props.users.length === 0) {
       return []

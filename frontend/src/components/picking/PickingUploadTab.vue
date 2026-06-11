@@ -1,5 +1,6 @@
 <!-- frontend\src\components\picking\PickingUploadTab.vue -->
 <script setup>
+import { swalConfirm } from '@/composables/useSweetAlert'
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { getImportJobs, cancelImportJob } from '@/api/helpers/stock.js'
@@ -14,7 +15,7 @@ const isHistoryLoading = ref(false)
 let pollingInterval = null
 
 // --- LOGIKA HISTORY ---
-function startPolling() {
+async function startPolling() {
   if (pollingInterval) clearInterval(pollingInterval)
   pollingInterval = setInterval(fetchJobHistory, 2000) // Poll setiap 2 detik agar progress bar mulus
 }
@@ -37,14 +38,13 @@ async function fetchJobHistory() {
 }
 
 async function handleCancelJob(job) {
-  if (!confirm(`Batalkan antrian file "${job.original_filename}"?`)) return
+  if (!await swalConfirm(`Batalkan antrian file "${job.original_filename}"?`)) return
   try {
     await cancelImportJob(job.id)
     toast('Antrian berhasil dibatalkan.', 'success')
     fetchJobHistory()
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
-//     toast(error.response?.data?.message || 'Gagal membatalkan job.', 'error') // Removed to prevent double-toast
   }
 }
 

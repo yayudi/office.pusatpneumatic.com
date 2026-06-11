@@ -1,5 +1,6 @@
 <!-- frontend\src\views\admin\LocationManagement.vue -->
 <script setup>
+import { swalConfirm } from '@/composables/useSweetAlert'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 
 import { ref, onMounted, watch } from 'vue'
@@ -38,7 +39,6 @@ async function loadLocations() {
   try {
     allLocations.value = await masterData.getLocations(true)
   } catch {
-//     toast('Gagal memuat data lokasi.', 'error') // Removed to prevent double-toast
   } finally {
     loading.value = false
   }
@@ -79,13 +79,12 @@ async function handleSave() {
     loadLocations() // Muat ulang data
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
-//     toast(error.message || 'Gagal menyimpan data.', 'error') // Removed to prevent double-toast
   }
 }
 
 async function handleDelete(locationId) {
   if (
-    confirm(
+    await swalConfirm(
       'Apakah Anda yakin ingin menghapus lokasi ini? Menghapus lokasi yang sedang digunakan akan gagal.',
     )
   ) {
@@ -95,7 +94,6 @@ async function handleDelete(locationId) {
       loadLocations() // Muat ulang data
     } catch (error) {
     console.error(error) // Auto-added to prevent unused var
-//       toast(error.message || 'Gagal menghapus lokasi.', 'error') // Removed to prevent double-toast
     }
   }
 }

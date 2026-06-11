@@ -1,4 +1,5 @@
 <script setup>
+import { swalAlert } from '@/composables/useSweetAlert'
 import { ref, watch } from 'vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import axios from '@/api/axios'
@@ -48,7 +49,7 @@ watch(
   },
 )
 
-const toggleProduct = (prod) => {
+const toggleProduct = async (prod) => {
   const isSelected = selectedProducts.value.some((p) => p.id === prod.id)
   if (isSelected) {
     selectedProducts.value = selectedProducts.value.filter((p) => p.id !== prod.id)
@@ -85,14 +86,14 @@ const submitAll = async () => {
     await Promise.allSettled(promises)
 
     if (failCount > 0) {
-      alert(`Berhasil: ${successCount} produk. Gagal: ${failCount} produk.`)
+      await swalAlert(`Berhasil: ${successCount} produk. Gagal: ${failCount} produk.`)
     }
 
     emit('linked')
     isSubmitting.value = false // Harus di set false sebelum memanggil close() karena close() punya guard
     close()
   } catch {
-    alert('Terjadi kesalahan fatal saat menyematkan produk.')
+    await swalAlert('Terjadi kesalahan fatal saat menyematkan produk.')
     isSubmitting.value = false
   }
 }

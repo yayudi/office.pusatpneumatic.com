@@ -51,7 +51,6 @@ export function useReturnManager() {
         await fetchLocations()
       }
     } catch {
-//       toast('Gagal memuat data retur', 'error') // Removed to prevent double-toast
     } finally {
       isLoading.value = false
     }
@@ -92,7 +91,6 @@ export function useReturnManager() {
       return
     }
     if (totalQtyInput > itemData.quantity) {
-//       toast(`Total jumlah (${totalQtyInput}) melebihi sisa retur (${itemData.quantity})`, 'error') // Removed to prevent double-toast
       return
     }
 
@@ -137,7 +135,6 @@ export function useReturnManager() {
       fetchData() // Refresh list
     } catch (error) {
       console.error(error)
-//       toast(error.response?.data?.message || 'Gagal memproses retur', 'error') // Removed to prevent double-toast
     } finally {
       isLoading.value = false
     }

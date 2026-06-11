@@ -91,9 +91,8 @@ async function fetchAttendanceData() {
     } else {
       users.value = fetchedUsers
     }
-  } catch (err) {
-    //     toast('Gagal memuat data absensi.', 'error') // Removed to prevent double-toast
-    console.error('Fetch absensi error:', err)
+  } catch {
+    toast('Gagal memuat data absensi.', 'error')
     users.value = []
     summary.value = null
   } finally {
@@ -128,7 +127,6 @@ watch(
             value: u.id
           }))
         } catch (err) {
-          //           toast('Gagal memuat daftar nama user untuk filter.', 'error') // Removed to prevent double-toast
           console.error('Gagal mengambil daftar user:', err)
         } finally {
           isLoadingUsers.value = false
@@ -246,7 +244,6 @@ async function handleExportExcel() {
     toast('Berhasil mengunduh Excel', 'success')
   } catch (err) {
     console.error('Export Excel failed:', err)
-    //     toast('Gagal mengekspor file', 'error') // Removed to prevent double-toast
   }
 }
 </script>

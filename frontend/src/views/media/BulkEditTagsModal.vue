@@ -1,4 +1,5 @@
 <script setup>
+import { swalConfirm, swalAlert } from '@/composables/useSweetAlert'
 import { ref, watch } from 'vue';
 import apiClient from '@/api/axios';
 import BaseModal from '@/components/ui/BaseModal.vue';
@@ -25,11 +26,11 @@ const submitTags = async () => {
   if (isSubmitting.value) return;
   const rawTags = tagsInput.value.split(',').map(t => t.trim()).filter(Boolean);
   if (rawTags.length === 0) {
-    alert("Masukkan setidaknya 1 tag.");
+    await swalAlert("Masukkan setidaknya 1 tag.");
     return;
   }
 
-  if (!confirm(`Terapkan ${rawTags.length} tag ini ke ${props.selectedMediaIds?.length || 0} gambar terpilih?`)) return;
+  if (!await swalConfirm(`Terapkan ${rawTags.length} tag ini ke ${props.selectedMediaIds?.length || 0} gambar terpilih?`)) return;
 
   isSubmitting.value = true;
   try {
@@ -44,7 +45,6 @@ const submitTags = async () => {
     close();
   } catch (error) {
     console.error(error);
-//     toast("Terjadi kesalahan saat memperbarui sebagian tag.", 'error'); // Removed to prevent double-toast
     emit('updated');
     close();
   } finally {

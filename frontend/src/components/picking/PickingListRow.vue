@@ -1,4 +1,5 @@
 <script setup>
+import { swalConfirm } from '@/composables/useSweetAlert'
 import { computed, ref } from 'vue'
 import { formatDate } from '@/api/helpers/time.js'
 import { useAuthStore } from '@/stores/auth'
@@ -39,7 +40,7 @@ const canCancel = computed(() => {
 })
 
 // --- ACTIONS ---
-function onToggleInvoice(event) {
+async function onToggleInvoice(event) {
   emit('toggle-invoice', { inv: props.inv, checked: event.target.checked })
 }
 
@@ -49,7 +50,7 @@ async function onCancelInvoice() {
       ? 'Batalkan arsip ini? Stok akan dikembalikan (jika valid).'
       : `Batalkan pesanan ${props.inv.invoice}?`
 
-  if (!confirm(msg)) return
+  if (!await swalConfirm(msg)) return
   try {
     isLoading.value = true
     emit('cancel-invoice', props.inv.id)

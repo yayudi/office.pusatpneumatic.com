@@ -56,7 +56,6 @@ instance.interceptors.response.use(
       if (status === 401 && !error.config.url.includes('/auth/login')) {
         authStore.logout()
         // Tampilkan Toast "Sesi expired"
-//         toast('Sesi telah berakhir, silakan login kembali.', 'error') // Removed to prevent double-toast
         // Redirect ke login page
         window.location.href = '/login'
       }

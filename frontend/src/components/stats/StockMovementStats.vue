@@ -113,7 +113,6 @@ const fetchStatistics = async () => {
     }
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
-//     toast(error.message || 'Gagal mengambil data statistik', 'error') // Removed to prevent double-toast
   } finally {
     isDataLoading.value = false
   }
@@ -129,7 +128,6 @@ const handleExport = async () => {
     }
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
-//     toast(error.message || 'Gagal request export', 'error') // Removed to prevent double-toast
   } finally {
     isExporting.value = false
   }

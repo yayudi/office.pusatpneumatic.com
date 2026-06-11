@@ -53,7 +53,7 @@ export function calculateSummaryForUser(user, year, month, globalInfo, auth) {
     }
 
     if (!jamMasuk || !jamKeluar) {
-      // console.log('--- 🔴 GAGAL: jamMasuk/jamKeluar tidak ditemukan. ---')
+      // console.log('--- GAGAL: jamMasuk/jamKeluar tidak ditemukan. ---')
       return
     }
 

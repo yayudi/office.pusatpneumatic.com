@@ -1,5 +1,6 @@
 <!-- frontend/src/views/admin/CategoryManagement.vue -->
 <script setup>
+import { swalConfirm } from '@/composables/useSweetAlert'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 
 import { ref, onMounted, watch } from 'vue'
@@ -28,7 +29,6 @@ async function loadCategories() {
       categories.value = data.data
     }
   } catch {
-//     toast('Gagal memuat data kategori.', 'error') // Removed to prevent double-toast
   } finally {
     loading.value = false
   }
@@ -50,7 +50,6 @@ function openEditModal(category) {
 
 async function handleSave() {
   if (!form.value.name.trim()) {
-//     return toast('Nama kategori wajib diisi.', 'error') // Removed to prevent double-toast
   }
 
   saving.value = true
@@ -68,14 +67,13 @@ async function handleSave() {
     loadCategories()
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
-//     toast(error.response?.data?.message || error.message || 'Gagal menyimpan data.', 'error') // Removed to prevent double-toast
   } finally {
     saving.value = false
   }
 }
 
 async function handleDelete(categoryId) {
-  if (!confirm('Apakah Anda yakin ingin menonaktifkan kategori ini?')) return
+  if (!await swalConfirm('Apakah Anda yakin ingin menonaktifkan kategori ini?')) return
 
   try {
     const { data } = await axios.delete(`/categories/${categoryId}`)
@@ -84,7 +82,6 @@ async function handleDelete(categoryId) {
     loadCategories()
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
-//     toast(error.response?.data?.message || error.message || 'Gagal menghapus kategori.', 'error') // Removed to prevent double-toast
   }
 }
 
