@@ -31,15 +31,14 @@ const selectedLocation = ref({
   building: '',
   floor: null,
   name: '',
-  purpose: 'WAREHOUSE',
+  purpose: 'WAREHOUSE'
 })
 
 async function loadLocations() {
   loading.value = true
   try {
     allLocations.value = await masterData.getLocations(true)
-  } catch {
-  } finally {
+  } catch (e) { console.error(e) } finally {
     loading.value = false
   }
 }
@@ -54,7 +53,7 @@ function openCreateModal() {
     building: '',
     floor: null,
     name: '',
-    purpose: 'WAREHOUSE', // Tambahkan purpose
+    purpose: 'WAREHOUSE' // Tambahkan purpose
   }
   isModalOpen.value = true
 }
@@ -85,7 +84,7 @@ async function handleSave() {
 async function handleDelete(locationId) {
   if (
     await swalConfirm(
-      'Apakah Anda yakin ingin menghapus lokasi ini? Menghapus lokasi yang sedang digunakan akan gagal.',
+      'Apakah Anda yakin ingin menghapus lokasi ini? Menghapus lokasi yang sedang digunakan akan gagal.'
     )
   ) {
     try {
@@ -93,7 +92,7 @@ async function handleDelete(locationId) {
       toast('Lokasi berhasil dihapus.', 'success')
       loadLocations() // Muat ulang data
     } catch (error) {
-    console.error(error) // Auto-added to prevent unused var
+      console.error(error) // Auto-added to prevent unused var
     }
   }
 }
@@ -101,13 +100,13 @@ async function handleDelete(locationId) {
 // --- LOCAL HOTKEYS ---
 const { Alt_N, Alt_S } = useMagicKeys()
 
-watch(Alt_N, (pressed) => {
+watch(Alt_N, pressed => {
   if (pressed && !isModalOpen.value) {
     openCreateModal()
   }
 })
 
-watch(Alt_S, (pressed) => {
+watch(Alt_S, pressed => {
   if (pressed && isModalOpen.value) {
     handleSave()
   }
@@ -117,23 +116,20 @@ watch(Alt_S, (pressed) => {
 <template>
   <WmsActionHeader title="Manajemen Lokasi" icon="fa-solid fa-map-marker-alt">
     <template #actions>
-    <button
-      @click="openCreateModal"
-      class="bg-primary text-secondary text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
-    >
-      <font-awesome-icon icon="fa-solid fa-plus" />
-      <span>Tambah Lokasi</span>
-    </button>
-  </template>
+      <button
+        @click="openCreateModal"
+        class="bg-primary text-secondary text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
+      >
+        <font-awesome-icon icon="fa-solid fa-plus" />
+        <span>Tambah Lokasi</span>
+      </button>
+    </template>
   </WmsActionHeader>
 
   <div
     class="bg-background shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(100vh-100px)]"
   >
-    <table
-      class="w-full text-sm text-left text-text border-collapse"
-      :class="isMobile ? 'block' : 'min-w-[600px]'"
-    >
+    <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : 'min-w-[600px]'">
       <thead
         class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5"
         :class="isMobile ? 'hidden' : 'sticky top-0 z-30'"
@@ -192,48 +188,26 @@ watch(Alt_S, (pressed) => {
             <span v-if="isMobile" class="text-text/60 text-xs uppercase font-sans">Kode</span>
             <span>{{ loc.code }}</span>
           </td>
-          <td
-            :class="
-              isMobile
-                ? 'flex justify-between items-center py-2 border-b border-secondary/10'
-                : 'px-6 py-4'
-            "
-          >
+          <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
             <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Gedung</span>
             <span>{{ loc.building }}</span>
           </td>
-          <td
-            :class="
-              isMobile
-                ? 'flex justify-between items-center py-2 border-b border-secondary/10'
-                : 'px-6 py-4'
-            "
-          >
+          <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
             <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Lantai</span>
             <span>{{ loc.floor || '-' }}</span>
           </td>
           <td
             class="text-text/80"
-            :class="
-              isMobile
-                ? 'flex justify-between items-center py-2 border-b border-secondary/10'
-                : 'px-6 py-4'
-            "
+            :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'"
           >
             <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Nama</span>
             <span>{{ loc.name || '-' }}</span>
           </td>
           <td
             class="font-mono text-xs"
-            :class="
-              isMobile
-                ? 'flex justify-between items-center py-2 border-b border-secondary/10'
-                : 'px-6 py-4'
-            "
+            :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'"
           >
-            <span v-if="isMobile" class="text-text/60 text-xs uppercase font-sans font-semibold"
-              >Purpose</span
-            >
+            <span v-if="isMobile" class="text-text/60 text-xs uppercase font-sans font-semibold">Purpose</span>
             <span>{{ loc.purpose || '-' }}</span>
           </td>
           <td
@@ -265,11 +239,7 @@ watch(Alt_S, (pressed) => {
   </div>
 
   <!-- Modal untuk Tambah/Edit Lokasi -->
-  <BaseModal
-    :show="isModalOpen"
-    @close="isModalOpen = false"
-    :title="isEditing ? 'Edit Lokasi' : 'Tambah Lokasi Baru'"
-  >
+  <BaseModal :show="isModalOpen" @close="isModalOpen = false" :title="isEditing ? 'Edit Lokasi' : 'Tambah Lokasi Baru'">
     <form @submit.prevent="handleSave" class="p-6 space-y-4">
       <div>
         <label class="block text-sm font-medium text-text/80 mb-1">Kode Lokasi</label>
@@ -303,12 +273,7 @@ watch(Alt_S, (pressed) => {
       </div>
       <div>
         <label class="block text-sm font-medium text-text/80 mb-1">Lantai (Opsional)</label>
-        <input
-          v-model.number="selectedLocation.floor"
-          type="number"
-          class="w-full input-field"
-          placeholder="e.g., 1"
-        />
+        <input v-model.number="selectedLocation.floor" type="number" class="w-full input-field" placeholder="e.g., 1" />
       </div>
       <div>
         <label class="block text-sm font-medium text-text/80 mb-1">Nama/Deskripsi (Opsional)</label>

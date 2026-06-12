@@ -93,7 +93,11 @@ const queryParams = computed(() => ({
   categoryExclude: JSON.stringify(filterCategory.value.exclude)
 }))
 
-const { data: productsData, isLoading: loading, refetch: fetchProducts } = useQuery({
+const {
+  data: productsData,
+  isLoading: loading,
+  refetch: fetchProducts
+} = useQuery({
   queryKey: ['products', queryParams],
   queryFn: async () => {
     const response = await axios.get('/products', { params: queryParams.value })
@@ -103,18 +107,22 @@ const { data: productsData, isLoading: loading, refetch: fetchProducts } = useQu
   staleTime: 60 * 1000 // 1 minute
 })
 
-watch(productsData, (resData) => {
-  if (resData) {
-    const items = resData.data || resData.products || []
-    products.value = items
-    pagination.total = resData.meta?.total || resData.total || 0
-    pagination.totalPages = resData.meta?.last_page || Math.ceil(pagination.total / pagination.limit) || 1
-  } else {
-    products.value = []
-    pagination.total = 0
-    pagination.totalPages = 1
-  }
-}, { immediate: true })
+watch(
+  productsData,
+  resData => {
+    if (resData) {
+      const items = resData.data || resData.products || []
+      products.value = items
+      pagination.total = resData.meta?.total || resData.total || 0
+      pagination.totalPages = resData.meta?.last_page || Math.ceil(pagination.total / pagination.limit) || 1
+    } else {
+      products.value = []
+      pagination.total = 0
+      pagination.totalPages = 1
+    }
+  },
+  { immediate: true }
+)
 
 // --- HANDLERS (Dioper ke Child Components) ---
 
@@ -171,7 +179,7 @@ const toggleSelectAll = () => {
 
 // CRUD
 const handleDelete = async product => {
-  if (!await swalConfirm(`Arsipkan produk "${product.name}"?`)) return
+  if (!(await swalConfirm(`Arsipkan produk "${product.name}"?`))) return
   try {
     await axios.delete(`/products/${product.id}`)
     toast('Produk berhasil diarsipkan.', 'success')
@@ -183,7 +191,7 @@ const handleDelete = async product => {
 }
 
 const handleRestore = async product => {
-  if (!await swalConfirm(`Pulihkan produk "${product.name}"?`)) return
+  if (!(await swalConfirm(`Pulihkan produk "${product.name}"?`))) return
   try {
     await axios.put(`/products/${product.id}`, { is_active: true })
     toast('Produk dipulihkan.', 'success')
@@ -216,7 +224,7 @@ const performBulkAction = async actionType => {
   if (!selectedIds.value.size) return
 
   const msg = actionType === 'archive' ? 'Arsipkan' : 'Pulihkan'
-  if (!await swalConfirm(`${msg} ${selectionCount.value} produk terpilih?`)) return
+  if (!(await swalConfirm(`${msg} ${selectionCount.value} produk terpilih?`))) return
 
   isProcessingBulk.value = true
   const ids = [...selectedIds.value]
@@ -231,8 +239,7 @@ const performBulkAction = async actionType => {
     toast(`Berhasil memproses ${ids.length} produk.`, 'success')
     selectedIds.value.clear()
     fetchProducts()
-  } catch {
-  } finally {
+  } catch (e) { console.error(e) } finally {
     isProcessingBulk.value = false
   }
 }

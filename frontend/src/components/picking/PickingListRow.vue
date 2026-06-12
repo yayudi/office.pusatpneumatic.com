@@ -16,7 +16,7 @@ const props = defineProps({
 })
 
 const authStore = useAuthStore()
-const emit = defineEmits(['toggle-invoice', 'cancel-invoice'])
+const emit = defineEmits(['toggle-invoice', 'void-invoice'])
 
 const isOpen = ref(false)
 const isLoading = ref(false)
@@ -44,22 +44,16 @@ async function onToggleInvoice(event) {
   emit('toggle-invoice', { inv: props.inv, checked: event.target.checked })
 }
 
-async function onCancelInvoice() {
-  const msg =
-    props.mode === 'history'
-      ? 'Batalkan arsip ini? Stok akan dikembalikan (jika valid).'
-      : `Batalkan pesanan ${props.inv.invoice}?`
-
+async function handleVoid() {
+  const msg = `Void pesanan ${props.inv.original_invoice_id}?\nSemua status item (termasuk yang berhasil di-pick) akan dikembalikan ke stok.`
   if (!await swalConfirm(msg)) return
   try {
     isLoading.value = true
-    emit('cancel-invoice', props.inv.id)
+    emit('void-invoice', props.inv.id)
   } catch (error) {
     console.error(error)
   } finally {
-    setTimeout(() => {
-      isLoading.value = false
-    }, 500)
+    isLoading.value = false
   }
 }
 </script>
@@ -162,9 +156,13 @@ async function onCancelInvoice() {
         <!-- Actions (Col: 2 di Mobile, 1 di SM, 1 di LG) -->
         <div class="col-span-2 sm:col-span-1 lg:col-span-1 flex justify-end items-center gap-2">
           <!-- Tombol Cancel -->
-          <button v-if="canCancel" @click.stop="onCancelInvoice" :disabled="isLoading"
-            class="text-danger/40 hover:text-danger hover:bg-danger/10 p-1.5 rounded-lg transition-colors disabled:opacity-50" title="Batalkan">
-            <font-awesome-icon :icon="isLoading ? 'fa-solid fa-spinner' : 'fa-solid fa-trash'" :spin="isLoading" />
+          <button
+            v-if="canCancel && inv.status !== 'VOID'"
+            @click.stop="handleVoid"
+            class="p-2 text-danger/70 hover:text-danger hover:bg-danger/10 rounded-lg transition-colors flex-shrink-0 flex items-center justify-center w-9 h-9"
+            title="Void"
+          >
+            <font-awesome-icon icon="fa-solid fa-ban" />
           </button>
 
           <div
@@ -264,6 +262,9 @@ async function onCancelInvoice() {
               <div v-for="log in historyLogs" :key="log.id"
                 class="flex justify-between items-center text-[10px] text-text/50 bg-background border border-secondary/10 px-3 py-1.5 rounded">
                 <div class="flex items-center gap-2">
+                  <span v-if="inv.status === 'VOID'" class="flex items-center gap-1">
+                    <i class="fa-solid fa-ban text-[10px]"></i> VOID
+                  </span>
                   <span class="font-mono text-text/70">#{{ log.id }}</span>
                   <span class="line-through opacity-70">{{ log.status }}</span>
                 </div>

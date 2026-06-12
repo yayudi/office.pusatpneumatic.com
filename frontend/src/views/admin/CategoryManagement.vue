@@ -28,8 +28,7 @@ async function loadCategories() {
     if (data.success) {
       categories.value = data.data
     }
-  } catch {
-  } finally {
+  } catch (e) { console.error(e) } finally {
     loading.value = false
   }
 }
@@ -50,6 +49,8 @@ function openEditModal(category) {
 
 async function handleSave() {
   if (!form.value.name.trim()) {
+    toast('Nama kategori tidak boleh kosong', 'error')
+    return
   }
 
   saving.value = true
@@ -73,7 +74,7 @@ async function handleSave() {
 }
 
 async function handleDelete(categoryId) {
-  if (!await swalConfirm('Apakah Anda yakin ingin menonaktifkan kategori ini?')) return
+  if (!(await swalConfirm('Apakah Anda yakin ingin menonaktifkan kategori ini?'))) return
 
   try {
     const { data } = await axios.delete(`/categories/${categoryId}`)

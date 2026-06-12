@@ -36,8 +36,7 @@ onMounted(async () => {
   try {
     myLocations.value = await fetchMyLocations()
     await loadImportHistory()
-  } catch {
-  } finally {
+  } catch (e) { console.error(e) } finally {
     isLoading.value = false
   }
 })

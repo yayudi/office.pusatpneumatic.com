@@ -39,8 +39,8 @@ jest.unstable_mockModule("../repositories/pickingRepository.js", () => ({
   updateHeaderStatus: jest.fn(),
   updateMarketplaceStatus: jest.fn(),
   updateItemsStatusByListId: jest.fn(),
-  cancelHeader: jest.fn(),
-  cancelItemsByListId: jest.fn(),
+  voidHeader: jest.fn(),
+  voidItemsByListId: jest.fn(),
 }));
 
 jest.unstable_mockModule("../repositories/locationRepository.js", () => ({

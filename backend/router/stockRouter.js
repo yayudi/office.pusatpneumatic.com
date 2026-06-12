@@ -153,9 +153,9 @@ router.post(
 router.get("/import-jobs", stockController.getImportJobs);
 
 /**
- * POST /api/stock/import-jobs/:id/cancel
+ * POST /api/stock/import-jobs/:id/void
  * Batalkan job import yang masih pending
  */
-router.post("/import-jobs/:id/cancel", stockController.cancelImportJob);
+router.post("/import-jobs/:id/void", stockController.voidImportJob);
 
 export default router;

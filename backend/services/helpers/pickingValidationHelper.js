@@ -38,9 +38,9 @@ async function restockValidatedItems(connection, listId, userId, reason) {
         productId: item.product_id,
         quantity: item.quantity,
         toLocationId: item.confirmed_location_id,
-        type: "CANCEL_RESTOCK",
+        type: "VOID_RESTOCK",
         userId: userId,
-        notes: `Auto Restock via Import: ${reason} (List #${listId})`,
+        notes: `Auto Void via Import: ${reason} (List #${listId})`,
       });
     }
   }
@@ -64,7 +64,7 @@ export async function handleExistingInvoices(connection, items, userId = 1) {
     return [...items];
   }
 
-  // Gunakan getAllHeadersByInvoiceIds untuk mendeteksi order aktif maupun cancel/inactive
+  // Gunakan getAllHeadersByInvoiceIds untuk mendeteksi order aktif maupun inactive
   const existingLists = await pickingRepo.getAllHeadersByInvoiceIds(connection, invoiceIds);
   const existingMap = new Map(existingLists.map((row) => [row.original_invoice_id, row]));
   const itemsToProcess = [];
@@ -73,7 +73,7 @@ export async function handleExistingInvoices(connection, items, userId = 1) {
   const updates = []; // Update marketplace status
   const headerReturns = []; // Update header to RETURNED
   const itemReturns = []; // Update items to RETURNED (Bulk or Micro)
-  const cancels = []; // Cancel orders
+  const voids = []; // Void orders
   const archives = []; // Archive old orders (Revisions)
 
   for (const item of items) {
@@ -83,13 +83,13 @@ export async function handleExistingInvoices(connection, items, userId = 1) {
     if (existing) {
       const listId = existing.id;
 
-      // [A] Conflict Handling: ID ada tapi Inactive/Cancel -> Archive & Re-Insert
+      // [A] Conflict Handling: ID ada tapi Inactive/Void -> Archive & Re-Insert
       if (
         !existing.is_active ||
-        existing.status === WMS_STATUS.CANCEL ||
+        existing.status === WMS_STATUS.VOID ||
         existing.status === "OBSOLETE"
       ) {
-        logTrace("UPSERT", `👻 Order ${item.invoiceId} inactive/cancel. Archive & Re-insert.`);
+        logTrace("UPSERT", `👻 Order ${item.invoiceId} inactive/void. Archive & Re-insert.`);
         archives.push(listId);
         itemsToProcess.push(item);
         continue;
@@ -101,14 +101,14 @@ export async function handleExistingInvoices(connection, items, userId = 1) {
       if (status === MP_STATUS.RETURNED || status.includes("RETURN")) {
         // [CRITICAL GUARD] Cegah Stok Hantu
         // Jika barang belum keluar (masih PENDING/NEW), jangan set RETURNED.
-        // Langsung CANCEL saja agar tidak terjadi double counting stok saat restock.
+        // Langsung VOID saja agar tidak terjadi double counting stok saat restock.
         if ([WMS_STATUS.PENDING, "NEW", "DRAFT"].includes(existing.status)) {
           logTrace(
             "UPSERT",
-            `🛡️ Order ${item.invoiceId} Retur saat PENDING. Dialihkan ke CANCEL (Void).`
+            `🛡️ Order ${item.invoiceId} Retur saat PENDING. Dialihkan ke VOID.`
           );
-          if (existing.status !== WMS_STATUS.CANCEL) {
-            cancels.push(listId);
+          if (existing.status !== WMS_STATUS.VOID) {
+            voids.push(listId);
           }
         } else {
           // Status sudah SHIPPED/VALIDATED/COMPLETED -> Valid untuk Retur Fisik
@@ -141,15 +141,15 @@ export async function handleExistingInvoices(connection, items, userId = 1) {
           }
         }
       }
-      // 2. Handle CANCELLED
+      // 2. Handle VOID
       else if (
-        status === MP_STATUS.CANCELLED ||
-        status === "CANCELLED" ||
+        status === MP_STATUS.VOID ||
+        status === "VOID" ||
         status.includes("BATAL")
       ) {
-        if (existing.status !== WMS_STATUS.CANCEL) {
-          logTrace("UPSERT", `🚫 Order ${item.invoiceId} batal.`);
-          cancels.push(listId);
+        if (existing.status !== WMS_STATUS.VOID) {
+          logTrace("UPSERT", `🚫 Order ${item.invoiceId} void.`);
+          voids.push(listId);
         }
       }
       // 3. Handle SHIPPED / COMPLETED (Update MP Status Only)
@@ -165,7 +165,7 @@ export async function handleExistingInvoices(connection, items, userId = 1) {
           updates.push({ id: listId, mpStatus: status, wmsStatus: WMS_STATUS.VALIDATED });
         }
         // Update Normal (Update MP status saja)
-        else if (![WMS_STATUS.CANCEL, "OBSOLETE"].includes(existing.status)) {
+        else if (![WMS_STATUS.VOID, "OBSOLETE"].includes(existing.status)) {
           updates.push({ id: listId, mpStatus: status, wmsStatus: null });
         }
       }
@@ -178,7 +178,7 @@ export async function handleExistingInvoices(connection, items, userId = 1) {
       }
     } else {
       // New Order
-      if (![MP_STATUS.CANCELLED, MP_STATUS.RETURNED, "CANCELLED", "RETURNED"].includes(status)) {
+      if (![MP_STATUS.VOID, MP_STATUS.RETURNED, "VOID", "RETURNED"].includes(status)) {
         itemsToProcess.push(item);
       }
     }
@@ -191,7 +191,7 @@ export async function handleExistingInvoices(connection, items, userId = 1) {
   for (const id of uniqueArchiveIds) {
     await restockValidatedItems(connection, id, userId, "Revisi Invoice");
     await pickingRepo.archiveHeader(connection, id);
-    await pickingRepo.cancelItemsByListId(connection, id);
+    await pickingRepo.voidItemsByListId(connection, id);
   }
 
   // 2. Returns
@@ -210,7 +210,6 @@ export async function handleExistingInvoices(connection, items, userId = 1) {
   const microReturns = itemReturns.filter((i) => !i.isBulk);
   for (const mr of microReturns) {
     // Cari item di DB berdasarkan ListID + SKU
-    // Note: Kita query manual karena repo belum support spesifik by SKU+ListID update
     const [rows] = await connection.query(
       "SELECT id, quantity, status FROM picking_list_items WHERE picking_list_id = ? AND original_sku = ?",
       [mr.listId, mr.sku]
@@ -218,21 +217,19 @@ export async function handleExistingInvoices(connection, items, userId = 1) {
     if (rows.length > 0) {
       const dbItem = rows[0];
       if (dbItem.status !== WMS_STATUS.RETURNED) {
-        // Jika partial, kita beri catatan di notes agar Admin Gudang yang melakukan split/approve
-        // Kita tidak melakukan split otomatis disini untuk keamanan data sync
         const note = `Partial Return Sync: ${mr.returnedQty} dari ${dbItem.quantity} pcs`;
         await pickingRepo.markItemAsReturned(connection, dbItem.id, "UNKNOWN", note);
       }
     }
   }
 
-  // 3. Cancels
-  const uniqueCancelIds = [...new Set(cancels)];
-  for (const id of uniqueCancelIds) {
-    await restockValidatedItems(connection, id, userId, "Auto-Cancel via Sync");
-    await pickingRepo.cancelHeader(connection, id);
-    await pickingRepo.cancelItemsByListId(connection, id);
-    await pickingRepo.updateMarketplaceStatus(connection, id, MP_STATUS.CANCELLED);
+  // 3. Voids
+  const uniqueVoidIds = [...new Set(voids)];
+  for (const id of uniqueVoidIds) {
+    await restockValidatedItems(connection, id, userId, "Auto-Void via Sync");
+    await pickingRepo.voidHeader(connection, id);
+    await pickingRepo.voidItemsByListId(connection, id);
+    await pickingRepo.updateMarketplaceStatus(connection, id, MP_STATUS.VOID);
   }
 
   // 4. Updates

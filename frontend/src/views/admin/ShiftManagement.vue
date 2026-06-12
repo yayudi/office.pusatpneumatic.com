@@ -21,8 +21,7 @@ const getShifts = async () => {
   try {
     const data = await fetchShifts()
     shifts.value = data
-  } catch {
-  } finally {
+  } catch (e) { console.error(e) } finally {
     loading.value = false
   }
 }
@@ -38,14 +37,13 @@ const openEdit = shift => {
 }
 
 const deleteShift = async id => {
-  if (!await swalConfirm('Hapus shift ini? User yang menggunakan shift ini akan kembali ke default.')) return
+  if (!(await swalConfirm('Hapus shift ini? User yang menggunakan shift ini akan kembali ke default.'))) return
 
   try {
     await axios.delete(`/shifts/${id}`)
     toast('Shift dihapus', 'success')
     getShifts()
-  } catch {
-  }
+  } catch (e) { console.error(e) }
 }
 
 const getWorkDaysLabel = daysStr => {

@@ -167,7 +167,9 @@ const toggleSelectAll = e => {
 const confirmBulkDelete = async () => {
   if (selectedMediaIds.value.size === 0) return
   if (
-    !await swalConfirm(`Hapus ${selectedMediaIds.value.size} gambar terpilih secara permanen? Aksi ini tidak dapat dibatalkan.`)
+    !(await swalConfirm(
+      `Hapus ${selectedMediaIds.value.size} gambar terpilih secara permanen? Aksi ini tidak dapat dibatalkan.`
+    ))
   )
     return
 
@@ -190,7 +192,7 @@ const confirmBulkDelete = async () => {
         successCount++
         selectedMediaIds.value.delete(id) // Hapus dari seleksi jika berhasil
       } catch (err) {
-    console.error(err) // Auto-added to prevent unused var
+        console.error(err) // Auto-added to prevent unused var
         if (err.response?.status === 409) {
           usageConflictCount++
         } else {
@@ -443,7 +445,7 @@ const deleteMedia = async (id, usageCount) => {
     await swalAlert('Media ini sedang digunakan oleh ' + usageCount + ' produk. Tidak bisa dihapus.')
     return
   }
-  if (!await swalConfirm('Yakin ingin menghapus aset media ini?')) return
+  if (!(await swalConfirm('Yakin ingin menghapus aset media ini?'))) return
 
   try {
     const res = await apiClient.delete(`/media/${id}`)
@@ -466,7 +468,8 @@ const bulkCopyLinks = async () => {
   try {
     await navigator.clipboard.writeText(links)
     toast(`${items.length} tautan berhasil disalin!`, 'success')
-  } catch {
+  } catch (e) {
+    console.error(e)
   }
 }
 

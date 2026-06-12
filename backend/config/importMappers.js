@@ -123,9 +123,9 @@ export const Mappers = {
         retType.includes("refund")
       )
         return MP_STATUS.RETURNED;
-      if (retType.includes("cancel") || retType.includes("batal")) return MP_STATUS.CANCELLED;
-      if (status.includes("batal") || status.includes("dibatalkan") || status.includes("cancelled"))
-        return MP_STATUS.CANCELLED;
+      if (retType.includes("cancel") || retType.includes("batal")) return MP_STATUS.VOID;
+      if (status.includes("batal") || status.includes("dibatalkan") || status.includes("cancelled") || status.includes("void"))
+        return MP_STATUS.VOID;
       if (
         status.includes("selesai") ||
         status.includes("delivered") ||
@@ -207,7 +207,7 @@ export const Mappers = {
         retStatus.includes("disetujui")
       )
         return MP_STATUS.RETURNED;
-      if (status.includes("batal") || status.includes("cancelled")) return MP_STATUS.CANCELLED;
+      if (status.includes("batal") || status.includes("cancelled") || status.includes("void")) return MP_STATUS.VOID;
       if (
         status.includes("selesai") ||
         status.includes("completed") ||
@@ -267,7 +267,7 @@ export const Mappers = {
       const retur = getter(["retur", "return"]) || "0";
 
       if (parseInt(retur, 10) > 0 || status.includes("retur") || status.includes("return")) return MP_STATUS.RETURNED;
-      if (status.includes("void") || status.includes("batal")) return MP_STATUS.CANCELLED;
+      if (status.includes("void") || status.includes("batal") || status.includes("cancel")) return MP_STATUS.VOID;
       return MP_STATUS.NEW;
     },
   },

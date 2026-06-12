@@ -131,7 +131,7 @@ export const fetchPickingListDetails = async (pickingListId) => {
  * @param {number|string} userId
  * @returns {Promise<any>}
  */
-export const cancelPickingListService = async (pickingListId, userId) => {
+export const voidPickingListService = async (pickingListId, userId) => {
   const connection = await db.getConnection();
   await connection.beginTransaction();
 
@@ -145,7 +145,7 @@ export const cancelPickingListService = async (pickingListId, userId) => {
     );
 
     if (itemsToRestock.length > 0) {
-      logger.info(`[CANCEL] Mengembalikan stok untuk ${itemsToRestock.length} item.`);
+      logger.info(`[VOID] Mengembalikan stok untuk ${itemsToRestock.length} item.`);
       for (const item of itemsToRestock) {
         await locationRepo.incrementStock(
           connection,
@@ -158,23 +158,160 @@ export const cancelPickingListService = async (pickingListId, userId) => {
           productId: item.product_id,
           quantity: item.quantity,
           toLocationId: item.confirmed_location_id,
-          type: "CANCEL_RESTOCK",
+          type: "VOID_RESTOCK",
           userId: userId,
-          notes: `Manual Cancel Picking List #${pickingListId}`,
+          notes: `Manual Void Picking List #${pickingListId}`,
         });
       }
     }
 
-    const [res] = await pickingRepo.cancelHeader(connection, pickingListId);
+    const [res] = await pickingRepo.voidHeader(connection, pickingListId);
 
     if (res.affectedRows === 0) {
       throw new Error("Picking List tidak ditemukan atau sudah dibatalkan.");
     }
 
-    await pickingRepo.cancelItemsByListId(connection, pickingListId);
+    await pickingRepo.voidItemsByListId(connection, pickingListId);
 
     await connection.commit();
     return { success: true, message: "Picking List dibatalkan." };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+};
+
+/**
+ * Targeted Refresh: Cek ulang stok khusus untuk satu Picking List (Manual Trigger)
+ */
+export const retryBackordersService = async (pickingListId) => {
+  const connection = await db.getConnection();
+  await connection.beginTransaction();
+
+  try {
+    const [unfulfillableRows] = await connection.query(`
+      SELECT 
+        pli.id, 
+        pli.product_id, 
+        pli.quantity, 
+        pli.original_sku,
+        pl.location_purpose
+      FROM picking_list_items pli
+      JOIN picking_lists pl ON pli.picking_list_id = pl.id
+      WHERE pli.picking_list_id = ?
+        AND (pli.status = 'BACKORDER' OR (pli.status = 'PENDING' AND pli.suggested_location_id IS NULL))
+        AND pl.status IN ('PENDING', 'VALIDATED')
+        AND pl.is_active = 1
+    `, [pickingListId]);
+
+    if (unfulfillableRows.length === 0) {
+      await connection.rollback();
+      return { success: true, message: "Tidak ada item backorder untuk pesanan ini." };
+    }
+
+    let recoveredCount = 0;
+
+    for (const item of unfulfillableRows) {
+      const bestLocation = await locationRepo.findBestStock(
+        connection,
+        item.product_id,
+        item.quantity,
+        item.location_purpose || "DISPLAY"
+      );
+
+      if (bestLocation) {
+        await pickingRepo.updateSuggestedLocation(
+          connection,
+          item.id,
+          bestLocation.location_id,
+          bestLocation.stock_location_id,
+          "PENDING"
+        );
+        recoveredCount++;
+      }
+    }
+
+    await connection.commit();
+
+    if (recoveredCount > 0) {
+      return { success: true, message: `Berhasil mendapatkan stok untuk ${recoveredCount} dari ${unfulfillableRows.length} item backorder.` };
+    } else {
+      return { success: true, message: `Stok masih belum tersedia untuk ${unfulfillableRows.length} item.` };
+    }
+
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+};
+
+/**
+ * Batch Targeted Refresh: Cek ulang stok untuk beberapa Picking List sekaligus
+ */
+export const retryBackordersBatchService = async (pickingListIds) => {
+  if (!pickingListIds || pickingListIds.length === 0) {
+    return { success: true, message: "Tidak ada picking list yang dipilih." };
+  }
+
+  const connection = await db.getConnection();
+  await connection.beginTransaction();
+
+  try {
+    const placeholders = pickingListIds.map(() => '?').join(',');
+    const [unfulfillableRows] = await connection.query(`
+      SELECT 
+        pli.id, 
+        pli.product_id, 
+        pli.quantity, 
+        pli.original_sku,
+        pl.location_purpose
+      FROM picking_list_items pli
+      JOIN picking_lists pl ON pli.picking_list_id = pl.id
+      WHERE pli.picking_list_id IN (${placeholders})
+        AND (pli.status = 'BACKORDER' OR (pli.status = 'PENDING' AND pli.suggested_location_id IS NULL))
+        AND pl.status IN ('PENDING', 'VALIDATED')
+        AND pl.is_active = 1
+    `, pickingListIds);
+
+    if (unfulfillableRows.length === 0) {
+      await connection.rollback();
+      return { success: true, message: "Tidak ada item backorder pada pesanan yang dipilih." };
+    }
+
+    let recoveredCount = 0;
+
+    for (const item of unfulfillableRows) {
+      const bestLocation = await locationRepo.findBestStock(
+        connection,
+        item.product_id,
+        item.quantity,
+        item.location_purpose || "DISPLAY"
+      );
+
+      if (bestLocation) {
+        await pickingRepo.updateSuggestedLocation(
+          connection,
+          item.id,
+          bestLocation.location_id,
+          bestLocation.stock_location_id,
+          "PENDING"
+        );
+        recoveredCount++;
+      }
+    }
+
+    await connection.commit();
+
+    if (recoveredCount > 0) {
+      return { success: true, message: `Berhasil mendapatkan stok untuk ${recoveredCount} dari ${unfulfillableRows.length} item backorder.` };
+    } else {
+      return { success: true, message: `Stok masih belum tersedia untuk ${unfulfillableRows.length} item.` };
+    }
+
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -215,9 +352,9 @@ export const completePickingItemsService = async (payloadItems, userId) => {
         );
       }
 
-      // Cek apakah status sudah Cancelled
-      if (header.status === "CANCELLED" || header.status === "CANCEL") {
-        throw new Error(`Order #${listId} telah dibatalkan. Tidak dapat diproses.`);
+      // Cek apakah status sudah Void
+      if (header.status === "VOID" || header.status === "CANCELLED" || header.status === "CANCEL") {
+        throw new Error(`Order #${listId} telah divoid (dibatalkan). Tidak dapat diproses.`);
       }
 
       // --- ANTI PARTIAL PROCESS CHECK ---
@@ -226,14 +363,14 @@ export const completePickingItemsService = async (payloadItems, userId) => {
         `SELECT original_sku FROM picking_list_items
           WHERE picking_list_id = ?
             AND (status = 'BACKORDER' OR (status = 'PENDING' AND suggested_location_id IS NULL))`,
-        [listId],
+        [listId]
       );
 
       if (unfulfillable.length > 0) {
         const skuList = unfulfillable.map((u) => u.original_sku || "UNKNOWN").join(", ");
         throw new Error(
           `Pesanan ${header.original_invoice_id} memiliki item kosong/out-of-stock (SKU: ${skuList}). ` +
-            `Pemrosesan parsial tidak diizinkan. Harap lengkapi stok terlebih dahulu atau batalkan pesanan.`,
+            `Pemrosesan parsial tidak diizinkan. Harap lengkapi stok terlebih dahulu atau batalkan pesanan.`
         );
       }
 

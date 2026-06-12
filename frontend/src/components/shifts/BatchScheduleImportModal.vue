@@ -10,10 +10,7 @@
           <li>Pastikan nama shift sesuai dengan Master Shift.</li>
         </ul>
         <div class="mt-3 pt-3 border-t border-primary/20">
-          <button
-            @click="downloadTemplate"
-            class="font-bold hover:underline inline-flex items-center gap-1"
-          >
+          <button @click="downloadTemplate" class="font-bold hover:underline inline-flex items-center gap-1">
             <font-awesome-icon icon="fa-solid fa-download" /> Download Template (Excel)
           </button>
         </div>
@@ -26,13 +23,7 @@
         @dragover.prevent
         @drop.prevent="handleDrop"
       >
-        <input
-          type="file"
-          ref="fileInput"
-          class="hidden"
-          accept=".xlsx, .xls, .csv"
-          @change="handleFileSelect"
-        />
+        <input type="file" ref="fileInput" class="hidden" accept=".xlsx, .xls, .csv" @change="handleFileSelect" />
 
         <div v-if="!selectedFile">
           <font-awesome-icon
@@ -46,17 +37,12 @@
         <div v-else>
           <font-awesome-icon icon="fa-solid fa-file-excel" class="text-4xl mb-3 text-success" />
           <p class="font-bold text-lg truncate px-4">{{ selectedFile.name }}</p>
-          <p class="text-xs opacity-60 mt-1">
-            Ukuran: {{ (selectedFile.size / 1024).toFixed(2) }} KB
-          </p>
+          <p class="text-xs opacity-60 mt-1">Ukuran: {{ (selectedFile.size / 1024).toFixed(2) }} KB</p>
         </div>
       </div>
 
       <!-- Error Message -->
-      <div
-        v-if="errorMessage"
-        class="bg-danger/10 text-danger px-4 py-3 rounded-lg text-sm flex items-start gap-3"
-      >
+      <div v-if="errorMessage" class="bg-danger/10 text-danger px-4 py-3 rounded-lg text-sm flex items-start gap-3">
         <font-awesome-icon icon="fa-solid fa-circle-exclamation" class="mt-0.5 shrink-0" />
         <span>{{ errorMessage }}</span>
       </div>
@@ -93,7 +79,7 @@ import BaseModal from '@/components/ui/BaseModal.vue'
 import axios from '@/api/axios'
 
 defineProps({
-  isOpen: Boolean,
+  isOpen: Boolean
 })
 
 const emit = defineEmits(['close', 'success'])
@@ -114,16 +100,15 @@ const downloadTemplate = async () => {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-  } catch {
-  }
+  } catch (e) { console.error(e) }
 }
 
-const handleFileSelect = (event) => {
+const handleFileSelect = event => {
   const file = event.target.files[0]
   if (file) selectedFile.value = file
 }
 
-const handleDrop = (event) => {
+const handleDrop = event => {
   const file = event.dataTransfer.files[0]
   if (file) selectedFile.value = file
 }

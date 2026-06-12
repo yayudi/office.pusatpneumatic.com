@@ -5,7 +5,7 @@ import { ref, onMounted, watch, computed } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll.js'
 import { useHistoryGrouping } from '@/composables/useHistoryGrouping.js'
-import { getHistoryPickingItems, cancelPickingList } from '@/api/helpers/picking.js'
+import { getHistoryPickingItems, voidPickingList } from '@/api/helpers/picking.js'
 import PickingFilterBar from '@/components/picking/PickingFilterBar.vue'
 import PickingListCard from '@/components/picking/PickingListCard.vue'
 import PickingListCardCompact from '@/components/picking/PickingListCardCompact.vue'
@@ -72,14 +72,14 @@ async function fetchHistoryItems() {
 
 // --- HANDLERS ---
 
-async function handleCancelItem(itemId) {
-  if (!await swalConfirm('Apakah Anda yakin ingin membatalkan arsip ini? (Hanya admin)')) return
+async function handleVoidItem(itemId) {
+  if (!await swalConfirm('Apakah Anda yakin ingin me-void arsip ini? (Hanya admin)')) return
   try {
-    await cancelPickingList(itemId)
-    toast('Berhasil dibatalkan', 'success')
+    await voidPickingList(itemId)
+    toast('Berhasil divoid', 'success')
     fetchHistoryItems() // Refresh
   } catch (e) {
-    console.error(e) // Auto-added to prevent unused var
+    console.error(e)
   }
 }
 
@@ -136,7 +136,7 @@ onMounted(() => {
             :inv="inv"
             mode="history"
             :historyLogs="inv.historyLogs"
-            @cancel-invoice="handleCancelItem"
+            @void-invoice="handleVoidItem"
           />
         </template>
       </MasonryWall>
@@ -149,7 +149,7 @@ onMounted(() => {
           :inv="inv"
           mode="history"
           :historyLogs="inv.historyLogs"
-          @cancel-invoice="handleCancelItem"
+          @void-invoice="handleVoidItem"
         />
       </div>
 
@@ -161,7 +161,7 @@ onMounted(() => {
           :inv="inv"
           mode="history"
           :historyLogs="inv.historyLogs"
-          @cancel-invoice="handleCancelItem"
+          @void-invoice="handleVoidItem"
         />
       </div>
 

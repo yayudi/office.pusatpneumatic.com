@@ -4,7 +4,13 @@ import { ref, computed, watch } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll.js'
 import { useTaskGrouping } from '@/composables/useTaskGrouping.js'
-import { getPendingPickingItems, completePickingItems, cancelPickingList } from '@/api/helpers/picking.js'
+import {
+  getPendingPickingItems,
+  completePickingItems,
+  voidPickingList,
+  retryBackorders,
+  retryBackordersBatch
+} from '@/api/helpers/picking.js'
 import PickingFilterBar from '@/components/picking/PickingFilterBar.vue'
 import PickingListCard from '@/components/picking/PickingListCard.vue'
 import PickingListCardCompact from '@/components/picking/PickingListCardCompact.vue'
@@ -15,7 +21,11 @@ import { useQuery } from '@tanstack/vue-query'
 const { toast } = useToast()
 
 // --- ACTIONS (API CALLS) ---
-const { isLoading: isLoadingPicking, data: queryData, refetch: fetchPendingItems } = useQuery({
+const {
+  isLoading: isLoadingPicking,
+  data: queryData,
+  refetch: fetchPendingItems
+} = useQuery({
   queryKey: ['pendingPickingItems'],
   queryFn: async () => {
     const response = await getPendingPickingItems()
@@ -24,13 +34,13 @@ const { isLoading: isLoadingPicking, data: queryData, refetch: fetchPendingItems
     else if (response?.data && Array.isArray(response.data)) data = response.data
     return data
   },
-  refetchOnWindowFocus: false, // Prevent unneeded re-fetches
+  refetchOnWindowFocus: false // Prevent unneeded re-fetches
 })
 
 const pendingItems = computed(() => queryData.value || [])
 
 // --- STATE ---
-const isCancelling = ref(false)
+const isVoiding = ref(false)
 const selectedItems = ref(new Set())
 
 watch(queryData, () => {
@@ -51,8 +61,19 @@ const selectionStats = computed(() => {
 
   return {
     invoices: uniqueInvoices.size,
-    skus: skuCount
+    skus: skuCount,
+    invoiceIds: Array.from(uniqueInvoices)
   }
+})
+
+const hasSelectedBackorder = computed(() => {
+  for (const id of selectedItems.value) {
+    const item = itemsMap.value.get(id)
+    if (item && (item.status === 'BACKORDER' || !item.location_code)) {
+      return true
+    }
+  }
+  return false
 })
 
 const filterState = ref({
@@ -149,8 +170,6 @@ async function canSelectItem(item) {
   return true // SELALU IZINKAN (Trust Backend)
 }
 
-
-
 async function handleCompleteSelectedItems() {
   if (selectedItems.value.size === 0) return
 
@@ -189,8 +208,6 @@ async function handleCompleteSelectedItems() {
     const details = errData.errors || []
 
     if (details.length > 0) {
-      // Tampilkan pesan utama
-      // Tampilkan tiap detail sebagai toast terpisah (max 10)
       const maxToasts = Math.min(details.length, 10)
       for (let i = 0; i < maxToasts; i++) {
         setTimeout(() => toast(details[i], 'warning'), (i + 1) * 300)
@@ -198,14 +215,13 @@ async function handleCompleteSelectedItems() {
       if (details.length > 10) {
         setTimeout(() => toast(`...dan ${details.length - 10} error lainnya.`, 'warning'), (maxToasts + 1) * 300)
       }
-    } else {
     }
   } finally {
     isLoadingPicking.value = false
   }
 }
 
-async function handleCancelSelectedItems() {
+async function handleVoidSelectedItems() {
   if (selectedItems.value.size === 0) return
 
   // Dapatkan daftar picking_list_id unik dari item yang terpilih
@@ -217,9 +233,9 @@ async function handleCancelSelectedItems() {
     }
   })
 
-  if (!await swalConfirm(`Batalkan ${uniqueInvoices.size} pesanan ini? Stok akan dikembalikan.`)) return
+  if (!(await swalConfirm(`Void ${uniqueInvoices.size} pesanan ini? Stok akan dikembalikan.`))) return
 
-  isCancelling.value = true
+  isVoiding.value = true
   let successCount = 0
   let failCount = 0
 
@@ -227,41 +243,66 @@ async function handleCancelSelectedItems() {
     // Batalkan setiap list ID satu per satu
     for (const listId of uniqueInvoices) {
       try {
-        await cancelPickingList(listId)
+        await voidPickingList(listId)
         successCount++
       } catch (err) {
-        console.error(`Gagal membatalkan list ${listId}:`, err)
+        console.error(`Gagal void list ${listId}:`, err)
         failCount++
       }
     }
 
     if (successCount > 0) {
-      toast(`Berhasil membatalkan ${successCount} pesanan.`, 'success')
+      toast(`Berhasil void ${successCount} pesanan.`, 'success')
       selectedItems.value = new Set() // Reset setelah berhasil
     }
     if (failCount > 0) {
-      toast(`Gagal membatalkan ${failCount} pesanan.`, 'warning')
+      toast(`Gagal void ${failCount} pesanan.`, 'warning')
     }
-    
+
     await fetchPendingItems()
   } finally {
-    isCancelling.value = false
+    isVoiding.value = false
   }
 }
 
-async function handleCancelInvoice(pickingListId) {
-  if (!await swalConfirm('Batalkan seluruh pesanan ini? Stok akan dikembalikan.')) return
+async function handleVoidInvoice(pickingListId) {
   try {
-    await cancelPickingList(pickingListId)
-    toast('Picking list dibatalkan.', 'success')
-    pendingItems.value = pendingItems.value.filter(item => item.picking_list_id !== pickingListId)
-  } catch (error) {
-    console.error(error) // Auto-added to prevent unused var
-    await fetchPendingItems()
+    const res = await voidPickingList(pickingListId)
+    toast(res.message || 'Picking List berhasil divoid', 'success')
+    // Optimistic Update
+    const newData = queryData.value.filter(i => i.picking_list_id !== pickingListId)
+    queryData.value = newData
+  } catch (err) {
+    toast(err.message || 'Gagal mem-void Picking List', 'error')
   }
 }
 
-// --- SELECTION LOGIC ---
+async function handleRetryBackorder(pickingListId) {
+  try {
+    const res = await retryBackorders(pickingListId)
+    toast(res.message || 'Stok berhasil dicek ulang', 'success')
+    fetchPendingItems()
+  } catch (err) {
+    toast(err.message || 'Gagal mengecek stok', 'error')
+  }
+}
+
+const isRetryingBatch = ref(false)
+async function handleRetryBatch() {
+  if (selectionStats.value.invoiceIds.length === 0) return
+  isRetryingBatch.value = true
+  try {
+    const res = await retryBackordersBatch(selectionStats.value.invoiceIds)
+    toast(res.message || 'Pengecekan ulang stok batch selesai', 'success')
+    fetchPendingItems()
+  } catch (err) {
+    toast(err.message || 'Gagal mengecek ulang stok batch', 'error')
+  } finally {
+    isRetryingBatch.value = false
+  }
+}
+
+// --- COMPLETE ITEMS LOGIC ---
 function handleToggleInvoice({ inv, checked }) {
   console.log(`[Toggle Invoice] Invoice ID: ${inv.id}, Checked: ${checked}`)
   const allItemIds = []
@@ -323,8 +364,6 @@ defineExpose({
     return uniqueInvoices.size
   })
 })
-
-
 </script>
 
 <template>
@@ -334,7 +373,7 @@ defineExpose({
       <transition name="slide-up">
         <div
           v-if="pendingItems.length > 0"
-          class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[95%] md:w-[600px] bg-secondary/95 border border-secondary/20 backdrop-blur-xl p-3 rounded-2xl shadow-2xl z-[200] flex items-center justify-between gap-3 ring-1 ring-black/5"
+          class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[95%] md:w-fit max-w-[95vw] bg-secondary/95 border border-secondary/20 backdrop-blur-xl p-3 rounded-2xl shadow-2xl z-[200] flex items-center justify-between gap-3 ring-1 ring-black/5 overflow-x-auto no-scrollbar"
         >
           <!-- Kontrol Seleksi -->
           <div class="flex items-center gap-2">
@@ -373,26 +412,42 @@ defineExpose({
           <div v-else class="text-xs text-text/30 italic px-1 hidden md:block">Belum ada pesanan dipilih</div>
 
           <!-- Tombol Eksekusi -->
-          <div class="flex items-center gap-2 flex-1 sm:flex-none">
-            <!-- Tombol Cancel -->
+          <div class="flex items-center gap-2 sm:flex-none">
+            <!-- Tombol Cek Stok Batch -->
             <button
-              @click="handleCancelSelectedItems"
-              class="group relative overflow-hidden bg-danger hover:bg-danger/90 text-white px-3 sm:px-4 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg hover:shadow-danger/30 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:bg-secondary disabled:text-text/50 disabled:shadow-none"
-              :disabled="isCancelling || isLoadingPicking || selectedItems.size === 0"
-              title="Batalkan Pesanan Terpilih"
+              v-if="hasSelectedBackorder"
+              @click="handleRetryBatch"
+              class="flex-1 sm:flex-none flex items-center justify-center gap-2 text-warning/80 hover:bg-warning/10 hover:text-warning hover:border-warning/30 border border-warning/10 px-4 py-2.5 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="isVoiding || isLoadingPicking || isRetryingBatch || selectedItems.size === 0"
+              title="Cek Ulang Stok untuk Pesanan Terpilih"
             >
               <font-awesome-icon
-                :icon="isCancelling ? 'fa-solid fa-spinner' : 'fa-solid fa-ban'"
-                :class="{'animate-spin': isCancelling}"
+                :icon="isRetryingBatch ? 'fa-solid fa-spinner' : 'fa-solid fa-rotate-right'"
+                :class="{ 'animate-spin': isRetryingBatch, 'text-warning': !isRetryingBatch }"
               />
-              <span class="hidden sm:inline">Cancel</span>
+              <span class="hidden sm:inline">Cek Stok</span>
+            </button>
+
+            <button
+              v-if="authStore.hasPermission('void-picking-list')"
+              @click="handleVoidSelectedItems"
+              class="w-full sm:w-auto px-4 py-2 sm:py-2.5 bg-danger/10 hover:bg-danger text-danger hover:text-white rounded-lg transition-all duration-200 font-medium text-xs sm:text-sm border border-danger/20 flex items-center justify-center gap-2"
+              :disabled="isVoiding || isLoadingPicking || isRetryingBatch || selectedItems.size === 0"
+            >
+              <span class="w-4 flex justify-center">
+                <font-awesome-icon
+                  :icon="isVoiding ? 'fa-solid fa-spinner' : 'fa-solid fa-ban'"
+                  :class="{ 'animate-spin': isVoiding }"
+                />
+              </span>
+              <span>{{ isVoiding ? 'Memproses...' : 'Void Batch' }}</span>
             </button>
 
             <!-- Tombol Selesaikan -->
             <button
               @click="handleCompleteSelectedItems"
               class="flex-1 sm:flex-none group relative overflow-hidden bg-primary hover:bg-primary/90 text-background px-4 sm:pl-6 sm:pr-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg hover:shadow-primary/30 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:bg-secondary disabled:text-text/50 disabled:shadow-none"
-              :disabled="isLoadingPicking || isCancelling || selectedItems.size === 0"
+              :disabled="isLoadingPicking || isVoiding || isRetryingBatch || selectedItems.size === 0"
             >
               <div
                 class="absolute inset-0 bg-background/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"
@@ -446,7 +501,8 @@ defineExpose({
               :selectedItems="selectedItems"
               :validate-stock="canSelectItem"
               @toggle-invoice="handleToggleInvoice"
-              @cancel-invoice="handleCancelInvoice"
+              @void-invoice="handleVoidInvoice"
+              @retry-backorder="handleRetryBackorder"
               mode="picking"
             />
           </template>
@@ -461,7 +517,8 @@ defineExpose({
             :selectedItems="selectedItems"
             :validate-stock="canSelectItem"
             @toggle-invoice="handleToggleInvoice"
-            @cancel-invoice="handleCancelInvoice"
+            @void-invoice="handleVoidInvoice"
+            @retry-backorder="handleRetryBackorder"
             mode="picking"
           />
         </div>

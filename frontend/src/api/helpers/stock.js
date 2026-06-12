@@ -207,12 +207,12 @@ export const getImportJobs = async () => {
   }
 }
 
-export async function cancelImportJob(jobId) {
+export async function voidImportJob(jobId) {
   try {
-    const response = await axios.post(`/stock/import-jobs/${jobId}/cancel`)
+    const response = await axios.post(`/stock/import-jobs/${jobId}/void`)
     return response.data
   } catch (error) {
-    console.error('Error cancelling import job:', error)
+    console.error('Error voiding import job:', error)
     throw error.response?.data || error
   }
 }

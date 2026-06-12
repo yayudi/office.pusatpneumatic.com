@@ -3,7 +3,7 @@
 import { swalConfirm } from '@/composables/useSweetAlert'
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useToast } from '@/composables/useToast.js'
-import { getImportJobs, cancelImportJob } from '@/api/helpers/stock.js'
+import { getImportJobs, voidImportJob } from '@/api/helpers/stock.js'
 import PickingUploadForm from './PickingUploadForm.vue'
 
 const { toast } = useToast()
@@ -37,14 +37,14 @@ async function fetchJobHistory() {
   }
 }
 
-async function handleCancelJob(job) {
-  if (!await swalConfirm(`Batalkan antrian file "${job.original_filename}"?`)) return
+async function handleVoidJob(job) {
+  if (!await swalConfirm(`Void antrian file "${job.original_filename}"?`)) return
   try {
-    await cancelImportJob(job.id)
-    toast('Antrian berhasil dibatalkan.', 'success')
+    await voidImportJob(job.id)
+    toast('Antrian berhasil di-void.', 'success')
     fetchJobHistory()
   } catch (error) {
-    console.error(error) // Auto-added to prevent unused var
+    console.error(error)
   }
 }
 
@@ -242,10 +242,10 @@ onUnmounted(() => {
                     {{ job.status === 'FAILED' ? 'GAGAL' : 'ADA MASALAH' }}
                   </span>
                   <span
-                    v-else-if="job.status === 'CANCELLED'"
+                    v-else-if="job.status === 'VOID'"
                     class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-secondary/20 text-text/60 border border-secondary/30"
                   >
-                    <font-awesome-icon icon="fa-solid fa-ban" /> DIBATALKAN
+                    <font-awesome-icon icon="fa-solid fa-ban" /> VOID
                   </span>
                   <span
                     v-else
@@ -256,10 +256,10 @@ onUnmounted(() => {
                   </span>
                   <button
                     v-if="job.status === 'PENDING'"
-                    @click="handleCancelJob(job)"
+                    @click="handleVoidJob(job)"
                     class="text-[10px] text-danger/80 hover:text-danger font-medium flex items-center gap-1 hover:bg-danger/10 p-1 rounded transition-colors"
                   >
-                    <font-awesome-icon icon="fa-solid fa-xmark" /> Batalkan
+                    <font-awesome-icon icon="fa-solid fa-xmark" /> Void
                   </button>
                 </div>
               </td>

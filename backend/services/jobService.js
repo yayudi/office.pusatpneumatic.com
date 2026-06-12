@@ -53,10 +53,10 @@ export const getUserJobsService = async (userId) => {
 /**
  * Batalkan Job
  */
-export const cancelJobService = async (jobId, userId) => {
+export const voidJobService = async (jobId, userId) => {
   const connection = await db.getConnection();
   try {
-    const success = await jobRepo.cancel(connection, jobId, userId);
+    const success = await jobRepo.voidJob(connection, jobId, userId);
     if (!success) {
       throw new Error("Gagal membatalkan. Job mungkin sudah diproses atau bukan milik Anda.");
     }

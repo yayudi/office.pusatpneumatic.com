@@ -177,10 +177,10 @@ export const getImportJobs = async (req, res, next) => {
   }
 };
 
-export const cancelImportJob = async (req, res, next) => {
+export const voidImportJob = async (req, res, next) => {
   try {
-    await jobService.cancelJobService(req.params.id, req.user.id);
-    res.json({ success: true, message: "Antrian berhasil dibatalkan." });
+    await jobService.voidJobService(req.params.id, req.user.id);
+    res.json({ success: true, message: "Antrian berhasil divoid (dibatalkan)." });
   } catch (error) {
     next(error);
   }

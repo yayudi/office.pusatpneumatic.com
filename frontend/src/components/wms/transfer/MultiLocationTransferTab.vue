@@ -44,8 +44,7 @@ async function onProductSelect(product) {
   isLoadingDetails.value = true
   try {
     stockDetails.value = await fetchProductStockDetails(product.id)
-  } catch {
-  } finally {
+  } catch (e) { console.error(e) } finally {
     isLoadingDetails.value = false
   }
 }

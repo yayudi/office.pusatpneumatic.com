@@ -12,8 +12,8 @@ jest.unstable_mockModule("../repositories/pickingRepository.js", () => ({
   updateItemsStatusByListId: jest.fn(),
   updateMarketplaceStatus: jest.fn(),
   archiveHeader: jest.fn(),
-  cancelItemsByListId: jest.fn(),
-  cancelHeader: jest.fn(),
+  voidItemsByListId: jest.fn(),
+  voidHeader: jest.fn(),
   markItemAsReturned: jest.fn(),
 }));
 
@@ -86,7 +86,7 @@ describe("pickingValidationHelper", () => {
       // Expectation:
       // Order lama di-archive
       expect(pickingRepo.archiveHeader).toHaveBeenCalledWith(mockConn, 99);
-      expect(pickingRepo.cancelItemsByListId).toHaveBeenCalledWith(mockConn, 99);
+      expect(pickingRepo.voidItemsByListId).toHaveBeenCalledWith(mockConn, 99);
       // 2. Order baru dikembalikan untuk diproses insert
       expect(result).toHaveLength(1);
       expect(result[0].invoiceId).toBe("INV-GHOST");
@@ -126,8 +126,8 @@ describe("pickingValidationHelper", () => {
       await validationHelper.handleExistingInvoices(mockConn, items);
 
       // Expectation: Header & Item dicancel
-      expect(pickingRepo.cancelHeader).toHaveBeenCalledWith(mockConn, 101);
-      expect(pickingRepo.cancelItemsByListId).toHaveBeenCalledWith(mockConn, 101);
+      expect(pickingRepo.voidHeader).toHaveBeenCalledWith(mockConn, 101);
+      expect(pickingRepo.voidItemsByListId).toHaveBeenCalledWith(mockConn, 101);
     });
 
     test("Scenario: Prevent Ghost Stock (Retur saat masih PENDING) -> Force Cancel", async () => {
@@ -142,7 +142,7 @@ describe("pickingValidationHelper", () => {
       await validationHelper.handleExistingInvoices(mockConn, items);
 
       // Expectation: JANGAN set ke RETURNED, tapi CANCEL saja (karena barang belum keluar fisik)
-      expect(pickingRepo.cancelHeader).toHaveBeenCalledWith(mockConn, 102);
+      expect(pickingRepo.voidHeader).toHaveBeenCalledWith(mockConn, 102);
       expect(pickingRepo.updateHeaderStatus).not.toHaveBeenCalledWith(
         mockConn,
         102,
@@ -193,7 +193,7 @@ describe("pickingValidationHelper", () => {
       await validationHelper.handleExistingInvoices(mockConn, items, 99);
 
       // Pastikan order di cancel
-      expect(pickingRepo.cancelHeader).toHaveBeenCalledWith(mockConn, 201);
+      expect(pickingRepo.voidHeader).toHaveBeenCalledWith(mockConn, 201);
       
       // Pastikan restock terpanggil
       expect(locationRepo.incrementStock).toHaveBeenCalledWith(mockConn, 2, 20, 5);
@@ -217,7 +217,7 @@ describe("pickingValidationHelper", () => {
       await validationHelper.handleExistingInvoices(mockConn, items, 99);
 
       // Pastikan order tetap dicancel
-      expect(pickingRepo.cancelHeader).toHaveBeenCalledWith(mockConn, 202);
+      expect(pickingRepo.voidHeader).toHaveBeenCalledWith(mockConn, 202);
       
       // Pastikan restock TIDAK terpanggil sama sekali!
       expect(locationRepo.incrementStock).not.toHaveBeenCalledWith(mockConn, expect.anything(), expect.anything(), expect.anything());

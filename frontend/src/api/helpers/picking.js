@@ -111,12 +111,40 @@ export const getReturnedItems = async () => {
  * @param {number} pickingListId - ID dari picking list yang akan dibatalkan
  * @returns {Promise<Object>} Response sukses
  */
-export const cancelPickingList = async (pickingListId) => {
+export const voidPickingList = async (pickingListId) => {
   try {
-    const response = await api.post(`/picking/cancel/${pickingListId}`)
+    const response = await api.post(`/picking/void/${pickingListId}`)
     return response.data
   } catch (error) {
-    console.error('Error cancelling picking list:', error)
+    console.error('Error voiding picking list:', error)
+    throw error.response?.data || error
+  }
+}
+
+/**
+ * Mencari ulang stok untuk item yang BACKORDER dalam sebuah Picking List (Targeted Refresh)
+ * @param {number} pickingListId 
+ */
+export const retryBackorders = async (pickingListId) => {
+  try {
+    const response = await api.post(`/picking/${pickingListId}/retry-backorders`)
+    return response.data
+  } catch (error) {
+    console.error('Error retrying backorders:', error)
+    throw error.response?.data || error
+  }
+}
+
+/**
+ * Mencari ulang stok untuk item yang BACKORDER dalam beberapa Picking List sekaligus (Targeted Refresh Batch)
+ * @param {Array<number>} pickingListIds 
+ */
+export const retryBackordersBatch = async (pickingListIds) => {
+  try {
+    const response = await api.post(`/picking/retry-backorders-batch`, { pickingListIds })
+    return response.data
+  } catch (error) {
+    console.error('Error retrying backorders batch:', error)
     throw error.response?.data || error
   }
 }

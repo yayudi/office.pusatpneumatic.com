@@ -123,7 +123,7 @@ export const getItemsByIds = async (connection, itemIds) => {
 export const countPendingItems = async (connection, listId) => {
   const [rows] = await connection.query(
     `SELECT COUNT(*) as count FROM picking_list_items
-      WHERE picking_list_id = ? AND status NOT IN ('VALIDATED', 'CANCEL', 'COMPLETED', 'RETURNED', 'OBSOLETE', 'ERROR')`,
+      WHERE picking_list_id = ? AND status NOT IN ('VALIDATED', 'VOID', 'COMPLETED', 'RETURNED', 'OBSOLETE', 'ERROR')`,
     [listId]
   );
   return rows[0].count;
@@ -191,10 +191,10 @@ export const getExistingItemSkus = async (connection, listId) => {
  * @param {number|string} listId
  * @returns {Promise<any>}
  */
-export const cancelHeader = async (connection, listId) => {
+export const voidHeader = async (connection, listId) => {
   return connection.query(
     `UPDATE picking_lists SET status = ?, is_active = NULL, updated_at = NOW() WHERE id = ?`,
-    [WMS_STATUS.CANCEL, listId]
+    [WMS_STATUS.VOID, listId]
   );
 };
 
@@ -251,9 +251,9 @@ export const archiveHeader = async (connection, listId) => {
  * @param {number|string} listId
  * @returns {Promise<any>}
  */
-export const cancelItemsByListId = async (connection, listId) => {
+export const voidItemsByListId = async (connection, listId) => {
   return connection.query(`UPDATE picking_list_items SET status = ? WHERE picking_list_id = ?`, [
-    WMS_STATUS.CANCEL,
+    WMS_STATUS.VOID,
     listId,
   ]);
 };

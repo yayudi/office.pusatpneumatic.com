@@ -16,7 +16,7 @@ const props = defineProps({
 })
 
 const authStore = useAuthStore()
-const emit = defineEmits(['toggle-invoice', 'cancel-invoice'])
+const emit = defineEmits(['toggle-invoice', 'void-invoice'])
 
 const isOpen = ref(false)
 const isLoading = ref(false)
@@ -29,17 +29,16 @@ async function onToggleInvoice(event) {
   emit('toggle-invoice', { inv: props.inv, checked: event.target.checked })
 }
 
-async function onCancelInvoice() {
-  if (!await swalConfirm(`Batalkan pesanan ${props.inv.invoice}?`)) return
+async function onVoidInvoice() {
+  const msg = `Void pesanan ${props.inv.original_invoice_id}?\nSemua status item (termasuk yang berhasil di-pick) akan dikembalikan ke stok.`
+  if (!await swalConfirm(msg)) return
   try {
     isLoading.value = true
-    emit('cancel-invoice', props.inv.id)
+    emit('void-invoice', props.inv.id)
   } catch (error) {
     console.error(error)
   } finally {
-    setTimeout(() => {
-      isLoading.value = false
-    }, 500)
+    isLoading.value = false
   }
 }
 
@@ -141,11 +140,11 @@ const sourceBgClass = computed(() => {
         </span>
 
         <button
-          v-if="canCancel"
-          @click.stop="onCancelInvoice"
+          v-if="canCancel && inv.status !== 'VOID'"
+          @click.stop="onVoidInvoice"
           :disabled="isLoading"
           class="group flex items-center justify-center rounded border border-danger bg-danger/10 w-6 h-6 text-danger/50 transition-colors hover:text-danger disabled:opacity-50"
-          title="Batalkan Item Ini"
+          title="Void"
         >
           <font-awesome-icon
             :icon="isLoading ? 'fa-solid fa-spinner' : 'fa-solid fa-trash'"
@@ -175,7 +174,10 @@ const sourceBgClass = computed(() => {
         <div
           class="bg-secondary/50 px-3 py-1 flex items-center justify-between border-b border-secondary/5"
         >
-          <div class="flex items-center gap-1.5">
+          <span v-if="inv.status === 'VOID'" class="flex items-center gap-1">
+            <i class="fa-solid fa-ban text-[10px]"></i> VOID
+          </span>
+          <div v-else class="flex items-center gap-1.5">
             <font-awesome-icon
               :icon="
                 !locName || locName === 'Unknown Loc'

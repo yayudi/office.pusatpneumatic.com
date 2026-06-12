@@ -237,17 +237,17 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
               v-else
               v-for="(option, index) in options"
               :key="typeof option === 'object' ? option[trackBy] : index"
-              class="rounded-md flex justify-between items-center group transition-colors hover:bg-secondary/10"
+              class="rounded-md flex justify-between items-center group px-2 transition-colors hover:bg-secondary/10"
               :class="{
                 'bg-primary/5': getItemState(getOptionValue(option)) === 'include',
                 'bg-danger/5': getItemState(getOptionValue(option)) === 'exclude'
               }"
             >
-              <span class="flex-1 truncate font-medium text-text text-xs pl-2 sm:text-sm">
+              <span class="flex-1 truncate font-medium text-text text-xs sm:text-sm">
                 {{ getOptionLabel(option) }}
               </span>
 
-              <div class="rounded-md flex items-center shrink-0 ml-2 p-1 gap-0 bg-secondary">
+              <div class="rounded-md flex items-center shrink-0 ml-2 p-1 gap-0 bg-secondary/20 border border-secondary">
                 <!-- Include Button -->
                 <button
                   @click="

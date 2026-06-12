@@ -77,10 +77,10 @@ export const updateProgress = async (connection, jobId, processed, total) => {
  * @param {number|string} userId
  * @returns {Promise<any>}
  */
-export const cancel = async (connection, jobId, userId) => {
+export const voidJob = async (connection, jobId, userId) => {
   const [result] = await connection.query(
     `UPDATE import_jobs
-      SET status = 'CANCELLED', updated_at = NOW()
+      SET status = 'VOID', updated_at = NOW()
       WHERE id = ? AND status = 'PENDING' AND user_id = ?`,
     [jobId, userId]
   );

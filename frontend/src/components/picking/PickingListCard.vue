@@ -17,7 +17,7 @@ const props = defineProps({
 })
 
 const authStore = useAuthStore()
-const emit = defineEmits(['toggle-invoice', 'cancel-invoice'])
+const emit = defineEmits(['toggle-invoice', 'void-invoice', 'retry-backorder'])
 
 const isOpen = ref(false)
 const isLoading = ref(false)
@@ -37,13 +37,24 @@ const {
 async function onToggleInvoice(event) {
   emit('toggle-invoice', { inv: props.inv, checked: event.target.checked })
 }
-async function onCancelInvoice() {
-  if (!await swalConfirm(`Batalkan pesanan ${props.inv.invoice}?`)) return
+async function onVoidInvoice() {
+  const msg = `Void pesanan ${props.inv.original_invoice_id}?\nSemua status item (termasuk yang berhasil di-pick) akan dikembalikan ke stok.`
+  if (!await swalConfirm(msg)) return
   try {
     isLoading.value = true
-    emit('cancel-invoice', props.inv.id)
+    emit('void-invoice', props.inv.id)
   } catch (error) {
     console.error(error)
+  } finally {
+    setTimeout(() => {
+      isLoading.value = false
+    }, 500)
+  }
+}
+async function onRetryBackorder() {
+  isLoading.value = true
+  try {
+    emit('retry-backorder', props.inv.id)
   } finally {
     setTimeout(() => {
       isLoading.value = false
@@ -138,12 +149,21 @@ const sourceBgClass = computed(() => {
           {{ getMpStatusBadge(inv.marketplace_status)?.label }}
         </span>
 
-        <button v-if="canCancel" @click.stop="onCancelInvoice" :disabled="isLoading"
-          class="group flex items-center gap-1 rounded border border-danger bg-danger/10 px-2 py-1 text-[10px] font-bold text-danger/50 transition-colors hover:text-danger disabled:opacity-50"
-          title="Batalkan Item Ini">
-          <font-awesome-icon :icon="isLoading ? 'fa-solid fa-spinner' : 'fa-solid fa-trash'" :spin="isLoading" />
-          <span>Batal</span>
-        </button>
+        <div class="flex items-center gap-1 mt-0.5">
+          <button v-if="mode === 'picking' && hasStockIssue" @click.stop="onRetryBackorder" :disabled="isLoading"
+            class="group flex items-center gap-1 rounded border border-warning bg-warning/10 px-2 py-1 text-[10px] font-bold text-warning/70 transition-colors hover:text-warning disabled:opacity-50"
+            title="Cek ulang stok (Targeted Refresh)">
+            <font-awesome-icon :icon="isLoading ? 'fa-solid fa-spinner' : 'fa-solid fa-rotate-right'" :spin="isLoading" />
+            <span>Cek Stok</span>
+          </button>
+
+          <button v-if="canCancel && inv.status !== 'VOID'" @click.stop="onVoidInvoice" :disabled="isLoading"
+            class="group flex items-center gap-1 rounded border border-danger bg-danger/10 px-2 py-1 text-[10px] font-bold text-danger/50 transition-colors hover:text-danger disabled:opacity-50"
+            title="Void">
+            <font-awesome-icon :icon="isLoading ? 'fa-solid fa-spinner' : 'fa-solid fa-ban'" :spin="isLoading" />
+            <span>Void</span>
+          </button>
+        </div>
 
         <font-awesome-icon v-if="mode === 'history'" icon="fa-solid fa-chevron-down"
           class="text-text/30 transition-transform duration-300 mt-1" :class="{ 'rotate-180': isOpen }" />
@@ -222,6 +242,10 @@ const sourceBgClass = computed(() => {
               <span class="font-bold bg-background px-1.5 py-0.5 rounded border border-secondary/10">
                 {{ item.quantity }} pcs
               </span>
+              <div v-if="mode === 'history' && inv.status === 'VOID'"
+          class="text-[9px] px-1.5 py-0.5 rounded bg-danger/10 text-danger border border-danger/20 font-bold shrink-0 mb-1 w-fit">
+          VOID
+        </div>
               <div class="mt-1">
                 <span class="text-[9px] px-1.5 py-0.5 rounded border flex items-center gap-1 w-fit ml-auto"
                   :class="getStatusBadge(item.item_status).class">

@@ -41,8 +41,7 @@ onMounted(async () => {
     const [myLocs, allLocs] = await Promise.all([fetchMyLocations(), masterData.getLocations(true)])
     myLocations.value = myLocs
     allLocations.value = allLocs
-  } catch {
-  } finally {
+  } catch (e) { console.error(e) } finally {
     isLoading.value = false
   }
 })
@@ -217,9 +216,5 @@ async function submitBatch() {
     @success="() => toast('Batch Inbound diproses!', 'success')"
   />
 
-  <StickerGeneratorModal
-    :show="isStickerModalOpen"
-    @close="isStickerModalOpen = false"
-    :initial-batch="batchList"
-  />
+  <StickerGeneratorModal :show="isStickerModalOpen" @close="isStickerModalOpen = false" :initial-batch="batchList" />
 </template>

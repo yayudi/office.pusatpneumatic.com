@@ -6,15 +6,18 @@ import Logger from '../../utils/logger.js'
 import { processQueue as exportQueue } from './exportQueue.js'
 import { importQueue } from './importQueue.js'
 import { runMediaWorker } from './mediaWorker.js'
+import { runAutoRecovery } from './autoRecoveryWorker.js'
 
 const EXPORT_INTERVAL = 10000 // 10s
 const IMPORT_INTERVAL = 15000 // 15s
 const MEDIA_INTERVAL = 5000 // 5s
+const AUTO_RECOVERY_INTERVAL = 300000 // 5 menit
 
 // Locks / Flags
 let isExporting = false
 let isImporting = false
 let isProcessingMedia = false
+let isRecovering = false
 
 Logger.info('Unified Development Worker Started!', 'DEV_CRON')
 
@@ -55,6 +58,25 @@ const runMedia = async () => {
   }
 }
 
+const runRecovery = async () => {
+  if (isRecovering) return
+  
+  const currentHour = new Date().getHours()
+  // Rush Hour check: 08:00 - 18:00 (8 <= hour < 18)
+  if (currentHour >= 8 && currentHour < 18) {
+    return // Skip execution during rush hour
+  }
+
+  isRecovering = true
+  try {
+    await runAutoRecovery()
+  } catch (err) {
+    Logger.error('Auto Recovery Worker Error', err, 'DEV_CRON')
+  } finally {
+    isRecovering = false
+  }
+}
+
 // -----------------------------------------------------
 // INIT & TIMERS DENGAN STAGGER/DELAY MITIGASI EVENT LOOP
 // -----------------------------------------------------
@@ -79,6 +101,13 @@ setTimeout(() => {
   runImport() // Initial run
   setInterval(runImport, IMPORT_INTERVAL)
 }, 6000)
+
+// 4. Auto Recovery Worker (Offset 9 detik dari boot/media)
+setTimeout(() => {
+  Logger.info('Memulai Interval Auto-Recovery Worker (tiap 5 menit, di luar rush hour)...', 'DEV_CRON')
+  runRecovery() // Initial run
+  setInterval(runRecovery, AUTO_RECOVERY_INTERVAL)
+}, 9000)
 
 // -----------------------------------------------------
 // GRACEFUL SHUTDOWN

@@ -75,8 +75,7 @@ async function loadInitialData() {
       // Pilih peran pertama secara otomatis
       selectRole(roles[0])
     }
-  } catch {
-  } finally {
+  } catch (e) { console.error(e) } finally {
     isLoadingRoles.value = false
   }
 }
@@ -87,7 +86,7 @@ onMounted(loadInitialData)
  * Memilih peran dan memuat izin (permissions) yang terkait.
  */
 async function selectRole(role) {
-  if (isSaving.value || (isDirty.value && !await swalConfirm('Ada perubahan belum disimpan. Yakin pindah?'))) {
+  if (isSaving.value || (isDirty.value && !(await swalConfirm('Ada perubahan belum disimpan. Yakin pindah?')))) {
     return
   }
   selectedRole.value = role
@@ -177,7 +176,7 @@ async function handleSaveRole() {
  * Menghapus peran (setelah konfirmasi).
  */
 async function handleDeleteRole(role) {
-  if (!await swalConfirm(`Apakah Anda yakin ingin menghapus peran "${role.name}"? Ini tidak bisa dibatalkan.`)) {
+  if (!(await swalConfirm(`Apakah Anda yakin ingin menghapus peran "${role.name}"? Ini tidak bisa dibatalkan.`))) {
     return
   }
   isSaving.value = true

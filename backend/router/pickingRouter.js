@@ -66,7 +66,9 @@ router.post(
 // ACTIONS (User Operations)
 router.post("/complete-items", canAccess("confirm-picking-list"), validate(completeItemsSchema), pickingController.completeItems);
 
-router.post("/cancel/:id", canAccess("void-picking-list"), pickingController.cancelPickingList);
+router.post("/void/:id", canAccess("void-picking-list"), pickingController.voidPickingList);
+router.post("/retry-backorders-batch", pickingController.retryBackordersBatch);
+router.post("/:id/retry-backorders", pickingController.retryBackorders);
 
 // LEGACY FALLBACK (Opsional)
 router.post("/upload-sales-report", (req, res, next) => {

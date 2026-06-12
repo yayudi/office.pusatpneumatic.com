@@ -95,7 +95,8 @@ const loadInitialData = async () => {
     const [usersData, shiftsData] = await Promise.all([masterData.getUsers(true), fetchShifts()])
     users.value = usersData
     shifts.value = shiftsData
-  } catch {
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }
@@ -117,7 +118,8 @@ const loadSchedules = async () => {
 
     const data = await fetchSchedules(selectedUserId.value, startDate, endDate)
     schedules.value = Array.isArray(data) ? data : []
-  } catch {
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }
@@ -167,7 +169,8 @@ const selectShift = async shiftId => {
     closePopover()
     await loadSchedules() // Reload to reflect changes
     toast('Jadwal diperbarui', 'success')
-  } catch {
+  } catch (e) {
+    console.error(e)
   } finally {
     isProcessing.value = false
   }
@@ -182,7 +185,8 @@ const clearSchedule = async () => {
     closePopover()
     await loadSchedules()
     toast('Jadwal dikembalikan ke default', 'success')
-  } catch {
+  } catch (e) {
+    console.error(e)
   } finally {
     isProcessing.value = false
   }

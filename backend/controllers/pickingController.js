@@ -135,14 +135,14 @@ export const uploadAndValidate = async (req, res, next) => {
 };
 
 /**
- * Cancel a Picking List.
+ * Void a Picking List.
  */
-export const cancelPickingList = async (req, res, next) => {
+export const voidPickingList = async (req, res, next) => {
   try {
     const { id } = req.params;
     const userId = req.user?.id || 1;
-    await pickingService.cancelPickingListService(id, userId);
-    res.json({ success: true, message: "Picking List dibatalkan." });
+    await pickingService.voidPickingListService(id, userId);
+    res.json({ success: true, message: "Picking List divoid (dibatalkan)." });
   } catch (error) {
     next(error);
   }
@@ -158,6 +158,32 @@ export const completeItems = async (req, res, next) => {
 
 
     const result = await pickingService.completePickingItemsService(items, userId);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Retry backorders for a specific Picking List.
+ */
+export const retryBackorders = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await pickingService.retryBackordersService(id);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Retry backorders for multiple Picking Lists.
+ */
+export const retryBackordersBatch = async (req, res, next) => {
+  try {
+    const { pickingListIds } = req.body;
+    const result = await pickingService.retryBackordersBatchService(pickingListIds);
     res.json(result);
   } catch (error) {
     next(error);

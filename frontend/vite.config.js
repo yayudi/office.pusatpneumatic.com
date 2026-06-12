@@ -127,6 +127,14 @@ export default defineConfig(({ command }) => ({
             }
             if (id.includes('axios')) return 'axios'
             if (id.includes('dayjs')) return 'dayjs'
+            if (id.includes('sweetalert2')) return 'sweetalert2'
+            if (id.includes('fabric')) return 'fabric'
+            if (id.includes('jszip')) return 'jszip'
+            if (id.includes('@cropper')) return 'cropper'
+            if (id.includes('date-fns')) return 'date-fns'
+            if (id.includes('qrcode')) return 'qrcode'
+            if (id.includes('@tanstack')) return 'tanstack'
+            if (id.includes('jsbarcode')) return 'jsbarcode'
             return 'vendor'
           }
         },
