@@ -30,6 +30,11 @@ const faviconPlugin = ({ command }) => ({
 export default defineConfig(({ command }) => ({
   base: '/',
 
+  esbuild: {
+    pure: ['console.log', 'console.info', 'console.debug', 'console.warn'],
+    drop: ['debugger'],
+  },
+
   plugins: [
     vue({
       template: {

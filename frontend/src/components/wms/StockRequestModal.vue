@@ -7,6 +7,7 @@ import { fetchAllLocations } from '@/api/helpers/locations'
 import { createStockRequest } from '@/api/helpers/stockRequest'
 import ProductSearchAddForm from '@/components/wms/transfer/ProductSearchAddForm.vue'
 import BatchItemList from '@/components/wms/transfer/BatchItemList.vue'
+import { swalConfirm } from '@/composables/useSweetAlert'
 
 defineProps({
   isOpen: {
@@ -47,6 +48,50 @@ watch(
     }
   }
 )
+
+let isRevertingFromLoc = false
+watch(fromLocationId, async (newVal, oldVal) => {
+  if (isRevertingFromLoc) {
+    isRevertingFromLoc = false
+    return
+  }
+  if (batchList.value.length > 0 && newVal && oldVal && newVal !== oldVal) {
+    const isConfirmed = await swalConfirm(
+      'Reset Daftar Produk?',
+      'Mengubah lokasi asal akan mereset seluruh daftar produk yang sudah dipilih. Yakin?',
+      'Ya, Reset',
+      'Batal'
+    )
+    if (isConfirmed) {
+      batchList.value = []
+    } else {
+      isRevertingFromLoc = true
+      fromLocationId.value = oldVal
+    }
+  }
+})
+
+let isRevertingToLoc = false
+watch(toLocationId, async (newVal, oldVal) => {
+  if (isRevertingToLoc) {
+    isRevertingToLoc = false
+    return
+  }
+  if (batchList.value.length > 0 && newVal && oldVal && newVal !== oldVal) {
+    const isConfirmed = await swalConfirm(
+      'Reset Daftar Produk?',
+      'Mengubah lokasi tujuan akan mereset seluruh daftar produk yang sudah dipilih. Yakin?',
+      'Ya, Reset',
+      'Batal'
+    )
+    if (isConfirmed) {
+      batchList.value = []
+    } else {
+      isRevertingToLoc = true
+      toLocationId.value = oldVal
+    }
+  }
+})
 
 function handleAddProduct({ product, quantity }) {
   if (!product || !quantity || quantity <= 0) {

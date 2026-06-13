@@ -75,7 +75,9 @@ async function loadInitialData() {
       // Pilih peran pertama secara otomatis
       selectRole(roles[0])
     }
-  } catch (e) { console.error(e) } finally {
+  } catch (e) {
+    console.error(e)
+  } finally {
     isLoadingRoles.value = false
   }
 }
@@ -382,56 +384,58 @@ watch(Alt_S, pressed => {
   </div>
 
   <!-- Modal untuk Tambah/Edit Peran -->
-  <BaseModal
-    :show="isRoleModalOpen"
-    @close="isRoleModalOpen = false"
-    :title="isEditingRole ? 'Edit Peran' : 'Buat Peran Baru'"
-  >
-    <form @submit.prevent="handleSaveRole" class="p-6 space-y-4">
-      <div>
-        <label for="roleName" class="block text-sm font-medium text-text/80 mb-1">Nama Peran</label>
-        <input
-          id="roleName"
-          v-model="roleForm.name"
-          type="text"
-          required
-          class="w-full input-field"
-          placeholder="e.g., supervisor_gudang"
-        />
-        <p class="text-xs text-text/60 mt-1">Gunakan huruf kecil dan underscore.</p>
-      </div>
-      <div>
-        <label for="roleDesc" class="block text-sm font-medium text-text/80 mb-1">Deskripsi</label>
-        <input
-          id="roleDesc"
-          v-model="roleForm.description"
-          type="text"
-          required
-          class="w-full input-field"
-          placeholder="e.g., Supervisor Gudang"
-        />
-        <p class="text-xs text-text/60 mt-1">Deskripsi yang mudah dibaca.</p>
-      </div>
-    </form>
-    <template #footer>
-      <div class="flex gap-4 justify-center pb-6 px-4">
-        <button type="button" @click="isRoleModalOpen = false" class="btn-secondary flex items-center gap-2">
-          <font-awesome-icon icon="fa-solid fa-times" />
-          <span>Batal</span>
-        </button>
-        <button
-          type="submit"
-          @click="handleSaveRole"
-          class="btn-primary flex items-center gap-2"
-          :disabled="isSaving || !roleForm.name || !roleForm.description"
-        >
-          <font-awesome-icon v-if="isSaving" icon="fa-solid fa-spinner" spin />
-          <font-awesome-icon v-else icon="fa-solid fa-save" />
-          <span>{{ isSaving ? 'Menyimpan...' : 'Simpan' }}</span>
-        </button>
-      </div>
-    </template>
-  </BaseModal>
+  <Teleport to="body">
+    <BaseModal
+      :show="isRoleModalOpen"
+      @close="isRoleModalOpen = false"
+      :title="isEditingRole ? 'Edit Peran' : 'Buat Peran Baru'"
+    >
+      <form @submit.prevent="handleSaveRole" class="p-6 space-y-4">
+        <div>
+          <label for="roleName" class="block text-sm font-medium text-text/80 mb-1">Nama Peran</label>
+          <input
+            id="roleName"
+            v-model="roleForm.name"
+            type="text"
+            required
+            class="w-full input-field"
+            placeholder="e.g., supervisor_gudang"
+          />
+          <p class="text-xs text-text/60 mt-1">Gunakan huruf kecil dan underscore.</p>
+        </div>
+        <div>
+          <label for="roleDesc" class="block text-sm font-medium text-text/80 mb-1">Deskripsi</label>
+          <input
+            id="roleDesc"
+            v-model="roleForm.description"
+            type="text"
+            required
+            class="w-full input-field"
+            placeholder="e.g., Supervisor Gudang"
+          />
+          <p class="text-xs text-text/60 mt-1">Deskripsi yang mudah dibaca.</p>
+        </div>
+      </form>
+      <template #footer>
+        <div class="flex gap-4 justify-center pb-6 px-4">
+          <button type="button" @click="isRoleModalOpen = false" class="btn-secondary flex items-center gap-2">
+            <font-awesome-icon icon="fa-solid fa-times" />
+            <span>Batal</span>
+          </button>
+          <button
+            type="submit"
+            @click="handleSaveRole"
+            class="btn-primary flex items-center gap-2"
+            :disabled="isSaving || !roleForm.name || !roleForm.description"
+          >
+            <font-awesome-icon v-if="isSaving" icon="fa-solid fa-spinner" spin />
+            <font-awesome-icon v-else icon="fa-solid fa-save" />
+            <span>{{ isSaving ? 'Menyimpan...' : 'Simpan' }}</span>
+          </button>
+        </div>
+      </template>
+    </BaseModal>
+  </Teleport>
 </template>
 
 <style lang="postcss" scoped>

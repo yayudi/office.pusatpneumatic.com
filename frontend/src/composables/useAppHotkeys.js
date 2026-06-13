@@ -1,3 +1,4 @@
+// frontend\src\composables\useAppHotkeys.js
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMagicKeys } from '@vueuse/core'

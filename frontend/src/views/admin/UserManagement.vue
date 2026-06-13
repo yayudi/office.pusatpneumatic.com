@@ -379,78 +379,81 @@ onMounted(fetchData)
   />
 
   <!-- Modal untuk Tambah Pengguna -->
-  <BaseModal :show="isCreateModalOpen" @close="isCreateModalOpen = false" title="Tambah Pengguna Baru">
-    <form @submit.prevent="handleCreateUser" class="p-6 space-y-4">
-      <div>
-        <label for="username" class="block text-sm font-medium text-text/80 mb-1">Username</label>
-        <input
-          v-model="newUser.username"
-          id="username"
-          type="text"
-          required
-          class="w-full px-3 py-2 bg-background border border-secondary/50 rounded-lg"
-        />
-      </div>
-      <div>
-        <label for="nickname" class="block text-sm font-medium text-text/80 mb-1">Nickname (Opsional)</label>
-        <input
-          v-model="newUser.nickname"
-          id="nickname"
-          type="text"
-          class="w-full px-3 py-2 bg-background border border-secondary/50 rounded-lg"
-        />
-      </div>
-      <div>
-        <label for="password" class="block text-sm font-medium text-text/80 mb-1">Password</label>
-        <input
-          v-model="newUser.password"
-          id="password"
-          type="password"
-          required
-          class="w-full px-3 py-2 bg-background border border-secondary/50 rounded-lg"
-        />
-      </div>
-      <div>
-        <label for="role" class="block text-sm font-medium text-text/80 mb-1">Role</label>
-        <BaseSelect
-          v-model="newUser.role_id"
-          :options="allRoles"
-          track-by="id"
-          label="name"
-          emit-value
-          placeholder="Pilih Role"
-        />
-      </div>
-      <div>
-        <label for="shift" class="block text-sm font-medium text-text/80 mb-1">Shift (Opsional)</label>
-        <BaseSelect
-          v-model="newUser.shift_id"
-          :options="shiftOptions"
-          track-by="id"
-          emit-value
-          placeholder="Pilih Shift"
-        />
-      </div>
-    </form>
-    <template #footer>
-      <button
-        type="button"
-        @click="isCreateModalOpen = false"
-        class="bg-background border border-secondary/30 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-secondary/20 flex items-center gap-2"
-      >
-        <font-awesome-icon icon="fa-solid fa-times" />
-        <span>Batal</span>
-      </button>
-      <button
-        type="submit"
-        @click="handleCreateUser"
-        class="bg-primary text-secondary px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 flex items-center gap-2"
-      >
-        <font-awesome-icon icon="fa-solid fa-save" />
-        <span>Simpan</span>
-      </button>
-    </template>
-  </BaseModal>
+
+  <Teleport to="body">
+    <BaseModal :show="isCreateModalOpen" @close="isCreateModalOpen = false" title="Tambah Pengguna Baru">
+      <form @submit.prevent="handleCreateUser" class="p-6 space-y-4">
+        <div>
+          <label for="username" class="block text-sm font-medium text-text/80 mb-1">Username</label>
+          <input
+            v-model="newUser.username"
+            id="username"
+            type="text"
+            required
+            class="w-full px-3 py-2 bg-background border border-secondary/50 rounded-lg"
+          />
+        </div>
+        <div>
+          <label for="nickname" class="block text-sm font-medium text-text/80 mb-1">Nickname (Opsional)</label>
+          <input
+            v-model="newUser.nickname"
+            id="nickname"
+            type="text"
+            class="w-full px-3 py-2 bg-background border border-secondary/50 rounded-lg"
+          />
+        </div>
+        <div>
+          <label for="password" class="block text-sm font-medium text-text/80 mb-1">Password</label>
+          <input
+            v-model="newUser.password"
+            id="password"
+            type="password"
+            required
+            class="w-full px-3 py-2 bg-background border border-secondary/50 rounded-lg"
+          />
+        </div>
+        <div>
+          <label for="role" class="block text-sm font-medium text-text/80 mb-1">Role</label>
+          <BaseSelect
+            v-model="newUser.role_id"
+            :options="allRoles"
+            track-by="id"
+            label="name"
+            emit-value
+            placeholder="Pilih Role"
+          />
+        </div>
+        <div>
+          <label for="shift" class="block text-sm font-medium text-text/80 mb-1">Shift (Opsional)</label>
+          <BaseSelect
+            v-model="newUser.shift_id"
+            :options="shiftOptions"
+            track-by="id"
+            emit-value
+            placeholder="Pilih Shift"
+          />
+        </div>
+      </form>
+      <template #footer>
+        <button
+          type="button"
+          @click="isCreateModalOpen = false"
+          class="bg-background border border-secondary/30 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-secondary/20 flex items-center gap-2"
+        >
+          <font-awesome-icon icon="fa-solid fa-times" />
+          <span>Batal</span>
+        </button>
+        <button
+          type="submit"
+          @click="handleCreateUser"
+          class="bg-primary text-secondary px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 flex items-center gap-2"
+        >
+          <font-awesome-icon icon="fa-solid fa-save" />
+          <span>Simpan</span>
+        </button>
+      </template>
+    </BaseModal>
+  </Teleport>
 </template>
 
 <style scoped>

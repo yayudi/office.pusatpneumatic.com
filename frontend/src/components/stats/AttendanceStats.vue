@@ -51,7 +51,13 @@ const userSummaries = computed(() => {
   return props.users.map(u => {
     // Add logic to re-calculate per user based on existing helper
     // Note: year/month passed might be null in Range Mode, but summary helper now handles fullDate
-    const summary = calculateSummaryForUser(u, parseInt(props.year), parseInt(props.month), props.summaryInfo, authStore)
+    const summary = calculateSummaryForUser(
+      u,
+      parseInt(props.year),
+      parseInt(props.month),
+      props.summaryInfo,
+      authStore
+    )
     return {
       ...u,
       stats: summary
@@ -128,7 +134,6 @@ const kpiStats = computed(() => {
   ]
 })
 
-
 // Charts Data
 const chartDataPoints = computed(() => {
   if (!props.users.length) return { length: 0, hadir: [], telat: [] }
@@ -182,7 +187,6 @@ const chartOptions = computed(() => {
     categories = days.map(d => d.getDate().toString())
     if (days.length <= 31) categories = days.map(d => d.getDate())
     else categories = days.map(d => `${d.getDate()} ${d.toLocaleString('id-ID', { month: 'short' })}`)
-
   } else if (props.year && props.month) {
     const daysInMonth = new Date(props.year, props.month, 0).getDate()
     categories = Array.from({ length: daysInMonth }, (_, i) => i + 1)
@@ -212,7 +216,7 @@ const chartOptions = computed(() => {
       labels: {
         show: true,
         style: { colors: '#6b7280', fontSize: '11px', fontFamily: 'inherit' },
-        formatter: (value) => Math.floor(value)
+        formatter: value => Math.floor(value)
       }
     },
     theme: { mode: 'dark' },
@@ -275,7 +279,7 @@ const filteredUserSummaries = computed(() => {
 // User Detail Modal Logic
 const selectedUser = ref(null)
 
-const openDetail = (user) => {
+const openDetail = user => {
   selectedUser.value = user
 }
 
@@ -326,16 +330,23 @@ const userDetailChartOptions = computed(() => ({
   yaxis: {
     min: 6,
     max: 12,
-    labels: { formatter: (val) => `${Math.floor(val)}:${Math.round((val % 1) * 60).toString().padStart(2, '0')}` }
+    labels: {
+      formatter: val =>
+        `${Math.floor(val)}:${Math.round((val % 1) * 60)
+          .toString()
+          .padStart(2, '0')}`
+    }
   },
   grid: { borderColor: 'rgba(var(--color-secondary), 0.1)' },
   theme: { mode: 'dark' },
   annotations: {
-    yaxis: [{
-      y: 8,
-      borderColor: '#ef4444',
-      label: { text: '08:00', style: { color: '#fff', background: '#ef4444' } }
-    }]
+    yaxis: [
+      {
+        y: 8,
+        borderColor: '#ef4444',
+        label: { text: '08:00', style: { color: '#fff', background: '#ef4444' } }
+      }
+    ]
   }
 }))
 
@@ -344,7 +355,7 @@ const userOvertimeChartOptions = computed(() => ({
   colors: ['#a855f7'],
   plotOptions: { bar: { borderRadius: 4 } },
   xaxis: {
-    categories: Array.from({ length: new Date(props.year || 2025, props.month || 1, 0).getDate() }, (_, i) => i + 1),
+    categories: Array.from({ length: new Date(props.year || 2025, props.month || 1, 0).getDate() }, (_, i) => i + 1)
   },
   theme: { mode: 'dark' },
   grid: { borderColor: 'rgba(var(--color-secondary), 0.1)' }
@@ -361,8 +372,11 @@ const userOvertimeChartOptions = computed(() => ({
     <template v-else>
       <!-- KPI Cards -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div v-for="(kpi, index) in kpiStats" :key="index"
-          class="bg-background border border-secondary/20 rounded-xl p-4 shadow-sm hover:border-primary/20 transition-colors group">
+        <div
+          v-for="(kpi, index) in kpiStats"
+          :key="index"
+          class="bg-background border border-secondary/20 rounded-xl p-4 shadow-sm hover:border-primary/20 transition-colors group"
+        >
           <div class="flex justify-between items-start mb-2">
             <span class="text-xs font-bold text-text/50 uppercase">{{ kpi.label }}</span>
             <div :class="`w-8 h-8 rounded-full ${kpi.bg} flex items-center justify-center ${kpi.color}`">
@@ -379,8 +393,9 @@ const userOvertimeChartOptions = computed(() => ({
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Main Chart -->
         <div class="lg:col-span-2 bg-background border border-secondary/20 rounded-xl p-6 shadow-sm">
-          <h4 class="text-sm font-bold text-text/70 uppercase mb-6">Tren Harian ({{ new Date(2000, month -
-            1).toLocaleString('id-ID', { month: 'long' }) }} {{ year }})</h4>
+          <h4 class="text-sm font-bold text-text/70 uppercase mb-6">
+            Tren Harian ({{ new Date(2000, month - 1).toLocaleString('id-ID', { month: 'long' }) }} {{ year }})
+          </h4>
           <div class="h-[300px] w-full">
             <VueApexCharts type="area" height="100%" :options="chartOptions" :series="chartSeries" />
           </div>
@@ -453,8 +468,12 @@ const userOvertimeChartOptions = computed(() => ({
       <div class="bg-background border border-secondary/20 rounded-xl p-6 shadow-sm">
         <div class="flex justify-between items-center mb-4">
           <h4 class="text-sm font-bold text-text/70 uppercase">Statistik Per Karyawan</h4>
-          <input type="text" v-model="tableSearch" placeholder="Cari karyawan..."
-            class="bg-secondary/80 border border-secondary/20 rounded-lg px-3 py-1 text-sm text-text focus:outline-none focus:ring-1 focus:ring-primary" />
+          <input
+            type="text"
+            v-model="tableSearch"
+            placeholder="Cari karyawan..."
+            class="bg-secondary/80 border border-secondary/20 rounded-lg px-3 py-1 text-sm text-text focus:outline-none focus:ring-1 focus:ring-primary"
+          />
         </div>
         <div class="overflow-x-auto custom-scrollbar">
           <table class="w-full text-left text-sm border-collapse block md:table">
@@ -470,15 +489,20 @@ const userOvertimeChartOptions = computed(() => ({
               </tr>
             </thead>
             <tbody class="block md:table-row-group">
-              <tr v-for="u in filteredUserSummaries" :key="u.id"
+              <tr
+                v-for="u in filteredUserSummaries"
+                :key="u.id"
                 class="block md:table-row hover:bg-secondary/5 transition-colors cursor-pointer group mb-4 md:mb-0 bg-background/50 md:bg-transparent rounded-xl md:rounded-none shadow-sm md:shadow-none p-4 md:p-0 border border-secondary/20 md:border-none md:border-b md:border-secondary/20"
-                :class="{ 'mx-0': mobileLayout === 'card' }" @click="openDetail(u)">
-
+                :class="{ 'mx-0': mobileLayout === 'card' }"
+                @click="openDetail(u)"
+              >
                 <td
-                  class="flex justify-between items-center md:table-cell px-2 md:px-6 py-2 md:py-4 font-bold text-text group-hover:text-primary transition-colors border-b border-secondary/10 md:border-none mb-2 md:mb-0">
+                  class="flex justify-between items-center md:table-cell px-2 md:px-6 py-2 md:py-4 font-bold text-text group-hover:text-primary transition-colors border-b border-secondary/10 md:border-none mb-2 md:mb-0"
+                >
                   <span class="text-base md:text-sm">{{ u.nama }}</span>
-                  <span class="md:hidden text-xs font-normal text-text/60 bg-secondary/10 px-2 py-1 rounded">Detail
-                    ></span>
+                  <span class="md:hidden text-xs font-normal text-text/60 bg-secondary/10 px-2 py-1 rounded"
+                    >Detail ></span
+                  >
                 </td>
 
                 <td class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center">
@@ -490,7 +514,8 @@ const userOvertimeChartOptions = computed(() => ({
 
                 <td class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center">
                   <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Telat</span>
-                  <div v-if="u.stats.telatHours !== '0j 0m'" class="text-warning font-bold">{{ u.stats.telatHours }}
+                  <div v-if="u.stats.telatHours !== '0j 0m'" class="text-warning font-bold">
+                    {{ u.stats.telatHours }}
                   </div>
                   <div v-else class="text-text/30">
                     <span class="md:block hidden">-</span>
@@ -498,11 +523,13 @@ const userOvertimeChartOptions = computed(() => ({
                   </div>
                 </td>
 
-                <td v-if="mobileLayout !== 'compact'"
-                  class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center">
+                <td
+                  v-if="mobileLayout !== 'compact'"
+                  class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center"
+                >
                   <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Cepat</span>
-                  <div v-if="u.stats.earlyOutHours !== '0j 0m'" class="text-danger font-bold">{{ u.stats.earlyOutHours
-                    }}
+                  <div v-if="u.stats.earlyOutHours !== '0j 0m'" class="text-danger font-bold">
+                    {{ u.stats.earlyOutHours }}
                   </div>
                   <div v-else class="text-text/30">
                     <span class="md:block hidden">-</span>
@@ -512,7 +539,8 @@ const userOvertimeChartOptions = computed(() => ({
 
                 <td class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center">
                   <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Lembur</span>
-                  <div v-if="u.stats.lemburHours !== '0j 0m'" class="text-primary font-bold">{{ u.stats.lemburHours }}
+                  <div v-if="u.stats.lemburHours !== '0j 0m'" class="text-primary font-bold">
+                    {{ u.stats.lemburHours }}
                   </div>
                   <div v-else class="text-text/30">
                     <span class="md:block hidden">-</span>
@@ -522,16 +550,19 @@ const userOvertimeChartOptions = computed(() => ({
 
                 <td class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-center">
                   <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Absen</span>
-                  <span v-if="u.stats.absenceDays > 0" class="text-danger font-bold">{{ u.stats.absenceDays }}
-                    Hari</span>
+                  <span v-if="u.stats.absenceDays > 0" class="text-danger font-bold"
+                    >{{ u.stats.absenceDays }} Hari</span
+                  >
                   <span v-else class="text-text/30">
                     <span class="md:block hidden">-</span>
                     <span class="md:hidden">0 Hari</span>
                   </span>
                 </td>
 
-                <td v-if="mobileLayout !== 'compact'"
-                  class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-right font-mono text-text/70 border-t border-secondary/10 md:border-none mt-2 md:mt-0 pt-2 md:pt-4">
+                <td
+                  v-if="mobileLayout !== 'compact'"
+                  class="flex justify-between items-center md:table-cell px-2 md:px-6 py-1 md:py-4 text-right font-mono text-text/70 border-t border-secondary/10 md:border-none mt-2 md:mt-0 pt-2 md:pt-4"
+                >
                   <span class="md:hidden text-text/60 text-xs uppercase font-semibold">Denda</span>
                   <span>Rp {{ u.stats.dendaTelat.toLocaleString('id-ID') }}</span>
                 </td>
@@ -549,56 +580,66 @@ const userOvertimeChartOptions = computed(() => ({
   </div>
 
   <!-- User Detail Modal -->
-  <BaseModal :show="!!selectedUser" @close="selectedUser = null" maxWidth="max-w-4xl">
-    <template #title>
-      <div class="-mt-1">
-        <h4 class="text-xl font-bold text-text">{{ selectedUser?.nama }}</h4>
-        <p class="text-sm text-text/50 font-normal mt-1">Detail Statistik Absensi ({{ new Date(2000, month -
-          1).toLocaleString('id-ID', { month: 'long' }) }} {{ year }})</p>
-      </div>
-    </template>
+  <Teleport to="body">
+    <BaseModal :show="!!selectedUser" @close="selectedUser = null" maxWidth="max-w-4xl">
+      <template #title>
+        <div class="-mt-1">
+          <h4 class="text-xl font-bold text-text">{{ selectedUser?.nama }}</h4>
+          <p class="text-sm text-text/50 font-normal mt-1">
+            Detail Statistik Absensi ({{ new Date(2000, month - 1).toLocaleString('id-ID', { month: 'long' }) }}
+            {{ year }})
+          </p>
+        </div>
+      </template>
 
-    <div v-if="selectedUser" class="space-y-6">
-      <!-- Summary Cards Small -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-secondary/5 rounded-lg p-3 border border-secondary/10">
-          <div class="text-xs text-text/50 uppercase font-bold">Total Hadir</div>
-          <div class="text-lg font-bold text-success">{{ selectedUser.stats.hadirDays }} Hari</div>
-        </div>
-        <div class="bg-secondary/5 rounded-lg p-3 border border-secondary/10">
-          <div class="text-xs text-text/50 uppercase font-bold">Total Telat</div>
-          <div class="text-lg font-bold text-warning">{{ selectedUser.stats.telatHours }}</div>
-        </div>
-        <div class="bg-secondary/5 rounded-lg p-3 border border-secondary/10">
-          <div class="text-xs text-text/50 uppercase font-bold">Total Lembur</div>
-          <div class="text-lg font-bold text-primary">{{ selectedUser.stats.lemburHours }}</div>
-        </div>
-        <div class="bg-secondary/5 rounded-lg p-3 border border-secondary/10">
-          <div class="text-xs text-text/50 uppercase font-bold">Estimasi Denda</div>
-          <div class="text-lg font-bold text-danger">Rp {{ selectedUser.stats.dendaTelat.toLocaleString('id-ID') }}
+      <div v-if="selectedUser" class="space-y-6">
+        <!-- Summary Cards Small -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="bg-secondary/5 rounded-lg p-3 border border-secondary/10">
+            <div class="text-xs text-text/50 uppercase font-bold">Total Hadir</div>
+            <div class="text-lg font-bold text-success">{{ selectedUser.stats.hadirDays }} Hari</div>
+          </div>
+          <div class="bg-secondary/5 rounded-lg p-3 border border-secondary/10">
+            <div class="text-xs text-text/50 uppercase font-bold">Total Telat</div>
+            <div class="text-lg font-bold text-warning">{{ selectedUser.stats.telatHours }}</div>
+          </div>
+          <div class="bg-secondary/5 rounded-lg p-3 border border-secondary/10">
+            <div class="text-xs text-text/50 uppercase font-bold">Total Lembur</div>
+            <div class="text-lg font-bold text-primary">{{ selectedUser.stats.lemburHours }}</div>
+          </div>
+          <div class="bg-secondary/5 rounded-lg p-3 border border-secondary/10">
+            <div class="text-xs text-text/50 uppercase font-bold">Estimasi Denda</div>
+            <div class="text-lg font-bold text-danger">
+              Rp {{ selectedUser.stats.dendaTelat.toLocaleString('id-ID') }}
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Charts Grid -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Arrival Time Chart -->
-        <div class="bg-secondary/5 rounded-xl p-4 border border-secondary/10">
-          <h5 class="text-sm font-bold text-text/70 mb-4">Waktu Kedatangan</h5>
-          <div class="h-[250px]">
-            <VueApexCharts type="line" height="100%" :options="userDetailChartOptions" :series="userArrivalSeries" />
+        <!-- Charts Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Arrival Time Chart -->
+          <div class="bg-secondary/5 rounded-xl p-4 border border-secondary/10">
+            <h5 class="text-sm font-bold text-text/70 mb-4">Waktu Kedatangan</h5>
+            <div class="h-[250px]">
+              <VueApexCharts type="line" height="100%" :options="userDetailChartOptions" :series="userArrivalSeries" />
+            </div>
           </div>
-        </div>
-        <!-- Overtime Duration Chart -->
-        <div class="bg-secondary/5 rounded-xl p-4 border border-secondary/10">
-          <h5 class="text-sm font-bold text-text/70 mb-4">Durasi Lembur (Menit)</h5>
-          <div class="h-[250px]">
-            <VueApexCharts type="bar" height="100%" :options="userOvertimeChartOptions" :series="userOvertimeSeries" />
+          <!-- Overtime Duration Chart -->
+          <div class="bg-secondary/5 rounded-xl p-4 border border-secondary/10">
+            <h5 class="text-sm font-bold text-text/70 mb-4">Durasi Lembur (Menit)</h5>
+            <div class="h-[250px]">
+              <VueApexCharts
+                type="bar"
+                height="100%"
+                :options="userOvertimeChartOptions"
+                :series="userOvertimeSeries"
+              />
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </BaseModal>
+    </BaseModal>
+  </Teleport>
 </template>
 
 <style scoped>

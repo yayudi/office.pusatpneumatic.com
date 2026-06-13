@@ -434,25 +434,27 @@ async function handleExportExcel() {
   </main>
 
   <!-- MODAL UPLOAD -->
-  <BaseModal :show="isUploadModalOpen" @close="isUploadModalOpen = false" title="Upload File Absensi">
-    <!-- Menggunakan Component UploadForm Baru dengan Drag Drop & Dry Run -->
-    <UploadForm
-      @submit="handleUpload"
-      :loading="isUploading"
-      accept=".csv"
-      submit-label="Mulai Import"
-      :show-dry-run="true"
-    />
+  <Teleport to="body">
+    <BaseModal :show="isUploadModalOpen" @close="isUploadModalOpen = false" title="Upload File Absensi">
+      <!-- Menggunakan Component UploadForm Baru dengan Drag Drop & Dry Run -->
+      <UploadForm
+        @submit="handleUpload"
+        :loading="isUploading"
+        accept=".csv"
+        submit-label="Mulai Import"
+        :show-dry-run="true"
+      />
 
-    <template #footer>
-      <button
-        @click="isUploadModalOpen = false"
-        class="bg-background border border-secondary/30 text-text/80 hover:bg-secondary/20 text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-      >
-        Tutup
-      </button>
-    </template>
-  </BaseModal>
+      <template #footer>
+        <button
+          @click="isUploadModalOpen = false"
+          class="bg-background border border-secondary/30 text-text/80 hover:bg-secondary/20 text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+        >
+          Tutup
+        </button>
+      </template>
+    </BaseModal>
+  </Teleport>
 
   <!-- MODAL PENGECUALIAN ABSEN -->
   <AttendanceExclusionsModal

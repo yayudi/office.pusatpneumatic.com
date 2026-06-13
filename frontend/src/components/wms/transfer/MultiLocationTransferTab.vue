@@ -35,11 +35,15 @@ const quantity = ref(1)
 // --- FUNGSI FORM PENAMBAHAN ---
 
 async function onProductSelect(product) {
+  // Selalu reset lokasi sumber dan stok jika ada perubahan
+  fromLocation.value = null
+  quantity.value = 1
+  stockDetails.value = []
+
   if (!product) {
-    stockDetails.value = []
-    fromLocation.value = null
     return
   }
+
   selectedProduct.value = product
   isLoadingDetails.value = true
   try {
@@ -154,7 +158,7 @@ function removeFromBatch(id) {
 }
 
 async function submitDetailedBatch() {
-  if (batchList.value.length === 0) {
+  if (batchList.value.length === 0 || isSubmitting.value) {
     return
   }
 
@@ -186,6 +190,8 @@ async function submitDetailedBatch() {
     isSubmitting.value = false
   }
 }
+
+defineExpose({ submitDetailedBatch })
 </script>
 
 <template>
@@ -415,10 +421,11 @@ async function submitDetailedBatch() {
         <button
           @click="submitDetailedBatch"
           :disabled="isSubmitting || batchList.length === 0"
-          class="px-6 py-3 bg-primary text-secondary rounded-lg font-bold disabled:opacity-50 flex items-center gap-3"
+          class="px-6 py-3 bg-primary text-secondary rounded-lg font-bold disabled:opacity-50 flex items-center gap-3 group"
         >
-          <font-awesome-icon vid-if="isSubmitting" icon="fa-solid fa-spinner" class="animate-spin" />
+          <font-awesome-icon v-if="isSubmitting" icon="fa-solid fa-spinner" class="animate-spin" />
           <span>{{ isSubmitting ? 'Memproses...' : 'Submit Batch Transfer' }}</span>
+          <kbd v-if="!isSubmitting" class="hidden md:inline-block ml-1 px-1.5 py-0.5 text-[10px] bg-secondary/20 text-secondary border border-secondary/30 rounded font-mono shadow-sm group-hover:bg-secondary/30 transition-colors">Alt+S</kbd>
         </button>
       </div>
     </div>

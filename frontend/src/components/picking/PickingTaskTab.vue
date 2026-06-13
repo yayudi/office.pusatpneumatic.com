@@ -2,6 +2,7 @@
 import { swalConfirm } from '@/composables/useSweetAlert'
 import { ref, computed, watch } from 'vue'
 import { useToast } from '@/composables/useToast.js'
+import { useAuthStore } from '@/stores/auth.js'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll.js'
 import { useTaskGrouping } from '@/composables/useTaskGrouping.js'
 import {
@@ -19,6 +20,7 @@ import MasonryWall from '@yeger/vue-masonry-wall'
 import { useQuery } from '@tanstack/vue-query'
 
 const { toast } = useToast()
+const authStore = useAuthStore()
 
 // --- ACTIONS (API CALLS) ---
 const {
@@ -160,14 +162,16 @@ async function canSelectItem(item) {
   const qtyNeeded = Number(item.quantity || 0)
 
   if (currentUsage + qtyNeeded > available && !selectedItems.value.has(item.id)) {
-    console.warn(
-      `${debugTag} GAGAL: Stok Tidak Cukup di ${item.location_code}. Butuh: ${qtyNeeded}, Sisa Hitungan: ${
-        available - currentUsage
-      }. Item tetap diizinkan agar Backend bisa Re-route.`
-    )
+    if (import.meta.env.DEV) {
+      console.warn(
+        `${debugTag} GAGAL: Stok Tidak Cukup di ${item.location_code}. Butuh: ${qtyNeeded}, Sisa Hitungan: ${
+          available - currentUsage
+        }. Item tetap diizinkan agar Backend bisa Re-route.`
+      )
+    }
   }
 
-  return true // SELALU IZINKAN (Trust Backend)
+  return true
 }
 
 async function handleCompleteSelectedItems() {

@@ -28,7 +28,9 @@ async function loadCategories() {
     if (data.success) {
       categories.value = data.data
     }
-  } catch (e) { console.error(e) } finally {
+  } catch (e) {
+    console.error(e)
+  } finally {
     loading.value = false
   }
 }
@@ -191,32 +193,34 @@ watch(Alt_S, pressed => {
   </div>
 
   <!-- Modal untuk Tambah/Edit Kategori -->
-  <BaseModal
-    :show="isModalOpen"
-    @close="isModalOpen = false"
-    :title="isEditing ? 'Edit Kategori' : 'Tambah Kategori Baru'"
-  >
-    <form @submit.prevent="handleSave" class="p-6 space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-text/80 mb-1">Nama Kategori</label>
-        <input
-          v-model="form.name"
-          type="text"
-          required
-          class="w-full input-field"
-          placeholder="Contoh: Pneumatic"
-          autofocus
-        />
-      </div>
-    </form>
-    <template #footer>
-      <button type="button" @click="isModalOpen = false" class="btn-secondary">Batal</button>
-      <button type="submit" @click="handleSave" :disabled="saving" class="btn-primary">
-        <font-awesome-icon v-if="saving" icon="fa-solid fa-circle-notch" class="animate-spin mr-1" />
-        Simpan
-      </button>
-    </template>
-  </BaseModal>
+  <Teleport to="body">
+    <BaseModal
+      :show="isModalOpen"
+      @close="isModalOpen = false"
+      :title="isEditing ? 'Edit Kategori' : 'Tambah Kategori Baru'"
+    >
+      <form @submit.prevent="handleSave" class="p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-text/80 mb-1">Nama Kategori</label>
+          <input
+            v-model="form.name"
+            type="text"
+            required
+            class="w-full input-field"
+            placeholder="Contoh: Pneumatic"
+            autofocus
+          />
+        </div>
+      </form>
+      <template #footer>
+        <button type="button" @click="isModalOpen = false" class="btn-secondary">Batal</button>
+        <button type="submit" @click="handleSave" :disabled="saving" class="btn-primary">
+          <font-awesome-icon v-if="saving" icon="fa-solid fa-circle-notch" class="animate-spin mr-1" />
+          Simpan
+        </button>
+      </template>
+    </BaseModal>
+  </Teleport>
 </template>
 
 <style lang="postcss" scoped>

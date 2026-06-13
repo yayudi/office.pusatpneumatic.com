@@ -923,193 +923,200 @@ onUnmounted(() => {
   </div>
 
   <!-- Bulk Upload Modal -->
-  <BaseModal :show="isBulkModalOpen" @close="isBulkModalOpen = false" maxWidth="max-w-lg">
-    <template #title>
-      <div class="flex items-center justify-between w-full pr-4">
-        <span class="font-bold text-xl font-display text-text">Unggah {{ selectedFiles.length }} Aset</span>
-        <button
-          @click="autoCropAll"
-          :disabled="autoCropAllProcessing"
-          title="Otomatis potong semua gambar menjadi rasio 1:1 di tengah"
-          class="px-3 py-1 text-sm rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-2 font-medium"
-        >
-          <!-- TODO: button rata kanan -->
-          <font-awesome-icon v-if="autoCropAllProcessing" icon="fa-solid fa-spinner" spin />
-          <font-awesome-icon v-else icon="fa-solid fa-crop-simple" />
-          <span class="hidden sm:inline">Auto 1:1 Semua</span>
-        </button>
-      </div>
-    </template>
 
-    <div class="mb-4 max-h-64 overflow-y-auto bg-secondary/10 rounded-lg p-3 border border-secondary custom-scrollbar">
-      <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-        <div
-          v-for="(file, index) in selectedFiles"
-          :key="index"
-          class="relative aspect-square rounded-lg overflow-hidden border border-secondary group bg-background shadow-sm"
-        >
-          <img :src="filePreviews[index]" class="w-full h-full object-cover" />
-
-          <!-- Hover Overlay -->
-          <div
-            class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 backdrop-blur-[2px]"
+  <Teleport to="body">
+    <BaseModal :show="isBulkModalOpen" @close="isBulkModalOpen = false" maxWidth="max-w-lg">
+      <template #title>
+        <div class="flex items-center justify-between w-full pr-4">
+          <span class="font-bold text-xl font-display text-text">Unggah {{ selectedFiles.length }} Aset</span>
+          <button
+            @click="autoCropAll"
+            :disabled="autoCropAllProcessing"
+            title="Otomatis potong semua gambar menjadi rasio 1:1 di tengah"
+            class="px-3 py-1 text-sm rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-2 font-medium"
           >
-            <button
-              @click="openCropper(index)"
-              class="w-8 h-8 rounded-full bg-primary text-background flex items-center justify-center hover:scale-110 transition-transform shadow-lg"
-              title="Edit Gambar"
-            >
-              <font-awesome-icon icon="fa-solid fa-crop-simple" />
-            </button>
-            <button
-              @click="removeSelectedFile(index)"
-              class="w-8 h-8 rounded-full bg-danger text-white flex items-center justify-center hover:scale-110 transition-transform shadow-lg"
-              title="Hapus"
-            >
-              <font-awesome-icon icon="fa-solid fa-trash-can" />
-            </button>
-          </div>
+            <!-- TODO: button rata kanan -->
+            <font-awesome-icon v-if="autoCropAllProcessing" icon="fa-solid fa-spinner" spin />
+            <font-awesome-icon v-else icon="fa-solid fa-crop-simple" />
+            <span class="hidden sm:inline">Auto 1:1 Semua</span>
+          </button>
+        </div>
+      </template>
 
-          <!-- Size indicator -->
-          <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1">
-            <p class="text-[10px] text-white text-center truncate px-1">{{ (file.size / 1024).toFixed(0) }} KB</p>
+      <div
+        class="mb-4 max-h-64 overflow-y-auto bg-secondary/10 rounded-lg p-3 border border-secondary custom-scrollbar"
+      >
+        <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+          <div
+            v-for="(file, index) in selectedFiles"
+            :key="index"
+            class="relative aspect-square rounded-lg overflow-hidden border border-secondary group bg-background shadow-sm"
+          >
+            <img :src="filePreviews[index]" class="w-full h-full object-cover" />
+
+            <!-- Hover Overlay -->
+            <div
+              class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 backdrop-blur-[2px]"
+            >
+              <button
+                @click="openCropper(index)"
+                class="w-8 h-8 rounded-full bg-primary text-background flex items-center justify-center hover:scale-110 transition-transform shadow-lg"
+                title="Edit Gambar"
+              >
+                <font-awesome-icon icon="fa-solid fa-crop-simple" />
+              </button>
+              <button
+                @click="removeSelectedFile(index)"
+                class="w-8 h-8 rounded-full bg-danger text-white flex items-center justify-center hover:scale-110 transition-transform shadow-lg"
+                title="Hapus"
+              >
+                <font-awesome-icon icon="fa-solid fa-trash-can" />
+              </button>
+            </div>
+
+            <!-- Size indicator -->
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1">
+              <p class="text-[10px] text-white text-center truncate px-1">{{ (file.size / 1024).toFixed(0) }} KB</p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Per-File Title Editing -->
-    <div class="mb-4">
-      <label class="block text-xs font-bold text-text/70 mb-2">
-        <font-awesome-icon icon="fa-solid fa-pen" class="mr-1" />
-        Nama File ({{ selectedFiles.length }})
-      </label>
-      <div class="max-h-40 overflow-y-auto space-y-2 custom-scrollbar">
-        <div
-          v-for="(file, index) in selectedFiles"
-          :key="index"
-          class="flex items-center gap-2 bg-secondary/10 rounded-lg p-1.5 border border-secondary/20"
-        >
-          <img :src="filePreviews[index]" class="w-8 h-8 rounded object-cover shrink-0 border border-secondary/30" />
+      <!-- Per-File Title Editing -->
+      <div class="mb-4">
+        <label class="block text-xs font-bold text-text/70 mb-2">
+          <font-awesome-icon icon="fa-solid fa-pen" class="mr-1" />
+          Nama File ({{ selectedFiles.length }})
+        </label>
+        <div class="max-h-40 overflow-y-auto space-y-2 custom-scrollbar">
+          <div
+            v-for="(file, index) in selectedFiles"
+            :key="index"
+            class="flex items-center gap-2 bg-secondary/10 rounded-lg p-1.5 border border-secondary/20"
+          >
+            <img :src="filePreviews[index]" class="w-8 h-8 rounded object-cover shrink-0 border border-secondary/30" />
+            <input
+              type="text"
+              v-model="fileTitles[index]"
+              class="flex-1 bg-background border border-secondary/30 rounded px-2 py-1 text-xs text-text focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none"
+              :placeholder="file.name"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Tautan Produk Otomatis (Autocomplete) -->
+      <div class="form-control mb-4">
+        <label class="label"><span class="label-text text-text font-semibold">Tautkan ke Produk</span></label>
+
+        <!-- Selected Products Pills -->
+        <div v-if="bulkSelectedProducts.length > 0" class="flex flex-wrap gap-2 mb-2">
+          <div
+            v-for="prod in bulkSelectedProducts"
+            :key="prod.id"
+            class="badge bg-primary/10 text-primary border-primary rounded-md gap-1 py-1 px-2"
+          >
+            <span class="max-w-[150px] truncate text-xs font-bold">{{ prod.sku }}</span>
+            <button @click="removeBulkProduct(prod.id)" class="text-primary hover:text-danger ml-1 transition-colors">
+              <font-awesome-icon icon="fa-solid fa-times" />
+            </button>
+          </div>
+        </div>
+
+        <!-- Search Input -->
+        <div class="relative">
           <input
             type="text"
-            v-model="fileTitles[index]"
-            class="flex-1 bg-background border border-secondary/30 rounded px-2 py-1 text-xs text-text focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none"
-            :placeholder="file.name"
+            v-model="bulkProductSearchQuery"
+            class="input input-bordered border border-secondary bg-background rounded-md px-2 py-1 text-text w-full"
+            placeholder="Ketik minimal 2 huruf untuk cari SKU / nama produk..."
           />
+          <font-awesome-icon
+            v-if="isBulkProductSearching"
+            icon="fa-solid fa-spinner"
+            spin
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-primary"
+          />
+          <font-awesome-icon
+            v-else
+            icon="fa-solid fa-search"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-text/40"
+          />
+
+          <!-- Autocomplete Dropdown -->
+          <div
+            v-if="bulkProductSearchResults.length > 0 && bulkProductSearchQuery.length >= 2"
+            class="absolute top-full left-0 w-full mt-1 bg-background border border-secondary rounded-lg shadow-2xl z-[60] max-h-48 overflow-y-auto custom-scrollbar"
+          >
+            <button
+              v-for="prod in bulkProductSearchResults"
+              :key="prod.id"
+              @click="selectBulkProduct(prod)"
+              class="w-full text-left p-3 hover:bg-primary/10 border-b border-secondary/20 last:border-b-0 flex flex-col transition-colors"
+            >
+              <div class="flex justify-between items-center w-full mb-1">
+                <span class="font-bold text-sm text-text">{{ prod.sku }}</span>
+                <span
+                  v-if="prod.is_active === 0"
+                  class="text-[10px] bg-danger/10 text-danger px-2 py-0.5 rounded font-bold"
+                  >Arsip</span
+                >
+              </div>
+              <span class="text-xs text-text/80">{{ prod.name }}</span>
+            </button>
+          </div>
+
+          <div
+            v-if="
+              !isBulkProductSearching && bulkProductSearchQuery.length >= 2 && bulkProductSearchResults.length === 0
+            "
+            class="absolute top-full left-0 w-full mt-1 bg-background border border-secondary p-3 text-center text-xs text-text/60 rounded-lg shadow-xl z-[60]"
+          >
+            Produk tidak ditemukan.
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Tautan Produk Otomatis (Autocomplete) -->
-    <div class="form-control mb-4">
-      <label class="label"><span class="label-text text-text font-semibold">Tautkan ke Produk</span></label>
-
-      <!-- Selected Products Pills -->
-      <div v-if="bulkSelectedProducts.length > 0" class="flex flex-wrap gap-2 mb-2">
-        <div
-          v-for="prod in bulkSelectedProducts"
-          :key="prod.id"
-          class="badge bg-primary/10 text-primary border-primary rounded-md gap-1 py-1 px-2"
-        >
-          <span class="max-w-[150px] truncate text-xs font-bold">{{ prod.sku }}</span>
-          <button @click="removeBulkProduct(prod.id)" class="text-primary hover:text-danger ml-1 transition-colors">
-            <font-awesome-icon icon="fa-solid fa-times" />
-          </button>
-        </div>
-      </div>
-
-      <!-- Search Input -->
-      <div class="relative">
+      <div class="form-control mb-4">
+        <label class="label"><span class="label-text text-text">Global Tags</span></label>
         <input
           type="text"
-          v-model="bulkProductSearchQuery"
+          v-model="bulkTagsStr"
           class="input input-bordered border border-secondary bg-background rounded-md px-2 py-1 text-text w-full"
-          placeholder="Ketik minimal 2 huruf untuk cari SKU / nama produk..."
+          placeholder="Ex: product, black, promo"
         />
-        <font-awesome-icon
-          v-if="isBulkProductSearching"
-          icon="fa-solid fa-spinner"
-          spin
-          class="absolute right-3 top-1/2 -translate-y-1/2 text-primary"
-        />
-        <font-awesome-icon
-          v-else
-          icon="fa-solid fa-search"
-          class="absolute right-3 top-1/2 -translate-y-1/2 text-text/40"
-        />
-
-        <!-- Autocomplete Dropdown -->
-        <div
-          v-if="bulkProductSearchResults.length > 0 && bulkProductSearchQuery.length >= 2"
-          class="absolute top-full left-0 w-full mt-1 bg-background border border-secondary rounded-lg shadow-2xl z-[60] max-h-48 overflow-y-auto custom-scrollbar"
-        >
-          <button
-            v-for="prod in bulkProductSearchResults"
-            :key="prod.id"
-            @click="selectBulkProduct(prod)"
-            class="w-full text-left p-3 hover:bg-primary/10 border-b border-secondary/20 last:border-b-0 flex flex-col transition-colors"
+        <label class="label">
+          <span class="label-text-alt text-text/60"
+            >Tag dipisahkan koma. Tag ini akan diaplikasikan merata ke seluruh berkas yang akan Anda unggah.</span
           >
-            <div class="flex justify-between items-center w-full mb-1">
-              <span class="font-bold text-sm text-text">{{ prod.sku }}</span>
-              <span
-                v-if="prod.is_active === 0"
-                class="text-[10px] bg-danger/10 text-danger px-2 py-0.5 rounded font-bold"
-                >Arsip</span
-              >
-            </div>
-            <span class="text-xs text-text/80">{{ prod.name }}</span>
+        </label>
+      </div>
+
+      <template #footer>
+        <div class="flex w-full justify-end gap-2">
+          <div v-if="isUploading" class="text-sm font-medium text-primary animate-pulse flex items-center mr-auto">
+            <font-awesome-icon icon="fa-solid fa-spinner" spin class="mr-2" />
+            {{ uploadProgress || 'Mempersiapkan unggahan...' }}
+          </div>
+          <button
+            @click="isBulkModalOpen = false"
+            class="px-4 py-2 rounded-lg bg-secondary text-text font-medium hover:brightness-95 transition-all text-center"
+            :disabled="isUploading"
+          >
+            Batal
+          </button>
+          <button
+            @click="executeBulkUpload"
+            class="px-4 py-2 rounded-lg bg-primary text-background font-medium hover:bg-accent transition-colors min-w-[120px] text-center"
+            :disabled="isUploading"
+          >
+            <font-awesome-icon v-if="isUploading" icon="fa-solid fa-spinner" spin />
+            <span v-else> <font-awesome-icon icon="fa-solid fa-cloud-upload-alt" class="mr-2" /> Eksekusi </span>
           </button>
         </div>
-
-        <div
-          v-if="!isBulkProductSearching && bulkProductSearchQuery.length >= 2 && bulkProductSearchResults.length === 0"
-          class="absolute top-full left-0 w-full mt-1 bg-background border border-secondary p-3 text-center text-xs text-text/60 rounded-lg shadow-xl z-[60]"
-        >
-          Produk tidak ditemukan.
-        </div>
-      </div>
-    </div>
-
-    <div class="form-control mb-4">
-      <label class="label"><span class="label-text text-text">Global Tags</span></label>
-      <input
-        type="text"
-        v-model="bulkTagsStr"
-        class="input input-bordered border border-secondary bg-background rounded-md px-2 py-1 text-text w-full"
-        placeholder="Ex: product, black, promo"
-      />
-      <label class="label">
-        <span class="label-text-alt text-text/60"
-          >Tag dipisahkan koma. Tag ini akan diaplikasikan merata ke seluruh berkas yang akan Anda unggah.</span
-        >
-      </label>
-    </div>
-
-    <template #footer>
-      <div class="flex w-full justify-end gap-2">
-        <div v-if="isUploading" class="text-sm font-medium text-primary animate-pulse flex items-center mr-auto">
-          <font-awesome-icon icon="fa-solid fa-spinner" spin class="mr-2" />
-          {{ uploadProgress || 'Mempersiapkan unggahan...' }}
-        </div>
-        <button
-          @click="isBulkModalOpen = false"
-          class="px-4 py-2 rounded-lg bg-secondary text-text font-medium hover:brightness-95 transition-all text-center"
-          :disabled="isUploading"
-        >
-          Batal
-        </button>
-        <button
-          @click="executeBulkUpload"
-          class="px-4 py-2 rounded-lg bg-primary text-background font-medium hover:bg-accent transition-colors min-w-[120px] text-center"
-          :disabled="isUploading"
-        >
-          <font-awesome-icon v-if="isUploading" icon="fa-solid fa-spinner" spin />
-          <span v-else> <font-awesome-icon icon="fa-solid fa-cloud-upload-alt" class="mr-2" /> Eksekusi </span>
-        </button>
-      </div>
-    </template>
-  </BaseModal>
+      </template>
+    </BaseModal>
+  </Teleport>
 
   <MediaInfoModal
     :show="isInfoModalOpen"

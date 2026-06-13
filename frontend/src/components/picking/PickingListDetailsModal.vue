@@ -2,7 +2,6 @@
 <script setup>
 import { ref, watch } from 'vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
-import { useToast } from '@/composables/useToast.js'
 import { fetchPickingDetails } from '@/api/helpers/picking.js' // Helper baru
 import { useMobile } from '@/composables/useMobile.js'
 
@@ -14,7 +13,6 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'void-confirmed'])
-const { toast } = useToast()
 
 const items = ref([])
 const loading = ref(false)
@@ -37,7 +35,8 @@ async function loadDetails() {
       items.value = [] // Set array kosong jika format salah
       throw new Error(response.message || 'Format data detail tidak sesuai.')
     }
-  } catch {
+  } catch (e) {
+    console.error(e)
     error.value = 'Gagal memuat detail item.'
   } finally {
     loading.value = false

@@ -12,9 +12,25 @@ export const getPendingReturns = async (req, res, next) => {
   let connection;
   try {
     connection = await db.getConnection();
-    const items = await returnRepo.getPendingReturns(connection);
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit) || 10);
+    const search = req.query.search || '';
+    const source = req.query.source || '';
+    const offset = (page - 1) * limit;
 
-    res.json({ success: true, data: items });
+    const { rows, total } = await returnRepo.getPendingReturns(connection, {
+      limit, offset, search, source
+    });
+
+    const totalPages = Math.ceil(total / limit);
+
+    res.json({
+      success: true,
+      data: rows,
+      pagination: {
+        page, limit, total, totalPages
+      }
+    });
   } catch (error) {
     next(error);
   } finally {
@@ -31,11 +47,26 @@ export const getReturnHistory = async (req, res, next) => {
   try {
     connection = await db.getConnection();
 
-    // Validasi & Default Limit
-    const limit = Math.max(1, parseInt(req.query.limit) || 1000);
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit) || 10);
+    const search = req.query.search || '';
+    const source = req.query.source || '';
+    const sortOrder = req.query.sortOrder || 'desc';
+    const offset = (page - 1) * limit;
 
-    const items = await returnRepo.getReturnHistory(connection, limit);
-    res.json({ success: true, data: items });
+    const { rows, total } = await returnRepo.getReturnHistory(connection, {
+      limit, offset, search, source, sortOrder
+    });
+
+    const totalPages = Math.ceil(total / limit);
+
+    res.json({
+      success: true,
+      data: rows,
+      pagination: {
+        page, limit, total, totalPages
+      }
+    });
   } catch (error) {
     next(error);
   } finally {

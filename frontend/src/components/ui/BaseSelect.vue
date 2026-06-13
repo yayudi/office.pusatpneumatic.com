@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useFloating, autoUpdate, offset, flip, shift, size } from '@floating-ui/vue'
+import { useListNavigation } from '@/composables/useListNavigation.js'
 
 const props = defineProps({
   modelValue: {
@@ -88,6 +89,7 @@ const { floatingStyles } = useFloating(triggerRef, dropdownRef, {
   ]
 })
 
+
 // --- COMPUTED ---
 const displayValue = computed(() => {
   if (props.multiple) return ''
@@ -127,6 +129,31 @@ const isPlaceholderState = computed(() => {
   if (props.multiple) return selectedItems.value.length === 0
   return props.placeholderValues.includes(props.modelValue)
 })
+
+const { selectedIndex, handleNavigation } = useListNavigation(
+  dropdownRef,
+  filteredOptions,
+  (option) => select(option),
+  '.select-option'
+)
+
+const handleKeydown = (event) => {
+  if (!isOpen.value) {
+    if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault()
+      open()
+    }
+    return
+  }
+  
+  if (event.key === 'Escape') {
+    close()
+    triggerRef.value?.focus()
+    return
+  }
+
+  handleNavigation(event, isOpen.value)
+}
 
 // --- WATCHERS ---
 watch(searchQuery, newQuery => {
@@ -186,6 +213,7 @@ function select(option) {
   } else {
     emit('update:modelValue', valueToEmit)
     close()
+    triggerRef.value?.focus()
   }
 }
 
@@ -278,10 +306,12 @@ onUnmounted(() => {
     <div
       ref="triggerRef"
       @click="toggle"
-      class="w-full min-h-[42px] px-2 bg-background border rounded-lg cursor-pointer flex flex-wrap gap-1 items-center transition-all shadow-sm"
+      @keydown="handleKeydown"
+      :tabindex="disabled ? -1 : 0"
+      class="w-full min-h-[42px] px-2 bg-background border rounded-lg cursor-pointer flex flex-wrap gap-1 items-center transition-all shadow-sm focus:outline-none"
       :class="[
         isOpen ? 'border-primary ring-1 ring-primary' : 'border-secondary/50 hover:border-primary/50',
-        disabled ? 'opacity-50 cursor-not-allowed bg-secondary/10' : ''
+        disabled ? 'opacity-50 cursor-not-allowed bg-secondary/10' : 'focus:ring-2 focus:ring-primary/50'
       ]"
     >
       <!-- Loading Indicator -->
@@ -374,7 +404,7 @@ onUnmounted(() => {
                 type="text"
                 placeholder="Cari..."
                 class="w-full pl-8 pr-3 py-1.5 text-xs bg-background border border-secondary/20 rounded-md focus:outline-none focus:border-primary text-text placeholder:text-text/30"
-                @keydown.esc="close"
+                @keydown="handleKeydown"
               />
             </div>
           </div>
@@ -412,11 +442,13 @@ onUnmounted(() => {
               v-for="(option, index) in filteredOptions"
               :key="typeof option === 'object' ? option[trackBy] : index"
               @click.stop="select(option)"
-              class="px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all shadow-sm flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-primary/50"
+              @mouseover="selectedIndex = index"
+              class="select-option px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all shadow-sm flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-primary/50"
               :class="[
                 isSelected(option)
                   ? 'bg-primary text-secondary border border-transparent hover:brightness-110'
-                  : 'bg-secondary/10 text-text border border-secondary/30 hover:bg-secondary/20'
+                  : 'bg-secondary/10 text-text border border-secondary/30 hover:bg-secondary/20',
+                selectedIndex === index ? 'ring-2 ring-primary/50' : ''
               ]"
             >
               <span class="truncate max-w-[200px] text-left">
@@ -441,8 +473,12 @@ onUnmounted(() => {
               v-for="(option, index) in filteredOptions"
               :key="typeof option === 'object' ? option[trackBy] : index"
               @mousedown.prevent.stop="select(option)"
-              class="px-3 py-2 rounded-md cursor-pointer flex justify-between items-center transition-colors group"
-              :class="[isSelected(option) ? 'bg-primary/10 text-primary font-bold' : 'text-text hover:bg-secondary/10']"
+              @mouseover="selectedIndex = index"
+              class="select-option px-3 py-2 rounded-md cursor-pointer flex justify-between items-center transition-colors group"
+              :class="[
+                isSelected(option) ? 'bg-primary/10 text-primary font-bold' : 'text-text hover:bg-secondary/10',
+                selectedIndex === index ? 'bg-secondary/10 ring-1 ring-primary/50' : ''
+              ]"
             >
               <!-- Slot for Custom Option Content -->
               <div class="flex-1 w-full truncate text-left">

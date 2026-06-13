@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useFloating, autoUpdate, offset, flip, shift, size } from '@floating-ui/vue'
+import { useListNavigation } from '@/composables/useListNavigation.js'
 
 const props = defineProps({
   modelValue: {
@@ -53,6 +54,42 @@ const { floatingStyles } = useFloating(triggerRef, dropdownRef, {
     })
   ]
 })
+
+const dropdownListRef = ref(null)
+
+const { selectedIndex, handleNavigation } = useListNavigation(
+  dropdownListRef,
+  computed(() => props.options),
+  (option) => {
+    const val = getOptionValue(option)
+    const state = getItemState(val)
+    if (state === 'include' || state === 'exclude') {
+      setItemState(val, 'neutral')
+    } else {
+      if (excludeCount.value === 0) setItemState(val, 'include')
+      else if (includeCount.value === 0) setItemState(val, 'exclude')
+    }
+  },
+  '.select-option'
+)
+
+const handleKeydown = (event) => {
+  if (!isOpen.value) {
+    if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault()
+      open()
+    }
+    return
+  }
+  
+  if (event.key === 'Escape') {
+    close()
+    triggerRef.value?.focus()
+    return
+  }
+
+  handleNavigation(event, isOpen.value)
+}
 
 // Ensure modelValue is always a proper object
 const safeModelValue = computed(() => {
@@ -162,10 +199,12 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
     <div
       ref="triggerRef"
       @click="toggle"
-      class="w-full h-full px-3 bg-background border rounded-lg cursor-pointer flex items-center justify-between transition-all shadow-sm select-none"
+      @keydown="handleKeydown"
+      :tabindex="disabled ? -1 : 0"
+      class="w-full h-full px-3 bg-background border rounded-lg cursor-pointer flex items-center justify-between transition-all shadow-sm select-none focus:outline-none"
       :class="[
         isOpen ? 'border-primary ring-1 ring-primary' : 'border-secondary/50 hover:border-primary/50',
-        disabled ? 'opacity-50 cursor-not-allowed bg-secondary/10' : ''
+        disabled ? 'opacity-50 cursor-not-allowed bg-secondary/10' : 'focus:ring-2 focus:ring-primary/50'
       ]"
     >
       <div class="flex items-center gap-2 truncate pr-2 flex-grow text-sm">
@@ -228,7 +267,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
           </div>
 
           <!-- OPTIONS LIST -->
-          <div class="max-h-60 overflow-y-auto custom-scrollbar pt-2 grid gap-y-1">
+          <div class="max-h-60 overflow-y-auto custom-scrollbar pt-2 grid gap-y-1" ref="dropdownListRef">
             <div v-if="options.length === 0" class="px-3 py-4 text-center text-text/40 italic text-xs">
               Tidak ada opsi ditemukan.
             </div>
@@ -237,11 +276,13 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
               v-else
               v-for="(option, index) in options"
               :key="typeof option === 'object' ? option[trackBy] : index"
-              class="rounded-md flex justify-between items-center group px-2 transition-colors hover:bg-secondary/10"
-              :class="{
-                'bg-primary/5': getItemState(getOptionValue(option)) === 'include',
-                'bg-danger/5': getItemState(getOptionValue(option)) === 'exclude'
-              }"
+              @mouseover="selectedIndex = index"
+              class="select-option rounded-md flex justify-between items-center group px-2 transition-colors hover:bg-secondary/10"
+              :class="[
+                getItemState(getOptionValue(option)) === 'include' ? 'bg-primary/5' : '',
+                getItemState(getOptionValue(option)) === 'exclude' ? 'bg-danger/5' : '',
+                selectedIndex === index ? 'ring-1 ring-primary/50 bg-secondary/10' : ''
+              ]"
             >
               <span class="flex-1 truncate font-medium text-text text-xs sm:text-sm">
                 {{ getOptionLabel(option) }}

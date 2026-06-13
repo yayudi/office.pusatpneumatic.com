@@ -5,7 +5,7 @@ import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import { fetchMyLocations } from '@/api/helpers/user.js'
 import { processBatchMovement, requestAdjustmentUpload, getImportJobs } from '@/api/helpers/stock.js'
-import { swalAlert } from '@/composables/useSweetAlert'
+import { swalAlert, swalConfirm } from '@/composables/useSweetAlert'
 import api from '@/api/axios.js'
 import { useMobile } from '@/composables/useMobile.js'
 
@@ -36,7 +36,9 @@ onMounted(async () => {
   try {
     myLocations.value = await fetchMyLocations()
     await loadImportHistory()
-  } catch (e) { console.error(e) } finally {
+  } catch (e) {
+    console.error(e)
+  } finally {
     isLoading.value = false
   }
 })
@@ -118,6 +120,28 @@ async function downloadTemplate() {
 }
 
 // --- Computed & Handler ---
+let isRevertingLocation = false
+watch(adjustmentLocation, async (newVal, oldVal) => {
+  if (isRevertingLocation) {
+    isRevertingLocation = false
+    return
+  }
+  if (batchList.value.length > 0 && newVal && oldVal && newVal.id !== oldVal.id) {
+    const isConfirmed = await swalConfirm(
+      'Reset Daftar Produk?',
+      'Anda memiliki produk di dalam daftar. Mengubah lokasi akan mereset seluruh inputan tersebut. Yakin ingin mengubah lokasi?',
+      'Ya, Reset',
+      'Batal'
+    )
+    if (isConfirmed) {
+      batchList.value = []
+    } else {
+      isRevertingLocation = true
+      adjustmentLocation.value = oldVal
+    }
+  }
+})
+
 const isBatchLocationSelected = computed(() => {
   return adjustmentLocation.value
 })
@@ -127,12 +151,8 @@ const batchSearchLocationId = computed(() => {
 })
 
 function handleAddProduct({ product, quantity }) {
-  if (!product || !quantity) {
+  if (!product) {
     toast('Pilih produk dan masukkan kuantitas yang valid.', 'warning')
-    return
-  }
-  if (quantity === 0) {
-    toast('Kuantitas penyesuaian tidak boleh nol.', 'warning')
     return
   }
 
@@ -154,17 +174,24 @@ function removeFromBatch(sku) {
 }
 
 async function submitBatch() {
+  if (!notes.value) {
+    toast('Catatan mohon diisi.', 'warning')
+    return
+  }
   if (!isBatchLocationSelected.value || batchList.value.length === 0) {
+    console.log('batchList.value :', batchList.value)
+    console.log('adjustmentLocation.value :', adjustmentLocation.value)
     return
   }
   if (!notes.value.trim()) {
+    console.log('notes.value :', notes.value)
     return
   }
 
   isLoading.value = true
   try {
     const payload = {
-      type: 'ADJUSTMENT',
+      type: 'OPNAME',
       fromLocationId: null,
       toLocationId: adjustmentLocation.value?.id || null,
       notes: notes.value,
@@ -255,11 +282,16 @@ watch(Alt_S, pressed => {
         <button
           @click="submitBatch"
           :disabled="!isBatchLocationSelected || batchList.length === 0 || isLoading"
-          class="px-6 py-3 bg-primary text-secondary rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
+          class="px-6 py-3 bg-primary text-secondary rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98] group"
         >
           <font-awesome-icon v-if="isLoading" icon="fa-solid fa-spinner" class="animate-spin" />
           <font-awesome-icon v-else icon="fa-solid fa-paper-plane" />
           <span>{{ isLoading ? 'Memproses...' : 'Submit Batch Adjustment' }}</span>
+          <kbd
+            v-if="!isLoading"
+            class="hidden md:inline-block ml-1 px-1.5 py-0.5 text-[10px] bg-secondary/20 text-secondary border border-secondary/30 rounded font-mono shadow-sm group-hover:bg-secondary/30 transition-colors"
+            >Alt+S</kbd
+          >
         </button>
       </div>
     </div>
@@ -324,11 +356,16 @@ watch(Alt_S, pressed => {
         <button
           @click="handleUploadAdjustment"
           :disabled="isUploading || !selectedFile || !notes.trim()"
-          class="w-full px-4 py-3 bg-primary text-secondary rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98] mt-2"
+          class="w-full px-4 py-3 bg-primary text-secondary rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98] mt-2 group"
         >
           <font-awesome-icon v-if="isUploading" icon="fa-solid fa-spinner" class="animate-spin" />
           <font-awesome-icon v-else icon="fa-solid fa-cloud-arrow-up" />
           <span>{{ isUploading ? 'Mengunggah...' : 'Unggah dan Proses File' }}</span>
+          <kbd
+            v-if="!isUploading"
+            class="hidden md:inline-block ml-1 px-1.5 py-0.5 text-[10px] bg-secondary/20 text-secondary border border-secondary/30 rounded font-mono shadow-sm group-hover:bg-secondary/30 transition-colors"
+            >Alt+S</kbd
+          >
         </button>
       </div>
 

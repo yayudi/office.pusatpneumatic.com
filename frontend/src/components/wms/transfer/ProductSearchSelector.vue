@@ -2,6 +2,7 @@
 <script setup>
 import { ref, watch, toRef, onMounted, onUnmounted } from 'vue'
 import { useProductSearch } from '@/composables/useProductSearch.js'
+import { useListNavigation } from '@/composables/useListNavigation.js'
 import { useFloating, autoUpdate, offset, flip, shift, size } from '@floating-ui/vue'
 
 const props = defineProps({
@@ -28,6 +29,12 @@ const showDropdown = ref(false)
 const inputRef = ref(null)
 const triggerRef = ref(null)
 const dropdownRef = ref(null)
+const dropdownListRef = ref(null)
+const { selectedIndex, handleNavigation } = useListNavigation(
+  dropdownListRef,
+  searchResults,
+  (item) => selectItem(item)
+)
 
 const { floatingStyles } = useFloating(triggerRef, dropdownRef, {
   placement: 'bottom-start',
@@ -49,11 +56,18 @@ const { floatingStyles } = useFloating(triggerRef, dropdownRef, {
 // --- LOGIC ---
 watch(
   () => props.modelValue,
-  newVal => {
+  (newVal, oldVal) => {
     if (newVal) {
       searchQuery.value = newVal[props.displayField] || newVal.name
     } else {
-      searchQuery.value = ''
+      if (oldVal) {
+        const oldName = oldVal[props.displayField] || oldVal.name
+        if (searchQuery.value === oldName) {
+          searchQuery.value = ''
+        }
+      } else if (oldVal === undefined) {
+        searchQuery.value = ''
+      }
     }
   },
   { immediate: true }
@@ -85,6 +99,14 @@ const debouncedSearch = debounce(async (query) => {
 
 async function handleInput() {
   const query = searchQuery.value
+  
+  if (props.modelValue) {
+    const currentName = props.modelValue[props.displayField] || props.modelValue.name
+    if (query !== currentName) {
+      emit('update:modelValue', null)
+    }
+  }
+
   if (!query) {
     emit('update:modelValue', null)
     clearSearch()
@@ -94,6 +116,13 @@ async function handleInput() {
   
   // Call the debounced function instead of immediate performSearch
   debouncedSearch(query)
+}
+
+function clearInput() {
+  searchQuery.value = ''
+  emit('update:modelValue', null)
+  clearSearch()
+  showDropdown.value = false
 }
 
 function selectItem(item) {
@@ -106,12 +135,8 @@ const handleKeydown = (event) => {
   if (props.enableScanner && (event.key === 'Enter' || event.key === 'Tab')) {
     event.preventDefault()
   }
-}
 
-const handleEnterKey = () => {
-  if (showDropdown.value && searchResults.value.length > 0) {
-    selectItem(searchResults.value[0])
-  }
+  handleNavigation(event, showDropdown.value)
 }
 
 function closeDropdown() {
@@ -159,7 +184,6 @@ defineExpose({ focusInput })
         v-model="searchQuery"
         @input="handleInput"
         @keydown="handleKeydown"
-        @keydown.enter="handleEnterKey"
         @focus="
           () => {
             if (searchResults.length && !disabled) {
@@ -183,7 +207,7 @@ defineExpose({ focusInput })
 
       <button
         v-if="searchQuery"
-        @click="(handleInput({ target: { value: '' } }), (searchQuery = ''), (showDropdown = false))"
+        @click="clearInput"
         class="absolute right-3 top-1/2 -translate-y-1/2 text-text/30 hover:text-danger transition-colors flex items-center justify-center w-5 h-5"
       >
         <font-awesome-icon icon="fa-solid fa-times" />
@@ -205,15 +229,18 @@ defineExpose({ focusInput })
           :style="floatingStyles"
           class="z-[9999] bg-background border border-secondary/20 rounded-lg shadow-xl overflow-hidden text-sm"
         >
-          <ul class="max-h-60 overflow-y-auto custom-scrollbar p-1">
+          <ul class="max-h-60 overflow-y-auto custom-scrollbar p-1" ref="dropdownListRef">
             <li
-              v-for="item in searchResults"
+              v-for="(item, index) in searchResults"
               :key="item.id || item.sku"
               @mousedown.prevent.stop="selectItem(item)"
-              class="px-3 py-2 rounded-md cursor-pointer flex justify-between items-center transition-colors group text-text hover:bg-secondary/10"
+              @mouseover="selectedIndex = index"
+              class="px-3 py-2 rounded-md cursor-pointer flex justify-between items-center transition-colors group text-text"
+              :class="selectedIndex === index ? 'bg-secondary/10' : 'hover:bg-secondary/10'"
             >
               <div class="flex-1 min-w-0">
-                <div class="font-bold text-sm text-text group-hover:text-primary truncate text-left">
+                <div class="font-bold text-sm truncate text-left transition-colors"
+                     :class="selectedIndex === index ? 'text-primary' : 'text-text group-hover:text-primary'">
                   {{ item.name }}
                 </div>
                 <div class="text-[10px] text-text/50 font-mono text-left">SKU: {{ item.sku }}</div>

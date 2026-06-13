@@ -38,7 +38,9 @@ async function loadLocations() {
   loading.value = true
   try {
     allLocations.value = await masterData.getLocations(true)
-  } catch (e) { console.error(e) } finally {
+  } catch (e) {
+    console.error(e)
+  } finally {
     loading.value = false
   }
 }
@@ -239,57 +241,68 @@ watch(Alt_S, pressed => {
   </div>
 
   <!-- Modal untuk Tambah/Edit Lokasi -->
-  <BaseModal :show="isModalOpen" @close="isModalOpen = false" :title="isEditing ? 'Edit Lokasi' : 'Tambah Lokasi Baru'">
-    <form @submit.prevent="handleSave" class="p-6 space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-text/80 mb-1">Kode Lokasi</label>
-        <input
-          v-model="selectedLocation.code"
-          type="text"
-          required
-          class="w-full input-field"
-          placeholder="e.g., A19-1"
-        />
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-text/80 mb-1">Gedung</label>
-        <input
-          v-model="selectedLocation.building"
-          type="text"
-          required
-          class="w-full input-field"
-          placeholder="e.g., A19"
-        />
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-text/80 mb-1">Purpose</label>
-        <BaseSelect
-          v-model="selectedLocation.purpose"
-          :options="purposeOptions"
-          emit-value
-          :searchable="false"
-          placeholder="Pilih Purpose"
-        />
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-text/80 mb-1">Lantai (Opsional)</label>
-        <input v-model.number="selectedLocation.floor" type="number" class="w-full input-field" placeholder="e.g., 1" />
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-text/80 mb-1">Nama/Deskripsi (Opsional)</label>
-        <input
-          v-model="selectedLocation.name"
-          type="text"
-          class="w-full input-field"
-          placeholder="e.g., Gudang A19 Lantai 1"
-        />
-      </div>
-    </form>
-    <template #footer>
-      <button type="button" @click="isModalOpen = false" class="btn-secondary">Batal</button>
-      <button type="submit" @click="handleSave" class="btn-primary">Simpan</button>
-    </template>
-  </BaseModal>
+  <Teleport to="body">
+    <BaseModal
+      :show="isModalOpen"
+      @close="isModalOpen = false"
+      :title="isEditing ? 'Edit Lokasi' : 'Tambah Lokasi Baru'"
+    >
+      <form @submit.prevent="handleSave" class="p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-text/80 mb-1">Kode Lokasi</label>
+          <input
+            v-model="selectedLocation.code"
+            type="text"
+            required
+            class="w-full input-field"
+            placeholder="e.g., A19-1"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-text/80 mb-1">Gedung</label>
+          <input
+            v-model="selectedLocation.building"
+            type="text"
+            required
+            class="w-full input-field"
+            placeholder="e.g., A19"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-text/80 mb-1">Purpose</label>
+          <BaseSelect
+            v-model="selectedLocation.purpose"
+            :options="purposeOptions"
+            emit-value
+            :searchable="false"
+            placeholder="Pilih Purpose"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-text/80 mb-1">Lantai (Opsional)</label>
+          <input
+            v-model.number="selectedLocation.floor"
+            type="number"
+            class="w-full input-field"
+            placeholder="e.g., 1"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-text/80 mb-1">Nama/Deskripsi (Opsional)</label>
+          <input
+            v-model="selectedLocation.name"
+            type="text"
+            class="w-full input-field"
+            placeholder="e.g., Gudang A19 Lantai 1"
+          />
+        </div>
+      </form>
+      <template #footer>
+        <button type="button" @click="isModalOpen = false" class="btn-secondary">Batal</button>
+        <button type="submit" @click="handleSave" class="btn-primary">Simpan</button>
+      </template>
+    </BaseModal>
+  </Teleport>
 </template>
 
 <style lang="postcss" scoped>

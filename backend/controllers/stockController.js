@@ -193,6 +193,21 @@ export const processBatchMovements = async (req, res, next) => {
   try {
     const { type, fromLocationId, toLocationId, notes, movements } = req.body;
 
+    if (type === "OPNAME") {
+      const mappedMovements = movements.map((m) => ({
+        sku: m.sku,
+        quantity: m.quantity,
+        toLocationId: m.toLocationId || toLocationId,
+        notes: m.notes || notes,
+      }));
+      const result = await stockService.processBatchOpnameService({
+        movements: mappedMovements,
+        userId: req.user.id,
+        userRoleId: req.user.role_id,
+      });
+      return res.json({ success: true, message: `Batch Opname berhasil.`, ...result });
+    }
+
     const result = await stockService.processBatchMovementsService({
       type,
       fromLocationId,

@@ -1,9 +1,11 @@
 <!-- frontend\src\views\WMSBatchMovement.vue -->
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
+import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import { fetchMyLocations } from '@/api/helpers/user.js'
 import { useMasterDataStore } from '@/stores/masterData'
+import { swalConfirm } from '@/composables/useSweetAlert'
 
 const masterData = useMasterDataStore()
 import { processBatchMovement } from '@/api/helpers/stock.js'
@@ -28,6 +30,25 @@ const activeTab = ref('TRANSFER') // Tab default
 const batchList = ref([])
 const isBatchInboundModalOpen = ref(false)
 const isStickerModalOpen = ref(false)
+const detailedTransferTabRef = ref(null)
+
+const { Alt_S } = useMagicKeys()
+
+watch(Alt_S, (pressed) => {
+  if (pressed) {
+    if (isBatchInboundModalOpen.value || isStickerModalOpen.value) return
+
+    if (activeTab.value === 'DETAILED_TRANSFER') {
+      if (detailedTransferTabRef.value) {
+        detailedTransferTabRef.value.submitDetailedBatch()
+      }
+    } else {
+      if (isBatchLocationSelected.value && batchList.value.length > 0 && !isLoading.value) {
+        submitBatch()
+      }
+    }
+  }
+})
 
 // --- STATE FORM BATCH (untuk header) ---
 const fromLocation = ref(null)
@@ -43,6 +64,72 @@ onMounted(async () => {
     allLocations.value = allLocs
   } catch (e) { console.error(e) } finally {
     isLoading.value = false
+  }
+})
+
+let isRevertingTab = false
+watch(activeTab, async (newVal, oldVal) => {
+  if (isRevertingTab) {
+    isRevertingTab = false
+    return
+  }
+  if (batchList.value.length > 0 && newVal && oldVal && newVal !== oldVal) {
+    const isConfirmed = await swalConfirm(
+      'Reset Daftar Produk?',
+      'Mengubah mode form akan mereset seluruh daftar produk yang sudah dipilih. Yakin?',
+      'Ya, Reset',
+      'Batal'
+    )
+    if (isConfirmed) {
+      batchList.value = []
+    } else {
+      isRevertingTab = true
+      activeTab.value = oldVal
+    }
+  }
+})
+
+let isRevertingFromLocation = false
+watch(fromLocation, async (newVal, oldVal) => {
+  if (isRevertingFromLocation) {
+    isRevertingFromLocation = false
+    return
+  }
+  if (batchList.value.length > 0 && newVal && oldVal && newVal.id !== oldVal.id) {
+    const isConfirmed = await swalConfirm(
+      'Reset Daftar Produk?',
+      'Mengubah lokasi asal akan mereset seluruh daftar produk yang sudah dipilih. Yakin?',
+      'Ya, Reset',
+      'Batal'
+    )
+    if (isConfirmed) {
+      batchList.value = []
+    } else {
+      isRevertingFromLocation = true
+      fromLocation.value = oldVal
+    }
+  }
+})
+
+let isRevertingToLocation = false
+watch(toLocation, async (newVal, oldVal) => {
+  if (isRevertingToLocation) {
+    isRevertingToLocation = false
+    return
+  }
+  if (batchList.value.length > 0 && newVal && oldVal && newVal.id !== oldVal.id) {
+    const isConfirmed = await swalConfirm(
+      'Reset Daftar Produk?',
+      'Mengubah lokasi tujuan akan mereset seluruh daftar produk yang sudah dipilih. Yakin?',
+      'Ya, Reset',
+      'Batal'
+    )
+    if (isConfirmed) {
+      batchList.value = []
+    } else {
+      isRevertingToLocation = true
+      toLocation.value = oldVal
+    }
   }
 })
 
@@ -162,6 +249,7 @@ async function submitBatch() {
     <!-- Panel Konten -->
     <MultiLocationTransferTab
       v-if="activeTab === 'DETAILED_TRANSFER'"
+      ref="detailedTransferTabRef"
       :all-locations="allLocations"
       :is-loading-locations="isLoading"
     />
@@ -201,10 +289,11 @@ async function submitBatch() {
         <button
           @click="submitBatch"
           :disabled="!isBatchLocationSelected || batchList.length === 0 || isLoading"
-          class="px-6 py-3 bg-primary text-secondary rounded-lg font-bold disabled:opacity-50 flex items-center gap-2"
+          class="px-6 py-3 bg-primary text-secondary rounded-lg font-bold disabled:opacity-50 flex items-center gap-2 group"
         >
           <font-awesome-icon v-if="isLoading" icon="fa-solid fa-spinner" class="animate-spin" />
           <span>{{ isLoading ? 'Memproses...' : 'Submit Batch' }}</span>
+          <kbd v-if="!isLoading" class="hidden md:inline-block ml-1 px-1.5 py-0.5 text-[10px] bg-secondary/20 text-secondary border border-secondary/30 rounded font-mono shadow-sm group-hover:bg-secondary/30 transition-colors">Alt+S</kbd>
         </button>
       </div>
     </template>

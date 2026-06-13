@@ -1,5 +1,6 @@
 // frontend\src\composables\useReturnManager.js
-import { ref, computed } from 'vue'
+import { ref, watch } from 'vue'
+import { watchDebounced } from '@vueuse/core'
 import api from '@/api/axios'
 import { useToast } from '@/composables/useToast'
 
@@ -10,6 +11,9 @@ export function useReturnManager() {
   const items = ref([])
   const isLoading = ref(false)
   const searchQuery = ref('')
+  const sourceFilter = ref('')
+  const sortOrder = ref('desc')
+  const pagination = ref({ page: 1, limit: 10, total: 0, totalPages: 1 })
   const locations = ref([])
 
   // State Modal Process (Enhanced)
@@ -38,36 +42,57 @@ export function useReturnManager() {
     }
   }
 
-  // Fetch Data Retur
   const fetchData = async () => {
     isLoading.value = true
     try {
       const endpoint = activeTab.value === 'pending' ? '/return/pending' : '/return/history'
-      const response = await api.get(endpoint)
+      const response = await api.get(endpoint, {
+        params: {
+          page: pagination.value.page,
+          limit: pagination.value.limit,
+          search: searchQuery.value,
+          source: sourceFilter.value,
+          sortOrder: sortOrder.value
+        }
+      })
       items.value = response.data.data
+      if (response.data.pagination) {
+        pagination.value = response.data.pagination
+      }
 
       // Load locations jika belum ada
       if (locations.value.length === 0) {
         await fetchLocations()
       }
-    } catch {
+    } catch (e) {
+      console.error(e)
     } finally {
       isLoading.value = false
     }
   }
 
-  // Filter Search
-  const filteredItems = computed(() => {
-    if (!searchQuery.value) return items.value
-    const lower = searchQuery.value.toLowerCase()
-    return items.value.filter(
-      (item) =>
-        (item.reference || '').toLowerCase().includes(lower) ||
-        (item.original_invoice_id || '').toLowerCase().includes(lower) ||
-        (item.product_name || '').toLowerCase().includes(lower) ||
-        (item.sku || '').toLowerCase().includes(lower),
-    )
+  // Reload data ketika tab atau filter diubah
+  watch([activeTab, sourceFilter, sortOrder], () => {
+    pagination.value.page = 1
+    fetchData()
   })
+
+  // Pencarian dengan debounce agar tidak spam server
+  watchDebounced(searchQuery, () => {
+    pagination.value.page = 1
+    fetchData()
+  }, { debounce: 300 })
+
+  const changePage = (p) => {
+    pagination.value.page = p
+    fetchData()
+  }
+
+  const changeLimit = (l) => {
+    pagination.value.limit = l
+    pagination.value.page = 1
+    fetchData()
+  }
 
   // Buka Modal
   const openProcessModal = (item) => {
@@ -145,11 +170,16 @@ export function useReturnManager() {
     locations,
     isLoading,
     searchQuery,
-    filteredItems,
+    sourceFilter,
+    sortOrder,
+    pagination,
+    items,
     showProcessModal,
     processForm,
     fetchData,
     openProcessModal,
     submitProcess,
+    changePage,
+    changeLimit
   }
 }

@@ -100,7 +100,6 @@ async function submitForm() {
     if (successCount > 0) {
       toast(`Berhasil memproses ${successCount} item. Stok telah bertambah.`, 'success')
       router.go(-1)
-    } else {
     }
   } catch {
     swalAlert('Gagal Memproses', 'Terjadi kesalahan sistem saat menyimpan data', 'error')
@@ -300,13 +299,14 @@ watch(Alt_S, pressed => {
           <button
             @click="submitForm"
             :disabled="isLoading"
-            class="flex-1 md:flex-none md:w-64 bg-primary text-secondary px-6 py-3 rounded-xl font-bold text-lg hover:bg-primary/90 shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+            class="flex-1 md:flex-none md:w-64 bg-primary text-secondary px-6 py-3 rounded-xl font-bold text-lg hover:bg-primary/90 shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:cursor-not-allowed group"
           >
             <span v-if="isLoading">Memproses...</span><span v-else>Simpan Retur</span
             ><font-awesome-icon v-if="isLoading" icon="fa-solid fa-spinner" spin /><font-awesome-icon
               v-else
               icon="fa-solid fa-check"
             />
+            <kbd v-if="!isLoading" class="hidden md:inline-block ml-1 px-1.5 py-0.5 text-[10px] bg-secondary/20 text-secondary border border-secondary/30 rounded font-mono shadow-sm group-hover:bg-secondary/30 transition-colors">Alt+S</kbd>
           </button>
         </div>
       </div>
