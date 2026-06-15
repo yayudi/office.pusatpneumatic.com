@@ -1,5 +1,4 @@
-// frontend\src\composables\useReturnManager.js
-import { ref, watch } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import { watchDebounced } from '@vueuse/core'
 import api from '@/api/axios'
 import { useToast } from '@/composables/useToast'
@@ -11,8 +10,14 @@ export function useReturnManager() {
   const items = ref([])
   const isLoading = ref(false)
   const searchQuery = ref('')
-  const sourceFilter = ref('')
-  const sortOrder = ref('desc')
+  const filterState = reactive({
+    source: { include: [], exclude: [] },
+    condition: '',
+    locationId: '',
+    startDate: '',
+    endDate: '',
+    sortOrder: 'desc'
+  })
   const pagination = ref({ page: 1, limit: 10, total: 0, totalPages: 1 })
   const locations = ref([])
 
@@ -51,8 +56,7 @@ export function useReturnManager() {
           page: pagination.value.page,
           limit: pagination.value.limit,
           search: searchQuery.value,
-          source: sourceFilter.value,
-          sortOrder: sortOrder.value
+          ...filterState
         }
       })
       items.value = response.data.data
@@ -72,10 +76,10 @@ export function useReturnManager() {
   }
 
   // Reload data ketika tab atau filter diubah
-  watch([activeTab, sourceFilter, sortOrder], () => {
+  watch([activeTab, filterState], () => {
     pagination.value.page = 1
     fetchData()
-  })
+  }, { deep: true })
 
   // Pencarian dengan debounce agar tidak spam server
   watchDebounced(searchQuery, () => {
@@ -170,8 +174,7 @@ export function useReturnManager() {
     locations,
     isLoading,
     searchQuery,
-    sourceFilter,
-    sortOrder,
+    filterState,
     pagination,
     items,
     showProcessModal,

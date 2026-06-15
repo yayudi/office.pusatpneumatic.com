@@ -16,10 +16,12 @@ export const getPendingReturns = async (req, res, next) => {
     const limit = Math.max(1, parseInt(req.query.limit) || 10);
     const search = req.query.search || '';
     const source = req.query.source || '';
+    const startDate = req.query.startDate || '';
+    const endDate = req.query.endDate || '';
     const offset = (page - 1) * limit;
 
     const { rows, total } = await returnRepo.getPendingReturns(connection, {
-      limit, offset, search, source
+      limit, offset, search, source, startDate, endDate
     });
 
     const totalPages = Math.ceil(total / limit);
@@ -51,11 +53,15 @@ export const getReturnHistory = async (req, res, next) => {
     const limit = Math.max(1, parseInt(req.query.limit) || 10);
     const search = req.query.search || '';
     const source = req.query.source || '';
+    const condition = req.query.condition || '';
+    const locationId = req.query.locationId || '';
+    const startDate = req.query.startDate || '';
+    const endDate = req.query.endDate || '';
     const sortOrder = req.query.sortOrder || 'desc';
     const offset = (page - 1) * limit;
 
     const { rows, total } = await returnRepo.getReturnHistory(connection, {
-      limit, offset, search, source, sortOrder
+      limit, offset, search, source, condition, locationId, sortOrder, startDate, endDate
     });
 
     const totalPages = Math.ceil(total / limit);

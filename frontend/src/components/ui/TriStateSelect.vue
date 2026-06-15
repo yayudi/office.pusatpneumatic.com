@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useFloating, autoUpdate, offset, flip, shift, size } from '@floating-ui/vue'
 import { useListNavigation } from '@/composables/useListNavigation.js'
 
@@ -24,6 +24,10 @@ const props = defineProps({
     type: String,
     default: 'Pilih opsi...'
   },
+  searchable: {
+    type: Boolean,
+    default: false
+  },
   disabled: {
     type: Boolean,
     default: false
@@ -33,9 +37,11 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const isOpen = ref(false)
+const searchQuery = ref('')
 const containerRef = ref(null)
 const triggerRef = ref(null)
 const dropdownRef = ref(null)
+const inputRef = ref(null)
 
 const { floatingStyles } = useFloating(triggerRef, dropdownRef, {
   placement: 'bottom-start',
@@ -57,10 +63,19 @@ const { floatingStyles } = useFloating(triggerRef, dropdownRef, {
 
 const dropdownListRef = ref(null)
 
+const filteredOptions = computed(() => {
+  if (!props.searchable || !searchQuery.value) return props.options
+  const q = searchQuery.value.toLowerCase()
+  return props.options.filter(opt => {
+    const text = typeof opt === 'object' ? String(opt[props.label] || '') : String(opt || '')
+    return text.toLowerCase().includes(q)
+  })
+})
+
 const { selectedIndex, handleNavigation } = useListNavigation(
   dropdownListRef,
-  computed(() => props.options),
-  (option) => {
+  filteredOptions,
+  option => {
     const val = getOptionValue(option)
     const state = getItemState(val)
     if (state === 'include' || state === 'exclude') {
@@ -73,7 +88,19 @@ const { selectedIndex, handleNavigation } = useListNavigation(
   '.select-option'
 )
 
-const handleKeydown = (event) => {
+watch(isOpen, val => {
+  if (val) {
+    if (props.searchable) {
+      nextTick(() => {
+        inputRef.value?.focus()
+      })
+    }
+  } else {
+    searchQuery.value = ''
+  }
+})
+
+const handleKeydown = event => {
   if (!isOpen.value) {
     if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault()
@@ -81,7 +108,7 @@ const handleKeydown = (event) => {
     }
     return
   }
-  
+
   if (event.key === 'Escape') {
     close()
     triggerRef.value?.focus()
@@ -89,6 +116,17 @@ const handleKeydown = (event) => {
   }
 
   handleNavigation(event, isOpen.value)
+}
+
+const handleSearchKeydown = e => {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') {
+    e.preventDefault()
+    handleNavigation(e, isOpen.value)
+  } else if (e.key === 'Escape') {
+    e.preventDefault()
+    close()
+    triggerRef.value?.focus()
+  }
 }
 
 // Ensure modelValue is always a proper object
@@ -257,7 +295,23 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
           <!-- HEADER -->
           <div
             class="bg-secondary/5 border-b border-secondary/10 flex justify-between items-center text-xs font-bold text-text/60"
+            :class="searchable ? 'flex-col gap-2 p-2' : ''"
           >
+            <div v-if="searchable" class="w-full relative">
+              <font-awesome-icon
+                icon="fa-solid fa-search"
+                class="absolute left-3 top-1/2 -translate-y-1/2 text-text/40 text-[10px]"
+              />
+              <input
+                ref="inputRef"
+                v-model="searchQuery"
+                @click.stop
+                @keydown.stop="handleSearchKeydown"
+                type="text"
+                class="w-full pl-8 pr-3 py-1.5 bg-background border border-secondary/30 rounded-md text-xs focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-all"
+                placeholder="Cari opsi..."
+              />
+            </div>
             <button
               @click="clearAll"
               class="w-full py-2 bg-danger/5 text-danger hover:text-secondary hover:bg-danger rounded-lg transition-colors"
@@ -268,13 +322,13 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 
           <!-- OPTIONS LIST -->
           <div class="max-h-60 overflow-y-auto custom-scrollbar pt-2 grid gap-y-1" ref="dropdownListRef">
-            <div v-if="options.length === 0" class="px-3 py-4 text-center text-text/40 italic text-xs">
+            <div v-if="filteredOptions.length === 0" class="px-3 py-4 text-center text-text/40 italic text-xs">
               Tidak ada opsi ditemukan.
             </div>
 
             <div
               v-else
-              v-for="(option, index) in options"
+              v-for="(option, index) in filteredOptions"
               :key="typeof option === 'object' ? option[trackBy] : index"
               @mouseover="selectedIndex = index"
               class="select-option rounded-md flex justify-between items-center group px-2 transition-colors hover:bg-secondary/10"

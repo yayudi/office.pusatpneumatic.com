@@ -22,8 +22,14 @@ export const listMedia = async (req, res, next) => {
   if (req.query.search && req.query.search.trim()) {
     filters.search = req.query.search.trim();
   }
-  if (req.query.linkStatus && ['linked', 'orphaned'].includes(req.query.linkStatus)) {
-    filters.linkStatus = req.query.linkStatus;
+  if (req.query.linkStatus) {
+    try {
+      filters.linkStatus = JSON.parse(req.query.linkStatus);
+    } catch {
+      if (['linked', 'orphaned'].includes(req.query.linkStatus)) {
+        filters.linkStatus = req.query.linkStatus;
+      }
+    }
   }
 
   let connection;

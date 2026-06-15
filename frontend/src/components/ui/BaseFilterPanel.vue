@@ -114,9 +114,9 @@ const needsStandaloneToggle = computed(() => {
       <!-- BOTTOM ROW (Filters) -->
       <div
         v-if="$slots.filters || $slots['filter-actions']"
-        class="flex flex-col lg:flex-row gap-3 items-center justify-between"
+        class="flex flex-col lg:flex-row gap-4 items-end justify-between"
       >
-        <div v-if="$slots.filters" class="flex flex-wrap gap-3 items-center w-full lg:w-auto flex-grow">
+        <div v-if="$slots.filters" class="w-full flex-grow">
           <slot name="filters"></slot>
         </div>
         <div
@@ -164,8 +164,8 @@ const needsStandaloneToggle = computed(() => {
       ></div>
 
       <!-- Filters -->
-      <div v-if="$slots.filters || $slots['filter-actions']" class="flex flex-col gap-3">
-        <div v-if="$slots.filters" class="flex flex-col gap-3 w-full">
+      <div v-if="$slots.filters || $slots['filter-actions']" class="flex flex-col gap-4">
+        <div v-if="$slots.filters" class="w-full">
           <slot name="filters"></slot>
         </div>
         <div v-if="$slots['filter-actions']" class="flex gap-3 w-full justify-end">

@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, defineAsyncComponent } from 'vue'
 import { startOfMonth, endOfMonth, format } from 'date-fns'
-import { useToast } from '@/composables/useToast.js'
 import { useTheme } from '@/composables/useTheme.js'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
 import SearchInput from '@/components/ui/SearchInput.vue'
@@ -12,7 +11,6 @@ import { useMasterDataStore } from '@/stores/masterData'
 const masterData = useMasterDataStore()
 const VueApexCharts = defineAsyncComponent(() => import('vue3-apexcharts'))
 
-const { toast } = useToast()
 const isDataLoading = ref(false)
 const timelineList = ref([])
 
@@ -30,7 +28,7 @@ const reportFilters = ref({
   allBuildings: []
 })
 
-const { themeColors, isDarkTheme } = useTheme()
+const { themeColors, isDarkTheme, isThemeChanging } = useTheme()
 
 onMounted(async () => {
   try {
@@ -296,6 +294,7 @@ const toggleSort = () => {
 
         <div class="w-full block">
           <VueApexCharts
+            v-if="!isThemeChanging"
             width="100%"
             height="450"
             type="bar"

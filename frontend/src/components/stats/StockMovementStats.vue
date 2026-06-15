@@ -4,19 +4,15 @@ import { startOfMonth, endOfMonth, format } from 'date-fns'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast.js'
 import { useTheme } from '@/composables/useTheme.js'
-import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
-import StockTimelineModal from '@/components/stats/StockTimelineModal.vue'
 import { getStockMovementStatistics } from '@/api/helpers/statistics.js'
 import { requestStatisticExport } from '@/api/helpers/exportStats.js'
 import { useMasterDataStore } from '@/stores/masterData'
-import SearchInput from '@/components/ui/SearchInput.vue'
 import BaseTabs from '@/components/ui/BaseTabs.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
-import TriStateSelect from '@/components/ui/TriStateSelect.vue'
 const VueApexCharts = defineAsyncComponent(() => import('vue3-apexcharts'))
 import { useStatsTable } from '@/composables/useStatsTable.js'
 import StatsChartCard from './shared/StatsChartCard.vue'
-import StatsFilterBar from './shared/StatsFilterBar.vue'
+import FilterBar from '@/components/ui/FilterBar.vue'
 
 const authStore = useAuthStore()
 const masterData = useMasterDataStore()
@@ -70,7 +66,57 @@ const chartMaxCapOptions = [
   { id: 50, label: 'Top 50' }
 ]
 
-const { themeColors, isDarkTheme } = useTheme()
+const mainFilters = computed(() => [
+  { type: 'daterange', keyStart: 'startDate', keyEnd: 'endDate', class: 'md:col-span-1 lg:col-span-2' },
+  {
+    type: 'text',
+    key: 'searchQuery',
+    placeholder: 'Cari SKU atau Nama Produk...',
+    class: 'md:col-span-2 lg:col-span-2'
+  }
+])
+
+const advancedFilters = computed(() => [
+  {
+    type: 'triselect',
+    key: 'building',
+    label: 'Lokasi / Gedung',
+    options: reportFilters.value.allBuildings,
+    placeholder: 'Semua Gedung',
+    searchable: true
+  },
+  {
+    type: 'triselect',
+    key: 'status',
+    label: 'Status Stok',
+    options: stockStatusOptions,
+    optionLabel: 'label',
+    trackBy: 'id',
+    placeholder: 'Semua Status'
+  },
+  {
+    type: 'select',
+    key: 'movement',
+    label: 'Aktivitas Transaksi',
+    options: movementOptions,
+    placeholder: 'Semua Transaksi',
+    clearable: true,
+    clearValue: 'all',
+    searchable: false
+  },
+  {
+    type: 'triselect',
+    key: 'categoryId',
+    label: 'Kategori Produk',
+    options: reportFilters.value.allCategories,
+    optionLabel: 'label',
+    trackBy: 'id',
+    placeholder: 'Semua Kategori',
+    searchable: true
+  }
+])
+
+const { themeColors, isDarkTheme, isThemeChanging } = useTheme()
 
 onMounted(async () => {
   try {
@@ -509,33 +555,26 @@ const chartScatterOptions = computed(() => ({
       />
     </div>
     <!-- Filter Controls -->
-    <StatsFilterBar
-      :loading="isDataLoading"
-      @apply="applyFilters"
-      :hasActiveAdvancedFilters="
-        filterValues.building.include.length > 0 ||
-        filterValues.building.exclude.length > 0 ||
-        filterValues.categoryId.include.length > 0 ||
-        filterValues.categoryId.exclude.length > 0 ||
-        filterValues.status.include.length > 0 ||
-        filterValues.status.exclude.length > 0 ||
-        filterValues.movement !== 'all'
+    <FilterBar
+      v-model="filterValues"
+      :filters="mainFilters"
+      :advancedFilters="advancedFilters"
+      @change="applyFilters"
+      @clear="
+        () => {
+          filterValues = {
+            startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+            endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+            searchQuery: '',
+            status: { include: [], exclude: [] },
+            movement: 'all',
+            building: { include: [], exclude: [] },
+            categoryId: { include: [], exclude: [] }
+          }
+          applyFilters()
+        }
       "
     >
-      <template #main>
-        <div class="w-full sm:w-auto shrink-0">
-          <DateRangeFilter
-            v-model:startDate="filterValues.startDate"
-            v-model:endDate="filterValues.endDate"
-            align="left"
-            class="w-full sm:w-auto"
-          />
-        </div>
-        <div class="flex-1 w-full sm:w-auto min-w-[200px]">
-          <SearchInput v-model="filterValues.searchQuery" placeholder="Cari SKU atau Nama Produk..." />
-        </div>
-      </template>
-
       <template #actions>
         <button
           v-if="canExport"
@@ -548,53 +587,7 @@ const chartScatterOptions = computed(() => ({
           <span>Export</span>
         </button>
       </template>
-
-      <template #advanced>
-        <div>
-          <label class="block text-xs font-semibold text-text/60 mb-2">Lokasi / Gedung</label>
-          <TriStateSelect
-            v-model="filterValues.building"
-            :options="reportFilters.allBuildings"
-            placeholder="Semua Gedung"
-          />
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-text/60 mb-2">Status Stok</label>
-          <TriStateSelect
-            v-model="filterValues.status"
-            :options="stockStatusOptions"
-            label="label"
-            track="id"
-            placeholder="Semua Status"
-          />
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-text/60 mb-2">Aktivitas Transaksi</label>
-          <BaseSelect
-            v-model="filterValues.movement"
-            :options="movementOptions"
-            emitValue
-            clearable
-            clearValue="all"
-            :searchable="false"
-            placeholder="Semua Transaksi"
-          />
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-text/60 mb-2">Kategori Produk</label>
-          <TriStateSelect
-            v-model="filterValues.categoryId"
-            :options="reportFilters.allCategories"
-            label="label"
-            track="id"
-            placeholder="Semua Kategori"
-          />
-        </div>
-      </template>
-    </StatsFilterBar>
+    </FilterBar>
 
     <!-- Main Content Layout -->
     <div class="flex flex-col lg:flex-row gap-6 items-start">
@@ -771,6 +764,7 @@ const chartScatterOptions = computed(() => ({
           <!-- Card: Status Distribusi -->
           <StatsChartCard title="Distribusi Status Stok">
             <VueApexCharts
+              v-if="!isThemeChanging"
               width="100%"
               height="300"
               type="donut"
@@ -782,6 +776,7 @@ const chartScatterOptions = computed(() => ({
           <!-- Card: Top Sales -->
           <StatsChartCard :title="`Top ${chartMaxCap} Barang Paling Sering Keluar (Mutasi Out)`">
             <VueApexCharts
+              v-if="!isThemeChanging"
               width="100%"
               height="300"
               type="bar"
@@ -793,6 +788,7 @@ const chartScatterOptions = computed(() => ({
           <!-- Card: Aktivitas Tertinggi -->
           <StatsChartCard title="Volume Aktivitas: Masuk VS Keluar (Top {{ chartMaxCap }})">
             <VueApexCharts
+              v-if="!isThemeChanging"
               width="100%"
               height="300"
               type="area"
@@ -804,6 +800,7 @@ const chartScatterOptions = computed(() => ({
           <!-- Card: Dead / Slow Stock -->
           <StatsChartCard :title="`Top ${chartMaxCap} Sisa Stok Menumpuk Terbanyak (Overstock / Slow)`">
             <VueApexCharts
+              v-if="!isThemeChanging"
               width="100%"
               height="300"
               type="bar"
@@ -818,6 +815,7 @@ const chartScatterOptions = computed(() => ({
             subtitle="Mengurutkan barang berdasarkan rata-rata mutasi keluar harian tertinggi."
           >
             <VueApexCharts
+              v-if="!isThemeChanging"
               width="100%"
               height="300"
               type="bar"
@@ -832,6 +830,7 @@ const chartScatterOptions = computed(() => ({
             subtitle='Mengurutkan barang berdasarkan sisa "hari" stok terpendek sebelum habis sepenuhnya.'
           >
             <VueApexCharts
+              v-if="!isThemeChanging"
               width="100%"
               height="300"
               type="bar"
@@ -846,6 +845,7 @@ const chartScatterOptions = computed(() => ({
             subtitle="Menjumlahkan seluruh kuantitas Inbound vs Pengeluaran dalam periode filter ini."
           >
             <VueApexCharts
+              v-if="!isThemeChanging"
               width="100%"
               height="300"
               type="donut"
@@ -861,6 +861,7 @@ const chartScatterOptions = computed(() => ({
             minHeight="500px"
           >
             <VueApexCharts
+              v-if="!isThemeChanging"
               width="100%"
               height="400"
               type="scatter"

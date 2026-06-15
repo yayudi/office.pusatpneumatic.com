@@ -4,13 +4,41 @@ import { WMS_STATUS } from "../config/wmsConstants.js";
 /**
  * Mengambil item dari Picking List yang statusnya 'RETURNED' (Siap divalidasi gudang)
  */
-export const getPendingReturns = async (connection, { limit = 10, offset = 0, search = '', source = '' }) => {
+export const getPendingReturns = async (connection, { limit = 10, offset = 0, search = '', source = '', startDate = '', endDate = '' }) => {
   let whereClauses = "pli.status = ? AND pl.is_active = 1";
   const queryParams = [WMS_STATUS?.RETURNED || "RETURNED"];
 
   if (source) {
-    whereClauses += " AND pl.source = ?";
-    queryParams.push(source);
+    const parsedSource = (() => {
+      if (typeof source === 'object' && source !== null && !Array.isArray(source)) return source;
+      try { return typeof source === 'string' && source.startsWith('{') ? JSON.parse(source) : null; } catch { return null; }
+    })();
+    
+    if (parsedSource && (parsedSource.include?.length > 0 || parsedSource.exclude?.length > 0)) {
+      const incLower = (parsedSource.include || []).map(s => s.toLowerCase());
+      const excLower = (parsedSource.exclude || []).map(s => s.toLowerCase());
+      if (incLower.length > 0) {
+        whereClauses += " AND LOWER(pl.source) IN (?)";
+        queryParams.push(incLower);
+      }
+      if (excLower.length > 0) {
+        whereClauses += " AND LOWER(pl.source) NOT IN (?)";
+        queryParams.push(excLower);
+      }
+    } else if (typeof source === 'string' && source.length > 0) {
+      whereClauses += " AND pl.source = ?";
+      queryParams.push(source);
+    }
+  }
+
+  if (startDate) {
+    whereClauses += " AND DATE(pl.created_at) >= ?";
+    queryParams.push(startDate);
+  }
+
+  if (endDate) {
+    whereClauses += " AND DATE(pl.created_at) <= ?";
+    queryParams.push(endDate);
   }
 
   if (search) {
@@ -52,31 +80,98 @@ export const getPendingReturns = async (connection, { limit = 10, offset = 0, se
 /**
  * Mengambil Riwayat Retur (Gabungan dari Picking List Items & Manual Returns)
  */
-export const getReturnHistory = async (connection, { limit = 10, offset = 0, search = '', source = '', sortOrder = 'desc' }) => {
+export const getReturnHistory = async (connection, { limit = 10, offset = 0, search = '', source = '', condition = '', locationId = '', sortOrder = 'desc', startDate = '', endDate = '' }) => {
   let pickingWhere = "pli.status = 'COMPLETED_RETURN'";
   let manualWhere = "1=1";
-  const queryParams = [];
+  const pickingParams = [];
+  const manualParams = [];
 
   if (source) {
-    if (source.toLowerCase() === 'manual') {
-      pickingWhere += " AND 1=0"; // Don't match picking items
-    } else {
-      pickingWhere += ` AND LOWER(pl.source) = LOWER(?)`;
-      queryParams.push(source);
-      manualWhere += " AND 1=0"; // Don't match manual items
+    const parsedSource = (() => {
+      if (typeof source === 'object' && source !== null && !Array.isArray(source)) return source;
+      try { return typeof source === 'string' && source.startsWith('{') ? JSON.parse(source) : null; } catch { return null; }
+    })();
+
+    if (parsedSource && (parsedSource.include?.length > 0 || parsedSource.exclude?.length > 0)) {
+      const incLower = (parsedSource.include || []).map(s => s.toLowerCase());
+      const excLower = (parsedSource.exclude || []).map(s => s.toLowerCase());
+      
+      if (incLower.length > 0) {
+        if (incLower.includes('manual') && incLower.length === 1) {
+          pickingWhere += " AND 1=0";
+        } else if (!incLower.includes('manual')) {
+          pickingWhere += " AND LOWER(pl.source) IN (?)";
+          pickingParams.push(incLower);
+          manualWhere += " AND 1=0";
+        } else {
+          const pickingSources = incLower.filter(s => s !== 'manual');
+          pickingWhere += " AND LOWER(pl.source) IN (?)";
+          pickingParams.push(pickingSources);
+        }
+      }
+      
+      if (excLower.length > 0) {
+        if (excLower.includes('manual')) {
+          manualWhere += " AND 1=0";
+        }
+        const pickingExc = excLower.filter(s => s !== 'manual');
+        if (pickingExc.length > 0) {
+          pickingWhere += " AND LOWER(pl.source) NOT IN (?)";
+          pickingParams.push(pickingExc);
+        }
+      }
+    } else if (typeof source === 'string' && source.length > 0) {
+      if (source.toLowerCase() === 'manual') {
+        pickingWhere += " AND 1=0"; 
+      } else {
+        pickingWhere += " AND LOWER(pl.source) = LOWER(?)";
+        pickingParams.push(source);
+        manualWhere += " AND 1=0";
+      }
     }
+  }
+
+  if (condition) {
+    if (condition.toUpperCase() === 'GOOD') {
+      pickingWhere += " AND pli.return_condition = 'GOOD'";
+      manualWhere += " AND mr.`condition` = 'GOOD'";
+    } else if (condition.toUpperCase() === 'BAD') {
+      pickingWhere += " AND pli.return_condition = 'BAD'";
+      manualWhere += " AND mr.`condition` = 'BAD'";
+    }
+  }
+
+  if (locationId) {
+    pickingWhere += " AND pli.confirmed_location_id = ?";
+    pickingParams.push(locationId);
+    manualWhere += " AND 1=0"; // Manual returns don't have direct location relation in this view
+  }
+
+  if (startDate) {
+    pickingWhere += " AND DATE(pl.updated_at) >= ?";
+    pickingParams.push(startDate);
+    manualWhere += " AND DATE(mr.created_at) >= ?";
+    manualParams.push(startDate);
+  }
+
+  if (endDate) {
+    pickingWhere += " AND DATE(pl.updated_at) <= ?";
+    pickingParams.push(endDate);
+    manualWhere += " AND DATE(mr.created_at) <= ?";
+    manualParams.push(endDate);
   }
 
   if (search) {
     const searchVal = `%${search}%`;
     pickingWhere += " AND (pl.original_invoice_id LIKE ? OR p.name LIKE ? OR pli.original_sku LIKE ?)";
-    queryParams.push(searchVal, searchVal, searchVal);
+    pickingParams.push(searchVal, searchVal, searchVal);
 
     manualWhere += " AND (mr.reference LIKE ? OR p.name LIKE ? OR p.sku LIKE ?)";
-    queryParams.push(searchVal, searchVal, searchVal);
+    manualParams.push(searchVal, searchVal, searchVal);
   }
 
   const orderDir = sortOrder === 'asc' ? 'ASC' : 'DESC';
+  const queryParams = [...pickingParams, ...manualParams];
 
   const query = `
     SELECT SQL_CALC_FOUND_ROWS * FROM (

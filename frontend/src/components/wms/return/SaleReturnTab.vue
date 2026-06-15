@@ -4,8 +4,8 @@ import { useRouter } from 'vue-router'
 import { useMagicKeys } from '@vueuse/core'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import BaseModal from '@/components/ui/BaseModal.vue'
-import BaseTabs from '@/components/ui/BaseTabs.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import FilterBar from '@/components/ui/FilterBar.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import { useReturnManager } from '@/composables/useReturnManager'
 import { formatDate } from '@/api/helpers/time'
@@ -18,8 +18,7 @@ const {
   locations,
   isLoading,
   searchQuery,
-  sourceFilter,
-  sortOrder,
+  filterState,
   pagination,
   items,
   showProcessModal,
@@ -64,16 +63,77 @@ const tabList = [
 ]
 
 const sourceOptions = [
-  { id: '', label: 'Semua Sumber' },
   { id: 'tokopedia', label: 'Tokopedia' },
   { id: 'shopee', label: 'Shopee' },
   { id: 'manual', label: 'Manual' }
 ]
 
-const sortOptionsReturn = [
-  { id: 'desc', label: 'Terbaru' },
-  { id: 'asc', label: 'Terlama' }
-]
+const returnFilters = computed(() => {
+  const baseFilters = [
+    {
+      type: 'daterange',
+      keyStart: 'startDate',
+      keyEnd: 'endDate',
+      label: 'Tanggal'
+    },
+    {
+      type: 'triselect',
+      key: 'source',
+      label: 'Sumber',
+      placeholder: 'Semua Sumber',
+      options: sourceOptions,
+      trackBy: 'id',
+      optionLabel: 'label'
+    },
+    {
+      type: 'select',
+      key: 'sortOrder',
+      label: 'Urutan',
+      placeholder: 'Urutan',
+      options: [
+        { value: 'desc', label: 'Terbaru' },
+        { value: 'asc', label: 'Terlama' }
+      ],
+      clearable: false
+    }
+  ]
+
+  if (activeTab.value === 'history') {
+    baseFilters.push({
+      type: 'select',
+      key: 'condition',
+      label: 'Kondisi',
+      placeholder: 'Semua Kondisi',
+      options: [
+        { value: '', label: 'Semua Kondisi' },
+        { value: 'GOOD', label: 'Bagus' },
+        { value: 'BAD', label: 'Rusak' }
+      ],
+      clearValue: ''
+    })
+
+    baseFilters.push({
+      type: 'select',
+      key: 'locationId',
+      label: 'Lokasi Rak',
+      placeholder: 'Semua Lokasi',
+      options: [{ value: '', label: 'Semua Lokasi' }, ...locations.value.map(l => ({ value: l.id, label: l.code }))],
+      searchable: true,
+      clearValue: ''
+    })
+  }
+
+  return baseFilters
+})
+
+function handleClearFilters() {
+  filterState.startDate = ''
+  filterState.endDate = ''
+  filterState.source = { include: [], exclude: [] }
+  filterState.condition = ''
+  filterState.locationId = ''
+  filterState.sortOrder = 'desc'
+}
 
 function goToManualPage() {
   router.push({ name: 'ManualReturn' })
@@ -117,71 +177,64 @@ watch(Slash, pressed => {
 <template>
   <div class="space-y-6 animate-fade-in text-text">
     <!-- Top Section: Header & Actions -->
-    <div class="flex flex-col gap-4 bg-background/50 p-1 rounded-xl">
-      <!-- Row 1: Tabs & Add Button -->
-      <div class="flex flex-col md:flex-row justify-between gap-4 items-center">
-        <div class="w-full md:w-auto">
-          <BaseTabs :tabs="tabList" v-model="activeTab" />
-        </div>
-        <button
-          @click="goToManualPage"
-          class="btn-primary w-full md:w-auto text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all active:scale-95"
-        >
-          <font-awesome-icon icon="fa-solid fa-plus" />
-          <span>Input Retur Manual</span>
-        </button>
-      </div>
+    <div class="p-6 pb-4">
+      <FilterBar title="Manajemen Retur" :filters="returnFilters" v-model="filterState" @clear="handleClearFilters">
 
-      <!-- Row 2: Filters & Search -->
-      <div class="grid grid-cols-1 md:grid-cols-12 gap-3 pb-2">
-        <!-- Search -->
-        <div class="md:col-span-5 relative">
-          <font-awesome-icon
-            icon="fa-solid fa-search"
-            class="absolute left-3 top-1/2 -translate-y-1/2 text-text/30 text-xs"
-          />
-          <input
-            ref="searchInputRef"
-            v-model="searchQuery"
-            type="text"
-            placeholder="Cari Invoice, SKU... (Tekan / )"
-            class="input-filter pl-9"
-          />
-        </div>
 
-        <!-- Filter Source -->
-        <div class="md:col-span-3">
-          <BaseSelect
-            v-model="sourceFilter"
-            :options="sourceOptions"
-            label="label"
-            track-by="id"
-            placeholder="Sumber"
-            :searchable="false"
-            emit-value
-          />
-        </div>
+        <template #tabs>
+          <!-- Custom basic tab styling since we removed BaseTabs -->
+          <div class="flex gap-2">
+            <button
+              v-for="tab in tabList"
+              :key="tab.value"
+              @click="activeTab = tab.value"
+              class="px-4 py-2 rounded-lg text-xs font-bold transition-colors"
+              :class="
+                activeTab === tab.value
+                  ? 'bg-primary text-secondary shadow-md'
+                  : 'bg-background hover:bg-secondary/10 text-text/60'
+              "
+            >
+              {{ tab.label }}
+            </button>
+          </div>
+        </template>
 
-        <!-- Sort Date -->
-        <div class="md:col-span-2">
-          <BaseSelect
-            v-model="sortOrder"
-            :options="sortOptionsReturn"
-            label="label"
-            track-by="id"
-            placeholder="Urutan"
-            :searchable="false"
-            emit-value
-          />
-        </div>
+        <template #search>
+          <div class="relative w-full max-w-sm">
+            <font-awesome-icon
+              icon="fa-solid fa-search"
+              class="absolute left-3 top-1/2 -translate-y-1/2 text-text/30 text-xs"
+            />
+            <input
+              ref="searchInputRef"
+              v-model="searchQuery"
+              type="text"
+              placeholder="Cari Invoice, SKU... (Tekan / )"
+              class="input-filter pl-9 w-full"
+            />
+          </div>
+        </template>
 
-        <!-- Stats / Counter -->
-        <div
-          class="md:col-span-2 flex items-center justify-end px-3 text-xs font-bold text-text/40 bg-secondary/5 rounded-lg border border-secondary/10"
-        >
-          <span>{{ pagination.total }} Data</span>
-        </div>
-      </div>
+        <template #actions>
+          <div class="flex items-center gap-2">
+            <button
+              @click="goToManualPage"
+              class="bg-accent text-secondary px-4 py-2 rounded-lg text-xs font-bold hover:bg-accent/90 shadow-lg shadow-accent/20 transition-all flex items-center gap-2"
+            >
+              <font-awesome-icon icon="fa-solid fa-plus" />
+              <span>Retur Manual</span>
+            </button>
+            
+            <!-- Stats / Counter -->
+            <div
+              class="flex items-center justify-end px-3 py-2 text-xs font-bold text-text/40 bg-secondary/5 rounded-lg border border-secondary/10"
+            >
+              <span>{{ pagination.total }} Data</span>
+            </div>
+          </div>
+        </template>
+      </FilterBar>
     </div>
 
     <!-- Table Container -->
@@ -227,10 +280,7 @@ watch(Slash, pressed => {
       </div>
 
       <!-- EMPTY STATE -->
-      <div
-        v-else-if="items.length === 0"
-        class="flex-1 flex flex-col items-center justify-center p-12 text-text/40"
-      >
+      <div v-else-if="items.length === 0" class="flex-1 flex flex-col items-center justify-center p-12 text-text/40">
         <div class="w-20 h-20 bg-secondary/10 rounded-full flex items-center justify-center mb-4">
           <font-awesome-icon icon="fa-solid fa-box-open" class="text-3xl opacity-50" />
         </div>
@@ -304,9 +354,15 @@ watch(Slash, pressed => {
             </div>
 
             <!-- Col 4.5: Lokasi & Notes (Only History) -->
-            <div v-if="activeTab === 'history'" class="col-span-12 md:col-span-2 flex flex-col items-start gap-1 mt-2 md:mt-0">
+            <div
+              v-if="activeTab === 'history'"
+              class="col-span-12 md:col-span-2 flex flex-col items-start gap-1 mt-2 md:mt-0"
+            >
               <span class="md:hidden text-[10px] font-bold text-text/40 uppercase">Lokasi:</span>
-              <div v-if="item.location_code" class="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+              <div
+                v-if="item.location_code"
+                class="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/20"
+              >
                 <font-awesome-icon icon="fa-solid fa-location-dot" class="mr-1" /> {{ item.location_code }}
               </div>
               <div v-else class="text-[10px] text-text/40 italic">-</div>
@@ -357,13 +413,9 @@ watch(Slash, pressed => {
           </div>
         </transition-group>
       </div>
-      
+
       <!-- PAGINATION COMPONENT -->
-      <BasePagination 
-        :pagination="pagination" 
-        @changePage="changePage" 
-        @update:limit="changeLimit" 
-      />
+      <BasePagination :pagination="pagination" @changePage="changePage" @update:limit="changeLimit" />
     </div>
 
     <!-- Modal Proses Split (Dual Condition) -->

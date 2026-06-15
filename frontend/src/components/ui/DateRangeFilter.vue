@@ -166,17 +166,17 @@ watch(isOpen, (val) => {
     <!-- Trigger Button -->
     <button
       @click.stop="toggleDropdown"
-      class="w-full flex items-center gap-2 px-4 py-2 bg-background border border-secondary rounded-lg hover:border-primary/50 hover:bg-secondary/5 transition-all text-sm font-medium text-text group whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-primary/50"
+      class="w-full flex items-center gap-2 px-4 h-[42px] bg-background border border-secondary rounded-lg hover:border-primary/50 hover:bg-secondary/5 transition-all text-sm font-medium text-text group focus:outline-none focus:ring-2 focus:ring-primary/50"
       :class="{ 'border-primary ring-1 ring-primary/20': isOpen || startDate }"
     >
       <font-awesome-icon
         icon="fa-solid fa-calendar"
-        class="text-text/50 group-hover:text-primary transition-colors"
+        class="text-text/50 group-hover:text-primary transition-colors shrink-0"
       />
-      <span class="whitespace-nowrap w-full">{{ displayLabel }}</span>
+      <span class="truncate w-full text-left">{{ displayLabel }}</span>
       <font-awesome-icon
         icon="fa-solid fa-chevron-down"
-        class="text-xs text-text/30 ml-1 transition-transform"
+        class="text-xs text-text/30 ml-1 transition-transform shrink-0"
         :class="{ 'rotate-180': isOpen }"
       />
     </button>

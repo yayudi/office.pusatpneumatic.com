@@ -239,7 +239,9 @@ const performBulkAction = async actionType => {
     toast(`Berhasil memproses ${ids.length} produk.`, 'success')
     selectedIds.value.clear()
     fetchProducts()
-  } catch (e) { console.error(e) } finally {
+  } catch (e) {
+    console.error(e)
+  } finally {
     isProcessingBulk.value = false
   }
 }
@@ -399,97 +401,102 @@ watch(Slash, pressed => {
       <!-- FILTER BAR COMPONENT -->
       <BaseFilterPanel>
         <template #filters>
-          <!-- Filter Tipe Produk -->
-          <div class="flex bg-background rounded-xl p-1 border border-secondary/10 shrink-0 overflow-x-auto">
-            <button
-              @click="filterType = 'all'"
-              class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2"
-              :class="
-                filterType === 'all'
-                  ? 'bg-secondary/10 text-text shadow-sm'
-                  : 'text-text/50 hover:text-text hover:bg-secondary/5'
-              "
+          <div class="flex flex-col lg:flex-row flex-wrap gap-4 items-center w-full">
+            <!-- Filter Tipe Produk -->
+            <div
+              class="flex bg-background rounded-xl p-1 border border-secondary/10 shrink-0 overflow-x-auto w-full lg:w-auto"
             >
-              <font-awesome-icon icon="fa-solid fa-layer-group" />
-              <span>Semua Tipe</span>
-            </button>
-            <button
-              @click="filterType = 'single'"
-              class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2"
-              :class="
-                filterType === 'single'
-                  ? 'bg-primary/10 text-primary shadow-sm'
-                  : 'text-text/50 hover:text-primary hover:bg-primary/5'
-              "
-            >
-              <font-awesome-icon icon="fa-solid fa-box" />
-              <span>Satuan</span>
-            </button>
-            <button
-              @click="filterType = 'package'"
-              class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2"
-              :class="
-                filterType === 'package'
-                  ? 'bg-accent/10 text-accent shadow-sm'
-                  : 'text-text/50 hover:text-accent hover:bg-accent/5'
-              "
-            >
-              <font-awesome-icon icon="fa-solid fa-boxes-stacked" />
-              <span>Paket</span>
-            </button>
-          </div>
+              <button
+                @click="filterType = 'all'"
+                class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2"
+                :class="
+                  filterType === 'all'
+                    ? 'bg-secondary/10 text-text shadow-sm'
+                    : 'text-text/50 hover:text-text hover:bg-secondary/5'
+                "
+              >
+                <font-awesome-icon icon="fa-solid fa-layer-group" />
+                <span>Semua Tipe</span>
+              </button>
+              <button
+                @click="filterType = 'single'"
+                class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2"
+                :class="
+                  filterType === 'single'
+                    ? 'bg-primary/10 text-primary shadow-sm'
+                    : 'text-text/50 hover:text-primary hover:bg-primary/5'
+                "
+              >
+                <font-awesome-icon icon="fa-solid fa-box" />
+                <span>Satuan</span>
+              </button>
+              <button
+                @click="filterType = 'package'"
+                class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2"
+                :class="
+                  filterType === 'package'
+                    ? 'bg-accent/10 text-accent shadow-sm'
+                    : 'text-text/50 hover:text-accent hover:bg-accent/5'
+                "
+              >
+                <font-awesome-icon icon="fa-solid fa-boxes-stacked" />
+                <span>Paket</span>
+              </button>
+            </div>
 
-          <!-- Filter Status -->
-          <div class="shrink-0 w-full sm:w-44">
-            <BaseSelect
-              v-model="filterStatus"
-              :options="statusOptions"
-              label="label"
-              track-by="id"
-              placeholder="Semua Status"
-              :searchable="false"
-              emit-value
-              clearable
-              clear-value="all"
-            />
-          </div>
-
-          <!-- Filter Kategori -->
-          <div class="shrink-0 w-full sm:w-48">
-            <TriStateSelect
-              v-model="filterCategory"
-              :options="categoryOptions"
-              label="label"
-              track="id"
-              placeholder="Semua Kategori"
-            />
-          </div>
-
-          <!-- Search Group -->
-          <div class="flex flex-col sm:flex-row flex-1 gap-2 lg:ml-auto">
-            <div class="shrink-0 w-full sm:w-28">
+            <!-- Filter Status -->
+            <div class="shrink-0 w-full sm:w-44">
               <BaseSelect
-                v-model="searchBy"
-                :options="searchByOptions"
+                v-model="filterStatus"
+                :options="statusOptions"
                 label="label"
                 track-by="id"
-                placeholder="Cari"
+                placeholder="Semua Status"
                 :searchable="false"
                 emit-value
+                clearable
+                clear-value="all"
               />
             </div>
 
-            <div class="relative flex-1">
-              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-text/40">
-                <font-awesome-icon icon="fa-solid fa-search" />
-              </span>
-              <input
-                id="global-search-input"
-                v-model="searchQuery"
-                type="text"
-                :placeholder="`Cari ${searchBy === 'sku' ? 'SKU' : 'Nama'}...`"
-                class="w-full pl-9 pr-4 py-2.5 bg-background border border-secondary/20 rounded-xl focus:outline-none focus:border-primary text-text text-sm placeholder-text/30 transition-all shadow-sm"
+            <!-- Filter Kategori -->
+            <div class="shrink-0 w-full sm:w-48">
+              <TriStateSelect
+                v-model="filterCategory"
+                :options="categoryOptions"
+                label="label"
+                track="id"
+                placeholder="Semua Kategori"
+                :searchable="true"
               />
+            </div>
+
+            <!-- Search Group -->
+            <div class="flex flex-col sm:flex-row flex-1 gap-2 w-full lg:w-auto lg:ml-auto">
+              <div class="shrink-0 w-full sm:w-28">
+                <BaseSelect
+                  v-model="searchBy"
+                  :options="searchByOptions"
+                  label="label"
+                  track-by="id"
+                  placeholder="Cari"
+                  :searchable="false"
+                  emit-value
+                />
+              </div>
+
+              <div class="relative flex-1">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-text/40">
+                  <font-awesome-icon icon="fa-solid fa-search" />
+                </span>
+                <input
+                  id="global-search-input"
+                  v-model="searchQuery"
+                  type="text"
+                  :placeholder="`Cari ${searchBy === 'sku' ? 'SKU' : 'Nama'}...`"
+                  class="w-full pl-9 pr-4 py-2.5 bg-background border border-secondary/20 rounded-xl focus:outline-none focus:border-primary text-text text-sm placeholder-text/30 transition-all shadow-sm"
+                />
+              </div>
             </div>
           </div>
         </template>

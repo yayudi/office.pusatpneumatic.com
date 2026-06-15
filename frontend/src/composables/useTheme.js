@@ -36,39 +36,69 @@ const themeColors = ref({
 let observer = null
 let instanceCount = 0
 
+const isThemeChanging = ref(false)
+
+let updateTimer = null
 const updateThemeColors = () => {
   if (typeof window === 'undefined') return
-  const style = getComputedStyle(document.documentElement)
-  const getHex = (varName) => {
-    let val = style.getPropertyValue(varName).trim()
-    if (!val) return '#888888'
-    const parts = val.replace(/%/g, '').split(/\s+/)
-    if (parts.length < 3) return '#888888'
+  
+  if (updateTimer) clearTimeout(updateTimer)
+  updateTimer = setTimeout(() => {
+    const style = getComputedStyle(document.documentElement)
+    const getHex = (varName) => {
+      let val = style.getPropertyValue(varName).trim()
+      if (!val) return '#888888'
+      const parts = val.replace(/%/g, '').split(/\s+/)
+      if (parts.length < 3) return '#888888'
 
-    let h = parseFloat(parts[0])
-    let s = parseFloat(parts[1]) / 100
-    let l = parseFloat(parts[2]) / 100
+      let h = parseFloat(parts[0])
+      let s = parseFloat(parts[1]) / 100
+      let l = parseFloat(parts[2]) / 100
 
-    let a = s * Math.min(l, 1 - l)
-    let f = (n, k = (n + h / 30) % 12) => l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)
+      let a = s * Math.min(l, 1 - l)
+      let f = (n, k = (n + h / 30) % 12) => l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)
 
-    const toHex = x => {
-      const hex = Math.round(x * 255).toString(16)
-      return hex.length === 1 ? '0' + hex : hex
+      const toHex = x => {
+        const hex = Math.round(x * 255).toString(16)
+        return hex.length === 1 ? '0' + hex : hex
+      }
+      return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`
     }
-    return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`
-  }
 
-  themeColors.value = {
-    primary: getHex('--color-primary'),
-    secondary: getHex('--color-secondary'),
-    accent: getHex('--color-accent'),
-    success: getHex('--color-success'),
-    warning: getHex('--color-warning'),
-    danger: getHex('--color-danger'),
-    text: getHex('--color-text'),
-    background: getHex('--color-background')
-  }
+    const newColors = {
+      primary: getHex('--color-primary'),
+      secondary: getHex('--color-secondary'),
+      accent: getHex('--color-accent'),
+      success: getHex('--color-success'),
+      warning: getHex('--color-warning'),
+      danger: getHex('--color-danger'),
+      text: getHex('--color-text'),
+      background: getHex('--color-background')
+    }
+
+    let changed = false
+    for (const key in newColors) {
+      if (newColors[key] !== themeColors.value[key]) {
+        changed = true
+        break
+      }
+    }
+
+    if (changed) {
+      // Unmount charts
+      isThemeChanging.value = true
+      
+      setTimeout(() => {
+        // Update options while charts are unmounted
+        themeColors.value = newColors
+        
+        // Remount charts
+        setTimeout(() => {
+          isThemeChanging.value = false
+        }, 50)
+      }, 50)
+    }
+  }, 100) // Debounce delay
 }
 
 const getBrightness = (hex) => {
@@ -119,6 +149,7 @@ export function useTheme() {
     applyTheme,
     initTheme,
     themeColors,
-    isDarkTheme
+    isDarkTheme,
+    isThemeChanging
   }
 }

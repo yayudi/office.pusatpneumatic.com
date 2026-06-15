@@ -25,10 +25,30 @@ const buildFilterClause = (filters = {}) => {
   }
 
   // Link Status Filter
-  if (filters.linkStatus === 'linked') {
-    conditions.push(`EXISTS (SELECT 1 FROM product_images pi WHERE pi.media_id = m.id)`);
-  } else if (filters.linkStatus === 'orphaned') {
-    conditions.push(`NOT EXISTS (SELECT 1 FROM product_images pi WHERE pi.media_id = m.id)`);
+  if (filters.linkStatus) {
+    if (typeof filters.linkStatus === 'object') {
+      const inc = filters.linkStatus.include || [];
+      const exc = filters.linkStatus.exclude || [];
+      if (inc.length > 0) {
+        if (inc.includes('linked') && !inc.includes('orphaned')) {
+          conditions.push(`EXISTS (SELECT 1 FROM product_images pi WHERE pi.media_id = m.id)`);
+        } else if (inc.includes('orphaned') && !inc.includes('linked')) {
+          conditions.push(`NOT EXISTS (SELECT 1 FROM product_images pi WHERE pi.media_id = m.id)`);
+        }
+      } else if (exc.length > 0) {
+        if (exc.includes('linked') && !exc.includes('orphaned')) {
+          conditions.push(`NOT EXISTS (SELECT 1 FROM product_images pi WHERE pi.media_id = m.id)`);
+        } else if (exc.includes('orphaned') && !exc.includes('linked')) {
+          conditions.push(`EXISTS (SELECT 1 FROM product_images pi WHERE pi.media_id = m.id)`);
+        }
+      }
+    } else {
+      if (filters.linkStatus === 'linked') {
+        conditions.push(`EXISTS (SELECT 1 FROM product_images pi WHERE pi.media_id = m.id)`);
+      } else if (filters.linkStatus === 'orphaned') {
+        conditions.push(`NOT EXISTS (SELECT 1 FROM product_images pi WHERE pi.media_id = m.id)`);
+      }
+    }
   }
 
   const clause = conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : '';

@@ -1,21 +1,17 @@
 <script setup>
 import { ref, onMounted, computed, defineAsyncComponent } from 'vue'
-import { useToast } from '@/composables/useToast.js'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
+import BaseTabs from '@/components/ui/BaseTabs.vue'
 import { useTheme } from '@/composables/useTheme.js'
 import { getInventoryValueStatistics } from '@/api/helpers/statistics.js'
-import SearchInput from '@/components/ui/SearchInput.vue'
-import { useMasterDataStore } from '@/stores/masterData'
-import BaseSelect from '@/components/ui/BaseSelect.vue'
-import TriStateSelect from '@/components/ui/TriStateSelect.vue'
-import BaseTabs from '@/components/ui/BaseTabs.vue'
 const VueApexCharts = defineAsyncComponent(() => import('vue3-apexcharts'))
 import { formatCurrency, formatNumber } from '@/utils/formatters.js'
 import { useStatsTable } from '@/composables/useStatsTable.js'
+import { useMasterDataStore } from '@/stores/masterData'
 import StatsChartCard from './shared/StatsChartCard.vue'
-import StatsFilterBar from './shared/StatsFilterBar.vue'
-
+import FilterBar from '@/components/ui/FilterBar.vue'
 const masterData = useMasterDataStore()
-const { toast } = useToast()
+// const { toast } = useToast()
 
 const isDataLoading = ref(false)
 const statisticsList = ref([])
@@ -77,7 +73,65 @@ const chartMaxCapOptions = [
   { id: 50, label: 'Top 50 Kontributor' }
 ]
 
-const { themeColors, isDarkTheme } = useTheme()
+const mainFilters = computed(() => [
+  {
+    type: 'text',
+    key: 'searchQuery',
+    placeholder: 'Cari SKU atau Nama Produk...',
+    class: 'md:col-span-4 lg:col-span-4'
+  }
+])
+
+const advancedFilters = computed(() => [
+  {
+    type: 'triselect',
+    key: 'building',
+    label: 'Lokasi / Gedung',
+    options: reportFilters.value.allBuildings,
+    placeholder: 'Semua Gedung',
+    searchable: true
+  },
+  {
+    type: 'triselect',
+    key: 'purpose',
+    label: 'Tujuan Rak',
+    options: purposeOptions.value,
+    optionLabel: 'label',
+    trackBy: 'id',
+    placeholder: 'Semua Tujuan'
+  },
+  {
+    type: 'triselect',
+    key: 'stockStatus',
+    label: 'Status Stok',
+    options: stockStatusOptions,
+    optionLabel: 'label',
+    trackBy: 'id',
+    placeholder: 'Semua Status'
+  },
+  {
+    type: 'select',
+    key: 'isPackage',
+    label: 'Tipe Barang',
+    options: isPackageOptions,
+    placeholder: 'Semua Tipe',
+    clearable: true,
+    clearValue: '',
+    searchable: false
+  },
+  {
+    type: 'triselect',
+    key: 'categoryId',
+    label: 'Kategori Produk',
+    options: reportFilters.value.allCategories,
+    optionLabel: 'label',
+    trackBy: 'id',
+    placeholder: 'Semua Kategori',
+    searchable: true
+  }
+])
+
+const { themeColors, isDarkTheme, isThemeChanging } = useTheme()
 
 onMounted(async () => {
   try {
@@ -198,84 +252,25 @@ const chartTopAssetProportionOptions = computed(() => {
     </div>
 
     <!-- Filter Controls -->
-    <StatsFilterBar
-      :loading="isDataLoading"
-      @apply="applyFilters"
-      :hasActiveAdvancedFilters="
-        filterValues.building.include.length > 0 ||
-        filterValues.building.exclude.length > 0 ||
-        filterValues.categoryId.include.length > 0 ||
-        filterValues.categoryId.exclude.length > 0 ||
-        filterValues.stockStatus.include.length > 0 ||
-        filterValues.stockStatus.exclude.length > 0 ||
-        filterValues.purpose.include.length > 0 ||
-        filterValues.purpose.exclude.length > 0 ||
-        filterValues.isPackage !== ''
+    <FilterBar
+      v-model="filterValues"
+      :filters="mainFilters"
+      :advancedFilters="advancedFilters"
+      @change="applyFilters"
+      @clear="
+        () => {
+          filterValues = {
+            searchQuery: '',
+            stockStatus: { include: [], exclude: [] },
+            building: { include: [], exclude: [] },
+            purpose: { include: [], exclude: [] },
+            isPackage: '',
+            categoryId: { include: [], exclude: [] }
+          }
+          applyFilters()
+        }
       "
-    >
-      <template #main>
-        <div class="flex-1 w-full sm:w-auto min-w-[300px]">
-          <SearchInput v-model="filterValues.searchQuery" placeholder="Cari SKU atau Nama Produk..." />
-        </div>
-      </template>
-
-      <template #advanced>
-        <div>
-          <label class="block text-xs font-semibold text-text/60 mb-2">Lokasi / Gedung</label>
-          <TriStateSelect
-            v-model="filterValues.building"
-            :options="reportFilters.allBuildings"
-            placeholder="Semua Gedung"
-          />
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-text/60 mb-2">Tujuan Rak</label>
-          <TriStateSelect
-            v-model="filterValues.purpose"
-            :options="purposeOptions"
-            label="label"
-            track="id"
-            placeholder="Semua Tujuan"
-          />
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-text/60 mb-2">Status Stok</label>
-          <TriStateSelect
-            v-model="filterValues.stockStatus"
-            :options="stockStatusOptions"
-            label="label"
-            track="id"
-            placeholder="Semua Status"
-          />
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-text/60 mb-2">Tipe Barang</label>
-          <BaseSelect
-            v-model="filterValues.isPackage"
-            :options="isPackageOptions"
-            emitValue
-            clearable
-            clearValue=""
-            :searchable="false"
-            placeholder="Semua Tipe"
-          />
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-text/60 mb-2">Kategori Produk</label>
-          <TriStateSelect
-            v-model="filterValues.categoryId"
-            :options="reportFilters.allCategories"
-            label="label"
-            track="id"
-            placeholder="Semua Kategori"
-          />
-        </div>
-      </template>
-    </StatsFilterBar>
+    />
 
     <!-- Main Content Layout -->
     <div class="flex flex-col lg:flex-row gap-6 items-start">
@@ -458,6 +453,7 @@ const chartTopAssetProportionOptions = computed(() => {
           <StatsChartCard title="Porsi Kekayaan Top 5 Produk vs Lainnya">
             <div class="flex-1 flex items-center justify-center -ml-4">
               <VueApexCharts
+                v-if="!isThemeChanging"
                 width="110%"
                 height="320"
                 type="donut"
@@ -473,6 +469,7 @@ const chartTopAssetProportionOptions = computed(() => {
             class="md:col-span-2"
           >
             <VueApexCharts
+              v-if="!isThemeChanging"
               width="100%"
               height="500"
               type="bar"

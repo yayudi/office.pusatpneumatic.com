@@ -309,29 +309,31 @@ watch(Slash, pressed => {
         <!-- FILTER BAR SIMPLIFIED -->
         <BaseFilterPanel class="mb-4">
           <template #search>
-            <div class="relative flex-1 w-full">
-              <input
-                id="global-search-input"
-                v-model="searchQuery"
-                type="text"
-                placeholder="Cari nama paket atau SKU..."
-                class="w-full h-[40px] pl-10 pr-4 py-2 bg-background border border-secondary rounded-lg focus:outline-none focus:border-primary text-sm shadow-sm"
-                :class="isMobile ? 'mb-4 mr-4' : 'm-0'"
-              />
-              <font-awesome-icon icon="fa-solid fa-search" class="absolute left-3 top-2.5 text-text/40" />
-            </div>
-            <div class="flex items-center gap-2 w-full sm:w-auto">
-              <label class="text-xs font-bold text-text/60 whitespace-nowrap">Status:</label>
-              <BaseSelect
-                v-model="filterStatus"
-                :options="statusOptions"
-                track-by="value"
-                emit-value
-                clearable
-                clearValue="all"
-                :searchable="false"
-                class="w-full sm:w-[150px]"
-              />
+            <div class="flex flex-col sm:flex-row items-center gap-4 w-full">
+              <div class="relative flex-1 w-full">
+                <input
+                  id="global-search-input"
+                  v-model="searchQuery"
+                  type="text"
+                  placeholder="Cari nama paket atau SKU..."
+                  class="w-full h-[40px] pl-10 pr-4 py-2 bg-background border border-secondary rounded-lg focus:outline-none focus:border-primary text-sm shadow-sm"
+                  :class="isMobile ? 'mb-4 mr-4' : 'm-0'"
+                />
+                <font-awesome-icon icon="fa-solid fa-search" class="absolute left-3 top-2.5 text-text/40" />
+              </div>
+              <div class="flex items-center gap-2 w-full sm:w-auto">
+                <label class="text-xs font-bold text-text/60 whitespace-nowrap">Status:</label>
+                <BaseSelect
+                  v-model="filterStatus"
+                  :options="statusOptions"
+                  track-by="value"
+                  emit-value
+                  clearable
+                  clearValue="all"
+                  :searchable="false"
+                  class="w-full sm:w-[150px]"
+                />
+              </div>
             </div>
           </template>
         </BaseFilterPanel>

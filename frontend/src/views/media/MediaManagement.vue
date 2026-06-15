@@ -11,7 +11,7 @@ import MediaLightbox from '@/components/common/MediaLightbox.vue'
 import LinkProductModal from './LinkProductModal.vue'
 const ImageCropperModal = defineAsyncComponent(() => import('./ImageCropperModal.vue'))
 import BulkEditTagsModal from './BulkEditTagsModal.vue'
-import BaseSelect from '@/components/ui/BaseSelect.vue'
+import TriStateSelect from '@/components/ui/TriStateSelect.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import { autoCropCenter } from '@/utils/imageCropper.js'
@@ -26,7 +26,6 @@ import { formatBytes } from '@/utils/formatBytes.js'
 import { formatTags } from '@/utils/formatters.js'
 
 const linkStatusOptions = [
-  { id: 'all', label: 'Semua Media' },
   { id: 'linked', label: 'Sudah Tertaut' },
   { id: 'orphaned', label: 'Belum Tertaut' }
 ]
@@ -45,7 +44,7 @@ const isLoading = ref(false)
 const uploaderInput = ref(null)
 const isUploading = ref(false)
 const globalSearchStr = ref('')
-const linkStatusFilter = ref('all')
+const linkStatusFilter = ref({ include: [], exclude: [] })
 const isUsageTooltipVisible = ref(false)
 const usageTooltipTarget = ref(null)
 const hoveredMediaItem = ref(null)
@@ -220,7 +219,9 @@ const fetchMedia = async (page = 1, silent = false) => {
   try {
     const params = new URLSearchParams({ page, limit: pagination.value.limit })
     if (globalSearchStr.value.trim()) params.append('search', globalSearchStr.value.trim())
-    if (linkStatusFilter.value !== 'all') params.append('linkStatus', linkStatusFilter.value)
+    if (linkStatusFilter.value.include.length > 0 || linkStatusFilter.value.exclude.length > 0) {
+      params.append('linkStatus', JSON.stringify(linkStatusFilter.value))
+    }
 
     const res = await apiClient.get(`/media?${params.toString()}`)
     if (res.data.success) {
@@ -638,14 +639,12 @@ onUnmounted(() => {
               class="absolute right-3 top-1/2 -translate-y-1/2 text-text/40 pointer-events-none"
             />
           </div>
-          <BaseSelect
+          <TriStateSelect
             v-model="linkStatusFilter"
             :options="linkStatusOptions"
             label="label"
             track-by="id"
             placeholder="Filter Media"
-            :searchable="false"
-            emit-value
           />
           <input
             type="file"

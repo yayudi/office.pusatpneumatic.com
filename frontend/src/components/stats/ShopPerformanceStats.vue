@@ -1,19 +1,15 @@
 <script setup>
 import { ref, onMounted, computed, defineAsyncComponent } from 'vue'
 import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns'
-import { useToast } from '@/composables/useToast.js'
 import { useTheme } from '@/composables/useTheme.js'
-import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
-import BaseSelect from '@/components/ui/BaseSelect.vue'
-import TriStateSelect from '@/components/ui/TriStateSelect.vue'
-import StatsFilterBar from './shared/StatsFilterBar.vue'
+import FilterBar from '@/components/ui/FilterBar.vue'
 import { fetchShopPerformance } from '@/api/helpers/stats.js'
 import api from '@/api/axios'
 const VueApexCharts = defineAsyncComponent(() => import('vue3-apexcharts'))
 import { formatNumber, formatCurrency } from '@/utils/formatters.js'
 
-const { toast } = useToast()
-const { themeColors, isDarkTheme } = useTheme()
+// const { toast } = useToast()
+const { themeColors, isDarkTheme, isThemeChanging } = useTheme()
 const isDataLoading = ref(false)
 const activeTab = ref('summary')
 
@@ -111,6 +107,27 @@ const getApiPayload = () => {
     shopName: filterValues.value.shopName,
   }
 }
+
+const mainFilters = computed(() => {
+  const filters = [
+    { type: 'select', key: 'reportType', label: 'Tipe Laporan', options: reportTypeOptions, clearable: false, searchable: false, placeholder: 'Pilih Tipe' }
+  ]
+
+  if (filterValues.value.reportType === 'annual') {
+    filters.push({ type: 'select', key: 'year', label: 'Tahun', options: availableYears.value.map(y => ({id: y, label: y})), clearable: false, searchable: false })
+  } else if (filterValues.value.reportType === 'monthly') {
+    filters.push({ type: 'select', key: 'selectedMonth', label: 'Bulan', options: availableMonths, trackBy: 'value', clearable: false, searchable: false, placeholder: 'Pilih Bulan' })
+    filters.push({ type: 'select', key: 'year', label: 'Tahun', options: availableYears.value.map(y => ({id: y, label: y})), clearable: false, searchable: false })
+  } else {
+    filters.push({ type: 'daterange', keyStart: 'startDate', keyEnd: 'endDate', label: 'Rentang Waktu' })
+  }
+  return filters
+})
+
+const advancedFilters = computed(() => [
+  { type: 'triselect', key: 'source', label: 'Saluran Marketplace', options: sourceOptions, optionLabel: 'label', trackBy: 'id', placeholder: 'Semua Saluran' },
+  { type: 'triselect', key: 'shopName', label: 'Nama Toko / Sales', options: shopOptions.value, optionLabel: 'label', trackBy: 'id', placeholder: 'Semua Toko / Sales' }
+])
 
 const fetchStatistics = async () => {
   const payload = getApiPayload()
@@ -317,84 +334,24 @@ const periodLabel = computed(() => {
     </div>
 
     <!-- Filter Controls -->
-    <StatsFilterBar
-      :loading="isDataLoading"
-      @apply="applyFilters"
-      :hasActiveAdvancedFilters="
-        filterValues.source.include.length > 0 || filterValues.source.exclude.length > 0 ||
-        filterValues.shopName.include.length > 0 || filterValues.shopName.exclude.length > 0
-      "
-    >
-      <template #main>
-        <div class="flex-1 min-w-[200px]">
-          <label class="block text-xs font-semibold text-text/60 mb-2">Tipe Laporan</label>
-          <BaseSelect
-            v-model="filterValues.reportType"
-            :options="reportTypeOptions"
-            emitValue
-            :searchable="false"
-          />
-        </div>
-        <div class="flex-[2] min-w-[300px]">
-          <label class="block text-xs font-semibold text-text/60 mb-2">Waktu Spesifik</label>
-          <div v-if="filterValues.reportType === 'annual'">
-            <BaseSelect
-              v-model="filterValues.year"
-              :options="availableYears"
-              emitValue
-              :searchable="false"
-            />
-          </div>
-          <div v-else-if="filterValues.reportType === 'monthly'" class="flex gap-2">
-            <BaseSelect
-              v-model="filterValues.selectedMonth"
-              :options="availableMonths"
-              track-by="value"
-              emitValue
-              :searchable="false"
-              class="w-1/2"
-            />
-            <BaseSelect
-              v-model="filterValues.year"
-              :options="availableYears"
-              emitValue
-              :searchable="false"
-              class="w-1/2"
-            />
-          </div>
-          <div v-else>
-            <DateRangeFilter
-              v-model:startDate="filterValues.startDate"
-              v-model:endDate="filterValues.endDate"
-              align="left"
-            />
-          </div>
-        </div>
-      </template>
-
-      <template #advanced>
-        <div>
-          <label class="block text-xs font-semibold text-text/60 mb-2">Saluran Marketplace</label>
-          <TriStateSelect
-            v-model="filterValues.source"
-            :options="sourceOptions"
-            label="label"
-            track="id"
-            placeholder="Semua Saluran"
-          />
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-text/60 mb-2">Nama Toko / Sales</label>
-          <TriStateSelect
-            v-model="filterValues.shopName"
-            :options="shopOptions"
-            label="label"
-            track="id"
-            placeholder="Semua Toko / Sales"
-          />
-        </div>
-      </template>
-    </StatsFilterBar>
+    <FilterBar
+      v-model="filterValues"
+      :filters="mainFilters"
+      :advancedFilters="advancedFilters"
+      @change="applyFilters"
+      @clear="() => {
+        filterValues = {
+          reportType: 'monthly',
+          year: new Date().getFullYear(),
+          selectedMonth: ('0' + (new Date().getMonth() + 1)).slice(-2),
+          startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+          endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+          source: { include: [], exclude: [] },
+          shopName: { include: [], exclude: [] },
+        }
+        applyFilters()
+      }"
+    />
 
     <!-- Tabs -->
     <div class="flex gap-1 bg-secondary/10 p-1 rounded-xl overflow-x-auto">
@@ -466,7 +423,7 @@ const periodLabel = computed(() => {
           <p class="text-xs md:text-sm text-text/50 mb-6">Pangsa omset per toko.</p>
           <div class="w-full flex justify-center">
             <VueApexCharts
-              :key="isDarkTheme ? 'dark' : 'light'"
+              v-if="!isThemeChanging"
               width="100%"
               :height="Math.max(350, summaryData.length * 40 + 200)"
               type="pie"
@@ -566,7 +523,7 @@ const periodLabel = computed(() => {
         <p class="text-xs text-text/50 mb-6">
           Pergerakan omset dan kuantitas terjual dari hari ke hari.
         </p>
-        <VueApexCharts height="380" type="line" :options="trendOptions" :series="trendSeries" />
+        <VueApexCharts v-if="!isThemeChanging" height="380" type="line" :options="trendOptions" :series="trendSeries" />
       </div>
     </template>
 
@@ -813,6 +770,7 @@ const periodLabel = computed(() => {
             {{ periodLabel.current }} vs {{ periodLabel.previous }}
           </p>
           <VueApexCharts
+            v-if="!isThemeChanging"
             height="350"
             type="bar"
             :options="compBarOptions"
