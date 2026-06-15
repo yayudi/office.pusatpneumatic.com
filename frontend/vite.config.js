@@ -140,6 +140,7 @@ export default defineConfig(({ command }) => ({
             if (id.includes('qrcode')) return 'qrcode'
             if (id.includes('@tanstack')) return 'tanstack'
             if (id.includes('jsbarcode')) return 'jsbarcode'
+            if (id.includes('nprogress')) return 'nprogress'
             return 'vendor'
           }
         },

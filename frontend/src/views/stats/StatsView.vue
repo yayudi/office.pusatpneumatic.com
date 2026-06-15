@@ -8,7 +8,7 @@ import SearchInput from '@/components/ui/SearchInput.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import TriStateSelect from '@/components/ui/TriStateSelect.vue'
 import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
-import TableSkeleton from '@/components/ui/TableSkeleton.vue'
+import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 import { formatNumber, formatCurrency } from '@/utils/formatters.js'
 import { useDownloadStore } from '@/stores/downloadStore.js'
 
@@ -524,7 +524,11 @@ function formatJobType(type) {
                         </thead>
                         <TransitionGroup tag="tbody" name="list" class="divide-y divide-secondary/5 relative">
                           <template v-if="isHistoryLoading && jobHistory.length === 0">
-                            <TableSkeleton v-for="n in 3" :key="`skeleton-${n}`" />
+                            <tr v-for="n in 3" :key="`skeleton-${n}`" class="border-b border-secondary/20 animate-pulse">
+                              <td v-for="i in 5" :key="i" class="px-6 py-4">
+                                <BaseSkeleton :shape="i === 5 ? 'rect' : 'text'" :className="i === 1 ? 'w-8 h-4 mx-auto' : i === 5 ? 'w-16 h-6 mx-auto rounded-md' : 'w-full h-4'" />
+                              </td>
+                            </tr>
                           </template>
 
                           <tr v-else-if="jobHistory.length === 0" key="empty">
@@ -709,7 +713,6 @@ function formatJobType(type) {
 }
 
 .list-leave-active {
-  position: absolute;
-  width: 100%;
+  transition: all 0.3s ease;
 }
 </style>

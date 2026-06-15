@@ -5,7 +5,7 @@ import { useSummary } from '@/composables/useSummary.js'
 import { formatJamMenit } from '@/api/helpers/time.js'
 // ... import removed
 import SummaryDetailModal from './SummaryDetailModal.vue'
-import TableSkeleton from '@/components/ui/TableSkeleton.vue'
+import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 import { useAuthStore } from '@/stores/auth.js'
 
 const props = defineProps({
@@ -93,7 +93,11 @@ function closeModal() {
         </thead>
         <TransitionGroup tag="tbody" name="list" class="block md:table-row-group divide-y divide-secondary/5 relative">
           <template v-if="loading">
-            <TableSkeleton v-for="n in 5" :key="`skeleton-${n}`" />
+            <tr v-for="n in 5" :key="`skeleton-${n}`" class="border-b border-secondary/20 animate-pulse">
+              <td v-for="i in 5" :key="i" class="px-6 py-4">
+                <BaseSkeleton :shape="i === 5 ? 'rect' : 'text'" :className="i === 1 ? 'w-8 h-4 mx-auto' : i === 5 ? 'w-16 h-6 mx-auto rounded-md' : 'w-full h-4'" />
+              </td>
+            </tr>
           </template>
 
           <tr v-else-if="!summaries.length" key="empty" class="block md:table-row">
@@ -175,7 +179,6 @@ function closeModal() {
 }
 
 .list-leave-active {
-  position: absolute;
-  width: 100%;
+  transition: all 0.3s ease;
 }
 </style>

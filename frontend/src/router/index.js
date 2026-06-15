@@ -1,6 +1,10 @@
 // frontend\src\router\index.js
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import NProgress from 'nprogress'
+import 'nprogress/nprogress.css'
+
+NProgress.configure({ showSpinner: false }) // Kita pakai Spinner terpisah
 
 const routes = [
   // --- AUTH ROUTES ---
@@ -219,6 +223,7 @@ const router = createRouter({
 
 // --- NAVIGATION GUARD ---
 router.beforeEach(async (to, from, next) => {
+  NProgress.start()
   const auth = useAuthStore()
 
   // Session Restoration Logic (Critical)
@@ -260,6 +265,10 @@ router.beforeEach(async (to, from, next) => {
 
   // Proceed
   next()
+})
+
+router.afterEach(() => {
+  NProgress.done()
 })
 
 export default router

@@ -16,7 +16,7 @@ import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import TriStateSelect from '@/components/ui/TriStateSelect.vue'
 import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
-import TableSkeleton from '@/components/ui/TableSkeleton.vue'
+import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 import { useMobile } from '@/composables/useMobile.js'
 
 const { isMobile } = useMobile()
@@ -271,9 +271,14 @@ onMounted(fetchData)
           class="relative"
           :class="isMobile ? 'block' : 'divide-y divide-secondary/5'"
         >
-          <!-- Loading State -->
           <template v-if="loading">
-            <TableSkeleton v-for="n in 5" :key="`skeleton-${n}`" />
+            <tr v-for="n in 5" :key="`skeleton-${n}`" class="border-b border-secondary/20 animate-pulse">
+              <td class="px-6 py-4"><BaseSkeleton shape="text" className="w-1/2 h-4" /></td>
+              <td class="px-6 py-4"><BaseSkeleton shape="text" className="w-3/4 h-4" /></td>
+              <td class="px-6 py-4"><BaseSkeleton shape="rect" className="w-16 h-6 rounded-md" /></td>
+              <td class="px-6 py-4"><BaseSkeleton shape="text" className="w-1/2 h-4" /></td>
+              <td class="px-6 py-4 text-center"><BaseSkeleton shape="rect" className="w-20 h-6 mx-auto rounded-md" /></td>
+            </tr>
           </template>
 
           <tr v-else-if="filteredUsers.length === 0" key="empty">
@@ -470,7 +475,6 @@ onMounted(fetchData)
 }
 
 .list-leave-active {
-  position: absolute;
-  width: 100%;
+  transition: all 0.3s ease;
 }
 </style>

@@ -1,6 +1,7 @@
 // frontend\src\api\axios.js
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
+import { useLoadingStore } from '@/stores/loadingStore'
 
 // Buat instance axios
 const instance = axios.create({
@@ -19,7 +20,10 @@ instance.interceptors.request.use(
   config => {
     // Lebih baik ambil dari store agar reaktif, tapi fallback ke localStorage aman
     const authStore = useAuthStore()
+    const loadingStore = useLoadingStore()
     const token = authStore.token || localStorage.getItem('token')
+
+    loadingStore.startLoading()
 
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`
@@ -35,6 +39,8 @@ instance.interceptors.request.use(
     return config
   },
   error => {
+    const loadingStore = useLoadingStore()
+    loadingStore.stopLoading()
     return Promise.reject(error)
   }
 )
@@ -44,9 +50,16 @@ instance.interceptors.request.use(
  * Menangkap error global, khususnya saat token kadaluwarsa (401/403).
  */
 instance.interceptors.response.use(
-  response => response,
+  response => {
+    const loadingStore = useLoadingStore()
+    loadingStore.stopLoading()
+    return response
+  },
   async error => {
     const authStore = useAuthStore() // Pastikan import store sudah benar di sini
+    const loadingStore = useLoadingStore()
+    
+    loadingStore.stopLoading()
 
     if (error.response) {
       const { status, data } = error.response

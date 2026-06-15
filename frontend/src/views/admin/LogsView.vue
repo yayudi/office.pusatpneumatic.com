@@ -7,7 +7,7 @@ import axios from '@/api/axios.js'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
-import TableSkeleton from '@/components/ui/TableSkeleton.vue'
+import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import TriStateSelect from '@/components/ui/TriStateSelect.vue'
 import { computed } from 'vue'
@@ -196,7 +196,11 @@ onMounted(() => {
           </thead>
           <tbody class="relative" :class="isMobile ? 'block' : 'divide-y divide-secondary/5'">
             <template v-if="isLoading">
-              <TableSkeleton v-for="n in 5" :key="`skeleton-${n}`" />
+              <tr v-for="n in 5" :key="`skeleton-${n}`" class="border-b border-secondary/20 animate-pulse">
+                <td v-for="i in 5" :key="i" class="px-6 py-4">
+                  <BaseSkeleton :shape="i === 5 ? 'rect' : 'text'" :className="i === 1 ? 'w-8 h-4 mx-auto' : i === 5 ? 'w-16 h-6 mx-auto rounded-md' : 'w-full h-4'" />
+                </td>
+              </tr>
             </template>
 
             <tr v-else-if="logs.length === 0" key="empty">

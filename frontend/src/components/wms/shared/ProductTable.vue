@@ -2,7 +2,7 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth.js'
-import TableSkeleton from '@/components/ui/TableSkeleton.vue'
+import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 
 import { formatCurrency } from '@/utils/formatters.js'
 import { fetchProductById } from '@/api/helpers/products.js'
@@ -310,7 +310,11 @@ onUnmounted(() => {
         :class="isMobile ? 'bg-secondary/35' : 'bg-background'"
       >
         <template v-if="loading">
-          <TableSkeleton v-for="n in 10" :key="`skeleton-${n}`" />
+          <tr v-for="n in 10" :key="`skeleton-${n}`" class="border-b border-secondary/20 animate-pulse">
+            <td v-for="i in 8" :key="i" class="px-6 py-4">
+              <BaseSkeleton :shape="i === 8 ? 'rect' : 'text'" :className="i === 1 ? 'w-8 h-4 mx-auto' : i === 8 ? 'w-16 h-6 mx-auto rounded-md' : 'w-full h-4'" />
+            </td>
+          </tr>
         </template>
 
         <tr v-else-if="!products.length" key="empty">
@@ -681,8 +685,7 @@ onUnmounted(() => {
 }
 
 .list-leave-active {
-  position: absolute;
-  width: 100%;
+  transition: all 0.3s ease;
 }
 
 .animate-scale-in {

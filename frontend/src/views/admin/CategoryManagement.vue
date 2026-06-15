@@ -8,7 +8,7 @@ import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import axios from '@/api/axios.js'
 import BaseModal from '@/components/ui/BaseModal.vue'
-import TableSkeleton from '@/components/ui/TableSkeleton.vue'
+import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 import { useMobile } from '@/composables/useMobile.js'
 
 const { isMobile } = useMobile()
@@ -22,7 +22,9 @@ const isEditing = ref(false)
 const form = ref({ id: null, name: '' })
 
 async function loadCategories() {
-  loading.value = true
+  if (categories.value.length === 0) {
+    loading.value = true
+  }
   try {
     const { data } = await axios.get('/categories')
     if (data.success) {
@@ -139,7 +141,11 @@ watch(Alt_S, pressed => {
       >
         <!-- Loading State -->
         <template v-if="loading">
-          <TableSkeleton v-for="n in 5" :key="`skeleton-${n}`" />
+          <tr v-for="n in 5" :key="`skeleton-${n}`" class="border-b border-secondary/20">
+            <td class="px-6 py-4 text-center"><BaseSkeleton shape="rect" className="w-4 h-4 mx-auto" /></td>
+            <td class="px-6 py-4"><BaseSkeleton shape="text" className="w-1/2 h-4" /></td>
+            <td class="px-6 py-4"><BaseSkeleton shape="rect" className="w-16 h-6 mx-auto rounded-lg" /></td>
+          </tr>
         </template>
 
         <tr v-else-if="categories.length === 0" key="empty">
@@ -249,7 +255,6 @@ watch(Alt_S, pressed => {
 }
 
 .list-leave-active {
-  position: absolute;
-  width: 100%;
+  transition: all 0.3s ease;
 }
 </style>
