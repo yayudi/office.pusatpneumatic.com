@@ -81,4 +81,61 @@ describe('Product Repository', () => {
       expect(dataParams).toContainEqual([1, 2, 3]);
     });
   });
+
+  describe('searchProducts', () => {
+    // Import manually since it's not imported at the top
+    let searchProducts;
+    
+    beforeAll(async () => {
+      const repo = await import('../../repositories/productRepository.js');
+      searchProducts = repo.searchProducts;
+    });
+
+    it('should split keywords and apply AND conditions for order-independent search', async () => {
+      mockConnection.query.mockResolvedValueOnce([[], []]);
+
+      await searchProducts(mockConnection, 'Beras Merah', null, 1, 20);
+
+      expect(mockConnection.query).toHaveBeenCalledTimes(1);
+      const [query, params] = mockConnection.query.mock.calls[0];
+
+      // Memastikan kondisi AND dan LIKE untuk kedua kata kunci ada di query
+      expect(query).toContain('(LOWER(p.name) LIKE ? OR LOWER(p.sku) LIKE ?)');
+      expect(query).toContain('AND ((LOWER(p.name) LIKE ? OR LOWER(p.sku) LIKE ?) AND (LOWER(p.name) LIKE ? OR LOWER(p.sku) LIKE ?))');
+
+      // Memastikan param `%Beras%` dan `%Merah%` diparsing dengan benar
+      expect(params).toEqual(expect.arrayContaining(['%Beras%', '%Beras%', '%Merah%', '%Merah%', 20, 0]));
+    });
+
+    it('should apply location filter if locationId is provided', async () => {
+      mockConnection.query.mockResolvedValueOnce([[], []]);
+
+      await searchProducts(mockConnection, 'Beras', 'LOK-01', 2, 10);
+
+      const [query, params] = mockConnection.query.mock.calls[0];
+
+      expect(query).toContain('sl.location_id = ?');
+      // Limit 10, offset (2-1)*10 = 10
+      expect(params).toEqual(['LOK-01', '%Beras%', '%Beras%', 10, 10]);
+    });
+
+    it('should return nextCursor if results length equals limit', async () => {
+      // Return 20 items to simulate has next page
+      mockConnection.query.mockResolvedValueOnce([new Array(20).fill({}), []]);
+
+      const result = await searchProducts(mockConnection, 'Beras', null, 1, 20);
+
+      expect(result.data.length).toBe(20);
+      expect(result.nextCursor).toBe(2); // page 1 + 1
+    });
+
+    it('should return nextCursor as null if results length is less than limit', async () => {
+      mockConnection.query.mockResolvedValueOnce([[{ id: 1 }], []]);
+
+      const result = await searchProducts(mockConnection, 'Beras', null, 1, 20);
+
+      expect(result.data.length).toBe(1);
+      expect(result.nextCursor).toBeNull();
+    });
+  });
 });

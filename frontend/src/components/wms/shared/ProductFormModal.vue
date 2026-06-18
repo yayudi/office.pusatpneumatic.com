@@ -9,8 +9,14 @@ import { useToast } from '@/composables/useToast.js'
 import ProductHistoryList from '@/components/products/ProductHistoryList.vue'
 import { useMobile } from '@/composables/useMobile.js'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import SegmentedControl from '@/components/ui/SegmentedControl.vue'
 
 const { isMobile } = useMobile()
+
+const packageTypeOptions = [
+  { label: 'Produk Tunggal', value: false, icon: 'fa-solid fa-box' },
+  { label: 'Produk Paket', value: true, icon: 'fa-solid fa-boxes-stacked' }
+]
 
 const props = defineProps({
   show: Boolean,
@@ -506,28 +512,14 @@ watch(Alt_S, pressed => {
           </div>
         </div>
 
-        <!-- Checkbox Paket -->
+        <!-- Tipe Produk (Tunggal / Paket) -->
         <div class="pt-2 border-t border-secondary/10">
-          <label
-            class="flex items-start gap-3 p-3 border border-secondary/20 rounded-lg hover:bg-secondary/5 cursor-pointer transition-colors"
-            :class="{ 'bg-primary/5 border-primary/30': form.is_package }"
-          >
-            <div class="pt-0.5">
-              <input
-                v-model="form.is_package"
-                type="checkbox"
-                class="w-5 h-5 text-primary rounded border-secondary/30 bg-secondary/10 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <span class="block text-sm font-bold text-text" :class="{ 'text-primary': form.is_package }"
-                >Produk Paket (Bundling)</span
-              >
-              <span class="block text-xs text-text/50 mt-0.5"
-                >Produk ini merupakan gabungan dari beberapa produk lain (stok otomatis dipotong dari komponen).</span
-              >
-            </div>
-          </label>
+          <label class="block text-xs font-bold text-text/60 mb-2">Tipe Produk</label>
+          <SegmentedControl v-model="form.is_package" :options="packageTypeOptions" />
+          <p v-if="form.is_package" class="text-xs text-text/50 mt-2">
+            <font-awesome-icon icon="fa-solid fa-info-circle" class="text-primary mr-1" />
+            Produk paket adalah gabungan beberapa produk lain (stok otomatis dipotong dari komponen).
+          </p>
         </div>
 
         <!-- Bagian Komponen Paket (Hanya muncul jika dicentang) -->

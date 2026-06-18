@@ -5,7 +5,7 @@ import { useResizeObserver, useEventListener } from '@vueuse/core'
 import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import TriStateSelect from '@/components/ui/TriStateSelect.vue'
-import { useMobile } from '@/composables/useMobile'
+import SegmentedControl from '@/components/ui/SegmentedControl.vue'
 
 defineProps({
   // Data
@@ -60,18 +60,19 @@ function clearSearch() {
 }
 
 const typeOptions = [
-  { id: 'unit', label: 'Satuan' },
-  { id: 'package', label: 'Paket' }
+  { value: 'all', label: 'Semua', icon: 'fa-solid fa-list' },
+  { value: 'unit', label: 'Satuan', icon: 'fa-solid fa-box' },
+  { value: 'package', label: 'Paket', icon: 'fa-solid fa-boxes-stacked' }
 ]
 
 const stockOptions = [
-  { id: 'minus', label: 'Minus' },
-  { id: 'positive', label: 'Aman' }
+  { value: 'all', label: 'Semua', icon: 'fa-solid fa-list' },
+  { value: 'minus', label: 'Minus', icon: 'fa-solid fa-arrow-trend-down' },
+  { value: 'positive', label: 'Aman', icon: 'fa-solid fa-arrow-trend-up' }
 ]
 
 // Column Menu State
 const isColumnMenuOpen = ref(false)
-const { isMobile } = useMobile()
 
 function toggleColumnMenu() {
   isColumnMenuOpen.value = !isColumnMenuOpen.value
@@ -162,51 +163,33 @@ useEventListener(
 
     <!-- Tabs Row -->
     <template #tabs>
-      <div class="flex flex-col md:flex-row gap-1 w-full lg:w-auto items-end mt-auto">
+      <div class="flex flex-col md:flex-row gap-2 w-full lg:w-auto items-end">
         <!-- Search By Tabs -->
-        <div class="flex bg-background p-1 rounded-lg border border-secondary h-[42px] shrink-0 items-center shadow-sm">
-          <button
-            v-for="tab in searchTabs"
-            :key="tab.value"
-            @click="emit('update:searchBy', tab.value)"
-            class="flex-1 md:flex-none px-3 py-1 rounded text-xs font-bold transition-all duration-200 flex items-center justify-center h-full"
-            :class="[searchBy === tab.value ? 'bg-primary text-secondary shadow-sm' : 'text-text/60 hover:text-text']"
-          >
-            {{ tab.label }}
-          </button>
-        </div>
+        <SegmentedControl
+          :model-value="searchBy"
+          @update:modelValue="emit('update:searchBy', $event)"
+          :options="searchTabs.map(t => ({ value: t.value, label: t.label }))"
+          class="w-full lg:w-[125px]"
+        />
 
         <!-- View Tabs -->
-
-        <div :class="isMobile ? 'flex gap-2 animate-fade-in w-full lg:w-auto lg:min-w-[160px]' : 'w-auto'">
+        <div class="flex flex-col gap-1 w-full lg:w-[260px] shrink-0">
           <label class="block text-xs font-semibold text-text/60 text-center mb-1">Lokasi</label>
-          <div
-            class="flex bg-background p-1 rounded-lg border border-secondary h-[42px] overflow-x-auto no-scrollbar shrink-0 items-center shadow-sm"
-          >
-            <button
-              v-for="view in warehouseViews"
-              :key="view.value"
-              @click="emit('update:activeView', view.value)"
-              class="flex-1 px-3 py-1 rounded text-xs font-bold whitespace-nowrap transition-all flex items-center justify-center h-full"
-              :class="[
-                activeView === view.value
-                  ? 'bg-primary text-secondary shadow-sm font-bold'
-                  : 'text-text/60 hover:text-text hover:bg-secondary/10'
-              ]"
-            >
-              {{ view.label }}
-            </button>
-          </div>
+          <SegmentedControl
+            :model-value="activeView"
+            @update:modelValue="emit('update:activeView', $event)"
+            :options="warehouseViews.map(v => ({ value: v.value, label: v.label }))"
+          />
         </div>
       </div>
     </template>
 
     <!-- Actions & Filters (Inline Right) -->
     <template #actions>
-      <div class="flex flex-wrap items-center justify-between gap-1 min-w-full lg:min-w-0">
+      <div class="flex flex-wrap items-end justify-start lg:justify-end gap-2 w-full lg:w-auto mt-2 lg:mt-0">
         <!-- Filter Warehouse (Hanya tampil jika view gudang) -->
-        <div v-if="activeView === 'gudang'" class="flex gap-1 animate-fade-in w-full lg:w-auto lg:min-w-[160px]">
-          <div :class="isMobile ? 'flex gap-2 animate-fade-in w-full lg:w-auto lg:min-w-[160px]' : 'w-auto'">
+        <div v-if="activeView === 'gudang'" class="flex gap-2 w-full lg:w-auto shrink-0">
+          <div class="flex flex-col gap-1 w-1/2 lg:w-[110px]">
             <label class="block text-xs font-semibold text-text/60 text-center mb-1">Gedung</label>
             <TriStateSelect
               :model-value="selectedBuilding"
@@ -215,11 +198,11 @@ useEventListener(
               placeholder="Gedung"
               label="label"
               track-by="value"
-              :class="isMobile ? 'w-full' : ''"
+              class="w-full"
             />
           </div>
 
-          <div :class="isMobile ? 'flex gap-2 animate-fade-in w-full lg:w-auto lg:min-w-[160px]' : 'w-auto'">
+          <div class="flex flex-col gap-1 w-1/2 lg:w-[110px]">
             <label class="block text-xs font-semibold text-text/60 text-center mb-1">Lantai</label>
             <TriStateSelect
               :model-value="selectedFloor"
@@ -228,61 +211,41 @@ useEventListener(
               placeholder="Lantai"
               label="label"
               track-by="value"
-              :class="isMobile ? 'w-full' : ''"
+              class="w-full"
             />
           </div>
         </div>
 
         <!-- Type Filter -->
-        <div :class="isMobile ? 'flex gap-2 animate-fade-in w-full lg:w-auto lg:min-w-[160px]' : 'w-auto'">
+        <div class="flex flex-col gap-1 w-full lg:w-[110px] shrink-0">
           <label class="block text-xs font-semibold text-text/60 text-center mb-1">Tipe</label>
           <BaseSelect
             :model-value="productTypeFilter"
             @update:modelValue="emit('update:productTypeFilter', $event)"
             :options="typeOptions"
-            track-by="id"
-            emit-value
-            :searchable="false"
-            clearable
-            clear-value="all"
+            class="h-[42px] w-full"
             placeholder="Tipe"
-            :class="[
-              isMobile ? 'w-full' : '',
-              [
-                productTypeFilter !== 'all'
-                  ? 'bg-accent/5 border-accent text-accent'
-                  : 'bg-background border-secondary text-text/60 hover:text-text'
-              ]
-            ]"
+            label="label"
+            track-by="value"
           />
         </div>
 
         <!-- Status Stock -->
-        <div :class="isMobile ? 'w-1/2' : 'w-auto'">
+        <div class="flex flex-col gap-1 w-full lg:w-[110px] shrink-0">
           <label class="block text-xs font-semibold text-text/60 text-center mb-1">Status</label>
           <BaseSelect
             :model-value="stockStatusFilter"
             @update:modelValue="emit('update:stockStatusFilter', $event)"
             :options="stockOptions"
-            track-by="id"
-            emit-value
-            :searchable="false"
-            clearable
-            clear-value="all"
-            placeholder="Stok"
-            class="w-full"
-            :class="[
-              stockStatusFilter === 'minus'
-                ? 'bg-danger/5 border-danger text-danger'
-                : stockStatusFilter === 'positive'
-                  ? 'bg-success/5 border-success text-success'
-                  : 'bg-background border-secondary text-text/60 hover:text-text'
-            ]"
+            class="w-full h-[42px]"
+            placeholder="Status"
+            label="label"
+            track-by="value"
           />
         </div>
 
         <!-- Category Filter -->
-        <div :class="isMobile ? 'flex gap-2 animate-fade-in w-full lg:w-auto lg:min-w-[160px]' : 'w-auto'">
+        <div class="flex flex-col gap-1 w-full lg:w-[110px] shrink-0">
           <label class="block text-xs font-semibold text-text/60 text-center mb-1">Kategori</label>
           <TriStateSelect
             :model-value="selectedCategory"
@@ -291,7 +254,7 @@ useEventListener(
             placeholder="Kategori"
             label="label"
             track-by="id"
-            class="w-full"
+            class="w-full h-[42px]"
             :class="[
               selectedCategory?.include?.length > 0 || selectedCategory?.exclude?.length > 0
                 ? 'bg-accent/5 border-accent text-accent'
@@ -300,11 +263,7 @@ useEventListener(
           />
         </div>
 
-        <div
-          :class="
-            isMobile ? 'flex gap-2 animate-fade-in w-full lg:w-auto lg:min-w-[160px]' : 'w-auto items-end mt-auto'
-          "
-        >
+        <div class="flex items-end mt-auto mb-0.5 gap-2 w-full lg:w-auto shrink-0">
           <!-- Column Visibility Selector -->
           <button
             ref="buttonRef"
@@ -349,22 +308,15 @@ useEventListener(
           </Teleport>
 
           <!-- Mobile Layout Switcher -->
-          <div class="flex h-[42px] w-1/3 bg-secondary/10 rounded-lg p-1 md:hidden shrink-0">
-            <button
-              @click="emit('update:mobileLayout', 'card')"
-              class="px-3 rounded-md text-xs font-bold transition-all flex items-center gap-1"
-              :class="mobileLayout === 'card' ? 'bg-background text-primary shadow-sm' : 'text-text/50'"
-            >
-              <font-awesome-icon icon="fa-solid fa-grip-vertical" />
-            </button>
-            <button
-              @click="emit('update:mobileLayout', 'compact')"
-              class="px-3 rounded-md text-xs font-bold transition-all flex items-center gap-1"
-              :class="mobileLayout === 'compact' ? 'bg-background text-primary shadow-sm' : 'text-text/50'"
-            >
-              <font-awesome-icon icon="fa-solid fa-list" />
-            </button>
-          </div>
+          <SegmentedControl
+            :model-value="mobileLayout"
+            @update:modelValue="emit('update:mobileLayout', $event)"
+            :options="[
+              { value: 'card', icon: 'fa-solid fa-grip-vertical' },
+              { value: 'compact', icon: 'fa-solid fa-list' }
+            ]"
+            class="h-[42px] shrink-0 shadow-sm border border-secondary/20 md:hidden"
+          />
         </div>
       </div>
     </template>

@@ -186,3 +186,15 @@ The project uses **Native ESM** with Jest. Standard CommonJS mocking (`jest.mock
     2.  Provide this SQL snippet to the user in a Markdown code block, reminding them to execute it in their database client.
     3.  Format: `INSERT INTO system_changelogs (version, title, description, type, release_date) VALUES ('vX.Y.Z', 'Feature Name', 'Short desc', 'FEATURE', CURDATE());`
     4.  Never skip this step if a tangible change has been made to the system.
+
+---
+
+## 10. GIT & SECURITY DISCIPLINE (CRITICAL)
+**Context:** To prevent sensitive data leaks and keep the repository clean.
+
+* **Rule:** You MUST NOT track or commit sensitive files, credentials, or large local backups.
+* **Procedure:**
+    1. Ensure credentials and API keys are only kept in `.env` files and never hardcoded.
+    2. Maintain the `.gitignore` rules rigorously, especially the "SECURITY & SECRETS" and "BACKUPS & ARCHIVES" blocks.
+    3. Do not commit `.pem`, `.key`, `.sqlite`, `.db`, `*.zip`, or accidental database `.sql` dumps to the root directory.
+    4. Regularly scan `git status` when asked, and if any untracked or tracked sensitive file is found, warn the user and add it to `.gitignore`.

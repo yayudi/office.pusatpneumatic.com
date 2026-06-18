@@ -300,30 +300,30 @@
             </div>
           </div>
 
-          <!-- Sorting -->
-          <div class="col-span-1 md:col-span-2 grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-text/80 mb-1">Urutkan Berdasarkan</label>
-              <select
-                v-model="filters.sortBy"
-                class="w-full px-3 py-2 bg-background border border-secondary/30 text-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-              >
-                <option value="LATEST">Waktu Eksekusi</option>
-                <option value="OCCURRENCES">Total Transaksi</option>
-                <option value="TOTAL_SKU">Total SKU</option>
-                <option value="TOTAL_QTY">Total Qty Movement</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-text/80 mb-1">Arah Urutan</label>
-              <select
-                v-model="filters.sortDirection"
-                class="w-full px-3 py-2 bg-background border border-secondary/30 text-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-              >
-                <option value="DESC">Menurun (Terbesar/Terbaru)</option>
-                <option value="ASC">Menaik (Terkecil/Terlama)</option>
-              </select>
-            </div>
+          <!-- Urutkan Berdasarkan -->
+          <div class="col-span-1 md:col-span-2 lg:col-span-2">
+            <SegmentedControl
+              label="Urutkan Berdasarkan"
+              v-model="filters.sortBy"
+              :options="[
+                { value: 'LATEST', label: 'Waktu', icon: 'fa-solid fa-clock' },
+                { value: 'OCCURRENCES', label: 'Transaksi', icon: 'fa-solid fa-list-ol' },
+                { value: 'TOTAL_SKU', label: 'SKU', icon: 'fa-solid fa-boxes-stacked' },
+                { value: 'TOTAL_QTY', label: 'Qty', icon: 'fa-solid fa-weight-hanging' }
+              ]"
+            />
+          </div>
+
+          <!-- Arah Urutan -->
+          <div class="col-span-1">
+            <SegmentedControl
+              label="Arah Urutan"
+              v-model="filters.sortDirection"
+              :options="[
+                { value: 'DESC', label: 'Menurun', icon: 'fa-solid fa-arrow-down-wide-short' },
+                { value: 'ASC', label: 'Menaik', icon: 'fa-solid fa-arrow-up-wide-short' }
+              ]"
+            />
           </div>
 
           <!-- Exact Quantity Toggle -->
@@ -683,6 +683,7 @@ import api from '@/api/axios' // Asumsi letak axios setup
 import { useToast } from '@/composables/useToast.js'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import TriStateSelect from '@/components/ui/TriStateSelect.vue'
+import SegmentedControl from '@/components/ui/SegmentedControl.vue'
 import { fetchAllLocations } from '@/api/helpers/locations.js'
 
 const { toast } = useToast()

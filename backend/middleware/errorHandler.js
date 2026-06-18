@@ -33,6 +33,7 @@ const errorHandler = (err, req, res, next) => {
     success: false,
     message: message,
     error_code: errorCode,
+    ...(err.details && { errors: err.details })
   });
 };
 

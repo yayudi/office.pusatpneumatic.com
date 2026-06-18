@@ -11,7 +11,7 @@ import MediaLightbox from '@/components/common/MediaLightbox.vue'
 import LinkProductModal from './LinkProductModal.vue'
 const ImageCropperModal = defineAsyncComponent(() => import('./ImageCropperModal.vue'))
 import BulkEditTagsModal from './BulkEditTagsModal.vue'
-import TriStateSelect from '@/components/ui/TriStateSelect.vue'
+import SegmentedControl from '@/components/ui/SegmentedControl.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import { autoCropCenter } from '@/utils/imageCropper.js'
@@ -26,8 +26,9 @@ import { formatBytes } from '@/utils/formatBytes.js'
 import { formatTags } from '@/utils/formatters.js'
 
 const linkStatusOptions = [
-  { id: 'linked', label: 'Sudah Tertaut' },
-  { id: 'orphaned', label: 'Belum Tertaut' }
+  { value: 'all', label: 'Semua', icon: 'fa-solid fa-layer-group' },
+  { value: 'linked', label: 'Sudah', icon: 'fa-solid fa-link' },
+  { value: 'orphaned', label: 'Belum', icon: 'fa-solid fa-link-slash' }
 ]
 
 const { isMobile } = useMobile()
@@ -44,7 +45,7 @@ const isLoading = ref(false)
 const uploaderInput = ref(null)
 const isUploading = ref(false)
 const globalSearchStr = ref('')
-const linkStatusFilter = ref({ include: [], exclude: [] })
+const linkStatusFilter = ref('all')
 const isUsageTooltipVisible = ref(false)
 const usageTooltipTarget = ref(null)
 const hoveredMediaItem = ref(null)
@@ -219,8 +220,8 @@ const fetchMedia = async (page = 1, silent = false) => {
   try {
     const params = new URLSearchParams({ page, limit: pagination.value.limit })
     if (globalSearchStr.value.trim()) params.append('search', globalSearchStr.value.trim())
-    if (linkStatusFilter.value.include.length > 0 || linkStatusFilter.value.exclude.length > 0) {
-      params.append('linkStatus', JSON.stringify(linkStatusFilter.value))
+    if (linkStatusFilter.value && linkStatusFilter.value !== 'all') {
+      params.append('linkStatus', JSON.stringify({ include: [linkStatusFilter.value], exclude: [] }))
     }
 
     const res = await apiClient.get(`/media?${params.toString()}`)
@@ -626,7 +627,7 @@ onUnmounted(() => {
             </button>
           </div>
         </div>
-        <div class="flex gap-2 flex-wrap justify-end">
+        <div class="flex gap-2 flex-wrap justify-end items-end">
           <div class="relative w-full md:w-[300px] border border-secondary/20 rounded-lg bg-secondary">
             <input
               type="text"
@@ -639,13 +640,14 @@ onUnmounted(() => {
               class="absolute right-3 top-1/2 -translate-y-1/2 text-text/40 pointer-events-none"
             />
           </div>
-          <TriStateSelect
-            v-model="linkStatusFilter"
-            :options="linkStatusOptions"
-            label="label"
-            track-by="id"
-            placeholder="Filter Media"
-          />
+          <div class="w-full sm:w-auto shrink-0 min-w-[200px]">
+            <SegmentedControl
+              label="Status Taut"
+              label-variant="compact"
+              v-model="linkStatusFilter"
+              :options="linkStatusOptions"
+            />
+          </div>
           <input
             type="file"
             ref="uploaderInput"
@@ -657,31 +659,17 @@ onUnmounted(() => {
           <!-- Actions -->
 
           <!-- View Pattern Switcher -->
-          <div class="flex items-center bg-secondary/50 p-1 rounded-lg border border-secondary">
-            <button
-              @click="viewMode = 'grid'"
-              class="p-1.5 rounded-md transition-colors"
-              :class="viewMode === 'grid' ? 'bg-background shadow-sm text-primary' : 'text-text/70 hover:text-text'"
-              title="Grid View"
-            >
-              <font-awesome-icon icon="fa-solid fa-border-all" />
-            </button>
-            <button
-              @click="viewMode = 'list'"
-              class="p-1.5 rounded-md transition-colors"
-              :class="viewMode === 'list' ? 'bg-background shadow-sm text-primary' : 'text-text/70 hover:text-text'"
-              title="List View"
-            >
-              <font-awesome-icon icon="fa-solid fa-list-ul" />
-            </button>
-            <button
-              @click="viewMode = 'compact'"
-              class="p-1.5 rounded-md transition-colors"
-              :class="viewMode === 'compact' ? 'bg-background shadow-sm text-primary' : 'text-text/70 hover:text-text'"
-              title="Compact View"
-            >
-              <font-awesome-icon icon="fa-solid fa-th" />
-            </button>
+          <div class="w-full sm:w-auto sm:min-w-[240px] shrink-0">
+            <SegmentedControl
+              label="Tampilan"
+              label-variant="compact"
+              v-model="viewMode"
+              :options="[
+                { value: 'grid', label: 'Grid', icon: 'fa-solid fa-border-all' },
+                { value: 'list', label: 'List', icon: 'fa-solid fa-list-ul' },
+                { value: 'compact', label: 'Compact', icon: 'fa-solid fa-table-cells' }
+              ]"
+            />
           </div>
 
           <button

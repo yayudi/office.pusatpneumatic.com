@@ -11,8 +11,24 @@ export const usePwaUpdate = () => {
   const { needRefresh, updateServiceWorker } = useRegisterSW({
     onRegistered(registration) {
       if (registration) {
-        // Check for updates every 60 minutes
-        setInterval(() => registration.update(), 60 * 60 * 1000)
+        // Check for updates periodically (e.g. every 1 hour)
+        setInterval(() => {
+          registration.update()
+        }, 60 * 60 * 1000)
+
+        // Cek update instan saat user kembali membuka tab aplikasi (Throttled: max 1 kali per 5 menit)
+        let lastCheck = 0;
+        const THROTTLE_MS = 5 * 60 * 1000; // 5 menit
+
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            const now = Date.now();
+            if (now - lastCheck > THROTTLE_MS) {
+              registration.update();
+              lastCheck = now;
+            }
+          }
+        });
       }
     },
     onRegisterError(error) {

@@ -86,30 +86,26 @@ const returnFilters = computed(() => {
       optionLabel: 'label'
     },
     {
-      type: 'select',
+      type: 'segmented',
       key: 'sortOrder',
       label: 'Urutan',
-      placeholder: 'Urutan',
       options: [
-        { value: 'desc', label: 'Terbaru' },
-        { value: 'asc', label: 'Terlama' }
-      ],
-      clearable: false
+        { value: 'desc', label: 'Terbaru', icon: 'fa-solid fa-arrow-down-9-1' },
+        { value: 'asc', label: 'Terlama', icon: 'fa-solid fa-arrow-down-1-9' }
+      ]
     }
   ]
 
   if (activeTab.value === 'history') {
     baseFilters.push({
-      type: 'select',
+      type: 'segmented',
       key: 'condition',
       label: 'Kondisi',
-      placeholder: 'Semua Kondisi',
       options: [
-        { value: '', label: 'Semua Kondisi' },
-        { value: 'GOOD', label: 'Bagus' },
-        { value: 'BAD', label: 'Rusak' }
-      ],
-      clearValue: ''
+        { value: '', label: 'Semua', icon: 'fa-solid fa-list' },
+        { value: 'GOOD', label: 'Bagus', icon: 'fa-solid fa-thumbs-up' },
+        { value: 'BAD', label: 'Rusak', icon: 'fa-solid fa-thumbs-down' }
+      ]
     })
 
     baseFilters.push({

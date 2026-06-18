@@ -73,15 +73,27 @@ watch(activeTab, async (newVal, oldVal) => {
     isRevertingTab = false
     return
   }
-  if (batchList.value.length > 0 && newVal && oldVal && newVal !== oldVal) {
+
+  let hasData = false
+  if (oldVal === 'DETAILED_TRANSFER') {
+    hasData = detailedTransferTabRef.value?.hasData() || false
+  } else {
+    hasData = batchList.value.length > 0
+  }
+
+  if (hasData && newVal && oldVal && newVal !== oldVal) {
     const isConfirmed = await swalConfirm(
-      'Reset Daftar Produk?',
-      'Mengubah mode form akan mereset seluruh daftar produk yang sudah dipilih. Yakin?',
-      'Ya, Reset',
+      'Pindah Tab?',
+      'Mengubah tab akan mereset seluruh data yang sudah di-input. Yakin?',
+      'Ya, Pindah',
       'Batal'
     )
     if (isConfirmed) {
-      batchList.value = []
+      if (oldVal === 'DETAILED_TRANSFER' && detailedTransferTabRef.value) {
+        detailedTransferTabRef.value.resetData()
+      } else {
+        batchList.value = []
+      }
     } else {
       isRevertingTab = true
       activeTab.value = oldVal

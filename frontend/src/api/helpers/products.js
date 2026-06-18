@@ -8,15 +8,20 @@ import api from '../axios'
  * @param {number|string|null} locationId - (Opsional) ID lokasi untuk memfilter
  * @returns {Promise<Array<object>>}
  */
-export const searchProducts = async (query, locationId) => {
+export const searchProducts = async (query, locationId, page = 1, limit = 20) => {
   try {
-    const params = { q: query } // Buat objek params
+    const params = { q: query, page, limit } // Buat objek params
     if (locationId) {
       params.locationId = locationId // Tambahkan locationId jika ada
     }
 
     // Menggunakan path relatif jika baseURL sudah '/api'
     const response = await api.get('/products/search', { params })
+
+    // Jika response mengandung nextCursor, kembalikan objek utuh untuk pagination TanStack Query
+    if (response.data && 'nextCursor' in response.data) {
+      return response.data
+    }
 
     // Logika pengaman "pembuka" data (lebih fleksibel)
     if (Array.isArray(response.data)) {

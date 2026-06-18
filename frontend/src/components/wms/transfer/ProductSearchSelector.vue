@@ -16,13 +16,28 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'scanner-match'])
 
-// Search logic from composable
 const {
   results: searchResults,
   isSearching: isLoading,
   performSearch,
-  clear: clearSearch
+  clear: clearSearch,
+  fetchNextPage,
+  hasNextPage,
+  isFetchingNextPage
 } = useProductSearch({ locationId: toRef(props, 'locationId') })
+
+import { useIntersectionObserver } from '@vueuse/core'
+const bottomSentinelRef = ref(null)
+
+useIntersectionObserver(
+  bottomSentinelRef,
+  ([{ isIntersecting }]) => {
+    if (isIntersecting && hasNextPage.value && !isFetchingNextPage.value) {
+      fetchNextPage()
+    }
+  },
+  { threshold: 0.1 }
+)
 
 const searchQuery = ref('')
 const showDropdown = ref(false)
@@ -260,6 +275,12 @@ defineExpose({ focusInput })
               class="px-3 py-4 text-center text-text/40 italic text-xs"
             >
               Tidak ada hasil.
+            </li>
+            
+            <li v-if="hasNextPage" ref="bottomSentinelRef" class="h-2 w-full"></li>
+            <li v-if="isFetchingNextPage" class="px-3 py-2 text-center text-text/50 text-xs flex justify-center items-center gap-2">
+              <font-awesome-icon icon="fa-solid fa-circle-notch" spin class="text-primary" />
+              <span>Memuat...</span>
             </li>
           </ul>
         </div>

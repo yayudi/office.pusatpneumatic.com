@@ -10,8 +10,7 @@ import ProductSearchSelector from '@/components/wms/transfer/ProductSearchSelect
 import ScannerToggle from '@/components/utilities/ScannerToggle.vue'
 import { useAuthStore } from '@/stores/auth'
 import { formatCurrency } from '@/utils/formatters.js'
-
-
+import api from '@/api/axios'
 const props = defineProps({
   show: { type: Boolean, required: true },
   initialProduct: { type: Object, default: null },
@@ -38,10 +37,8 @@ const authStore = useAuthStore()
 
 const fetchTemplates = async () => {
   try {
-    const res = await fetch('/api/sticker-templates', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    })
-    const data = await res.json()
+    const res = await api.get('/sticker-templates')
+    const data = res.data
     if (data.success && data.data) {
       templates.value = data.data
       if (templates.value.length > 0 && !selectedTemplate.value) {
@@ -118,13 +115,10 @@ const deleteTemplate = async id => {
     await swalAlert('ID template tidak ditemukan pada object. Harap refresh.')
     return
   }
-  if (!await swalConfirm(`Hapus template ini (ID: ${id})?`)) return
+  if (!(await swalConfirm(`Hapus template ini (ID: ${id})?`))) return
   try {
-    const res = await fetch(`/api/sticker-templates/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    })
-    const data = await res.json()
+    const res = await api.delete(`/sticker-templates/${id}`)
+    const data = res.data
     if (data.success) {
       if (selectedTemplate.value?.id === id) selectedTemplate.value = null
       fetchTemplates()
@@ -180,12 +174,12 @@ const handleScannerMatchInGenerator = (product, sticker, varName) => {
   try {
     handleProductSelected(product, sticker, varName)
     console.log('[Scanner Match] Data populated')
-    
+
     // Auto-add a new empty sticker row
     const oldLength = stickers.value.length
     addSticker()
     console.log(`[Scanner Match] addSticker called. Old length: ${oldLength}, New length: ${stickers.value.length}`)
-    
+
     // Re-focus the newly added row after Vue updates DOM
     setTimeout(() => {
       const newIndex = stickers.value.length - 1
@@ -321,6 +315,7 @@ const handleDownloadZip = async () => {
       link.click()
       toast(`Berhasil mengunduh ${count} stiker.`, 'success')
     } else {
+      //
     }
   } catch (err) {
     console.error(err)
@@ -429,11 +424,19 @@ const printStickerHeight = computed(() => {
                         {{ varName.replace('_', ' ') }}
                       </label>
                       <template
-                        v-if="['nama_produk', 'product_name', 'produk', 'product', 'sku'].includes(varName.toLowerCase())"
+                        v-if="
+                          ['nama_produk', 'product_name', 'produk', 'product', 'sku'].includes(varName.toLowerCase())
+                        "
                       >
                         <ProductSearchSelector
-                          :ref="el => { if (el) searchSelectors[index] = el }"
-                          :modelValue="sticker.data[varName] ? { name: sticker.data[varName], sku: sticker.data[varName] } : null"
+                          :ref="
+                            el => {
+                              if (el) searchSelectors[index] = el
+                            }
+                          "
+                          :modelValue="
+                            sticker.data[varName] ? { name: sticker.data[varName], sku: sticker.data[varName] } : null
+                          "
                           @update:modelValue="p => handleProductSelected(p, sticker, varName)"
                           :enable-scanner="enableScanner"
                           @scanner-match="p => handleScannerMatchInGenerator(p, sticker, varName)"

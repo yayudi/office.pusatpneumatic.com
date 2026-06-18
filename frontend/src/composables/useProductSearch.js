@@ -1,6 +1,7 @@
 // frontend/src/composables/useProductSearch.js
-import { ref, watch, onUnmounted } from 'vue'
+import { ref, watch, computed } from 'vue'
 import debounce from 'lodash/debounce'
+import { useInfiniteQuery } from '@tanstack/vue-query'
 import { searchProducts } from '@/api/helpers/products.js'
 
 /**
@@ -11,7 +12,6 @@ import { searchProducts } from '@/api/helpers/products.js'
  * @param {number} [options.minChars=2] - Minimum characters before triggering search
  * @param {number} [options.maxResults=20] - Maximum number of results to return
  * @param {import('vue').Ref<string|number|null>} [options.locationId] - Reactive locationId filter
- * @returns {{ query: import('vue').Ref<string>, results: import('vue').Ref<Array>, isSearching: import('vue').Ref<boolean>, clear: () => void, selectProduct: (product: object) => object, performSearch: (searchTerm: string) => Promise<void> }}
  */
 export const useProductSearch = (options = {}) => {
   const {
@@ -22,35 +22,49 @@ export const useProductSearch = (options = {}) => {
   } = options
 
   const query = ref('')
-  const results = ref([])
-  const isSearching = ref(false)
+  const debouncedQuery = ref('')
   const selectedProduct = ref(null)
 
-  const performSearch = async (searchTerm) => {
-    if (!searchTerm || searchTerm.trim().length < minChars) {
-      results.value = []
-      return
-    }
+  // Location id helper
+  const resolvedLocationId = computed(() => {
+    return typeof locationId === 'object' && locationId !== null && 'value' in locationId
+      ? locationId.value
+      : locationId
+  })
 
-    isSearching.value = true
-    try {
-      const locationVal = typeof locationId === 'object' && 'value' in locationId
-        ? locationId.value
-        : locationId
+  // Setup Infinite Query
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetching,
+    isFetchingNextPage
+  } = useInfiniteQuery({
+    queryKey: computed(() => ['productSearch', debouncedQuery.value, resolvedLocationId.value]),
+    queryFn: async ({ pageParam = 1 }) => {
+      if (!debouncedQuery.value || debouncedQuery.value.trim().length < minChars) {
+        return { data: [], nextCursor: null }
+      }
+      const res = await searchProducts(debouncedQuery.value.trim(), resolvedLocationId.value, pageParam, maxResults)
+      // If res is array (backward compat), wrap it. Else it is { data, nextCursor }
+      return Array.isArray(res) ? { data: res, nextCursor: null } : res
+    },
+    getNextPageParam: (lastPage) => lastPage.nextCursor || undefined,
+    enabled: computed(() => !!debouncedQuery.value && debouncedQuery.value.trim().length >= minChars),
+    staleTime: 60 * 1000 // Cache for 1 minute to prevent rapid refetching of the same search
+  })
 
-      const res = await searchProducts(searchTerm.trim(), locationVal)
-      const data = Array.isArray(res) ? res : (res?.data || [])
-      results.value = data.slice(0, maxResults)
-    } catch (err) {
-      console.error('[useProductSearch] Search failed:', err)
-      results.value = []
-    } finally {
-      isSearching.value = false
-    }
-  }
+  // Flatten pages into a single array
+  const results = computed(() => {
+    if (!data.value) return []
+    return data.value.pages.flatMap(page => page.data || [])
+  })
 
-  const debouncedSearch = debounce((term) => {
-    performSearch(term)
+  // isSearching flag backward compatibility
+  const isSearching = computed(() => isFetching.value && !isFetchingNextPage.value)
+
+  const debouncedUpdate = debounce((term) => {
+    debouncedQuery.value = term
   }, debounceMs)
 
   watch(query, (newVal) => {
@@ -59,7 +73,8 @@ export const useProductSearch = (options = {}) => {
       const displayText = `${selectedProduct.value.sku} - ${selectedProduct.value.name}`
       if (newVal === displayText) {
         // Query was set programmatically by selectProduct, no need to search
-        debouncedSearch.cancel()
+        debouncedUpdate.cancel()
+        debouncedQuery.value = '' // Clear query so it doesn't fetch
         return
       }
       // User typed something different, deselect
@@ -67,12 +82,12 @@ export const useProductSearch = (options = {}) => {
     }
 
     if (!newVal || newVal.trim().length < minChars) {
-      debouncedSearch.cancel()
-      results.value = []
+      debouncedUpdate.cancel()
+      debouncedQuery.value = ''
       return
     }
 
-    debouncedSearch(newVal)
+    debouncedUpdate(newVal)
   })
 
   /**
@@ -83,22 +98,24 @@ export const useProductSearch = (options = {}) => {
   const selectProduct = (product) => {
     selectedProduct.value = product
     query.value = `${product.sku} - ${product.name}`
-    results.value = []
+    debouncedQuery.value = '' // Clear query to stop fetching
     return product
   }
 
   /** Clear all search state */
   const clear = () => {
     query.value = ''
-    results.value = []
+    debouncedQuery.value = ''
     selectedProduct.value = null
-    isSearching.value = false
-    debouncedSearch.cancel()
+    debouncedUpdate.cancel()
   }
 
-  onUnmounted(() => {
-    debouncedSearch.cancel()
-  })
+  // Fallback for manual trigger (some components might still call this directly)
+  const performSearch = async (searchTerm) => {
+    query.value = searchTerm
+    // The watch will pick this up and debounce it, but if they await it, it won't resolve exactly when data is ready.
+    // That's fine because it's mostly a UI reactive trigger.
+  }
 
   return {
     query,
@@ -107,6 +124,11 @@ export const useProductSearch = (options = {}) => {
     selectedProduct,
     selectProduct,
     clear,
-    performSearch
+    performSearch,
+    
+    // New Infinite Scroll variables
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
   }
 }

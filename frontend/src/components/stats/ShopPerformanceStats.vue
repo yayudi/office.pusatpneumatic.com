@@ -28,7 +28,7 @@ const filterValues = ref({
   startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
   endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
   source: { include: [], exclude: [] },
-  shopName: { include: [], exclude: [] },
+  shopName: { include: [], exclude: [] }
 })
 
 const tabs = [
@@ -36,19 +36,19 @@ const tabs = [
   { id: 'trend', label: 'Tren Harian', icon: 'fa-solid fa-chart-line' },
   { id: 'top-products', label: 'Produk Terlaris', icon: 'fa-solid fa-ranking-star' },
   { id: 'fulfillment', label: 'Kesehatan Pemenuhan', icon: 'fa-solid fa-heart-pulse' },
-  { id: 'comparison', label: 'Perbandingan Periode', icon: 'fa-solid fa-right-left' },
+  { id: 'comparison', label: 'Perbandingan Periode', icon: 'fa-solid fa-right-left' }
 ]
 
 const reportTypeOptions = [
-  { id: 'monthly', label: 'Bulanan' },
-  { id: 'annual', label: 'Tahunan' },
-  { id: 'custom', label: 'Rentang Waktu Kustom' },
+  { value: 'monthly', label: 'Bulan', icon: 'fa-solid fa-calendar' },
+  { value: 'annual', label: 'Tahun', icon: 'fa-solid fa-calendar-days' },
+  { value: 'custom', label: 'Kustom', icon: 'fa-solid fa-calendar-plus' }
 ]
 
 const sourceOptions = [
   { id: 'Tokopedia', label: 'Tokopedia / TikTok' },
   { id: 'Shopee', label: 'Shopee' },
-  { id: 'Offline', label: 'Offline / Lainnya' },
+  { id: 'Offline', label: 'Offline / Lainnya' }
 ]
 
 const availableMonths = [
@@ -63,7 +63,7 @@ const availableMonths = [
   { value: '09', label: 'September' },
   { value: '10', label: 'Oktober' },
   { value: '11', label: 'November' },
-  { value: '12', label: 'Desember' },
+  { value: '12', label: 'Desember' }
 ]
 
 const availableYears = computed(() => {
@@ -104,20 +104,41 @@ const getApiPayload = () => {
     prevStartDate,
     prevEndDate,
     source: filterValues.value.source,
-    shopName: filterValues.value.shopName,
+    shopName: filterValues.value.shopName
   }
 }
 
 const mainFilters = computed(() => {
-  const filters = [
-    { type: 'select', key: 'reportType', label: 'Tipe Laporan', options: reportTypeOptions, clearable: false, searchable: false, placeholder: 'Pilih Tipe' }
-  ]
+  const filters = [{ type: 'segmented', key: 'reportType', label: 'Tipe Laporan', options: reportTypeOptions }]
 
   if (filterValues.value.reportType === 'annual') {
-    filters.push({ type: 'select', key: 'year', label: 'Tahun', options: availableYears.value.map(y => ({id: y, label: y})), clearable: false, searchable: false })
+    filters.push({
+      type: 'select',
+      key: 'year',
+      label: 'Tahun',
+      options: availableYears.value.map(y => ({ id: y, label: y })),
+      clearable: false,
+      searchable: false
+    })
   } else if (filterValues.value.reportType === 'monthly') {
-    filters.push({ type: 'select', key: 'selectedMonth', label: 'Bulan', options: availableMonths, trackBy: 'value', clearable: false, searchable: false, placeholder: 'Pilih Bulan' })
-    filters.push({ type: 'select', key: 'year', label: 'Tahun', options: availableYears.value.map(y => ({id: y, label: y})), clearable: false, searchable: false })
+    filters.push({
+      type: 'select',
+      key: 'selectedMonth',
+      label: 'Bulan',
+      options: availableMonths,
+      trackBy: 'value',
+      clearable: false,
+      searchable: false,
+      placeholder: 'Pilih Bulan'
+    })
+    filters.push({
+      type: 'select',
+      key: 'year',
+      label: 'Tahun',
+      options: availableYears.value.map(y => ({ id: y, label: y })),
+      clearable: false,
+      searchable: false
+    })
   } else {
     filters.push({ type: 'daterange', keyStart: 'startDate', keyEnd: 'endDate', label: 'Rentang Waktu' })
   }
@@ -125,8 +146,24 @@ const mainFilters = computed(() => {
 })
 
 const advancedFilters = computed(() => [
-  { type: 'triselect', key: 'source', label: 'Saluran Marketplace', options: sourceOptions, optionLabel: 'label', trackBy: 'id', placeholder: 'Semua Saluran' },
-  { type: 'triselect', key: 'shopName', label: 'Nama Toko / Sales', options: shopOptions.value, optionLabel: 'label', trackBy: 'id', placeholder: 'Semua Toko / Sales' }
+  {
+    type: 'triselect',
+    key: 'source',
+    label: 'Saluran Marketplace',
+    options: sourceOptions,
+    optionLabel: 'label',
+    trackBy: 'id',
+    placeholder: 'Semua Saluran'
+  },
+  {
+    type: 'triselect',
+    key: 'shopName',
+    label: 'Nama Toko / Sales',
+    options: shopOptions.value,
+    optionLabel: 'label',
+    trackBy: 'id',
+    placeholder: 'Semua Toko / Sales'
+  }
 ])
 
 const fetchStatistics = async () => {
@@ -153,7 +190,7 @@ onMounted(async () => {
     const res = await api.get('/sales-channels?activeOnly=true')
     if (res.data?.success) {
       const channels = res.data.data || []
-      shopOptions.value = channels.map((ch) => ({ id: ch.name, label: `${ch.name} (${ch.platform})` }))
+      shopOptions.value = channels.map(ch => ({ id: ch.name, label: `${ch.name} (${ch.platform})` }))
     }
   } catch {
     /* silently fail, dropdown stays with 'All' */
@@ -165,12 +202,8 @@ const applyFilters = () => fetchStatistics()
 const labelColor = computed(() => themeColors.value.text)
 
 // === SUMMARY TAB ===
-const totalRevenueOverall = computed(() =>
-  summaryData.value.reduce((a, c) => a + c.total_revenue, 0),
-)
-const totalItemsOverall = computed(() =>
-  summaryData.value.reduce((a, c) => a + c.total_items_sold, 0),
-)
+const totalRevenueOverall = computed(() => summaryData.value.reduce((a, c) => a + c.total_revenue, 0))
+const totalItemsOverall = computed(() => summaryData.value.reduce((a, c) => a + c.total_items_sold, 0))
 const totalOrdersOverall = computed(() => summaryData.value.reduce((a, c) => a + c.total_orders, 0))
 
 const getPercentage = (val, total) => {
@@ -178,17 +211,17 @@ const getPercentage = (val, total) => {
   return ((Number(val) / total) * 100).toFixed(1)
 }
 
-const pieSeries = computed(() => summaryData.value.map((s) => s.total_revenue))
+const pieSeries = computed(() => summaryData.value.map(s => s.total_revenue))
 const pieOptions = computed(() => ({
   chart: { type: 'pie', background: 'transparent' },
-  labels: summaryData.value.map((s) => `${s.shop_name} (${s.source})`),
+  labels: summaryData.value.map(s => `${s.shop_name} (${s.source})`),
   theme: { mode: isDarkTheme.value ? 'dark' : 'light' },
   dataLabels: {
     enabled: true,
     style: {
       fontSize: '11px',
       fontWeight: 'bold',
-      colors: isDarkTheme.value ? ['#ffffff'] : ['#000000'],
+      colors: isDarkTheme.value ? ['#ffffff'] : ['#000000']
     },
     dropShadow: { enabled: false },
     background: {
@@ -196,66 +229,66 @@ const pieOptions = computed(() => ({
       foreColor: isDarkTheme.value ? '#000000' : '#ffffff',
       padding: 5,
       borderRadius: 2,
-      opacity: 0.8,
+      opacity: 0.8
     },
     formatter: (val, opts) => {
       const name = opts.w.globals.labels[opts.seriesIndex]
       return name.length > 18 ? `${val.toFixed(1)}%` : `${name}\n${val.toFixed(1)}%`
-    },
+    }
   },
   legend: {
     position: 'bottom',
     fontSize: '12px',
     labels: { colors: labelColor.value },
-    itemMargin: { horizontal: 8, vertical: 4 },
+    itemMargin: { horizontal: 8, vertical: 4 }
   },
   stroke: { show: true, width: 2, colors: isDarkTheme.value ? ['#1e1e1e'] : ['#ffffff'] },
   tooltip: {
-    y: { formatter: (val) => formatCurrency(val) },
+    y: { formatter: val => formatCurrency(val) }
   },
   responsive: [
     {
       breakpoint: 640,
       options: {
         legend: { position: 'bottom', fontSize: '10px' },
-        dataLabels: { style: { fontSize: '9px' } },
-      },
-    },
-  ],
+        dataLabels: { style: { fontSize: '9px' } }
+      }
+    }
+  ]
 }))
 
 // === TREND TAB ===
 const trendSeries = computed(() => [
-  { name: 'Omset (Rp)', type: 'area', data: dailyTrendData.value.map((d) => d.totalRevenue) },
-  { name: 'Qty Terjual', type: 'line', data: dailyTrendData.value.map((d) => d.totalItemsSold) },
+  { name: 'Omset (Rp)', type: 'area', data: dailyTrendData.value.map(d => d.totalRevenue) },
+  { name: 'Qty Terjual', type: 'line', data: dailyTrendData.value.map(d => d.totalItemsSold) }
 ])
 const trendOptions = computed(() => ({
   chart: { background: 'transparent', toolbar: { show: false }, stacked: false },
   theme: { mode: isDarkTheme.value ? 'dark' : 'light' },
   xaxis: {
-    categories: dailyTrendData.value.map((d) => d.date),
-    labels: { style: { colors: labelColor.value }, rotate: -45 },
+    categories: dailyTrendData.value.map(d => d.date),
+    labels: { style: { colors: labelColor.value }, rotate: -45 }
   },
   yaxis: [
     {
       title: { text: 'Omset (Rp)', style: { color: labelColor.value } },
-      labels: { style: { colors: labelColor.value }, formatter: (v) => formatCurrency(v) },
+      labels: { style: { colors: labelColor.value }, formatter: v => formatCurrency(v) }
     },
     {
       opposite: true,
       title: { text: 'Qty', style: { color: labelColor.value } },
-      labels: { style: { colors: labelColor.value } },
-    },
+      labels: { style: { colors: labelColor.value } }
+    }
   ],
   stroke: { width: [2, 2], curve: 'smooth' },
   fill: { type: ['gradient', 'solid'], opacity: [0.3, 1] },
   legend: { labels: { colors: labelColor.value } },
   tooltip: { shared: true, intersect: false },
-  grid: { borderColor: isDarkTheme.value ? '#333' : '#eee' },
+  grid: { borderColor: isDarkTheme.value ? '#333' : '#eee' }
 }))
 
 // === SOURCE BADGE ===
-const sourceBadgeClass = (source) => {
+const sourceBadgeClass = source => {
   if (source === 'Shopee') return 'bg-[#ee4d2d]/10 text-[#ee4d2d]'
   if (source === 'Tokopedia') return 'bg-[#00AA5B]/10 text-[#00AA5B]'
   return 'bg-secondary/20 text-text/70'
@@ -268,56 +301,53 @@ const compMetrics = computed(() => [
     current: comparisonData.value.current?.totalRevenue ?? 0,
     previous: comparisonData.value.previous?.totalRevenue ?? 0,
     delta: comparisonData.value.delta?.revenue ?? 0,
-    format: 'currency',
+    format: 'currency'
   },
   {
     label: 'Total Order',
     current: comparisonData.value.current?.totalOrders ?? 0,
     previous: comparisonData.value.previous?.totalOrders ?? 0,
     delta: comparisonData.value.delta?.orders ?? 0,
-    format: 'number',
+    format: 'number'
   },
   {
     label: 'Qty Terjual',
     current: comparisonData.value.current?.totalItemsSold ?? 0,
     previous: comparisonData.value.previous?.totalItemsSold ?? 0,
     delta: comparisonData.value.delta?.items ?? 0,
-    format: 'number',
-  },
+    format: 'number'
+  }
 ])
 
 const compBarSeries = computed(() => [
-  { name: 'Periode Ini', data: compMetrics.value.map((m) => m.current) },
-  { name: 'Periode Sebelumnya', data: compMetrics.value.map((m) => m.previous) },
+  { name: 'Periode Ini', data: compMetrics.value.map(m => m.current) },
+  { name: 'Periode Sebelumnya', data: compMetrics.value.map(m => m.previous) }
 ])
 const compBarOptions = computed(() => ({
   chart: { type: 'bar', background: 'transparent', toolbar: { show: false } },
   theme: { mode: isDarkTheme.value ? 'dark' : 'light' },
   plotOptions: { bar: { horizontal: false, columnWidth: '55%', borderRadius: 4 } },
   xaxis: {
-    categories: compMetrics.value.map((m) => m.label),
-    labels: { style: { colors: labelColor.value } },
+    categories: compMetrics.value.map(m => m.label),
+    labels: { style: { colors: labelColor.value } }
   },
-  yaxis: { labels: { style: { colors: labelColor.value }, formatter: (v) => formatCurrency(v) } },
+  yaxis: { labels: { style: { colors: labelColor.value }, formatter: v => formatCurrency(v) } },
   legend: { labels: { colors: labelColor.value } },
   dataLabels: { enabled: false },
   grid: { borderColor: isDarkTheme.value ? '#333' : '#eee' },
-  tooltip: { y: { formatter: (v) => formatCurrency(v) } },
+  tooltip: { y: { formatter: v => formatCurrency(v) } }
 }))
 
 const periodLabel = computed(() => {
   const f = filterValues.value
   if (f.reportType === 'annual') return { current: `${f.year}`, previous: `${f.year - 1}` }
   if (f.reportType === 'monthly') {
-    const monthName =
-      availableMonths.find((m) => m.value === f.selectedMonth)?.label || f.selectedMonth
+    const monthName = availableMonths.find(m => m.value === f.selectedMonth)?.label || f.selectedMonth
     const prevDate = subMonths(new Date(`${f.year}-${f.selectedMonth}-02`), 1)
-    const prevMonthName = availableMonths.find(
-      (m) => m.value === ('0' + (prevDate.getMonth() + 1)).slice(-2),
-    )?.label
+    const prevMonthName = availableMonths.find(m => m.value === ('0' + (prevDate.getMonth() + 1)).slice(-2))?.label
     return {
       current: `${monthName} ${f.year}`,
-      previous: `${prevMonthName} ${prevDate.getFullYear()}`,
+      previous: `${prevMonthName} ${prevDate.getFullYear()}`
     }
   }
   return { current: `${f.startDate} s/d ${f.endDate}`, previous: 'Periode sebelumnya' }
@@ -328,9 +358,7 @@ const periodLabel = computed(() => {
   <div class="space-y-6">
     <div class="mb-6 border-b border-secondary/20 pb-4">
       <h3 class="text-lg font-bold text-text">Performa Toko & Saluran</h3>
-      <p class="text-sm text-text/50 mt-1">
-        Analitik penjualan, tren, dan kesehatan pemenuhan per toko.
-      </p>
+      <p class="text-sm text-text/50 mt-1">Analitik penjualan, tren, dan kesehatan pemenuhan per toko.</p>
     </div>
 
     <!-- Filter Controls -->
@@ -339,18 +367,20 @@ const periodLabel = computed(() => {
       :filters="mainFilters"
       :advancedFilters="advancedFilters"
       @change="applyFilters"
-      @clear="() => {
-        filterValues = {
-          reportType: 'monthly',
-          year: new Date().getFullYear(),
-          selectedMonth: ('0' + (new Date().getMonth() + 1)).slice(-2),
-          startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
-          endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
-          source: { include: [], exclude: [] },
-          shopName: { include: [], exclude: [] },
+      @clear="
+        () => {
+          filterValues = {
+            reportType: 'monthly',
+            year: new Date().getFullYear(),
+            selectedMonth: ('0' + (new Date().getMonth() + 1)).slice(-2),
+            startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+            endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+            source: { include: [], exclude: [] },
+            shopName: { include: [], exclude: [] }
+          }
+          applyFilters()
         }
-        applyFilters()
-      }"
+      "
     />
 
     <!-- Tabs -->
@@ -416,9 +446,7 @@ const periodLabel = computed(() => {
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
         <!-- pie Chart -->
-        <div
-          class="bg-background border border-secondary p-5 md:p-8 rounded-xl shadow-sm w-full lg:col-span-1"
-        >
+        <div class="bg-background border border-secondary p-5 md:p-8 rounded-xl shadow-sm w-full lg:col-span-1">
           <h4 class="font-bold text-text text-lg mb-2">Distribusi Omset</h4>
           <p class="text-xs md:text-sm text-text/50 mb-6">Pangsa omset per toko.</p>
           <div class="w-full flex justify-center">
@@ -434,12 +462,8 @@ const periodLabel = computed(() => {
         </div>
 
         <!-- Summary Table -->
-        <div
-          class="bg-background border border-secondary rounded-xl overflow-hidden shadow-sm lg:col-span-2"
-        >
-          <div
-            class="p-4 border-b border-secondary/20 flex justify-between items-center bg-secondary/5"
-          >
+        <div class="bg-background border border-secondary rounded-xl overflow-hidden shadow-sm lg:col-span-2">
+          <div class="p-4 border-b border-secondary/20 flex justify-between items-center bg-secondary/5">
             <h4 class="font-bold text-text text-sm uppercase px-2">Peringkat Toko</h4>
           </div>
           <div class="overflow-auto max-h-[450px] custom-scrollbar">
@@ -468,11 +492,9 @@ const periodLabel = computed(() => {
                     {{ item.shop_name }}
                   </td>
                   <td class="px-6 py-4 text-center">
-                    <span
-                      class="px-2 py-1 rounded-md text-xs font-bold"
-                      :class="sourceBadgeClass(item.source)"
-                      >{{ item.source }}</span
-                    >
+                    <span class="px-2 py-1 rounded-md text-xs font-bold" :class="sourceBadgeClass(item.source)">{{
+                      item.source
+                    }}</span>
                   </td>
                   <td class="px-6 py-4 text-right font-mono">
                     {{ formatNumber(item.total_orders) }}
@@ -492,7 +514,7 @@ const periodLabel = computed(() => {
                         <div
                           class="h-full bg-primary"
                           :style="{
-                            width: `${getPercentage(item.total_revenue, totalRevenueOverall)}%`,
+                            width: `${getPercentage(item.total_revenue, totalRevenueOverall)}%`
                           }"
                         ></div>
                       </div>
@@ -515,14 +537,9 @@ const periodLabel = computed(() => {
         <font-awesome-icon icon="fa-solid fa-chart-line" class="text-3xl text-text/20 mb-3" />
         <p class="text-text/50 text-sm">Tidak ada data tren untuk rentang waktu ini.</p>
       </div>
-      <div
-        v-else
-        class="bg-background border border-secondary p-5 md:p-8 rounded-xl shadow-sm animate-fade-in"
-      >
+      <div v-else class="bg-background border border-secondary p-5 md:p-8 rounded-xl shadow-sm animate-fade-in">
         <h4 class="font-bold text-text text-lg mb-1">Tren Penjualan Harian</h4>
-        <p class="text-xs text-text/50 mb-6">
-          Pergerakan omset dan kuantitas terjual dari hari ke hari.
-        </p>
+        <p class="text-xs text-text/50 mb-6">Pergerakan omset dan kuantitas terjual dari hari ke hari.</p>
         <VueApexCharts v-if="!isThemeChanging" height="380" type="line" :options="trendOptions" :series="trendSeries" />
       </div>
     </template>
@@ -536,14 +553,9 @@ const periodLabel = computed(() => {
         <font-awesome-icon icon="fa-solid fa-ranking-star" class="text-3xl text-text/20 mb-3" />
         <p class="text-text/50 text-sm">Tidak ada data produk terlaris untuk rentang waktu ini.</p>
       </div>
-      <div
-        v-else
-        class="bg-background border border-secondary rounded-xl overflow-hidden shadow-sm animate-fade-in"
-      >
+      <div v-else class="bg-background border border-secondary rounded-xl overflow-hidden shadow-sm animate-fade-in">
         <div class="p-4 border-b border-secondary/20 bg-secondary/5">
-          <h4 class="font-bold text-text text-sm uppercase px-2">
-            Top 10 Produk Terlaris (Semua Toko)
-          </h4>
+          <h4 class="font-bold text-text text-sm uppercase px-2">Top 10 Produk Terlaris (Semua Toko)</h4>
         </div>
         <div class="overflow-auto max-h-[500px] custom-scrollbar">
           <table class="w-full text-left text-sm whitespace-nowrap">
@@ -567,26 +579,19 @@ const periodLabel = computed(() => {
                 <td class="px-6 py-4">
                   <span
                     class="w-6 h-6 inline-flex items-center justify-center rounded-full text-xs font-bold"
-                    :class="
-                      index < 3 ? 'bg-primary/10 text-primary' : 'bg-secondary/20 text-text/50'
-                    "
+                    :class="index < 3 ? 'bg-primary/10 text-primary' : 'bg-secondary/20 text-text/50'"
                     >{{ index + 1 }}</span
                   >
                 </td>
                 <td class="px-6 py-4 font-mono text-xs text-text/70">{{ item.sku }}</td>
-                <td
-                  class="px-6 py-4 font-medium text-text max-w-[200px] truncate"
-                  :title="item.productName"
-                >
+                <td class="px-6 py-4 font-medium text-text max-w-[200px] truncate" :title="item.productName">
                   {{ item.productName }}
                 </td>
                 <td class="px-6 py-4 text-text/70 text-xs">{{ item.shopName }}</td>
                 <td class="px-6 py-4 text-center">
-                  <span
-                    class="px-2 py-1 rounded-md text-xs font-bold"
-                    :class="sourceBadgeClass(item.source)"
-                    >{{ item.source }}</span
-                  >
+                  <span class="px-2 py-1 rounded-md text-xs font-bold" :class="sourceBadgeClass(item.source)">{{
+                    item.source
+                  }}</span>
                 </td>
                 <td class="px-6 py-4 text-right font-mono font-bold">
                   {{ formatNumber(item.totalSold) }}
@@ -619,15 +624,11 @@ const periodLabel = computed(() => {
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-3">
               <h4 class="font-bold text-text">{{ item.shopName }}</h4>
-              <span
-                class="px-2 py-0.5 rounded-md text-xs font-bold"
-                :class="sourceBadgeClass(item.source)"
-                >{{ item.source }}</span
-              >
+              <span class="px-2 py-0.5 rounded-md text-xs font-bold" :class="sourceBadgeClass(item.source)">{{
+                item.source
+              }}</span>
             </div>
-            <span class="text-xs text-text/50"
-              >{{ formatNumber(item.totalOrders) }} order total</span
-            >
+            <span class="text-xs text-text/50">{{ formatNumber(item.totalOrders) }} order total</span>
           </div>
           <!-- Rate Bars -->
           <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -640,9 +641,7 @@ const periodLabel = computed(() => {
                   :style="{ width: `${item.completionRate}%` }"
                 ></div>
               </div>
-              <p class="text-[10px] text-text/40 mt-1">
-                {{ formatNumber(item.completedOrders) }} order
-              </p>
+              <p class="text-[10px] text-text/40 mt-1">{{ formatNumber(item.completedOrders) }} order</p>
             </div>
             <div class="p-3 bg-secondary/5 rounded-lg">
               <p class="text-[10px] uppercase font-bold text-text/40 mb-1">Dibatalkan</p>
@@ -653,9 +652,7 @@ const periodLabel = computed(() => {
                   :style="{ width: `${item.cancellationRate}%` }"
                 ></div>
               </div>
-              <p class="text-[10px] text-text/40 mt-1">
-                {{ formatNumber(item.cancelledOrders) }} order
-              </p>
+              <p class="text-[10px] text-text/40 mt-1">{{ formatNumber(item.cancelledOrders) }} order</p>
             </div>
             <div class="p-3 bg-secondary/5 rounded-lg">
               <p class="text-[10px] uppercase font-bold text-text/40 mb-1">Diretur</p>
@@ -666,18 +663,14 @@ const periodLabel = computed(() => {
                   :style="{ width: `${item.returnRate}%` }"
                 ></div>
               </div>
-              <p class="text-[10px] text-text/40 mt-1">
-                {{ formatNumber(item.returnedOrders) }} order
-              </p>
+              <p class="text-[10px] text-text/40 mt-1">{{ formatNumber(item.returnedOrders) }} order</p>
             </div>
             <div class="p-3 bg-secondary/5 rounded-lg">
               <p class="text-[10px] uppercase font-bold text-text/40 mb-1">Pending</p>
               <p class="text-lg font-bold text-text/60">
                 {{
                   item.totalOrders > 0
-                    ? (100 - item.completionRate - item.cancellationRate - item.returnRate).toFixed(
-                        1,
-                      )
+                    ? (100 - item.completionRate - item.cancellationRate - item.returnRate).toFixed(1)
                     : 0
                 }}%
               </p>
@@ -685,13 +678,11 @@ const periodLabel = computed(() => {
                 <div
                   class="h-full bg-text/30 rounded-full transition-all"
                   :style="{
-                    width: `${item.totalOrders > 0 ? 100 - item.completionRate - item.cancellationRate - item.returnRate : 0}%`,
+                    width: `${item.totalOrders > 0 ? 100 - item.completionRate - item.cancellationRate - item.returnRate : 0}%`
                   }"
                 ></div>
               </div>
-              <p class="text-[10px] text-text/40 mt-1">
-                {{ formatNumber(item.pendingOrders) }} order
-              </p>
+              <p class="text-[10px] text-text/40 mt-1">{{ formatNumber(item.pendingOrders) }} order</p>
             </div>
           </div>
         </div>
@@ -703,13 +694,9 @@ const periodLabel = computed(() => {
       <div class="space-y-6 animate-fade-in">
         <!-- Period Labels -->
         <div class="flex items-center justify-center gap-4 text-sm">
-          <span class="px-4 py-2 bg-primary/10 text-primary font-bold rounded-lg">{{
-            periodLabel.current
-          }}</span>
+          <span class="px-4 py-2 bg-primary/10 text-primary font-bold rounded-lg">{{ periodLabel.current }}</span>
           <font-awesome-icon icon="fa-solid fa-right-left" class="text-text/30" />
-          <span class="px-4 py-2 bg-secondary/20 text-text/70 font-bold rounded-lg">{{
-            periodLabel.previous
-          }}</span>
+          <span class="px-4 py-2 bg-secondary/20 text-text/70 font-bold rounded-lg">{{ periodLabel.previous }}</span>
         </div>
 
         <!-- Delta Cards -->
@@ -721,11 +708,7 @@ const periodLabel = computed(() => {
           >
             <p class="text-xs font-semibold text-text/50 uppercase mb-2">{{ metric.label }}</p>
             <p class="text-2xl font-bold text-text">
-              {{
-                metric.format === 'currency'
-                  ? formatCurrency(metric.current)
-                  : formatNumber(metric.current)
-              }}
+              {{ metric.format === 'currency' ? formatCurrency(metric.current) : formatNumber(metric.current) }}
             </p>
             <div class="flex items-center gap-2 mt-2">
               <span
@@ -754,11 +737,7 @@ const periodLabel = computed(() => {
             </div>
             <p class="text-xs text-text/40 mt-1">
               Sebelumnya:
-              {{
-                metric.format === 'currency'
-                  ? formatCurrency(metric.previous)
-                  : formatNumber(metric.previous)
-              }}
+              {{ metric.format === 'currency' ? formatCurrency(metric.previous) : formatNumber(metric.previous) }}
             </p>
           </div>
         </div>
@@ -766,9 +745,7 @@ const periodLabel = computed(() => {
         <!-- Grouped Bar Chart -->
         <div class="bg-background border border-secondary p-5 md:p-8 rounded-xl shadow-sm">
           <h4 class="font-bold text-text text-lg mb-1">Grafik Perbandingan</h4>
-          <p class="text-xs text-text/50 mb-6">
-            {{ periodLabel.current }} vs {{ periodLabel.previous }}
-          </p>
+          <p class="text-xs text-text/50 mb-6">{{ periodLabel.current }} vs {{ periodLabel.previous }}</p>
           <VueApexCharts
             v-if="!isThemeChanging"
             height="350"

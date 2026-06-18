@@ -7,6 +7,7 @@ import QRCode from 'qrcode'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import MediaPickerModal from '@/components/shared/MediaPickerModal.vue'
 import { resolveUrl } from '@/composables/useImageUrl'
+import api from '@/api/axios'
 
 const props = defineProps({
   show: Boolean,
@@ -1244,28 +1245,25 @@ const saveTemplate = async () => {
     // Put it back
     if (paperBg) fabricCanvas.insertAt(0, paperBg)
 
-    let url = '/api/sticker-templates'
+    let url = '/sticker-templates'
     let method = 'POST'
 
     if (props.initialTemplate && props.initialTemplate.id) {
-      url = `/api/sticker-templates/${props.initialTemplate.id}`
+      url = `/sticker-templates/${props.initialTemplate.id}`
       method = 'PUT'
     }
 
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify({
+    const response = await api({
+      method: method.toLowerCase(),
+      url,
+      data: {
         name: templateName.value,
         paper_size: `${paperWidth.value}x${paperHeight.value}`,
         config_json: designData
-      })
+      }
     })
 
-    const result = await response.json()
+    const result = response.data
     if (result.success) {
       emit('saved', { id: result.data.id, name: templateName.value })
       emit('close')

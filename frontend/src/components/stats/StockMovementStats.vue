@@ -55,8 +55,9 @@ const stockStatusOptions = [
 ]
 
 const movementOptions = [
-  { id: 'active', label: 'Satu / Lebih Transaksi' },
-  { id: 'dead', label: 'Dead Stock (Tidak ada transaksi)' }
+  { value: 'all', label: 'Semua', icon: 'fa-solid fa-list' },
+  { value: 'active', label: 'Aktif', icon: 'fa-solid fa-bolt' },
+  { value: 'dead', label: 'Dead Stock', icon: 'fa-solid fa-skull' }
 ]
 
 const chartMaxCapOptions = [
@@ -95,14 +96,10 @@ const advancedFilters = computed(() => [
     placeholder: 'Semua Status'
   },
   {
-    type: 'select',
+    type: 'segmented',
     key: 'movement',
     label: 'Aktivitas Transaksi',
-    options: movementOptions,
-    placeholder: 'Semua Transaksi',
-    clearable: true,
-    clearValue: 'all',
-    searchable: false
+    options: movementOptions
   },
   {
     type: 'triselect',

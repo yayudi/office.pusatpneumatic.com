@@ -527,21 +527,35 @@ export const getAllActiveProducts = async (connection) => {
  * @param {number|string} locationId
  * @returns {Promise<any>}
  */
-export const searchProducts = async (connection, searchTerm, locationId) => {
-  let query, queryParams;
+export const searchProducts = async (connection, searchTerm, locationId, page = 1, limit = 20) => {
+  let query, queryParams = [];
+  const offset = (page - 1) * limit;
+  
+  const keywords = (searchTerm || "").split(" ").filter((k) => k.length > 0);
+  const keywordClauses = keywords.map(() => "(LOWER(p.name) LIKE ? OR LOWER(p.sku) LIKE ?)");
+  const keywordSql = keywordClauses.length > 0 ? `AND (${keywordClauses.join(" AND ")})` : "";
+  
+  keywords.forEach((keyword) => {
+    queryParams.push(`%${keyword}%`, `%${keyword}%`);
+  });
+
   if (locationId && locationId !== "null" && locationId !== "undefined" && locationId !== "") {
     query = `SELECT p.id, p.sku, p.name, p.price, p.weight, sl.quantity AS current_stock
               FROM products p JOIN stock_locations sl ON p.id = sl.product_id
-              WHERE sl.location_id = ? AND (LOWER(p.name) LIKE ? OR LOWER(p.sku) LIKE ?)
-              AND sl.quantity != 0 LIMIT 10`;
-    queryParams = [locationId, searchTerm, searchTerm];
+              WHERE sl.location_id = ? ${keywordSql}
+              AND sl.quantity != 0 LIMIT ? OFFSET ?`;
+    queryParams = [locationId, ...queryParams, limit, offset];
   } else {
     query = `SELECT p.id, p.sku, p.name, p.price, p.weight FROM products p
-              WHERE (LOWER(p.name) LIKE ? OR LOWER(p.sku) LIKE ?) AND p.is_active = 1 LIMIT 10`;
-    queryParams = [searchTerm, searchTerm];
+              WHERE p.is_active = 1 ${keywordSql} LIMIT ? OFFSET ?`;
+    queryParams.push(limit, offset);
   }
   const [results] = await connection.query(query, queryParams);
-  return results;
+  
+  return {
+    data: results,
+    nextCursor: results.length === limit ? page + 1 : null
+  };
 };
 
 /**

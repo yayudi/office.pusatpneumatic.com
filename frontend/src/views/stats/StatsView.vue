@@ -5,8 +5,8 @@ import { fetchKpiSummary, requestExportStock, getUserExportJobs } from '@/api/he
 import { useMasterDataStore } from '@/stores/masterData'
 import { useToast } from '@/composables/useToast.js'
 import SearchInput from '@/components/ui/SearchInput.vue'
-import BaseSelect from '@/components/ui/BaseSelect.vue'
 import TriStateSelect from '@/components/ui/TriStateSelect.vue'
+import SegmentedControl from '@/components/ui/SegmentedControl.vue'
 import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 import { formatNumber, formatCurrency } from '@/utils/formatters.js'
@@ -38,8 +38,8 @@ const selectedFilters = ref({
   searchQuery: '',
   building: { include: [], exclude: [] },
   purpose: { include: [], exclude: [] },
-  isPackage: '',
-  stockStatus: ''
+  isPackage: 'all',
+  stockStatus: 'all'
 })
 const reportFilters = ref({
   allBuildings: [],
@@ -160,13 +160,15 @@ const purposeOptions = computed(() => {
 })
 
 const typeOptions = [
-  { id: '0', label: 'Tunggal' },
-  { id: '1', label: 'Paket' }
+  { value: 'all', label: 'Semua', icon: 'fa-solid fa-layer-group' },
+  { value: '0', label: 'Tunggal', icon: 'fa-solid fa-box' },
+  { value: '1', label: 'Paket', icon: 'fa-solid fa-box-open' }
 ]
 
 const stockStatusOptions = [
-  { id: 'positive', label: 'Positif' },
-  { id: 'negative', label: 'Minus' }
+  { value: 'all', label: 'Semua', icon: 'fa-solid fa-boxes-stacked' },
+  { value: 'positive', label: 'Positif', icon: 'fa-solid fa-plus' },
+  { value: 'negative', label: 'Minus', icon: 'fa-solid fa-minus' }
 ]
 
 const availableBuildings = computed(() => {
@@ -196,7 +198,7 @@ async function handleRequestExport() {
     searchQuery: selectedFilters.value.searchQuery || null,
     building: selectedFilters.value.building,
     purpose: selectedFilters.value.purpose,
-    isPackage: selectedFilters.value.isPackage,
+    isPackage: selectedFilters.value.isPackage === 'all' ? '' : selectedFilters.value.isPackage,
     stockStatus: selectedFilters.value.stockStatus || 'all',
     exportType: 'STOCK_REPORT'
   }
@@ -310,7 +312,7 @@ function formatJobType(type) {
       </header>
 
       <!-- Page Content -->
-      <main class="flex-1 p-4 lg:p-6 overflow-x-hidden w-full">
+      <main class="flex-1 p-4 lg:p-6 overflow-x-hidden w-full custom-scrollbar">
         <div class="max-w-7xl mx-auto">
           <div
             class="bg-background rounded-xl shadow-md border border-secondary/20 p-6 min-h-[calc(50vh+20rem)] relative overflow-visible animate-fade-in"
@@ -435,32 +437,19 @@ function formatJobType(type) {
                             />
                           </div>
 
-                          <div class="grid grid-cols-2 gap-3">
-                            <div>
-                              <label class="label-input">Tipe</label>
-                              <BaseSelect
-                                v-model="selectedFilters.isPackage"
-                                :options="typeOptions"
-                                emitValue
-                                clearable
-                                clear-value="all"
-                                placeholder="Semua Tipe"
-                                :searchable="false"
-                              />
-                            </div>
-                            <div>
-                              <label class="label-input">Status Stok</label>
-                              <BaseSelect
-                                v-model="selectedFilters.stockStatus"
-                                :options="stockStatusOptions"
-                                emitValue
-                                clearable
-                                clear-value="all"
-                                placeholder="Semua Status"
-                                :searchable="false"
-                              />
-                            </div>
-                          </div>
+                          <SegmentedControl
+                            label="Tipe"
+                            label-variant="compact"
+                            v-model="selectedFilters.isPackage"
+                            :options="typeOptions"
+                          />
+
+                          <SegmentedControl
+                            label="Status Stok"
+                            label-variant="compact"
+                            v-model="selectedFilters.stockStatus"
+                            :options="stockStatusOptions"
+                          />
 
                           <button
                             @click="handleRequestExport"
@@ -524,9 +513,18 @@ function formatJobType(type) {
                         </thead>
                         <TransitionGroup tag="tbody" name="list" class="divide-y divide-secondary/5 relative">
                           <template v-if="isHistoryLoading && jobHistory.length === 0">
-                            <tr v-for="n in 3" :key="`skeleton-${n}`" class="border-b border-secondary/20 animate-pulse">
+                            <tr
+                              v-for="n in 3"
+                              :key="`skeleton-${n}`"
+                              class="border-b border-secondary/20 animate-pulse"
+                            >
                               <td v-for="i in 5" :key="i" class="px-6 py-4">
-                                <BaseSkeleton :shape="i === 5 ? 'rect' : 'text'" :className="i === 1 ? 'w-8 h-4 mx-auto' : i === 5 ? 'w-16 h-6 mx-auto rounded-md' : 'w-full h-4'" />
+                                <BaseSkeleton
+                                  :shape="i === 5 ? 'rect' : 'text'"
+                                  :className="
+                                    i === 1 ? 'w-8 h-4 mx-auto' : i === 5 ? 'w-16 h-6 mx-auto rounded-md' : 'w-full h-4'
+                                  "
+                                />
                               </td>
                             </tr>
                           </template>

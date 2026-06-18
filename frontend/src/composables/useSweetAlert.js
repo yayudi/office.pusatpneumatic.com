@@ -39,20 +39,28 @@ export const swalConfirm = async (title, text = '', confirmText = 'Ya (Enter)', 
 /**
  * Alert umum / Dialog pesan (Pengganti window.alert)
  * @param {string} title - Judul alert
- * @param {string} text - Pesan alert
+ * @param {string} content - Pesan alert (text atau html)
  * @param {'success'|'error'|'warning'|'info'|'question'} icon - Ikon alert
+ * @param {boolean} isHtml - Jika true, content akan di-render sebagai HTML
  * @returns {Promise<void>}
  */
-export const swalAlert = async (title, text = '', icon = 'info') => {
-  await Swal.fire({
+export const swalAlert = async (title, content = '', icon = 'info', isHtml = false) => {
+  const options = {
     title,
-    text,
     icon,
     confirmButtonText: 'Tutup',
     customClass: tailwindCustomClass,
     buttonsStyling: false,
     background: 'hsl(var(--color-background))'
-  })
+  }
+
+  if (isHtml) {
+    options.html = content
+  } else {
+    options.text = content
+  }
+
+  await Swal.fire(options)
 }
 
 /**

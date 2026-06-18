@@ -1,9 +1,8 @@
 <script setup>
-import { swalConfirm } from '@/composables/useSweetAlert'
+import { swalConfirm, swalAlert } from '@/composables/useSweetAlert'
 import { ref, computed, watch } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { useAuthStore } from '@/stores/auth.js'
-import { useInfiniteScroll } from '@/composables/useInfiniteScroll.js'
 import { useTaskGrouping } from '@/composables/useTaskGrouping.js'
 import {
   getPendingPickingItems,
@@ -16,12 +15,12 @@ import PickingFilterBar from '@/components/picking/PickingFilterBar.vue'
 import PickingListCard from '@/components/picking/PickingListCard.vue'
 import PickingListCardCompact from '@/components/picking/PickingListCardCompact.vue'
 import PickingListRow from '@/components/picking/PickingListRow.vue'
+import BasePagination from '@/components/ui/BasePagination.vue'
 import MasonryWall from '@yeger/vue-masonry-wall'
 import { useQuery } from '@tanstack/vue-query'
 
 const { toast } = useToast()
 const authStore = useAuthStore()
-
 // --- ACTIONS (API CALLS) ---
 const {
   isLoading: isLoadingPicking,
@@ -66,16 +65,6 @@ const selectionStats = computed(() => {
     skus: skuCount,
     invoiceIds: Array.from(uniqueInvoices)
   }
-})
-
-const hasSelectedBackorder = computed(() => {
-  for (const id of selectedItems.value) {
-    const item = itemsMap.value.get(id)
-    if (item && (item.status === 'BACKORDER' || !item.location_code)) {
-      return true
-    }
-  }
-  return false
 })
 
 const filterState = ref({
@@ -123,12 +112,39 @@ const shopOptions = computed(() => {
 // --- LOGIC: GROUPING ---
 const { groupedTasks } = useTaskGrouping(pendingItems, filterState)
 
-// --- INFINITE SCROLL ---
-const { displayedItems, hasMore, reset, loaderRef } = useInfiniteScroll(groupedTasks, {
-  step: 12
+// --- PAGINATION LOGIC ---
+const currentPage = ref(1)
+const itemsPerPage = ref(15)
+
+const paginationState = computed(() => ({
+  page: currentPage.value,
+  limit: itemsPerPage.value,
+  total: groupedTasks.value.length,
+  totalPages: Math.max(1, Math.ceil(groupedTasks.value.length / itemsPerPage.value))
+}))
+
+const displayedItems = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value
+  const end = start + itemsPerPage.value
+  return groupedTasks.value.slice(start, end)
 })
 
-watch(filterState, () => reset(), { deep: true })
+watch(
+  filterState,
+  () => {
+    currentPage.value = 1
+  },
+  { deep: true }
+)
+
+function handlePageChange(newPage) {
+  currentPage.value = newPage
+}
+
+function handleLimitChange(newLimit) {
+  itemsPerPage.value = newLimit
+  currentPage.value = 1
+}
 
 // --- LOGIC: STOCK VALIDATION ---
 const stockUsage = computed(() => {
@@ -174,10 +190,12 @@ async function canSelectItem(item) {
   return true
 }
 
+const isSubmitting = ref(false)
+
 async function handleCompleteSelectedItems() {
   if (selectedItems.value.size === 0) return
 
-  isLoadingPicking.value = true
+  isSubmitting.value = true
   const idsToComplete = Array.from(selectedItems.value)
 
   try {
@@ -212,16 +230,23 @@ async function handleCompleteSelectedItems() {
     const details = errData.errors || []
 
     if (details.length > 0) {
-      const maxToasts = Math.min(details.length, 10)
-      for (let i = 0; i < maxToasts; i++) {
-        setTimeout(() => toast(details[i], 'warning'), (i + 1) * 300)
-      }
-      if (details.length > 10) {
-        setTimeout(() => toast(`...dan ${details.length - 10} error lainnya.`, 'warning'), (maxToasts + 1) * 300)
-      }
+      const maxErrors = Math.min(details.length, 10)
+      const visibleErrors = details
+        .slice(0, maxErrors)
+        .map(d => `<li>${d}</li>`)
+        .join('')
+      const moreStr =
+        details.length > maxErrors
+          ? `<li class="font-bold pt-2 list-none">...dan ${details.length - maxErrors} error lainnya.</li>`
+          : ''
+      const htmlContent = `<ul class="text-left text-sm space-y-1 text-danger list-disc list-inside">${visibleErrors}${moreStr}</ul>`
+
+      await swalAlert(errData.message || 'Gagal Memproses Pesanan', htmlContent, 'error', true)
+    } else {
+      toast(errData.message || 'Terjadi kesalahan sistem.', 'error')
     }
   } finally {
-    isLoadingPicking.value = false
+    isSubmitting.value = false
   }
 }
 
@@ -377,92 +402,106 @@ defineExpose({
       <transition name="slide-up">
         <div
           v-if="pendingItems.length > 0"
-          class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[95%] md:w-fit max-w-[95vw] bg-secondary/95 border border-secondary/20 backdrop-blur-xl p-3 rounded-2xl shadow-2xl z-[200] flex items-center justify-between gap-3 ring-1 ring-black/5 overflow-x-auto no-scrollbar"
+          class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[98%] md:w-[85%] max-w-5xl bg-secondary/95 border border-secondary/20 backdrop-blur-xl p-3 rounded-2xl shadow-2xl z-[200] flex flex-col gap-3 ring-1 ring-black/5"
         >
-          <!-- Kontrol Seleksi -->
-          <div class="flex items-center gap-2">
-            <button
-              @click="handleSelectAll"
-              class="px-3 py-2 bg-secondary/50 hover:bg-primary/20 text-primary rounded-lg text-xs font-bold transition-colors border border-primary/20 hover:border-primary/50 flex items-center gap-1.5 active:scale-95"
-              title="Pilih Semua Item Tampil"
-            >
-              <font-awesome-icon icon="fa-solid fa-check-double" />
-              <span class="hidden sm:inline">Pilih Semua</span>
-            </button>
+          <!-- ROW 1: PAGINATION -->
+          <BasePagination
+            v-if="paginationState.totalPages > 1 || groupedTasks.length > 15"
+            :pagination="paginationState"
+            :limit-options="[15, 30, 60, 90]"
+            class="!bg-background/40 rounded-xl w-full border border-secondary/10"
+            @changePage="handlePageChange"
+            @update:limit="handleLimitChange"
+          />
 
-            <button
-              @click="handleUncheckAll"
-              :disabled="selectedItems.size === 0"
-              class="px-3 py-2 bg-secondary/50 hover:bg-danger/20 text-text/60 hover:text-danger rounded-lg text-xs font-bold transition-colors border border-secondary/30 hover:border-danger/50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 active:scale-95"
-              title="Reset Pilihan"
-            >
-              <font-awesome-icon icon="fa-solid fa-xmark" />
-              <span class="hidden sm:inline">Reset</span>
-            </button>
-          </div>
+          <!-- ROW 2: ACTIONS -->
+          <div class="flex flex-col md:flex-row items-center justify-between gap-3 overflow-x-auto no-scrollbar w-full">
+            <!-- Kontrol Seleksi -->
+            <div class="flex items-center justify-between md:justify-start w-full md:w-auto gap-2 shrink-0">
+              <button
+                @click="handleSelectAll"
+                class="px-3 py-2 bg-secondary/50 hover:bg-primary/20 text-primary rounded-lg text-xs font-bold transition-colors border border-primary/20 hover:border-primary/50 flex items-center gap-1.5 active:scale-95 flex-1 justify-center md:flex-none"
+                title="Pilih Semua Item Tampil"
+              >
+                <font-awesome-icon icon="fa-solid fa-check-double" />
+                <span class="hidden sm:inline">Pilih Semua</span>
+              </button>
 
-          <!--Info (Jika ada yang dipilih) -->
-          <div v-if="selectedItems.size > 0" class="flex items-center gap-3 px-2">
-            <div class="flex flex-col items-center leading-none min-w-[50px]">
-              <span class="font-black text-lg text-text">{{ selectionStats.invoices }}</span>
-              <span class="text-[9px] font-bold text-text/50 uppercase tracking-wider">Invoices</span>
+              <button
+                @click="handleUncheckAll"
+                :disabled="selectedItems.size === 0"
+                class="px-3 py-2 bg-secondary/50 hover:bg-danger/20 text-text/60 hover:text-danger rounded-lg text-xs font-bold transition-colors border border-secondary/30 hover:border-danger/50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 active:scale-95 flex-1 justify-center md:flex-none"
+                title="Reset Pilihan"
+              >
+                <font-awesome-icon icon="fa-solid fa-xmark" />
+                <span class="hidden sm:inline">Reset</span>
+              </button>
             </div>
-            <div class="w-px h-6 bg-secondary/20 rounded-full hidden sm:block"></div>
-            <div class="hidden sm:flex flex-col items-center leading-none min-w-[50px]">
-              <span class="font-black text-lg text-text">{{ selectionStats.skus }}</span>
-              <span class="text-[9px] font-bold text-text/50 uppercase tracking-wider">SKU</span>
+
+            <!--Info (Jika ada yang dipilih) -->
+            <div v-if="selectedItems.size > 0" class="flex items-center justify-center gap-3 px-2 w-full md:w-auto">
+              <div class="flex flex-col items-center leading-none min-w-[50px]">
+                <span class="font-black text-lg text-text">{{ selectionStats.invoices }}</span>
+                <span class="text-[9px] font-bold text-text/50 uppercase tracking-wider">Invoices</span>
+              </div>
+              <div class="w-px h-6 bg-secondary/20 rounded-full hidden sm:block"></div>
+              <div class="flex flex-col items-center leading-none min-w-[50px]">
+                <span class="font-black text-lg text-text">{{ selectionStats.skus }}</span>
+                <span class="text-[9px] font-bold text-text/50 uppercase tracking-wider">SKU</span>
+              </div>
             </div>
-          </div>
-          <div v-else class="text-xs text-text/30 italic px-1 hidden md:block">Belum ada pesanan dipilih</div>
+            <div v-else class="text-xs text-text/30 italic px-1 text-center w-full md:w-auto md:text-left">
+              Belum ada pesanan dipilih
+            </div>
 
-          <!-- Tombol Eksekusi -->
-          <div class="flex items-center gap-2 sm:flex-none">
-            <!-- Tombol Cek Stok Batch -->
-            <button
-              v-if="hasSelectedBackorder"
-              @click="handleRetryBatch"
-              class="flex-1 sm:flex-none flex items-center justify-center gap-2 text-warning/80 hover:bg-warning/10 hover:text-warning hover:border-warning/30 border border-warning/10 px-4 py-2.5 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              :disabled="isVoiding || isLoadingPicking || isRetryingBatch || selectedItems.size === 0"
-              title="Cek Ulang Stok untuk Pesanan Terpilih"
-            >
-              <font-awesome-icon
-                :icon="isRetryingBatch ? 'fa-solid fa-spinner' : 'fa-solid fa-rotate-right'"
-                :class="{ 'animate-spin': isRetryingBatch, 'text-warning': !isRetryingBatch }"
-              />
-              <span class="hidden sm:inline">Cek Stok</span>
-            </button>
-
-            <button
-              v-if="authStore.hasPermission('void-picking-list')"
-              @click="handleVoidSelectedItems"
-              class="w-full sm:w-auto px-4 py-2 sm:py-2.5 bg-danger/10 hover:bg-danger text-danger hover:text-white rounded-lg transition-all duration-200 font-medium text-xs sm:text-sm border border-danger/20 flex items-center justify-center gap-2"
-              :disabled="isVoiding || isLoadingPicking || isRetryingBatch || selectedItems.size === 0"
-            >
-              <span class="w-4 flex justify-center">
+            <!-- Tombol Eksekusi -->
+            <div class="flex items-center gap-2 w-full md:w-auto shrink-0 mt-2 md:mt-0">
+              <!-- Tombol Cek Stok Batch -->
+              <button
+                @click="handleRetryBatch"
+                class="flex-1 sm:flex-none flex items-center justify-center gap-2 text-warning/80 hover:bg-warning/10 hover:text-warning hover:border-warning/30 border border-warning/10 px-4 py-2.5 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                :disabled="isVoiding || isLoadingPicking || isRetryingBatch || selectedItems.size === 0"
+                title="Cek Ulang Stok untuk Pesanan Terpilih"
+              >
                 <font-awesome-icon
-                  :icon="isVoiding ? 'fa-solid fa-spinner' : 'fa-solid fa-ban'"
-                  :class="{ 'animate-spin': isVoiding }"
+                  :icon="isRetryingBatch ? 'fa-solid fa-spinner' : 'fa-solid fa-rotate-right'"
+                  :class="{ 'animate-spin': isRetryingBatch, 'text-warning': !isRetryingBatch }"
                 />
-              </span>
-              <span>{{ isVoiding ? 'Memproses...' : 'Void Batch' }}</span>
-            </button>
+                <span class="hidden sm:inline">Cek Stok</span>
+              </button>
 
-            <!-- Tombol Selesaikan -->
-            <button
-              @click="handleCompleteSelectedItems"
-              class="flex-1 sm:flex-none group relative overflow-hidden bg-primary hover:bg-primary/90 text-background px-4 sm:pl-6 sm:pr-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg hover:shadow-primary/30 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:bg-secondary disabled:text-text/50 disabled:shadow-none"
-              :disabled="isLoadingPicking || isVoiding || isRetryingBatch || selectedItems.size === 0"
-            >
-              <div
-                class="absolute inset-0 bg-background/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"
-              ></div>
-              <span class="relative">Selesaikan</span>
-              <font-awesome-icon
-                :icon="isLoadingPicking ? 'fa-solid fa-spinner' : 'fa-solid fa-arrow-right'"
-                :class="isLoadingPicking ? 'animate-spin' : 'group-hover:translate-x-1 transition-transform'"
-                class="relative"
-              />
-            </button>
+              <button
+                v-if="authStore.hasPermission('void-picking-list')"
+                @click="handleVoidSelectedItems"
+                class="flex-1 sm:flex-none group relative overflow-hidden bg-danger hover:bg-danger/90 text-background px-4 sm:pl-6 sm:pr-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg hover:shadow-primary/30 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:bg-secondary disabled:text-text/50 disabled:shadow-none"
+                :disabled="isVoiding || isLoadingPicking || isRetryingBatch || selectedItems.size === 0"
+              >
+                <span class="w-4 flex justify-center">
+                  <font-awesome-icon
+                    :icon="isVoiding ? 'fa-solid fa-spinner' : 'fa-solid fa-ban'"
+                    :class="{ 'animate-spin': isVoiding }"
+                  />
+                </span>
+                <span>{{ isVoiding ? 'Memproses...' : 'Void Batch' }}</span>
+              </button>
+
+              <!-- Tombol Selesaikan -->
+              <button
+                @click="handleCompleteSelectedItems"
+                class="flex-1 sm:flex-none group relative overflow-hidden bg-primary hover:bg-primary/90 text-background px-4 sm:pl-6 sm:pr-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg hover:shadow-primary/30 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:bg-secondary disabled:text-text/50 disabled:shadow-none"
+                :disabled="isLoadingPicking || isSubmitting || isVoiding || isRetryingBatch || selectedItems.size === 0"
+              >
+                <div
+                  class="absolute inset-0 bg-background/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"
+                ></div>
+                <span class="relative">Selesaikan</span>
+                <font-awesome-icon
+                  :icon="isSubmitting ? 'fa-solid fa-spinner' : 'fa-solid fa-arrow-right'"
+                  :class="isSubmitting ? 'animate-spin' : 'group-hover:translate-x-1 transition-transform'"
+                  class="relative"
+                />
+              </button>
+            </div>
           </div>
         </div>
       </transition>
@@ -490,7 +529,7 @@ defineExpose({
       </div>
 
       <!-- Main Content -->
-      <div v-else>
+      <div v-else class="pb-16">
         <MasonryWall
           v-if="filterState.viewMode === 'grid' || filterState.viewMode === 'compact'"
           :items="displayedItems"
@@ -525,13 +564,6 @@ defineExpose({
             @retry-backorder="handleRetryBackorder"
             mode="picking"
           />
-        </div>
-
-        <div ref="loaderRef" class="h-24 w-full flex justify-center items-center mt-6">
-          <div v-if="hasMore" class="flex flex-col items-center gap-2 text-text/50 animate-pulse">
-            <font-awesome-icon icon="fa-solid fa-circle-notch" class="animate-spin text-xl" />
-            <span class="text-xs">Memuat lebih banyak...</span>
-          </div>
         </div>
       </div>
     </div>

@@ -63,8 +63,9 @@ const stockStatusOptions = [
 ]
 
 const isPackageOptions = [
-  { id: '0', label: 'Tunggal (Part)' },
-  { id: '1', label: 'Paket Bundle' }
+  { value: '', label: 'Semua', icon: 'fa-solid fa-list' },
+  { value: '0', label: 'Tunggal', icon: 'fa-solid fa-box' },
+  { value: '1', label: 'Paket', icon: 'fa-solid fa-boxes-stacked' }
 ]
 
 const chartMaxCapOptions = [
@@ -110,14 +111,10 @@ const advancedFilters = computed(() => [
     placeholder: 'Semua Status'
   },
   {
-    type: 'select',
+    type: 'segmented',
     key: 'isPackage',
     label: 'Tipe Barang',
-    options: isPackageOptions,
-    placeholder: 'Semua Tipe',
-    clearable: true,
-    clearValue: '',
-    searchable: false
+    options: isPackageOptions
   },
   {
     type: 'triselect',

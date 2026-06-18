@@ -24,6 +24,8 @@ const isSubmitting = ref(false)
 
 // --- STATE FORM PENAMBAHAN ---
 const selectedProduct = ref(null)
+const isLocationLocked = ref(true)
+const productSearchRef = ref(null)
 
 const stockDetails = ref([]) // Stok untuk produk yang dipilih
 const isLoadingDetails = ref(false)
@@ -47,7 +49,8 @@ async function onProductSelect(product) {
   selectedProduct.value = product
   isLoadingDetails.value = true
   try {
-    stockDetails.value = await fetchProductStockDetails(product.id)
+    const details = await fetchProductStockDetails(product.id)
+    stockDetails.value = details.filter(item => item.quantity > 0)
   } catch (e) { console.error(e) } finally {
     isLoadingDetails.value = false
   }
@@ -136,8 +139,15 @@ function addItemToBatch() {
   selectedProduct.value = null
   stockDetails.value = []
   fromLocation.value = null
-  toLocation.value = null
+  if (!isLocationLocked.value) {
+    toLocation.value = null
+  }
   quantity.value = 1
+  
+  // Kembalikan fokus ke pencarian produk
+  if (productSearchRef.value) {
+    productSearchRef.value.focusInput()
+  }
 }
 
 async function copyFromSku() {
@@ -191,7 +201,20 @@ async function submitDetailedBatch() {
   }
 }
 
-defineExpose({ submitDetailedBatch })
+function hasData() {
+  return batchList.value.length > 0 || selectedProduct.value !== null
+}
+
+function resetData() {
+  batchList.value = []
+  selectedProduct.value = null
+  fromLocation.value = null
+  toLocation.value = null
+  quantity.value = 1
+  stockDetails.value = []
+}
+
+defineExpose({ submitDetailedBatch, hasData, resetData })
 </script>
 
 <template>
@@ -204,6 +227,7 @@ defineExpose({ submitDetailedBatch })
       <div class="md:col-span-2">
         <label class="block text-sm font-medium text-text/90 mb-2">Cari Produk</label>
         <ProductSearchSelector
+          ref="productSearchRef"
           v-model="selectedProduct"
           @update:model-value="onProductSelect"
           placeholder="Ketik SKU atau Nama..."
@@ -234,7 +258,18 @@ defineExpose({ submitDetailedBatch })
 
       <!-- Ke Lokasi -->
       <div>
-        <label class="block text-sm font-medium text-text/90 mb-2">Ke Lokasi</label>
+        <div class="flex justify-between items-center mb-2">
+          <label class="block text-sm font-medium text-text/90">Ke Lokasi</label>
+          <button 
+            @click="isLocationLocked = !isLocationLocked"
+            class="text-[10px] flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors"
+            :class="isLocationLocked ? 'bg-primary/10 text-primary font-bold' : 'text-text/40 hover:bg-secondary/20'"
+            :title="isLocationLocked ? 'Lokasi tujuan dikunci (tidak di-reset)' : 'Lokasi tujuan akan di-reset otomatis'"
+          >
+            <font-awesome-icon :icon="isLocationLocked ? 'fa-solid fa-lock' : 'fa-solid fa-lock-open'" />
+            <span>Kunci</span>
+          </button>
+        </div>
         <BaseSelect
           v-model="toLocation"
           :options="allLocations"
@@ -341,8 +376,8 @@ defineExpose({ submitDetailedBatch })
                   v-model="item.toLocationId"
                   class="p-1 border border-secondary/50 rounded bg-background text-sm font-mono max-w-[120px] outline-none focus:border-primary"
                 >
-                  <option v-for="loc in item.availableStocks" :key="loc.location_id" :value="loc.location_id">
-                    {{ loc.location_code }}
+                  <option v-for="loc in allLocations" :key="loc.id" :value="loc.id">
+                    {{ loc.code }}
                   </option>
                 </select>
               </td>

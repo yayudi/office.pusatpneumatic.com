@@ -1,7 +1,7 @@
 <!-- frontend\src\views\auth\LoginView.vue -->
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 import api from '@/api/axios.js'
 import { useToast } from '@/composables/useToast.js'
 import { useAuthStore } from '@/stores/auth.js'
@@ -13,7 +13,7 @@ const error = ref('')
 const loading = ref(false)
 
 const auth = useAuthStore()
-const router = useRouter()
+
 const route = useRoute()
 const { toast } = useToast()
 
@@ -34,7 +34,8 @@ async function login() {
     if (res.data.success && res.data.token) {
       auth.setToken(res.data.token)
       toast('Login berhasil', 'success')
-      router.push('/')
+      // Force hard navigation untuk memastikan PWA update terbaru diambil dari server
+      window.location.href = '/'
     }
   } catch (err) {
     console.error(err)

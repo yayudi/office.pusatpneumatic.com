@@ -16,8 +16,12 @@ import AppError from "../utils/AppError.js";
 export const searchProducts = async (req, res, next) => {
   try {
     const { q, locationId } = req.query;
-    const searchTerm = `%${q ? q.toLowerCase() : ""}%`;
-    const results = await productRepo.searchProducts(db, searchTerm, locationId);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    
+    // Pass raw string to repo for keyword-based search
+    const searchTerm = q ? q.toLowerCase().trim() : "";
+    const results = await productRepo.searchProducts(db, searchTerm, locationId, page, limit);
     res.json(results);
   } catch (error) {
     next(error);

@@ -5,6 +5,7 @@ import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import TriStateSelect from '@/components/ui/TriStateSelect.vue'
+import SegmentedControl from '@/components/ui/SegmentedControl.vue'
 
 const props = defineProps({
   title: {
@@ -68,7 +69,7 @@ function emitClear() {
     <template #filters>
       <slot name="prepend"></slot>
       <!-- Loop through filters -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
         <template v-for="(filter, index) in filters" :key="index">
           <div class="flex flex-col gap-1.5 w-full" :class="filter.class">
             <label
@@ -115,6 +116,14 @@ function emitClear() {
               :searchable="filter.searchable || false"
               @update:modelValue="emitChange"
               class="w-full"
+            />
+
+            <SegmentedControl
+              v-else-if="filter.type === 'segmented'"
+              v-model="localValues[filter.key]"
+              :options="filter.options"
+              @update:modelValue="emitChange"
+              class="w-full h-[42px]"
             />
 
             <!-- Text Input -->
@@ -221,6 +230,14 @@ function emitClear() {
               :searchable="filter.searchable || false"
               @update:modelValue="emitChange"
               class="w-full"
+            />
+
+            <SegmentedControl
+              v-else-if="filter.type === 'segmented'"
+              v-model="localValues[filter.key]"
+              :options="filter.options"
+              @update:modelValue="emitChange"
+              class="w-full h-[42px]"
             />
 
             <!-- Text Input -->
