@@ -7,6 +7,7 @@ import { useToast } from '@/composables/useToast.js'
 import { useAuthStore } from '@/stores/auth.js'
 
 // --- Variabel untuk Form Login ---
+const usernameInput = ref(null)
 const username = ref('')
 const password = ref('')
 const error = ref('')
@@ -68,6 +69,11 @@ onMounted(() => {
   }
 
   runTest()
+  
+  // Auto focus username input
+  if (usernameInput.value) {
+    usernameInput.value.focus()
+  }
 })
 </script>
 
@@ -106,6 +112,7 @@ onMounted(() => {
 
       <form @submit.prevent="login" class="space-y-4">
         <input
+          ref="usernameInput"
           v-model="username"
           type="text"
           placeholder="Username"

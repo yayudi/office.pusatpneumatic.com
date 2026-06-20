@@ -196,7 +196,7 @@ export const createProduct = async (req, res, next) => {
 // Memperbarui produk
 export const updateProduct = async (req, res, next) => {
   const { id } = req.params;
-  const { name, category_id, price, weight, is_package, is_active } = req.body;
+  const { sku, name, category_id, price, weight, is_package, is_active } = req.body;
 
   let components = req.body.components;
   if (typeof components === "string") {
@@ -225,8 +225,8 @@ export const updateProduct = async (req, res, next) => {
   try {
     await productService.updateProductService(
       id,
-      { name, category_id, price, weight, is_package, components, images },
-      userId,
+      { sku, name, category_id, price, weight, is_package, components, images },
+      userId
     );
 
     cache.flushAll();

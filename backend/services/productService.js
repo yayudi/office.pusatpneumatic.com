@@ -7,6 +7,36 @@ import fs from "fs/promises";
 import path from "path";
 import * as mediaService from "./mediaService.js";
 
+const stripExtension = (filename) => {
+  if (!filename) return '';
+  return filename.replace(/\.[^/.]+$/, '');
+};
+
+const isGenericTitle = (title) => {
+  if (!title || !title.trim()) return true;
+  const lower = title.trim().toLowerCase();
+  
+  // Jika hanya berupa angka (misal: "1", "1234", "01"), dianggap generik
+  if (/^\d+$/.test(lower)) return true;
+
+  const genericKeywords = [
+    'image', 'images', 'gambar', 'img', 'photo', 'pic', 'untitled',
+    'whatsapp', 'telegram', 'screenshot', 'capture', 'dcim', 'picture', 'snip', 'blob'
+  ];
+  return genericKeywords.some((kw) => lower.includes(kw));
+};
+
+const resolveProductImageTitle = (file, data, index) => {
+  let title = stripExtension(file.originalname);
+  if (isGenericTitle(title)) {
+    const skuPart = data.sku ? `[${data.sku}] ` : '';
+    const namePart = data.name || 'Produk';
+    title = `${skuPart}${namePart}`;
+    if (index > 0) title += ` - ${index + 1}`;
+  }
+  return title;
+};
+
 // Helper Internal: Mencatat Log Audit hanya jika ada perubahan
 const logChange = async (connection, productId, userId, action, field, oldVal, newVal) => {
   if (oldVal !== newVal) {
@@ -45,11 +75,12 @@ export const createProductService = async (data, userId) => {
     // Log Creation
     await logChange(connection, newId, userId, "CREATE", "all", null, data.sku);
 
-    // Log Image if exists
     if (data.images && data.images.length > 0) {
-      for (const img of data.images) {
+      for (let i = 0; i < data.images.length; i++) {
+        const img = data.images[i];
         try {
-          const mediaId = await mediaService.processMediaFile(img, img.originalname, [], userId, connection);
+          const finalTitle = resolveProductImageTitle(img, data, i);
+          const mediaId = await mediaService.processMediaFile(img, finalTitle, [], userId, connection);
           await productRepo.linkMedia(connection, newId, [mediaId]);
         } catch (err) {
           if (err.isDuplicate) {
@@ -125,11 +156,12 @@ export const updateProductService = async (id, data, userId) => {
       await logChange(connection, id, userId, "UPDATE", field.key, oldVal, newVal);
     }
 
-    // Handle Appending Images
     if (data.images && data.images.length > 0) {
-      for (const img of data.images) {
+      for (let i = 0; i < data.images.length; i++) {
+        const img = data.images[i];
         try {
-          const mediaId = await mediaService.processMediaFile(img, img.originalname, [], userId, connection);
+          const finalTitle = resolveProductImageTitle(img, data, i);
+          const mediaId = await mediaService.processMediaFile(img, finalTitle, [], userId, connection);
           await productRepo.linkMedia(connection, id, [mediaId]);
         } catch (err) {
           if (err.isDuplicate) {
@@ -220,9 +252,14 @@ export const uploadProductImagesService = async (id, images, userId) => {
   const connection = await db.getConnection();
   await connection.beginTransaction();
   try {
-    for (const img of images) {
+    for (let i = 0; i < images.length; i++) {
+      const img = images[i];
       try {
-        const mediaId = await mediaService.processMediaFile(img, img.originalname, [], userId, connection);
+        let finalTitle = stripExtension(img.originalname);
+        if (isGenericTitle(finalTitle)) {
+           finalTitle = `Gambar Produk - ${i + 1}`;
+        }
+        const mediaId = await mediaService.processMediaFile(img, finalTitle, [], userId, connection);
         await productRepo.linkMedia(connection, id, [mediaId]);
       } catch (err) {
         if (err.isDuplicate) {

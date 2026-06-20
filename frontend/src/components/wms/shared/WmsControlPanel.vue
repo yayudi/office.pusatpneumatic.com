@@ -49,6 +49,8 @@ const emit = defineEmits([
   'toggle-refetch'
 ])
 
+const searchInput = ref(null)
+
 function onSearchInput(e) {
   emit('update:searchValue', e.target.value)
   emit('search', e.target.value)
@@ -94,6 +96,11 @@ function closeColumnMenu(e) {
 
 onMounted(() => {
   document.addEventListener('click', closeColumnMenu)
+  
+  // Auto focus search input
+  if (searchInput.value) {
+    searchInput.value.focus()
+  }
 })
 
 onUnmounted(() => {
@@ -142,6 +149,7 @@ useEventListener(
         </span>
 
         <input
+          ref="searchInput"
           id="global-search-input"
           :value="searchValue"
           @input="onSearchInput"

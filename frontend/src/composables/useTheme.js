@@ -92,6 +92,12 @@ const updateThemeColors = () => {
         // Update options while charts are unmounted
         themeColors.value = newColors
         
+        // Update HTML meta theme-color
+        const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+        if (metaThemeColor) {
+          metaThemeColor.setAttribute('content', newColors.background)
+        }
+        
         // Remount charts
         setTimeout(() => {
           isThemeChanging.value = false
