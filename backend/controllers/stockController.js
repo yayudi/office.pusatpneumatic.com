@@ -258,17 +258,19 @@ export const batchTransfer = async (req, res, next) => {
 
 export const getBatchLogs = async (req, res, next) => {
   try {
-    const { startDate, endDate, productName, movementType, locationId, userId } = req.query;
+    const { startDate, endDate, productName, movementType, locationId, userId, page, limit } = req.query;
 
-    const logs = await stockService.getBatchLogsService({
+    const result = await stockService.getBatchLogsService({
       startDate,
       endDate,
       productName,
       movementType,
       locationId,
-      userId
+      userId,
+      page,
+      limit
     });
-    res.json({ success: true, data: logs });
+    res.json({ success: true, data: result.data, pagination: result.pagination });
   } catch (error) {
     next(error);
   }

@@ -8,6 +8,7 @@ import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import TriStateSelect from '@/components/ui/TriStateSelect.vue'
+import BasePagination from '@/components/ui/BasePagination.vue'
 import { useMobile } from '@/composables/useMobile.js'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
@@ -28,6 +29,13 @@ const logs = ref([])
 const locations = ref([])
 const loading = ref(false)
 const hasSearched = ref(false)
+
+const pagination = ref({
+  page: 1,
+  limit: 50,
+  total: 0,
+  totalPages: 1
+})
 
 // Options
 const movementTypeOptions = [
@@ -77,13 +85,28 @@ async function handleSearch() {
       user: searchUser.value
     }
 
-    logs.value = await fetchBatchLogs(startDate.value, endDate.value, filters)
+    const res = await fetchBatchLogs(startDate.value, endDate.value, filters, pagination.value.page, pagination.value.limit)
+    logs.value = res.data || []
+    if (res.pagination) {
+      pagination.value = { ...pagination.value, ...res.pagination }
+    }
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
     toast('Gagal memuat data log.', error.message)
   } finally {
     loading.value = false
   }
+}
+
+function onChangePage(page) {
+  pagination.value.page = page
+  handleSearch()
+}
+
+function onChangeLimit(limit) {
+  pagination.value.limit = limit
+  pagination.value.page = 1
+  handleSearch()
 }
 
 function handleReset() {
@@ -98,6 +121,8 @@ function handleReset() {
 
   logs.value = []
   hasSearched.value = false
+  pagination.value.page = 1
+  
   handleSearch()
 }
 </script>
@@ -121,7 +146,7 @@ function handleReset() {
                 type="text"
                 placeholder="Cari nama/kode..."
                 class="w-full h-[42px] pl-9 pr-3 bg-background border border-secondary rounded-lg text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all placeholder:text-text/30"
-                @keyup.enter="handleSearch"
+                @keyup.enter="() => { pagination.page = 1; handleSearch(); }"
               />
             </div>
           </div>
@@ -168,7 +193,7 @@ function handleReset() {
                 type="text"
                 placeholder="Cari user..."
                 class="w-full h-[42px] pl-9 pr-3 bg-background border border-secondary rounded-lg text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all placeholder:text-text/30"
-                @keyup.enter="handleSearch"
+                @keyup.enter="() => { pagination.page = 1; handleSearch(); }"
               />
             </div>
           </div>
@@ -188,7 +213,7 @@ function handleReset() {
               <font-awesome-icon icon="fa-solid fa-rotate-right" />
             </button>
             <button
-              @click="handleSearch"
+              @click="() => { pagination.page = 1; handleSearch(); }"
               :disabled="loading"
               class="h-[42px] px-6 bg-primary text-secondary rounded-lg text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 transition-all flex items-center justify-center gap-2 flex-[2] xl:flex-1"
             >
@@ -353,6 +378,15 @@ function handleReset() {
           </tbody>
         </table>
       </div>
+
+      <!-- Pagination -->
+      <BasePagination
+        v-if="logs.length > 0"
+        :pagination="pagination"
+        :limit-options="[10, 20, 50, 100]"
+        @changePage="onChangePage"
+        @update:limit="onChangeLimit"
+      />
     </div>
   </div>
 </template>

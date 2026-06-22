@@ -52,6 +52,8 @@ export const batchLogsSchema = z.object({
   endDate: z.string().optional(),
   productName: z.string().optional(),
   movementType: z.string().optional(),
-  locationId: z.coerce.number().optional(),
-  userId: z.coerce.number().optional()
+  locationId: z.union([z.string(), z.number()]).optional(),
+  userId: z.union([z.string(), z.number()]).optional(),
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).default(50)
 });

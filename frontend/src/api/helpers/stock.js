@@ -95,10 +95,10 @@ export async function fetchStockHistory(productId, page = 1, movementType = 'all
 
 /**
  * Mengambil semua log pergerakan stok dengan filter.
- * @param {object} params - { startDate, endDate, productName, movementType, locationId, user }
- * @returns {Promise<Array>} - Array berisi objek log pergerakan.
+ * @param {object} params - { startDate, endDate, productName, movementType, locationId, user, page, limit }
+ * @returns {Promise<object>} - Objek berisi data array dan pagination object.
  */
-export async function fetchBatchLogs(startDate, endDate, filters = {}) {
+export async function fetchBatchLogs(startDate, endDate, filters = {}, page = 1, limit = 50) {
   try {
     const { productName, movementType, locationId, user: userId } = filters;
     const response = await axios.get('/stock/batch-log', {
@@ -108,10 +108,12 @@ export async function fetchBatchLogs(startDate, endDate, filters = {}) {
         productName,
         movementType,
         locationId,
-        userId // This acts as username search text
+        userId, // This acts as username search text
+        page,
+        limit
       },
     })
-    return response.data.data || []
+    return { data: response.data.data || [], pagination: response.data.pagination };
   } catch (error) {
     console.error(`Error saat mengambil log batch:`, error.response?.data || error.message)
     throw error.response?.data || error

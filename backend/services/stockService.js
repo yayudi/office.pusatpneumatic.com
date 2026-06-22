@@ -679,10 +679,23 @@ const buildTriStateWhereLocations = (filterValue, queryParams) => {
  * @param {Object} options
  * @returns {Promise<any>}
  */
-export const getBatchLogsService = async ({ startDate, endDate, productName, movementType, locationId, userId }) => {
+export const getBatchLogsService = async ({ startDate, endDate, productName, movementType, locationId, userId, page = 1, limit = 50 }) => {
   const connection = await db.getConnection();
   try {
-    let query = `
+    const offset = (page - 1) * limit;
+    let baseWhere = `sm.created_at BETWEEN ? AND ?`;
+    const params = [startDate, `${endDate} 23:59:59`];
+
+    let countQuery = `
+    SELECT COUNT(*) as total
+    FROM stock_movements sm
+    JOIN products p ON sm.product_id = p.id
+    JOIN users u ON sm.user_id = u.id
+    LEFT JOIN locations from_loc ON sm.from_location_id = from_loc.id
+    LEFT JOIN locations to_loc ON sm.to_location_id = to_loc.id
+    WHERE `;
+
+    let dataQuery = `
     SELECT sm.id,
       p.sku,
       p.name as product_name,
@@ -698,34 +711,41 @@ export const getBatchLogsService = async ({ startDate, endDate, productName, mov
     JOIN users u ON sm.user_id = u.id
     LEFT JOIN locations from_loc ON sm.from_location_id = from_loc.id
     LEFT JOIN locations to_loc ON sm.to_location_id = to_loc.id
-    WHERE sm.created_at BETWEEN ? AND ?`;
+    WHERE `;
 
-    const params = [startDate, `${endDate} 23:59:59`];
+    let conditions = [baseWhere];
 
     if (productName) {
-      query += ` AND (p.name LIKE ? OR p.sku LIKE ?)`;
+      conditions.push(`(p.name LIKE ? OR p.sku LIKE ?)`);
       params.push(`%${productName}%`, `%${productName}%`);
     }
 
     const typeClauses = buildTriStateWhere('sm.movement_type', movementType, params);
     if (typeClauses.length > 0) {
-      query += ` AND ${typeClauses.join(' AND ')}`;
+      conditions.push(`(${typeClauses.join(' AND ')})`);
     }
 
     const locClauses = buildTriStateWhereLocations(locationId, params);
     if (locClauses.length > 0) {
-      query += ` AND ${locClauses.join(' AND ')}`;
+      conditions.push(`(${locClauses.join(' AND ')})`);
     }
 
     if (userId) {
-      query += ` AND u.username LIKE ?`;
+      conditions.push(`u.username LIKE ?`);
       params.push(`%${userId}%`);
     }
 
-    query += ` ORDER BY sm.created_at DESC`;
+    const whereClause = conditions.join(' AND ');
+    countQuery += whereClause;
+    dataQuery += whereClause;
 
-    const [logs] = await connection.query(query, params);
-    return logs;
+    dataQuery += ` ORDER BY sm.created_at DESC LIMIT ? OFFSET ?`;
+
+    const [totalRows] = await connection.query(countQuery, params);
+    const dataParams = [...params, limit, offset];
+    const [logs] = await connection.query(dataQuery, dataParams);
+    
+    return { data: logs, pagination: { total: totalRows[0].total, page, limit, totalPages: Math.ceil(totalRows[0].total / limit) } };
   } finally {
     connection.release();
   }
