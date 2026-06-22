@@ -7,6 +7,7 @@ import AppHeader from '@/components/layout/AppHeader.vue'
 import { useTheme } from '@/composables/useTheme'
 import PwaUpdatePrompt from '@/components/ui/PwaUpdatePrompt.vue'
 import PwaInstallBanner from '@/components/ui/PwaInstallBanner.vue'
+import HotkeyBanner from '@/components/ui/HotkeyBanner.vue'
 import GlobalDownloadManager from '@/components/shared/GlobalDownloadManager.vue'
 import { useMobile } from '@/composables/useMobile.js'
 
@@ -32,6 +33,7 @@ function handleLogout() {
   <div class="bg-background text-text min-h-screen font-sans custom-scrollbar overflow-y-auto">
     <PwaUpdatePrompt />
     <PwaInstallBanner />
+    <HotkeyBanner />
 
     <AppHeader v-if="showHeader" @logout="handleLogout" />
     <GlobalDownloadManager v-if="showHeader && auth.user?.permissions?.includes('view-reports')" />

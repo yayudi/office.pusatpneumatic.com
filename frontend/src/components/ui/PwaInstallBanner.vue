@@ -1,23 +1,9 @@
 <!-- frontend/src/components/ui/PwaInstallBanner.vue -->
 <script setup>
-import { ref, onMounted } from 'vue'
 import { usePwaInstall } from '@/composables/usePwaInstall.js'
 
 const { isInstallable, isBannerDismissed, isIos, installPwa, dismissPrompt } = usePwaInstall()
 
-// Hotkey Banner Logic
-const isHotkeyBannerDismissed = ref(true) // Default true until checked
-onMounted(() => {
-  const dismissedAt = localStorage.getItem('hotkey_banner_dismissed')
-  if (!dismissedAt) {
-    isHotkeyBannerDismissed.value = false
-  }
-})
-
-const dismissHotkeyBanner = () => {
-  isHotkeyBannerDismissed.value = true
-  localStorage.setItem('hotkey_banner_dismissed', Date.now().toString())
-}
 </script>
 
 <template>
@@ -73,36 +59,6 @@ const dismissHotkeyBanner = () => {
             Nanti
           </button>
         </div>
-      </div>
-    </div>
-  </Transition>
-
-  <!-- Hotkey Notification Banner -->
-  <Transition name="pwa-install-slide">
-    <div v-if="!isHotkeyBannerDismissed && (!isInstallable || isBannerDismissed)" id="hotkey-info-banner"
-      class="fixed bottom-20 sm:bottom-4 left-1/2 -translate-x-1/2 z-40 w-[90%] max-w-sm bg-secondary border border-primary/20 rounded-xl shadow-2xl px-5 py-4 flex items-start gap-4">
-      <div class="flex-shrink-0 bg-background/50 p-2 rounded-lg mt-4">
-        <font-awesome-icon icon="fa-solid fa-keyboard" class="text-primary text-xl" />
-      </div>
-      <div class="flex-1 min-w-0 text-text font-mono text-[10px]">
-        <p class="text-text text-sm font-semibold">Gunakan Keyboard Shortcut!</p>
-        <p class="flex items-center gap-2 mt-0.5">
-          <kbd class="px-1.5 py-0.5 bg-background border border-secondary/50 rounded-md shadow-sm">Alt</kbd>
-          + <kbd class="px-1.5 py-0.5 bg-background border border-secondary/50 rounded-md shadow-sm">/</kbd>
-          untuk melihat daftar Hotkey
-        </p>
-        <p class="flex items-center gap-2 mt-0.5">
-          <kbd class="px-1.5 py-0.5 bg-background border border-secondary/50 rounded-md shadow-sm">Alt</kbd>
-          + <kbd class="px-1.5 py-0.5 bg-background border border-secondary/50 rounded-md shadow-sm">H</kbd>untuk
-          panduan sistem.
-        </p>
-      </div>
-      <div class="flex-shrink-0">
-        <button @click="dismissHotkeyBanner"
-          class="p-1.5 text-text/40 hover:text-text hover:bg-background/50 rounded-lg transition-colors"
-          aria-label="Tutup">
-          <font-awesome-icon icon="fa-solid fa-xmark" />
-        </button>
       </div>
     </div>
   </Transition>
