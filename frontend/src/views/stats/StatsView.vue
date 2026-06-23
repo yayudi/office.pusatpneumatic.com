@@ -9,15 +9,17 @@ import TriStateSelect from '@/components/ui/TriStateSelect.vue'
 import SegmentedControl from '@/components/ui/SegmentedControl.vue'
 import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
-import { formatNumber, formatCurrency } from '@/utils/formatters.js'
+
 import { useDownloadStore } from '@/stores/downloadStore.js'
 
 // Lazy load heavy chart components based on active tab
 const StockMovementStats = defineAsyncComponent(() => import('@/components/stats/StockMovementStats.vue'))
+const OverviewDashboard = defineAsyncComponent(() => import('@/components/stats/OverviewDashboard.vue'))
 const StockTimelineFull = defineAsyncComponent(() => import('@/components/stats/StockTimelineFull.vue'))
 const InventoryValueStats = defineAsyncComponent(() => import('@/components/stats/InventoryValueStats.vue'))
 const TimePerformanceStats = defineAsyncComponent(() => import('@/components/stats/TimePerformanceStats.vue'))
 const ShopPerformanceStats = defineAsyncComponent(() => import('@/components/stats/ShopPerformanceStats.vue'))
+const PackageAnalysisTable = defineAsyncComponent(() => import('@/components/stats/PackageAnalysisTable.vue'))
 
 const masterData = useMasterDataStore()
 const downloadStore = useDownloadStore()
@@ -50,12 +52,7 @@ const reportFilters = ref({
 const activeReport = ref('overview')
 const reportsMenu = [
   { key: 'overview', label: 'Overview', group: 'Overview', icon: 'fa-solid fa-chart-pie' },
-  {
-    key: 'sales',
-    label: 'Laporan Penjualan',
-    group: 'Laporan Utama',
-    icon: 'fa-solid fa-chart-line'
-  },
+
   {
     key: 'stock-movement',
     label: 'Pergerakan Stok',
@@ -68,12 +65,7 @@ const reportsMenu = [
     group: 'Laporan Utama',
     icon: 'fa-solid fa-clock-rotate-left'
   },
-  {
-    key: 'dead-stock',
-    label: 'Laporan Stok Mati',
-    group: 'Laporan Utama',
-    icon: 'fa-solid fa-skull'
-  },
+
   {
     key: 'inventory-value',
     label: 'Laporan Nilai Inventaris',
@@ -87,16 +79,16 @@ const reportsMenu = [
     icon: 'fa-solid fa-chart-line'
   },
   {
-    key: 'channel-performance',
-    label: 'Performa Toko & Saluran',
+    key: 'package-analysis',
+    label: 'Analisa Produk Paket',
     group: 'Laporan Utama',
-    icon: 'fa-solid fa-store'
+    icon: 'fa-solid fa-boxes-packing'
   },
   {
-    key: 'sku-audit',
-    label: 'Audit SKU',
-    group: 'Audit & Lainnya',
-    icon: 'fa-solid fa-search'
+    key: 'channel-performance',
+    label: 'Penjualan & Performa Toko',
+    group: 'Laporan Utama',
+    icon: 'fa-solid fa-store'
   },
   {
     key: 'export-stock',
@@ -331,61 +323,7 @@ function formatJobType(type) {
             </div>
 
             <template v-else>
-              <div v-if="activeReport === 'overview' && kpiData" class="animate-fade-in">
-                <div class="flex justify-between items-center mb-6">
-                  <h3 class="text-lg font-bold text-text">Overall Summary</h3>
-                  <span class="text-xs text-text/40 font-mono">{{
-                    new Date().toLocaleDateString('id-ID', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })
-                  }}</span>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div class="kpi-card">
-                    <div class="kpi-label">List Selesai</div>
-                    <div class="kpi-value text-success">
-                      {{ formatNumber(kpiData.listsCompletedToday) }}
-                    </div>
-                    <div class="kpi-icon">
-                      <font-awesome-icon icon="fa-solid fa-check-double" />
-                    </div>
-                  </div>
-
-                  <div class="kpi-card">
-                    <div class="kpi-label">Item Terambil</div>
-                    <div class="kpi-value text-primary">
-                      {{ formatNumber(kpiData.itemsPickedToday) }}
-                    </div>
-                    <div class="kpi-icon">
-                      <font-awesome-icon icon="fa-solid fa-box-open" />
-                    </div>
-                  </div>
-
-                  <div class="kpi-card">
-                    <div class="kpi-label">User Aktif</div>
-                    <div class="kpi-value text-warning">
-                      {{ formatNumber(kpiData.usersActiveToday) }}
-                    </div>
-                    <div class="kpi-icon">
-                      <font-awesome-icon icon="fa-solid fa-users" />
-                    </div>
-                  </div>
-
-                  <div class="kpi-card">
-                    <div class="kpi-label">Total Nilai Inventaris</div>
-                    <div class="kpi-value text-text text-xl md:text-2xl mt-3">
-                      {{ formatCurrency(kpiData.totalInventoryValue) }}
-                    </div>
-                    <div class="kpi-icon">
-                      <font-awesome-icon icon="fa-solid fa-vault" />
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <OverviewDashboard v-if="activeReport === 'overview' && kpiData" :kpi-data="kpiData" @navigate="(report) => activeReport = report" />
 
               <KeepAlive>
                 <StockMovementStats v-if="activeReport === 'stock-movement'" class="animate-fade-in" />
@@ -393,6 +331,7 @@ function formatJobType(type) {
                 <InventoryValueStats v-else-if="activeReport === 'inventory-value'" class="animate-fade-in" />
                 <TimePerformanceStats v-else-if="activeReport === 'time-performance'" class="animate-fade-in" />
                 <ShopPerformanceStats v-else-if="activeReport === 'channel-performance'" class="animate-fade-in" />
+                <PackageAnalysisTable v-else-if="activeReport === 'package-analysis'" class="animate-fade-in" />
               </KeepAlive>
 
               <div v-if="activeReport === 'export-stock'" class="animate-fade-in">
@@ -629,9 +568,8 @@ function formatJobType(type) {
                 </div>
               </div>
 
-              <!-- Attendance Stats Section -->
               <div
-                v-if="
+                v-else-if="
                   ![
                     'overview',
                     'stock-movement',
@@ -639,7 +577,8 @@ function formatJobType(type) {
                     'inventory-value',
                     'time-performance',
                     'export-stock',
-                    'channel-performance'
+                    'channel-performance',
+                    'package-analysis'
                   ].includes(activeReport)
                 "
                 class="flex flex-col items-center justify-center h-80 text-text/30"

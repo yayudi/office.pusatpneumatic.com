@@ -205,6 +205,7 @@ const labelColor = computed(() => themeColors.value.text)
 const totalRevenueOverall = computed(() => summaryData.value.reduce((a, c) => a + c.total_revenue, 0))
 const totalItemsOverall = computed(() => summaryData.value.reduce((a, c) => a + c.total_items_sold, 0))
 const totalOrdersOverall = computed(() => summaryData.value.reduce((a, c) => a + c.total_orders, 0))
+const aovOverall = computed(() => totalOrdersOverall.value > 0 ? totalRevenueOverall.value / totalOrdersOverall.value : 0)
 
 const getPercentage = (val, total) => {
   if (!total) return 0
@@ -357,7 +358,7 @@ const periodLabel = computed(() => {
 <template>
   <div class="space-y-6">
     <div class="mb-6 border-b border-secondary/20 pb-4">
-      <h3 class="text-lg font-bold text-text">Performa Toko & Saluran</h3>
+      <h3 class="text-lg font-bold text-text">Penjualan & Performa Toko</h3>
       <p class="text-sm text-text/50 mt-1">Analitik penjualan, tren, dan kesehatan pemenuhan per toko.</p>
     </div>
 
@@ -425,7 +426,7 @@ const periodLabel = computed(() => {
     <!-- ====== TAB: RINGKASAN ====== -->
     <template v-else-if="activeTab === 'summary'">
       <!-- KPI Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fade-in">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in">
         <div class="bg-background border border-secondary rounded-xl p-5 shadow-sm">
           <p class="text-xs font-semibold text-text/50 uppercase">Total Omset</p>
           <p class="text-2xl font-bold text-primary mt-1">
@@ -441,6 +442,10 @@ const periodLabel = computed(() => {
         <div class="bg-background border border-secondary rounded-xl p-5 shadow-sm">
           <p class="text-xs font-semibold text-text/50 uppercase">Total Order</p>
           <p class="text-2xl font-bold text-text mt-1">{{ formatNumber(totalOrdersOverall) }}</p>
+        </div>
+        <div class="bg-background border border-secondary rounded-xl p-5 shadow-sm">
+          <p class="text-xs font-semibold text-text/50 uppercase">Rata-rata Order (AOV)</p>
+          <p class="text-2xl font-bold text-success mt-1">{{ formatCurrency(aovOverall) }}</p>
         </div>
       </div>
 

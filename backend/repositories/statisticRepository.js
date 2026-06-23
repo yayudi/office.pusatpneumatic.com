@@ -526,3 +526,58 @@ export const getPeriodComparison = async (connection, filters) => {
   return rows;
 };
 
+/**
+ * Get package components analysis based on package sales
+ * @param {import('mysql2/promise').PoolConnection} connection
+ * @param {Object} filters { startDate, endDate, categoryId, searchQuery }
+ * @returns {Promise<Array>}
+ */
+export const getPackageComponentAnalysis = async (connection, filters) => {
+  const { startDate, endDate, categoryId, searchQuery } = filters;
+  const queryParams = [startDate, endDate];
+  let searchFilter = "";
+
+  if (searchQuery) {
+    searchFilter = " AND (cp.sku LIKE ? OR cp.name LIKE ?)";
+    queryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
+  }
+
+  const cClauses = buildTriStateWhere('cp.category_id', categoryId, queryParams);
+  if (cClauses.length > 0) {
+    searchFilter += ` AND ${cClauses.join(" AND ")}`;
+  }
+
+  const query = `
+    SELECT
+      cp.id as component_product_id,
+      cp.sku as component_sku,
+      cp.name as component_name,
+      COALESCE((SELECT SUM(quantity) FROM stock_locations WHERE product_id = cp.id), 0) as current_stock,
+      pp.sku as package_sku,
+      pp.name as package_name,
+      COALESCE(s_mov.comp_needed, 0) / pc.quantity_per_package as sold,
+      pc.quantity_per_package as qty_per_package,
+      COALESCE(s_mov.comp_needed, 0) as subtotal_needed
+    FROM products cp
+    JOIN package_components pc ON cp.id = pc.component_product_id
+    JOIN products pp ON pc.package_product_id = pp.id
+    LEFT JOIN (
+        SELECT pli.original_sku, pli.product_id, SUM(pli.quantity) as comp_needed
+        FROM picking_list_items pli
+        JOIN picking_lists pl ON pli.picking_list_id = pl.id
+        WHERE pl.status NOT IN ('CANCEL', 'OBSOLETE')
+          AND pl.is_active = 1
+          AND COALESCE(DATE(pl.order_date), DATE(pl.created_at)) >= ? 
+          AND COALESCE(DATE(pl.order_date), DATE(pl.created_at)) <= ?
+        GROUP BY pli.original_sku, pli.product_id
+    ) s_mov ON pp.sku = s_mov.original_sku AND cp.id = s_mov.product_id
+    WHERE cp.is_package = 0 AND pp.is_active = 1
+    ${searchFilter}
+    HAVING subtotal_needed > 0
+    ORDER BY cp.id, subtotal_needed DESC
+  `;
+
+  const [rows] = await connection.query(query, queryParams);
+  return rows;
+};
+

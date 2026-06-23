@@ -141,7 +141,7 @@ watch(Alt_S, pressed => {
       >
         <!-- Loading State -->
         <template v-if="loading">
-          <tr v-for="n in 5" :key="`skeleton-${n}`" class="border-b border-secondary/20">
+          <tr v-for="n in 5" :key="`skeleton-${n}`" class="border-b border-secondary/20 animate-pulse">
             <td class="px-6 py-4 text-center"><BaseSkeleton shape="rect" className="w-4 h-4 mx-auto" /></td>
             <td class="px-6 py-4"><BaseSkeleton shape="text" className="w-1/2 h-4" /></td>
             <td class="px-6 py-4"><BaseSkeleton shape="rect" className="w-16 h-6 mx-auto rounded-lg" /></td>

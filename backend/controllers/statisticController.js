@@ -183,3 +183,26 @@ export const getShopPerformance = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getPackageAnalysis = async (req, res, next) => {
+  try {
+    const { startDate, endDate, categoryId, searchQuery } = req.query;
+    
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: "startDate dan endDate wajib diisi"
+      });
+    }
+
+    const filters = { startDate, endDate, categoryId, searchQuery };
+    const data = await statisticService.getPackageComponentAnalysis(filters);
+
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

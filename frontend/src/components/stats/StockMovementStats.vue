@@ -13,6 +13,8 @@ const VueApexCharts = defineAsyncComponent(() => import('vue3-apexcharts'))
 import { useStatsTable } from '@/composables/useStatsTable.js'
 import StatsChartCard from './shared/StatsChartCard.vue'
 import FilterBar from '@/components/ui/FilterBar.vue'
+import StockTimelineModal from '@/components/stats/StockTimelineModal.vue'
+import { formatNumber } from '@/utils/formatters.js'
 
 const authStore = useAuthStore()
 const masterData = useMasterDataStore()
@@ -238,6 +240,15 @@ const applyFilters = () => {
 }
 
 const labelColor = computed(() => themeColors.value.text)
+
+const deadStockItems = computed(() => {
+  if (filterValues.value.movement !== 'dead') return []
+  return statisticsList.value.filter(item => item.current_stock > 0)
+})
+
+const totalDeadStockQty = computed(() => {
+  return deadStockItems.value.reduce((acc, item) => acc + Number(item.current_stock), 0)
+})
 
 const chartStatusOptions = computed(() => ({
   chart: { type: 'donut', background: 'transparent' },
@@ -585,6 +596,24 @@ const chartScatterOptions = computed(() => ({
         </button>
       </template>
     </FilterBar>
+
+    <!-- Banner Laporan Stok Mati -->
+    <div
+      v-if="filterValues.movement === 'dead'"
+      class="bg-danger/10 border border-danger/20 rounded-xl p-5 shadow-sm animate-fade-in flex items-center gap-5"
+    >
+      <div class="bg-background rounded-full p-4 flex items-center justify-center border border-danger/10 shrink-0">
+        <font-awesome-icon icon="fa-solid fa-skull" class="text-3xl text-danger" />
+      </div>
+      <div>
+        <h4 class="font-bold text-danger text-lg mb-1">Peringatan: Stok Mati (Dead Stock)</h4>
+        <p class="text-sm text-text/70">
+          Terdapat <span class="font-bold text-text">{{ deadStockItems.length }} SKU</span> dengan total kuantitas
+          <span class="font-bold text-danger">{{ formatNumber(totalDeadStockQty) }} pcs</span>
+          yang menganggur tanpa ada aktivitas keluar maupun masuk pada rentang waktu ini.
+        </p>
+      </div>
+    </div>
 
     <!-- Main Content Layout -->
     <div class="flex flex-col lg:flex-row gap-6 items-start">

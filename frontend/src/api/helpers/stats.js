@@ -106,3 +106,22 @@ export const fetchShopPerformance = async (params) => {
     throw error.response?.data || error
   }
 }
+
+/**
+ * Fetch Package Analysis Stats
+ * @param {object} params - { startDate, endDate, categoryId, searchQuery }
+ * @returns {Promise<Array>} List component analysis
+ */
+export const fetchPackageAnalysis = async (params) => {
+  try {
+    const response = await api.get('/statistics/package-analysis', { params })
+    if (response.data && response.data.success) {
+      return response.data.data
+    } else {
+      throw new Error(response.data.message || 'Gagal mengambil data analisa paket.')
+    }
+  } catch (error) {
+    console.error('Error fetching package analysis:', error)
+    throw error.response?.data || error
+  }
+}

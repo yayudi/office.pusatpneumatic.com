@@ -246,3 +246,12 @@
   border-top-color: hsl(var(--color-primary)) !important;
   border-left-color: hsl(var(--color-primary)) !important;
 }
+
+/* Prevent table skeletons from taking up space during leave transition */
+tr.animate-pulse.list-leave-active,
+div.animate-pulse.list-leave-active {
+  position: absolute;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}

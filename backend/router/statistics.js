@@ -1,6 +1,6 @@
 // backend/router/statistics.js
 import express from 'express';
-import { getStockMovements, requestStockMovementsExport, getInventoryValue, getStockTimeline, requestStockTimelineExport, getShopPerformance } from '../controllers/statisticController.js';
+import { getStockMovements, requestStockMovementsExport, getInventoryValue, getStockTimeline, requestStockTimelineExport, getShopPerformance, getPackageAnalysis } from '../controllers/statisticController.js';
 import authenticateToken from '../middleware/authMiddleware.js';
 import { canAccess } from '../middleware/permissionMiddleware.js';
 
@@ -14,5 +14,6 @@ router.get('/inventory-value', authenticateToken, canAccess('statistic.stock.vie
 router.get('/stock-timeline', authenticateToken, canAccess('statistic.stock.view'), getStockTimeline);
 router.post('/stock-timeline/export', authenticateToken, canAccess('statistic.stock.export'), validate(stockTimelineExportSchema), requestStockTimelineExport);
 router.get('/shop-performance', authenticateToken, canAccess('statistic.stock.view'), validate(stockMovementsSchema, 'query'), getShopPerformance);
+router.get('/package-analysis', authenticateToken, canAccess('statistic.stock.view'), getPackageAnalysis);
 
 export default router;

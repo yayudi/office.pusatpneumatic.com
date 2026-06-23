@@ -385,3 +385,75 @@ export const getShopPerformanceStats = async (filters) => {
   }
 };
 
+/**
+ * Get package components analysis based on package sales
+ * @param {Object} filters { startDate, endDate, categoryId, searchQuery }
+ * @returns {Promise<Array>}
+ */
+export const getPackageComponentAnalysis = async (filters) => {
+  let connection;
+  try {
+    connection = await db.getConnection();
+    const rows = await statisticRepo.getPackageComponentAnalysis(connection, filters);
+
+    const componentMap = new Map();
+    
+    rows.forEach(row => {
+      const cmpId = row.component_product_id;
+      if (!componentMap.has(cmpId)) {
+        componentMap.set(cmpId, {
+          component_product_id: cmpId,
+          sku: row.component_sku,
+          name: row.component_name,
+          current_stock: Number(row.current_stock),
+          total_needed: 0,
+          packages: []
+        });
+      }
+      
+      const comp = componentMap.get(cmpId);
+      const subtotalNeeded = Number(row.subtotal_needed);
+      
+      comp.packages.push({
+        package_sku: row.package_sku,
+        package_name: row.package_name,
+        sold: Number(row.sold),
+        qty_per_package: Number(row.qty_per_package),
+        subtotal_needed: subtotalNeeded
+      });
+      
+      comp.total_needed += subtotalNeeded;
+    });
+
+    const data = Array.from(componentMap.values()).map(comp => {
+      const currentStock = comp.current_stock;
+      const totalNeeded = comp.total_needed;
+      const deficit = totalNeeded - currentStock;
+
+      let status = 'SAFE';
+      if (deficit > 0) {
+        status = 'DEFICIT';
+      } else if (currentStock === 0 && totalNeeded > 0) {
+        status = 'DEFICIT';
+      } else if (deficit <= 0 && deficit >= -20) {
+        status = 'WARNING';
+      }
+
+      return {
+        ...comp,
+        deficit,
+        status
+      };
+    });
+
+    // Sort by total needed descending
+    data.sort((a, b) => b.total_needed - a.total_needed);
+
+    return data;  } catch (error) {
+    Logger.error("Error in getPackageComponentAnalysis", error, "STATISTIC_SERVICE");
+    throw error;
+  } finally {
+    if (connection) connection.release();
+  }
+};
+
