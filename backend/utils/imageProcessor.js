@@ -1,10 +1,21 @@
-import Vips from 'wasm-vips';
+import os from 'os';
 import Logger from './logger.js';
 
 let vipsInstance = null;
 
 const initVips = async () => {
   if (!vipsInstance) {
+    // --- WORKAROUND UNTUK SHARED HOSTING (EAGAIN / LIMIT THREAD) ---
+    const originalCpus = os.cpus;
+    os.cpus = () => [{}]; 
+    process.env.VIPS_CONCURRENCY = '1';
+    process.env.UV_THREADPOOL_SIZE = '1';
+
+    const { default: Vips } = await import('wasm-vips');
+    
+    os.cpus = originalCpus;
+    // -------------------------------------------------------------
+    
     vipsInstance = await Vips();
   }
   return vipsInstance;

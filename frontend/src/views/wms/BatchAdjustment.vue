@@ -150,10 +150,22 @@ const batchSearchLocationId = computed(() => {
   return adjustmentLocation.value?.id
 })
 
-function handleAddProduct({ product, quantity }) {
+async function handleAddProduct({ product, quantity }) {
   if (!product) {
     toast('Pilih produk dan masukkan kuantitas yang valid.', 'warning')
     return
+  }
+
+  // Edge Case: Produk tidak tercatat di lokasi ini (stok sistem = 0)
+  // Bisa terjadi karena barang nyasar atau ghost stock. Beri konfirmasi.
+  if (product.current_stock === 0 && adjustmentLocation.value) {
+    const isConfirmed = await swalConfirm(
+      'Produk Tidak Tercatat di Lokasi Ini',
+      `"${product.name}" (${product.sku}) memiliki stok 0 di lokasi ${adjustmentLocation.value.code}. Ini bisa berarti barang nyasar atau selisih positif. Lanjutkan menambahkan?`,
+      'Ya, Tambahkan',
+      'Batal'
+    )
+    if (!isConfirmed) return
   }
 
   const existing = batchList.value.find(item => item.sku === product.sku)
@@ -163,7 +175,7 @@ function handleAddProduct({ product, quantity }) {
     batchList.value.push({
       sku: product.sku,
       name: product.name,
-      current_stock: product.current_stock,
+      current_stock: product.current_stock ?? 0,
       quantity: quantity
     })
   }

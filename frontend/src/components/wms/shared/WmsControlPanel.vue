@@ -6,6 +6,7 @@ import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import TriStateSelect from '@/components/ui/TriStateSelect.vue'
 import SegmentedControl from '@/components/ui/SegmentedControl.vue'
+import { useMobile } from '@/composables/useMobile'
 
 defineProps({
   // Data
@@ -30,7 +31,8 @@ defineProps({
   selectedCategory: { type: Object, default: () => ({ include: [], exclude: [] }) },
   mobileLayout: { type: String, default: 'card' },
   availableColumns: { type: Array, default: () => [] },
-  visibleColumns: { type: Object, default: () => new Set() }
+  visibleColumns: { type: Object, default: () => new Set() },
+  viewMode: { type: String, default: 'infinite' }
 })
 
 const emit = defineEmits([
@@ -44,12 +46,14 @@ const emit = defineEmits([
   'update:selectedCategory',
   'update:categoryFilterOptions',
   'update:mobileLayout',
+  'update:viewMode',
   'search',
   'toggle-column',
   'toggle-refetch'
 ])
 
 const searchInput = ref(null)
+let isMobile = useMobile()
 
 function onSearchInput(e) {
   emit('update:searchValue', e.target.value)
@@ -96,7 +100,7 @@ function closeColumnMenu(e) {
 
 onMounted(() => {
   document.addEventListener('click', closeColumnMenu)
-  
+
   // Auto focus search input
   if (searchInput.value) {
     searchInput.value.focus()
@@ -114,10 +118,23 @@ const buttonRef = ref(null)
 function updateDropdownPosition() {
   if (isColumnMenuOpen.value && buttonRef.value) {
     const rect = buttonRef.value.getBoundingClientRect()
+    const menuWidth = 220
+    let leftPos = rect.right - menuWidth
+
+    // Prevent going off-screen on the left
+    if (leftPos < 10) {
+      leftPos = rect.left // Align left edge instead if it goes off-screen
+    }
+
+    // Prevent going off-screen on the right
+    if (leftPos + menuWidth > window.innerWidth - 10) {
+      leftPos = window.innerWidth - menuWidth - 10
+    }
+
     dropdownPosition.value = {
       top: `${rect.bottom + 8}px`,
-      left: `${rect.right - 125}px`, // Align right edge
-      minWidth: '125px'
+      left: `${leftPos}px`,
+      minWidth: `${menuWidth}px`
     }
   }
 }
@@ -271,33 +288,80 @@ useEventListener(
           />
         </div>
 
-        <div class="flex items-end mt-auto mb-0.5 gap-2 w-full lg:w-auto shrink-0">
-          <!-- Column Visibility Selector -->
-          <button
-            ref="buttonRef"
-            @click.stop="toggleColumnMenu"
-            class="w-[42px] h-[42px] flex items-center justify-center rounded-lg border border-secondary/20 bg-background text-text/60 hover:text-primary transition-all shadow-sm"
-            :class="{ 'bg-primary/10 text-primary border-primary': isColumnMenuOpen }"
-            title="Pilih Kolom"
-          >
-            <font-awesome-icon icon="fa-solid fa-table-columns" />
-          </button>
+        <!-- Mode Tampilan Group -->
+        <div class="flex flex-col gap-1 shrink-0 mt-auto mb-0.5 mx-auto lg:mx-0">
+          <label class="block text-xs font-semibold text-text/60 text-center mb-1">Mode Tampilan</label>
+          <div class="flex items-center justify-center lg:justify-start gap-2 h-[36px]">
+            <!-- View Mode (Scroll / Page) -->
+            <SegmentedControl
+              v-if="isMobile"
+              :model-value="viewMode"
+              @update:modelValue="emit('update:viewMode', $event)"
+              :options="[
+                { value: 'infinite', label: 'Scroll', icon: 'fa-solid fa-angles-down' },
+                { value: 'pagination', label: 'Halaman', icon: 'fa-solid fa-pager' }
+              ]"
+              class="shrink-0 min-w-[200px] !w-[200px]"
+            />
 
-          <!-- Dropdown Menu -->
-          <Teleport to="body">
-            <div
-              v-if="isColumnMenuOpen"
-              class="fixed z-[9999] bg-background border border-secondary/20 rounded-lg shadow-xl p-2 animate-fade-in-down column-selector-group"
-              :style="{
-                top: dropdownPosition.top,
-                left: dropdownPosition.left,
-                minWidth: dropdownPosition.minWidth
-              }"
+            <!-- Mobile Layout Switcher -->
+            <SegmentedControl
+              :model-value="mobileLayout"
+              @update:modelValue="emit('update:mobileLayout', $event)"
+              :options="[
+                { value: 'card', icon: 'fa-solid fa-grip-vertical' },
+                { value: 'compact', icon: 'fa-solid fa-list' }
+              ]"
+              class="shrink-0 min-w-[100px] !w-[100px] md:hidden"
+            />
+
+            <!-- Column Visibility Selector -->
+            <button
+              ref="buttonRef"
+              @click.stop="toggleColumnMenu"
+              class="w-[36px] h-[36px] flex items-center justify-center rounded-lg border border-secondary/20 bg-background text-text/60 hover:text-primary transition-all shadow-sm shrink-0"
+              :class="{ 'bg-primary/10 text-primary border-primary': isColumnMenuOpen }"
+              title="Visibilitas Kolom"
             >
+              <font-awesome-icon icon="fa-solid fa-table-columns" />
+            </button>
+          </div>
+        </div>
+        <!-- Dropdown Menu -->
+        <Teleport to="body">
+          <div
+            v-if="isColumnMenuOpen"
+            class="fixed z-[9999] bg-background border border-secondary/20 rounded-lg shadow-xl p-2 animate-fade-in-down column-selector-group"
+            :style="{
+              top: dropdownPosition.top,
+              left: dropdownPosition.left,
+              minWidth: dropdownPosition.minWidth
+            }"
+          >
+            <div class="flex flex-col gap-1">
+              <span class="text-[10px] font-bold text-text/50 uppercase tracking-wide px-1 mb-1"> Mode Tampilan </span>
+              <div class="flex items-center justify-center lg:justify-start gap-2 h-[36px]">
+                <!-- View Mode (Scroll / Page) -->
+                <SegmentedControl
+                  v-if="isMobile"
+                  :model-value="viewMode"
+                  @update:modelValue="emit('update:viewMode', $event)"
+                  :options="[
+                    { value: 'infinite', label: 'Scroll', icon: 'fa-solid fa-angles-down' },
+                    { value: 'pagination', label: 'Halaman', icon: 'fa-solid fa-pager' }
+                  ]"
+                  class="shrink-0 min-w-[200px] !w-[200px]"
+                />
+              </div>
+            </div>
+            <div class="flex flex-col gap-1">
+              <span class="text-[10px] font-bold text-text/50 uppercase tracking-wide px-1 mb-1">
+                Visibilitas Kolom
+              </span>
               <div
                 v-for="col in availableColumns"
                 :key="col.id"
-                class="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-secondary/10 rounded"
+                class="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-secondary/10 rounded transition-colors"
                 @click.stop="handleToggleColumn(col.id)"
               >
                 <div
@@ -310,22 +374,11 @@ useEventListener(
                     class="text-secondary text-[10px]"
                   />
                 </div>
-                <span class="text-sm font-bold text-text/80">{{ col.label }}</span>
+                <span class="text-sm font-semibold text-text/80">{{ col.label }}</span>
               </div>
             </div>
-          </Teleport>
-
-          <!-- Mobile Layout Switcher -->
-          <SegmentedControl
-            :model-value="mobileLayout"
-            @update:modelValue="emit('update:mobileLayout', $event)"
-            :options="[
-              { value: 'card', icon: 'fa-solid fa-grip-vertical' },
-              { value: 'compact', icon: 'fa-solid fa-list' }
-            ]"
-            class="h-[42px] shrink-0 shadow-sm border border-secondary/20 md:hidden"
-          />
-        </div>
+          </div>
+        </Teleport>
       </div>
     </template>
   </BaseFilterPanel>

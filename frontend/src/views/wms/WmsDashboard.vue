@@ -20,6 +20,7 @@ import WmsProductFormModal from '@/components/wms/shared/ProductFormModal.vue'
 import SalesSimulationModal from '@/components/wms/shared/SalesSimulationModal.vue'
 import ProductImageModal from '@/components/products/ProductImageModal.vue'
 import StickerGeneratorModal from '@/components/utilities/StickerGeneratorModal.vue'
+import BasePagination from '@/components/ui/BasePagination.vue'
 
 const { isMobile } = useMobile()
 const {
@@ -47,7 +48,14 @@ const {
   visibleColumns,
   availableColumns,
   toggleColumn,
-  resetAndRefetch
+  resetAndRefetch,
+  viewMode,
+  currentPage,
+  totalPages,
+  totalProducts,
+  pageSize,
+  goToPage,
+  changePageSize
 } = useWms()
 
 const auth = useAuthStore()
@@ -324,6 +332,7 @@ watch(Escape, pressed => {
       v-model:selected-floor="selectedFloor"
       v-model:selected-category="selectedCategory"
       v-model:mobileLayout="mobileLayout"
+      v-model:viewMode="viewMode"
       :available-columns="availableColumns"
       :visible-columns="visibleColumns"
       @toggle-column="toggleColumn"
@@ -360,7 +369,20 @@ watch(Escape, pressed => {
         @openSticker="openStickerModal"
       >
         <template #footer>
-          <div ref="loader" class="text-center pt-6 pb-2">
+          <div v-if="viewMode === 'pagination'" class="border-t border-secondary/20 bg-background sticky bottom-0 z-40 left-0 min-w-max md:min-w-full">
+            <BasePagination
+              :pagination="{
+                page: currentPage,
+                limit: pageSize,
+                total: totalProducts,
+                totalPages: totalPages
+              }"
+              :show-limit-picker="true"
+              @changePage="goToPage"
+              @update:limit="changePageSize"
+            />
+          </div>
+          <div v-else ref="loader" class="text-center pt-6 pb-2">
             <span v-if="displayedProducts.length === 0 && !loading" class="text-text/50 text-sm">
               -- Tidak ada produk yang cocok --
             </span>

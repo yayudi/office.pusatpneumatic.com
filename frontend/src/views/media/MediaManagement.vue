@@ -24,6 +24,7 @@ import { useMobile } from '@/composables/useMobile.js'
 
 import { formatBytes } from '@/utils/formatBytes.js'
 import { formatTags } from '@/utils/formatters.js'
+import { useProductSearch } from '@/composables/useProductSearch.js'
 
 const linkStatusOptions = [
   { value: 'all', label: 'Semua', icon: 'fa-solid fa-layer-group' },
@@ -76,38 +77,19 @@ const fileTitles = ref([])
 const bulkTagsStr = ref('')
 
 // Bulk Products Autocomplete State
-const bulkProductSearchQuery = ref('')
-const bulkProductSearchResults = ref([])
-const isBulkProductSearching = ref(false)
 const bulkSelectedProducts = ref([])
-const debouncedBulkSearch = debounce(async query => {
-  try {
-    const res = await apiClient.get(`/products/search?q=${encodeURIComponent(query)}`)
-    bulkProductSearchResults.value = res.data
-  } catch (error) {
-    console.error(error) // Auto-added to prevent unused var
-    toast('Search error', error)
-  } finally {
-    isBulkProductSearching.value = false
-  }
-}, 400)
-
-watch(bulkProductSearchQuery, newVal => {
-  if (!newVal || newVal.length < 2) {
-    bulkProductSearchResults.value = []
-    debouncedBulkSearch.cancel()
-    return
-  }
-  isBulkProductSearching.value = true
-  debouncedBulkSearch(newVal)
-})
+const {
+  query: bulkProductSearchQuery,
+  results: bulkProductSearchResults,
+  isSearching: isBulkProductSearching,
+  clear: clearBulkProductSearch
+} = useProductSearch()
 
 const selectBulkProduct = prod => {
   if (!bulkSelectedProducts.value.find(p => p.id === prod.id)) {
     bulkSelectedProducts.value.push(prod)
   }
-  bulkProductSearchQuery.value = ''
-  bulkProductSearchResults.value = []
+  clearBulkProductSearch()
 }
 
 const removeBulkProduct = prodId => {
@@ -252,7 +234,7 @@ const processFilesForUpload = files => {
   fileTitles.value = Array.from(files).map(f => stripExtension(f.name))
   bulkTagsStr.value = ''
   bulkSelectedProducts.value = []
-  bulkProductSearchQuery.value = ''
+  clearBulkProductSearch()
   isBulkModalOpen.value = true
 }
 
@@ -912,7 +894,13 @@ onUnmounted(() => {
   <!-- Bulk Upload Modal -->
 
   <Teleport to="body">
-    <BaseModal :show="isBulkModalOpen" @close="isBulkModalOpen = false" maxWidth="max-w-lg">
+    <BaseModal
+      :show="isBulkModalOpen"
+      @close="isBulkModalOpen = false"
+      maxWidth="max-w-4xl"
+      height="h-[calc(80vh-100px)]"
+      class="h-full"
+    >
       <template #title>
         <div class="flex items-center justify-between w-full pr-4">
           <span class="font-bold text-xl font-display text-text">Unggah {{ selectedFiles.length }} Aset</span>
@@ -920,9 +908,8 @@ onUnmounted(() => {
             @click="autoCropAll"
             :disabled="autoCropAllProcessing"
             title="Otomatis potong semua gambar menjadi rasio 1:1 di tengah"
-            class="px-3 py-1 text-sm rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-2 font-medium"
+            class="px-3 py-1 ml-4 text-sm rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-2 font-medium"
           >
-            <!-- TODO: button rata kanan -->
             <font-awesome-icon v-if="autoCropAllProcessing" icon="fa-solid fa-spinner" spin />
             <font-awesome-icon v-else icon="fa-solid fa-crop-simple" />
             <span class="hidden sm:inline">Auto 1:1 Semua</span>
@@ -1033,7 +1020,7 @@ onUnmounted(() => {
           <!-- Autocomplete Dropdown -->
           <div
             v-if="bulkProductSearchResults.length > 0 && bulkProductSearchQuery.length >= 2"
-            class="absolute top-full left-0 w-full mt-1 bg-background border border-secondary rounded-lg shadow-2xl z-[60] max-h-48 overflow-y-auto custom-scrollbar"
+            class="absolute top-full left-0 w-full mt-1 bg-background border border-secondary rounded-lg shadow-2xl z-[60] max-h-[250px] overflow-y-auto custom-scrollbar"
           >
             <button
               v-for="prod in bulkProductSearchResults"
@@ -1046,8 +1033,9 @@ onUnmounted(() => {
                 <span
                   v-if="prod.is_active === 0"
                   class="text-[10px] bg-danger/10 text-danger px-2 py-0.5 rounded font-bold"
-                  >Arsip</span
                 >
+                  Arsip
+                </span>
               </div>
               <span class="text-xs text-text/80">{{ prod.name }}</span>
             </button>

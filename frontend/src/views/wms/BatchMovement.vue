@@ -176,7 +176,7 @@ function handleAddProduct({ product, quantity }) {
     batchList.value.push({
       sku: product.sku,
       name: product.name,
-      current_stock: product.current_stock,
+      current_stock: product.current_stock ?? 0,
       price: product.price,
       quantity: quantity
     })

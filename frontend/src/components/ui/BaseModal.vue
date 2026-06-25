@@ -18,6 +18,9 @@ const props = defineProps({
   maxWidth: {
     type: String,
     default: 'max-w-xl'
+  },
+  height: {
+    type: String
   }
 })
 
@@ -45,15 +48,13 @@ watch(Escape, pressed => {
     <div
       v-if="show"
       @click.self="emit('close')"
-      class="fixed inset-0 bg-text bg-opacity-60 flex justify-center z-[5000] transition-all duration-300"
+      class="fixed inset-0 bg-text bg-opacity-60 flex justify-center z-[1000] transition-all duration-300"
       :class="isMobile ? 'items-end p-0' : 'items-center p-4'"
     >
       <!-- Panel Modal -->
       <div
-        class="bg-background shadow-xl w-full flex flex-col transition-all duration-300"
-        :class="
-          isMobile ? 'max-w-full rounded-t-2xl rounded-b-none mb-0 max-h-[90vh]' : `${maxWidth} rounded-xl max-h-[90vh]`
-        "
+        class="bg-background shadow-xl w-full flex flex-col transition-all duration-300 max-h-[90vh]"
+        :class="isMobile ? 'max-w-full rounded-t-2xl rounded-b-none mb-0' : `${height} ${maxWidth} rounded-xl`"
       >
         <!-- Header Modal -->
         <div class="p-4 flex justify-between items-center shrink-0">
@@ -70,7 +71,7 @@ watch(Escape, pressed => {
         </div>
 
         <!-- Konten Utama Modal -->
-        <div class="px-4 pb-4 overflow-y-auto custom-scrollbar">
+        <div class="px-4 pb-4 overflow-y-auto custom-scrollbar flex-1">
           <!-- Slot default untuk konten apa pun -->
           <slot />
         </div>

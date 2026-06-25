@@ -3,7 +3,7 @@ import { swalAlert } from '@/composables/useSweetAlert'
 import { ref, watch } from 'vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import axios from '@/api/axios'
-import debounce from 'lodash/debounce'
+import { useProductSearch } from '@/composables/useProductSearch.js'
 
 const props = defineProps({
   show: Boolean,
@@ -12,38 +12,21 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'linked'])
 
-const searchQuery = ref('')
-const searchResults = ref([])
-const isSearching = ref(false)
 const isSubmitting = ref(false)
 const selectedProducts = ref([])
 
-const debouncedSearch = debounce(async (query) => {
-  try {
-    const res = await axios.get(`/products/search?q=${encodeURIComponent(query)}`)
-    searchResults.value = res.data
-  } catch (error) {
-    console.error('Search error', error)
-  } finally {
-    isSearching.value = false
-  }
-}, 400)
-
-watch(searchQuery, (newVal) => {
-  if (!newVal || newVal.length < 2) {
-    searchResults.value = []
-    debouncedSearch.cancel()
-    return
-  }
-  isSearching.value = true
-  debouncedSearch(newVal)
-})
+const {
+  query: searchQuery,
+  results: searchResults,
+  isSearching,
+  clear: clearSearch
+} = useProductSearch()
 
 watch(
   () => props.show,
   (newVal) => {
     if (!newVal) {
-      searchResults.value = []
+      clearSearch()
       selectedProducts.value = []
     }
   },

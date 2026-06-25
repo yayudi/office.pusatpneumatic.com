@@ -75,10 +75,16 @@ function startEditTags() {
 
 async function saveTags() {
   if (!props.mediaId) return
+  
+  const rawTags = tagsInput.value
+    .split(',')
+    .map(t => t.trim())
+    .filter(Boolean)
+
   loadingTags.value = true
   try {
     const { data } = await instance.put(`/media/${props.mediaId}/tags`, {
-      tags: tagsInput.value
+      tags: rawTags
     })
     if (data.success) {
       toast('Tag berhasil diperbarui', 'success')

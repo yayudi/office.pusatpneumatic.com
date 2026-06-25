@@ -165,10 +165,15 @@ export const uploadMedia = async (req, res, next) => {
       if (req.body.products) {
         let productIds = [];
         if (typeof req.body.products === 'string') {
-          try { productIds = JSON.parse(req.body.products); }
+          try { 
+            const parsed = JSON.parse(req.body.products); 
+            productIds = Array.isArray(parsed) ? parsed : [parsed];
+          }
           catch { productIds = req.body.products.split(',').map(id => id.trim()).filter(Boolean); }
         } else if (Array.isArray(req.body.products)) {
           productIds = req.body.products;
+        } else if (req.body.products) {
+          productIds = [req.body.products];
         }
 
         for (const pId of productIds) {
@@ -200,10 +205,14 @@ export const uploadMedia = async (req, res, next) => {
     }
 
     if (error.isDuplicate) {
-      return next(new AppError(`Gambar ${error.filename} sudah ada`, 409));
+      return res.status(409).json({
+        success: false,
+        message: `File ${error.filename} sudah pernah diunggah sebelumnya.`,
+        error_code: 'DUPLICATE_MEDIA'
+      });
     }
 
-    return next(new AppError("Gagal mengunggah media", 500));
+    return next(new AppError(error.message || "Gagal mengunggah media", 500));
   } finally {
     if (connection) connection.release();
   }

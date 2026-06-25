@@ -2,7 +2,7 @@
 import db from "../config/db.js";
 import ExcelJS from "exceljs";
 import fs from "fs";
-import { Readable } from "stream";
+import * as fastCsv from "fast-csv";
 import { pipeline } from "stream/promises";
 import * as locationRepo from "../repositories/locationRepository.js";
 import * as reportRepo from "../repositories/reportRepository.js";
@@ -86,12 +86,11 @@ export const generateStockReportStreaming = async (filters, filePath) => {
 
     // Setup Sheet 2: Raw Data
     const rawSheet = writer.addWorksheet("Data Mentah");
-    const rawHeaderTexts = ["SKU", "Nama Produk", "Lokasi", "Kuantitas", "Kuantitas"];
+    const rawHeaderTexts = ["SKU", "Nama Produk", "Lokasi", "Kuantitas"];
     rawSheet.columns = [
       { key: "Sku", width: 20 },
       { key: "NamaProduk", width: 50 },
       { key: "Lokasi", width: 15 },
-      { key: "Kuantitas", width: 12 },
       { key: "Kuantitas", width: 12 },
     ];
     rawSheet.getRow(1).values = rawHeaderTexts;
@@ -118,19 +117,12 @@ export const generateStockReportStreaming = async (filters, filePath) => {
       queryStream.on("data", (row) => {
         try {
           // A. Tulis Raw Row
-          const rowArray = [
-            row.Sku,
-            row.NamaProduk,
-            row.Lokasi || "-",
-            row.Kuantitas,
-            row.Kuantitas,
-          ];
+          const rowArray = [row.Sku, row.NamaProduk, row.Lokasi || "-", row.Kuantitas];
           const addedRow = rawSheet.addRow(rowArray);
 
           // Formatting
           addedRow.getCell(1).numFmt = textFormat;
           addedRow.getCell(4).numFmt = numberFormat;
-          if (Number(row.Kuantitas) < 0) addedRow.getCell(4).font = negativeRedText.font;
           if (Number(row.Kuantitas) < 0) addedRow.getCell(4).font = negativeRedText.font;
           addedRow.commit();
 
@@ -169,7 +161,7 @@ export const generateStockReportStreaming = async (filters, filePath) => {
           rawSheet.commit(); // Selesai Raw Sheet
 
           // C. Tulis Pivot Sheet
-          for (const [sku, data] of pivotData) {
+          for (const [data] of pivotData) {
             const rowArray = [
               data.Sku,
               data.NamaProduk,
@@ -226,13 +218,13 @@ export const generateStockReportStreaming = async (filters, filePath) => {
     if (writer) {
       try {
         stream.end();
-      } catch (e) {}
+      } catch {
+        //
+      }
     }
     throw error;
   }
 };
-
-import * as fastCsv from "fast-csv";
 
 /**
  * Generate Product Master Export (XLSX or CSV)
@@ -360,7 +352,9 @@ export const generateProductExportStreaming = async (filters, filePath) => {
       // Try to close writer/stream on error
       try {
         stream.end();
-      } catch (e) {}
+      } catch {
+        //
+      }
     }
     throw error;
   } finally {

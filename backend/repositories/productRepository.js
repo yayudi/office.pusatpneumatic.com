@@ -522,34 +522,52 @@ export const getAllActiveProducts = async (connection) => {
 };
 
 /**
- * @param {import('mysql2/promise').Connection} connection
- * @param {any} searchTerm
- * @param {number|string} locationId
- * @returns {Promise<any>}
+ * Pencarian produk untuk autocomplete. 
+ * Jika locationId diberikan, semua produk aktif tetap ditampilkan, 
+ * tetapi stok di lokasi tersebut ikut disertakan (current_stock). 
+ * Produk yang memiliki stok di lokasi diprioritaskan di urutan atas.
+ * @param {import('mysql2/promise').Connection} connection - Koneksi database
+ * @param {string} searchTerm - Kata kunci pencarian
+ * @param {number|string|null} locationId - ID lokasi (opsional)
+ * @param {number} page - Halaman
+ * @param {number} limit - Jumlah per halaman
+ * @returns {Promise<{data: Array<object>, nextCursor: number|null}>}
  */
 export const searchProducts = async (connection, searchTerm, locationId, page = 1, limit = 20) => {
-  let query, queryParams = [];
+  const queryParams = [];
   const offset = (page - 1) * limit;
-  
+
   const keywords = (searchTerm || "").split(" ").filter((k) => k.length > 0);
   const keywordClauses = keywords.map(() => "(LOWER(p.name) LIKE ? OR LOWER(p.sku) LIKE ?)");
   const keywordSql = keywordClauses.length > 0 ? `AND (${keywordClauses.join(" AND ")})` : "";
-  
+
+  const keywordParams = [];
   keywords.forEach((keyword) => {
-    queryParams.push(`%${keyword}%`, `%${keyword}%`);
+    keywordParams.push(`%${keyword}%`, `%${keyword}%`);
   });
 
+  let query;
+
   if (locationId && locationId !== "null" && locationId !== "undefined" && locationId !== "") {
-    query = `SELECT p.id, p.sku, p.name, p.price, p.weight, sl.quantity AS current_stock
-              FROM products p JOIN stock_locations sl ON p.id = sl.product_id
-              WHERE sl.location_id = ? ${keywordSql}
-              AND sl.quantity != 0 LIMIT ? OFFSET ?`;
-    queryParams = [locationId, ...queryParams, limit, offset];
+    // LEFT JOIN: Tampilkan SEMUA produk aktif, sertakan stok di lokasi jika ada.
+    // Produk dengan stok > 0 di lokasi akan muncul di atas (ORDER BY has_stock DESC).
+    query = `SELECT p.id, p.sku, p.name, p.price, p.weight, 
+                    COALESCE(sl.quantity, 0) AS current_stock
+             FROM products p 
+             LEFT JOIN stock_locations sl ON p.id = sl.product_id AND sl.location_id = ?
+             WHERE p.is_active = 1 AND p.deleted_at IS NULL ${keywordSql}
+             ORDER BY (COALESCE(sl.quantity, 0) > 0) DESC, p.name ASC
+             LIMIT ? OFFSET ?`;
+    queryParams.push(locationId, ...keywordParams, limit, offset);
   } else {
-    query = `SELECT p.id, p.sku, p.name, p.price, p.weight FROM products p
-              WHERE p.is_active = 1 ${keywordSql} LIMIT ? OFFSET ?`;
-    queryParams.push(limit, offset);
+    query = `SELECT p.id, p.sku, p.name, p.price, p.weight 
+             FROM products p
+             WHERE p.is_active = 1 AND p.deleted_at IS NULL ${keywordSql} 
+             ORDER BY p.name ASC
+             LIMIT ? OFFSET ?`;
+    queryParams.push(...keywordParams, limit, offset);
   }
+
   const [results] = await connection.query(query, queryParams);
   
   return {

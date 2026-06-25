@@ -25,7 +25,7 @@ export function useWms() {
   const isLoadingMore = ref(false)
   const isBackgroundLoading = ref(false)
   const error = ref(null)
-  const pageSize = 30
+  const pageSize = ref(30)
   const loader = ref(null)
   const searchTerm = ref('')
   const searchBy = ref('name')
@@ -36,6 +36,7 @@ export function useWms() {
   const selectedCategory = ref({ include: [], exclude: [] })
   const sortBy = ref('name')
   const sortOrder = ref('asc')
+  const viewMode = ref('infinite') // 'infinite' or 'pagination'
   const isAutoRefetching = ref(true)
   const startDate = ref('')
   const endDate = ref('')
@@ -184,7 +185,7 @@ export function useWms() {
     try {
       const params = {
         page: currentPage.value,
-        limit: pageSize,
+        limit: pageSize.value,
         search: searchTerm.value,
         searchBy: searchBy.value,
         location: activeView.value,
@@ -371,6 +372,20 @@ export function useWms() {
   }
 
   const hasMoreData = computed(() => displayedProducts.value.length < totalProducts.value)
+  const totalPages = computed(() => Math.ceil(totalProducts.value / pageSize.value))
+
+  function goToPage(page) {
+    if (page >= 1 && page <= totalPages.value) {
+      currentPage.value = page
+      fetchProducts('init')
+    }
+  }
+
+  function changePageSize(newSize) {
+    pageSize.value = newSize
+    currentPage.value = 1
+    fetchProducts('init')
+  }
 
   onMounted(() => {
     observer = new IntersectionObserver(
@@ -433,6 +448,7 @@ export function useWms() {
       sortOrder,
       startDate,
       endDate,
+      viewMode,
     ],
     () => {
       resetAndRefetch()
@@ -455,6 +471,8 @@ export function useWms() {
     searchTerm,
     currentPage,
     totalProducts,
+    totalPages,
+    pageSize,
     isLoadingMore,
     isBackgroundLoading,
     hasMoreData,
@@ -468,6 +486,9 @@ export function useWms() {
     isAutoRefetching,
     startDate,
     endDate,
+    viewMode,
+    goToPage,
+    changePageSize,
     handleSearchInput,
     handleSort,
     toggleAutoRefetch,

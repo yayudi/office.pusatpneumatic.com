@@ -101,11 +101,16 @@ export const runMediaWorker = async () => {
         const mainOutBuffer = mainImage.writeToBuffer('.webp', { Q: 80 })
         await fs.writeFile(finalMainFullPath, mainOutBuffer)
 
-        // Bikin thumbnail (max width 300)
+        // Bikin thumbnail (max width 300, strict 1:1 crop centre)
         let thumbImage = image
-        if (image.width > 300) {
-          // Harus handle tinggi/lebar kalau mau strict kotak, tp disini resize maintain spec
-          thumbImage = image.resize(300 / image.width)
+        try {
+          thumbImage = image.thumbnailImage(300, { height: 300, crop: 'centre' })
+        } catch (error) {
+          Logger.warn("Failed to generate strict 1:1 thumbnail, falling back to resize", "MEDIA_WORKER", error)
+          // Fallback if thumbnailImage fails
+          if (image.width > 300) {
+            thumbImage = image.resize(300 / image.width)
+          }
         }
 
         const thumbOutBuffer = thumbImage.writeToBuffer('.webp', { Q: 80 })
