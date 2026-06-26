@@ -10,7 +10,7 @@ import Logger from "../utils/logger.js";
  * @param {string} endDate
  */
 export const getStockMovementStatistics = async (filters) => {
-  const { startDate, endDate, status: filterStatus, movement: filterMovement, building, searchQuery, timeResolution } = filters;
+  const { startDate, endDate, status: filterStatus, movement: filterMovement } = filters;
   let connection;
   try {
     connection = await db.getConnection();
@@ -33,7 +33,7 @@ export const getStockMovementStatistics = async (filters) => {
       const currentStock = Number(row.current_stock);
       const daysOfInventory = avgDailySales > 0 ? (currentStock / avgDailySales) : -1;
 
-      let status = 'SAFE';
+      let status;
 
       // Stok 0 atau minus dianggap CRITICAL
       if (currentStock < 0) {
@@ -65,13 +65,15 @@ export const getStockMovementStatistics = async (filters) => {
       if (typeof filterStatus === 'string' && filterStatus !== 'all') {
         data = data.filter(item => item.status === filterStatus.toUpperCase());
       } else if (typeof filterStatus === 'object') {
-        if (filterStatus.include && filterStatus.include.length > 0) {
-          const inc = filterStatus.include.map(s => String(s).toUpperCase());
-          data = data.filter(item => inc.includes(item.status));
+        const inc = filterStatus.include ? (Array.isArray(filterStatus.include) ? filterStatus.include : Object.values(filterStatus.include)) : [];
+        if (inc.length > 0) {
+          const incUpper = inc.map(s => String(s).toUpperCase());
+          data = data.filter(item => incUpper.includes(item.status));
         }
-        if (filterStatus.exclude && filterStatus.exclude.length > 0) {
-          const exc = filterStatus.exclude.map(s => String(s).toUpperCase());
-          data = data.filter(item => !exc.includes(item.status));
+        const exc = filterStatus.exclude ? (Array.isArray(filterStatus.exclude) ? filterStatus.exclude : Object.values(filterStatus.exclude)) : [];
+        if (exc.length > 0) {
+          const excUpper = exc.map(s => String(s).toUpperCase());
+          data = data.filter(item => !excUpper.includes(item.status));
         }
       }
     }
@@ -105,7 +107,7 @@ export const getStockMovementStatistics = async (filters) => {
  * @returns {Promise<any>}
  */
 export const getStockTimelineStatistics = async (filters) => {
-  const { searchQuery, building, status, movement } = filters;
+  // Extract only needed properties or use filters directly
   let connection;
   try {
     connection = await db.getConnection();
@@ -268,7 +270,7 @@ export const generateStatisticExport = async (filters, filePath) => {
     Logger.info("Finished.", "STATISTIC_SERVICE");
   } catch (error) {
     Logger.error("Error in generateStatisticExport", error, "STATISTIC_SERVICE");
-    try { stream.end(); } catch (e) { }
+    try { stream.end(); } catch { /* ignore */ }
     throw error;
   }
 };

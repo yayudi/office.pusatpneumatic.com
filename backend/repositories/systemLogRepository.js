@@ -9,24 +9,38 @@ import db from "../config/db.js";
 const buildTriStateWhere = (column, filterValue, queryParams) => {
   const clauses = [];
   let parsed = filterValue;
-  if (typeof filterValue === 'string' && filterValue.startsWith('{')) {
-    try { parsed = JSON.parse(filterValue); } catch(e) {}
+  if (typeof filterValue === "string" && filterValue.startsWith("{")) {
+    try {
+      parsed = JSON.parse(filterValue);
+    } catch {
+      /* ignore */
+    }
   }
-  
-  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-    if (parsed.include && parsed.include.length > 0) {
+
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+    const inc = parsed.include
+      ? Array.isArray(parsed.include)
+        ? parsed.include
+        : Object.values(parsed.include)
+      : [];
+    if (inc.length > 0) {
       clauses.push(`${column} IN (?)`);
-      queryParams.push(parsed.include);
+      queryParams.push(inc);
     }
-    if (parsed.exclude && parsed.exclude.length > 0) {
+    const exc = parsed.exclude
+      ? Array.isArray(parsed.exclude)
+        ? parsed.exclude
+        : Object.values(parsed.exclude)
+      : [];
+    if (exc.length > 0) {
       clauses.push(`${column} NOT IN (?)`);
-      queryParams.push(parsed.exclude);
+      queryParams.push(exc);
     }
-  } else if (parsed && parsed !== 'All' && parsed !== 'all') {
+  } else if (parsed && parsed !== "All" && parsed !== "all") {
     if (Array.isArray(parsed) && parsed.length > 0) {
       clauses.push(`${column} IN (?)`);
       queryParams.push(parsed);
-    } else if (typeof parsed === 'string') {
+    } else if (typeof parsed === "string") {
       clauses.push(`${column} = ?`);
       queryParams.push(parsed);
     }
@@ -53,10 +67,10 @@ export const getLogs = async ({
     params.push(`%${search}%`, `%${search}%`);
   }
 
-  const actionClauses = buildTriStateWhere('action', action, params);
+  const actionClauses = buildTriStateWhere("action", action, params);
   if (actionClauses.length > 0) conditions.push(...actionClauses);
 
-  const targetClauses = buildTriStateWhere('target_type', targetType, params);
+  const targetClauses = buildTriStateWhere("target_type", targetType, params);
   if (targetClauses.length > 0) conditions.push(...targetClauses);
 
   if (userId && userId !== "all") {

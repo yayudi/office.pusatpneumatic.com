@@ -13,13 +13,15 @@ export const buildTriStateWhere = (field, filter, queryParams) => {
       clauses.push(`${field} IN (?)`);
       queryParams.push(filter);
     } else if (typeof filter === 'object' && !Array.isArray(filter)) {
-      if (filter.include && filter.include.length > 0) {
+      const includeItems = filter.include ? (Array.isArray(filter.include) ? filter.include : Object.values(filter.include)) : [];
+      if (includeItems.length > 0) {
         clauses.push(`${field} IN (?)`);
-        queryParams.push(filter.include);
+        queryParams.push(includeItems);
       }
-      if (filter.exclude && filter.exclude.length > 0) {
+      const excludeItems = filter.exclude ? (Array.isArray(filter.exclude) ? filter.exclude : Object.values(filter.exclude)) : [];
+      if (excludeItems.length > 0) {
         clauses.push(`${field} NOT IN (?)`);
-        queryParams.push(filter.exclude);
+        queryParams.push(excludeItems);
       }
     } else if (typeof filter === 'string' && filter !== "all" && filter !== "") {
       clauses.push(`${field} = ?`);
@@ -75,7 +77,8 @@ export const getStockMovementStats = async (connection, filters) => {
       `;
       movParams.push(buildings, buildings);
     } else if (typeof buildings === 'object' && !Array.isArray(buildings)) {
-      if (buildings.include && buildings.include.length > 0) {
+      const inc = buildings.include ? (Array.isArray(buildings.include) ? buildings.include : Object.values(buildings.include)) : [];
+      if (inc.length > 0) {
         movFilter += `
           AND (
             (sm.movement_type = 'INBOUND' AND tl.building IN (?))
@@ -83,9 +86,10 @@ export const getStockMovementStats = async (connection, filters) => {
             (sm.movement_type IN ('SALE', 'OUT') AND fl.building IN (?))
           )
         `;
-        movParams.push(buildings.include, buildings.include);
+        movParams.push(inc, inc);
       }
-      if (buildings.exclude && buildings.exclude.length > 0) {
+      const exc = buildings.exclude ? (Array.isArray(buildings.exclude) ? buildings.exclude : Object.values(buildings.exclude)) : [];
+      if (exc.length > 0) {
         movFilter += `
           AND (
             (sm.movement_type = 'INBOUND' AND (tl.building IS NULL OR tl.building NOT IN (?)))
@@ -93,7 +97,7 @@ export const getStockMovementStats = async (connection, filters) => {
             (sm.movement_type IN ('SALE', 'OUT') AND (fl.building IS NULL OR fl.building NOT IN (?)))
           )
         `;
-        movParams.push(buildings.exclude, buildings.exclude);
+        movParams.push(exc, exc);
       }
     }
   }
@@ -175,16 +179,18 @@ export const getInventoryValueStats = async (connection, filters) => {
       const cond = applyStockStatus([stockStatus]);
       if (cond) whereClauses.push(cond);
     } else if (typeof stockStatus === 'object') {
-      if (stockStatus.include && stockStatus.include.length > 0) {
-        const cond = applyStockStatus(stockStatus.include);
+      const inc = stockStatus.include ? (Array.isArray(stockStatus.include) ? stockStatus.include : Object.values(stockStatus.include)) : [];
+      if (inc.length > 0) {
+        const cond = applyStockStatus(inc);
         if (cond) whereClauses.push(cond);
       }
-      if (stockStatus.exclude && stockStatus.exclude.length > 0) {
+      const exc = stockStatus.exclude ? (Array.isArray(stockStatus.exclude) ? stockStatus.exclude : Object.values(stockStatus.exclude)) : [];
+      if (exc.length > 0) {
         // Exclude needs to invert the condition
         const conds = [];
-        if (stockStatus.exclude.includes("positive")) conds.push("COALESCE(sl.quantity, 0) <= 0");
-        if (stockStatus.exclude.includes("negative")) conds.push("COALESCE(sl.quantity, 0) >= 0");
-        if (stockStatus.exclude.includes("zero")) conds.push("COALESCE(sl.quantity, 0) != 0");
+        if (exc.includes("positive")) conds.push("COALESCE(sl.quantity, 0) <= 0");
+        if (exc.includes("negative")) conds.push("COALESCE(sl.quantity, 0) >= 0");
+        if (exc.includes("zero")) conds.push("COALESCE(sl.quantity, 0) != 0");
         if (conds.length > 0) {
           whereClauses.push(`(${conds.join(" AND ")})`);
         }
@@ -261,7 +267,8 @@ export const getMovementTimelineStats = async (connection, filters) => {
       `;
       queryParams.push(buildings, buildings);
     } else if (typeof buildings === 'object' && !Array.isArray(buildings)) {
-      if (buildings.include && buildings.include.length > 0) {
+      const inc = buildings.include ? (Array.isArray(buildings.include) ? buildings.include : Object.values(buildings.include)) : [];
+      if (inc.length > 0) {
         buildingFilter += `
           AND (
             (sm.movement_type = 'INBOUND' AND tl.building IN (?))
@@ -269,9 +276,10 @@ export const getMovementTimelineStats = async (connection, filters) => {
             (sm.movement_type IN ('SALE', 'OUT') AND fl.building IN (?))
           )
         `;
-        queryParams.push(buildings.include, buildings.include);
+        queryParams.push(inc, inc);
       }
-      if (buildings.exclude && buildings.exclude.length > 0) {
+      const exc = buildings.exclude ? (Array.isArray(buildings.exclude) ? buildings.exclude : Object.values(buildings.exclude)) : [];
+      if (exc.length > 0) {
         buildingFilter += `
           AND (
             (sm.movement_type = 'INBOUND' AND (tl.building IS NULL OR tl.building NOT IN (?)))
@@ -279,7 +287,7 @@ export const getMovementTimelineStats = async (connection, filters) => {
             (sm.movement_type IN ('SALE', 'OUT') AND (fl.building IS NULL OR fl.building NOT IN (?)))
           )
         `;
-        queryParams.push(buildings.exclude, buildings.exclude);
+        queryParams.push(exc, exc);
       }
     }
   }

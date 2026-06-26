@@ -256,7 +256,7 @@ export const processBatchMovementsService = async ({
 
       switch (type) {
         case "TRANSFER":
-        case "TRANSFER_MULTI":
+        case "TRANSFER_MULTI": {
           if (!srcLoc || !destLoc)
             throw new Error(`Lokasi asal/tujuan tidak valid untuk ${item.sku}`);
 
@@ -292,6 +292,7 @@ export const processBatchMovementsService = async ({
             notes: itemNote,
           });
           break;
+        }
 
         case "INBOUND":
         case "RETURN":
@@ -308,7 +309,7 @@ export const processBatchMovementsService = async ({
           });
           break;
 
-        case "ADJUSTMENT":
+        case "ADJUSTMENT": {
           if (!destLoc) throw new Error("Lokasi wajib diisi.");
           const originalMov = movements.find((m) => m.sku === (item.parentSku || item.sku));
           const isNegative = originalMov && originalMov.quantity < 0;
@@ -318,12 +319,14 @@ export const processBatchMovementsService = async ({
           await stockRepo.createLog(connection, {
             productId,
             quantity: Math.abs(finalQty),
+            fromLocationId: null,
             toLocationId: destLoc,
             type: "ADJUSTMENT",
             userId,
             notes: itemNote,
           });
           break;
+        }
 
         default:
           throw new Error(`Tipe pergerakan '${type}' tidak dikenal.`);
@@ -622,17 +625,19 @@ const buildTriStateWhere = (column, filterValue, queryParams) => {
   const clauses = [];
   let parsed = filterValue;
   if (typeof filterValue === 'string' && filterValue.startsWith('{')) {
-    try { parsed = JSON.parse(filterValue); } catch(e) {}
+    try { parsed = JSON.parse(filterValue); } catch { /* ignore */ }
   }
   
   if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-    if (parsed.include && parsed.include.length > 0) {
+    const inc = parsed.include ? (Array.isArray(parsed.include) ? parsed.include : Object.values(parsed.include)) : [];
+    if (inc.length > 0) {
       clauses.push(`${column} IN (?)`);
-      queryParams.push(parsed.include);
+      queryParams.push(inc);
     }
-    if (parsed.exclude && parsed.exclude.length > 0) {
+    const exc = parsed.exclude ? (Array.isArray(parsed.exclude) ? parsed.exclude : Object.values(parsed.exclude)) : [];
+    if (exc.length > 0) {
       clauses.push(`${column} NOT IN (?)`);
-      queryParams.push(parsed.exclude);
+      queryParams.push(exc);
     }
   } else if (parsed && parsed !== 'All' && parsed !== 'all') {
     if (Array.isArray(parsed) && parsed.length > 0) {
@@ -650,7 +655,7 @@ const buildTriStateWhereLocations = (filterValue, queryParams) => {
   const clauses = [];
   let parsed = filterValue;
   if (typeof filterValue === 'string' && filterValue.startsWith('{')) {
-    try { parsed = JSON.parse(filterValue); } catch(e) {}
+    try { parsed = JSON.parse(filterValue); } catch { /* ignore */ }
   }
   
   if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
@@ -683,7 +688,7 @@ export const getBatchLogsService = async ({ startDate, endDate, productName, mov
   const connection = await db.getConnection();
   try {
     const offset = (page - 1) * limit;
-    let baseWhere = `sm.created_at BETWEEN ? AND ?`;
+    const baseWhere = `sm.created_at BETWEEN ? AND ?`;
     const params = [startDate, `${endDate} 23:59:59`];
 
     let countQuery = `
@@ -713,7 +718,7 @@ export const getBatchLogsService = async ({ startDate, endDate, productName, mov
     LEFT JOIN locations to_loc ON sm.to_location_id = to_loc.id
     WHERE `;
 
-    let conditions = [baseWhere];
+    const conditions = [baseWhere];
 
     if (productName) {
       conditions.push(`(p.name LIKE ? OR p.sku LIKE ?)`);
