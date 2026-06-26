@@ -289,12 +289,11 @@ useEventListener(
         </div>
 
         <!-- Mode Tampilan Group -->
-        <div class="flex flex-col gap-1 shrink-0 mt-auto mb-0.5 mx-auto lg:mx-0">
+        <div v-if="isMobile" class="flex flex-col gap-1 shrink-0 mt-auto mb-0.5 mx-auto lg:mx-0">
           <label class="block text-xs font-semibold text-text/60 text-center mb-1">Mode Tampilan</label>
           <div class="flex items-center justify-center lg:justify-start gap-2 h-[36px]">
             <!-- View Mode (Scroll / Page) -->
             <SegmentedControl
-              v-if="isMobile"
               :model-value="viewMode"
               @update:modelValue="emit('update:viewMode', $event)"
               :options="[
@@ -314,18 +313,21 @@ useEventListener(
               ]"
               class="shrink-0 min-w-[100px] !w-[100px] md:hidden"
             />
-
-            <!-- Column Visibility Selector -->
-            <button
-              ref="buttonRef"
-              @click.stop="toggleColumnMenu"
-              class="w-[36px] h-[36px] flex items-center justify-center rounded-lg border border-secondary/20 bg-background text-text/60 hover:text-primary transition-all shadow-sm shrink-0"
-              :class="{ 'bg-primary/10 text-primary border-primary': isColumnMenuOpen }"
-              title="Visibilitas Kolom"
-            >
-              <font-awesome-icon icon="fa-solid fa-table-columns" />
-            </button>
           </div>
+        </div>
+
+        <div class="flex flex-col gap-1 shrink-0 mt-auto mb-0.5 mx-auto lg:mx-0">
+          <!-- Column Visibility Selector -->
+          <button
+            ref="buttonRef"
+            @click.stop="toggleColumnMenu"
+            class="w-[36px] h-[36px] flex items-center justify-center rounded-lg border border-secondary/20 bg-background text-text/60 hover:text-primary transition-all shadow-sm shrink-0"
+            :class="{ 'bg-primary/10 text-primary border-primary': isColumnMenuOpen }"
+            title="Visibilitas Kolom"
+          >
+            <font-awesome-icon v-if="!isMobile" icon="fa-solid fa-sliders" />
+            <font-awesome-icon v-else icon="fa-solid fa-table-columns" />
+          </button>
         </div>
         <!-- Dropdown Menu -->
         <Teleport to="body">
@@ -338,12 +340,11 @@ useEventListener(
               minWidth: dropdownPosition.minWidth
             }"
           >
-            <div class="flex flex-col gap-1">
+            <div v-if="!isMobile" class="flex flex-col gap-1 mb-4">
               <span class="text-[10px] font-bold text-text/50 uppercase tracking-wide px-1 mb-1"> Mode Tampilan </span>
               <div class="flex items-center justify-center lg:justify-start gap-2 h-[36px]">
                 <!-- View Mode (Scroll / Page) -->
                 <SegmentedControl
-                  v-if="isMobile"
                   :model-value="viewMode"
                   @update:modelValue="emit('update:viewMode', $event)"
                   :options="[

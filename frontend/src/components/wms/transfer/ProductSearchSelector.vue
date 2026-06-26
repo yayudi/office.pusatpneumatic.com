@@ -88,30 +88,31 @@ watch(
   { immediate: true }
 )
 
-import debounce from 'lodash/debounce'
+
 
 // ... (logic above remains) ...
 
-const debouncedSearch = debounce(async (query) => {
-  if (query.length < 2) return
-  await performSearch(query)
-  
-  if (props.enableScanner && searchResults.value.length > 0) {
-    const match = searchResults.value.find(p => p.sku.toLowerCase() === query.toLowerCase())
-    if (match) {
-      console.log('[Scanner Auto] Exact match found:', match.sku)
-      emit('scanner-match', match)
-      searchQuery.value = ''
-      showDropdown.value = false
-      return
-    }
-  }
-
-  if (searchResults.value.length > 0) {
+watch(isLoading, (newVal) => {
+  if (newVal && searchQuery.value.length >= 2) {
     showDropdown.value = true
   }
-}, 300)
+})
 
+watch(searchResults, (newVal) => {
+  if (newVal.length > 0 && searchQuery.value.length >= 2) {
+    showDropdown.value = true
+    
+    if (props.enableScanner && searchQuery.value) {
+      const match = newVal.find(p => p.sku.toLowerCase() === searchQuery.value.toLowerCase())
+      if (match) {
+        console.log('[Scanner Auto] Exact match found:', match.sku)
+        emit('scanner-match', match)
+        searchQuery.value = ''
+        showDropdown.value = false
+      }
+    }
+  }
+}, { deep: true })
 async function handleInput() {
   const query = searchQuery.value
   
@@ -122,15 +123,15 @@ async function handleInput() {
     }
   }
 
-  if (!query) {
+  if (!query || query.length < 2) {
     emit('update:modelValue', null)
     clearSearch()
     showDropdown.value = false
     return
   }
   
-  // Call the debounced function instead of immediate performSearch
-  debouncedSearch(query)
+  // The composable will debounce this automatically
+  performSearch(query)
 }
 
 function clearInput() {

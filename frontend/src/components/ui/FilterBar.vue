@@ -179,7 +179,7 @@ function emitClear() {
         <span class="hidden lg:inline">Reset</span>
       </button>
 
-      <slot name="actions"></slot>
+      <slot name="filter-actions"></slot>
     </template>
 
     <template #advanced v-if="advancedFilters && advancedFilters.length > 0 && showAdvanced">

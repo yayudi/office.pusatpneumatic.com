@@ -10,7 +10,7 @@ import ProductSearchSelector from '@/components/wms/transfer/ProductSearchSelect
 
 const { isMobile } = useMobile()
 
-defineProps({
+const props = defineProps({
   allLocations: { type: Array, required: true },
   isLoadingLocations: { type: Boolean, default: false }
 })
@@ -89,6 +89,21 @@ function onBatchItemLocationChange(item) {
       toast(`Kuantitas disesuaikan karena stok di lokasi asal baru hanya ${item.maxQuantity}.`, 'warning')
     }
   }
+  
+  if (item.fromLocationId === item.toLocationId) {
+    toast('Peringatan: Lokasi Asal dan Tujuan sama.', 'warning')
+  }
+}
+
+function onBatchItemToLocationChange(item) {
+  const newLocation = props.allLocations.find(loc => loc.id === item.toLocationId)
+  if (newLocation) {
+    item.toLocationCode = newLocation.code
+  }
+
+  if (item.fromLocationId === item.toLocationId) {
+    toast('Peringatan: Lokasi Asal dan Tujuan sama.', 'warning')
+  }
 }
 
 // --- FUNGSI BATCH ---
@@ -99,6 +114,7 @@ function addItemToBatch() {
     return
   }
   if (fromLocation.value.location_id === toLocation.value.id) {
+    toast('Lokasi Asal dan Lokasi Tujuan tidak boleh sama.', 'warning')
     return
   }
   if (quantity.value > fromLocation.value.quantity) {
@@ -169,6 +185,12 @@ function removeFromBatch(id) {
 
 async function submitDetailedBatch() {
   if (batchList.value.length === 0 || isSubmitting.value) {
+    return
+  }
+
+  const hasInvalidLocations = batchList.value.some(item => item.fromLocationId === item.toLocationId)
+  if (hasInvalidLocations) {
+    toast('Terdapat item dengan Lokasi Asal dan Tujuan yang sama. Harap perbaiki sebelum memproses.', 'danger')
     return
   }
 
@@ -360,6 +382,7 @@ defineExpose({ submitDetailedBatch, hasData, resetData })
                   v-model="item.fromLocationId"
                   @change="onBatchItemLocationChange(item)"
                   class="p-1 border border-secondary/50 rounded bg-background text-sm font-mono max-w-[120px] outline-none focus:border-primary"
+                  :class="{'border-danger text-danger': item.fromLocationId === item.toLocationId}"
                 >
                   <option v-for="loc in item.availableStocks" :key="loc.location_id" :value="loc.location_id">
                     {{ loc.location_code }}
@@ -374,7 +397,9 @@ defineExpose({ submitDetailedBatch, hasData, resetData })
                 <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Ke</span>
                 <select
                   v-model="item.toLocationId"
+                  @change="onBatchItemToLocationChange(item)"
                   class="p-1 border border-secondary/50 rounded bg-background text-sm font-mono max-w-[120px] outline-none focus:border-primary"
+                  :class="{'border-danger text-danger': item.fromLocationId === item.toLocationId}"
                 >
                   <option v-for="loc in allLocations" :key="loc.id" :value="loc.id">
                     {{ loc.code }}

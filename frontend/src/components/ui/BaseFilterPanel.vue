@@ -24,6 +24,9 @@ const hasCollapsibleContent = computed(() => {
 const needsStandaloneToggle = computed(() => {
   return shouldCollapse.value && hasCollapsibleContent.value && !slots.search
 })
+
+const hasTopRow = computed(() => !!(slots.search || slots.tabs || slots.actions))
+const hasBottomRow = computed(() => !!(slots.filters || slots['filter-actions']))
 </script>
 
 <template>
@@ -97,7 +100,7 @@ const needsStandaloneToggle = computed(() => {
 
       <!-- TOP ROW (Search, Tabs, Main Actions) -->
       <div
-        v-if="$slots.search || $slots.tabs || $slots.actions"
+        v-if="hasTopRow"
         class="flex flex-col lg:flex-row flex-wrap justify-between items-start lg:items-center gap-1"
       >
         <slot name="search" v-if="$slots.search" />
@@ -107,13 +110,13 @@ const needsStandaloneToggle = computed(() => {
 
       <!-- DIVIDER -->
       <div
-        v-if="($slots.search || $slots.tabs || $slots.actions) && ($slots.filters || $slots['filter-actions'])"
+        v-if="hasTopRow && hasBottomRow"
         class="h-px w-full bg-secondary/10 hidden lg:block"
       ></div>
 
       <!-- BOTTOM ROW (Filters) -->
       <div
-        v-if="$slots.filters || $slots['filter-actions']"
+        v-if="hasBottomRow"
         class="flex flex-col lg:flex-row gap-4 items-end justify-between"
       >
         <div v-if="$slots.filters" class="w-full flex-grow">
@@ -159,12 +162,12 @@ const needsStandaloneToggle = computed(() => {
 
       <!-- Divider -->
       <div
-        v-if="($slots.tabs || $slots.actions) && ($slots.filters || $slots['filter-actions'])"
+        v-if="hasTopRow && hasBottomRow"
         class="h-px w-full bg-secondary/10 mb-3"
       ></div>
 
       <!-- Filters -->
-      <div v-if="$slots.filters || $slots['filter-actions']" class="flex flex-col gap-4">
+      <div v-if="hasBottomRow" class="flex flex-col gap-4">
         <div v-if="$slots.filters" class="w-full">
           <slot name="filters"></slot>
         </div>

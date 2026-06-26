@@ -1,6 +1,10 @@
 <script setup>
+import { watch } from 'vue'
+import { useToast } from '@/composables/useToast.js'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseTabs from '@/components/ui/BaseTabs.vue'
+
+const { toast } = useToast()
 
 // Props untuk data dropdown
 defineProps({
@@ -20,6 +24,13 @@ const tabs = [
   { label: 'Detailed Transfer', value: 'DETAILED_TRANSFER' },
   { label: 'Inbound', value: 'INBOUND' }
 ]
+
+watch([fromLocation, toLocation], ([newFrom, newTo]) => {
+  if (newFrom && newTo && newFrom.id === newTo.id) {
+    toast('Lokasi Asal dan Tujuan tidak boleh sama.', 'warning')
+    toLocation.value = null
+  }
+})
 </script>
 
 <template>

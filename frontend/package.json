@@ -28,7 +28,6 @@
     "cropperjs": "^2.1.1",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.19",
-    "event-source-polyfill": "^1.0.31",
     "fabric": "^7.4.0",
     "jsbarcode": "^3.12.3",
     "jszip": "^3.10.1",
