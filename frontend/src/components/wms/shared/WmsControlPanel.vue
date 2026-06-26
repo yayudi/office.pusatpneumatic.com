@@ -279,6 +279,7 @@ useEventListener(
             placeholder="Kategori"
             label="label"
             track-by="id"
+            :searchable="true"
             class="w-full h-[42px]"
             :class="[
               selectedCategory?.include?.length > 0 || selectedCategory?.exclude?.length > 0

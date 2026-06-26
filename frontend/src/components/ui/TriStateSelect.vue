@@ -217,6 +217,38 @@ function clearAll(event) {
   emit('update:modelValue', { include: [], exclude: [] })
 }
 
+function includeFiltered() {
+  const currentInclude = [...safeModelValue.value.include]
+  const currentExclude = [...safeModelValue.value.exclude]
+
+  filteredOptions.value.forEach(opt => {
+    const val = getOptionValue(opt)
+    const excIdx = currentExclude.indexOf(val)
+    if (excIdx > -1) currentExclude.splice(excIdx, 1)
+    if (!currentInclude.includes(val)) {
+      currentInclude.push(val)
+    }
+  })
+
+  emit('update:modelValue', { include: currentInclude, exclude: currentExclude })
+}
+
+function excludeFiltered() {
+  const currentInclude = [...safeModelValue.value.include]
+  const currentExclude = [...safeModelValue.value.exclude]
+
+  filteredOptions.value.forEach(opt => {
+    const val = getOptionValue(opt)
+    const incIdx = currentInclude.indexOf(val)
+    if (incIdx > -1) currentInclude.splice(incIdx, 1)
+    if (!currentExclude.includes(val)) {
+      currentExclude.push(val)
+    }
+  })
+
+  emit('update:modelValue', { include: currentInclude, exclude: currentExclude })
+}
+
 // Click Outside
 const handleClickOutside = event => {
   const isClickInsideContainer = containerRef.value && containerRef.value.contains(event.target)
@@ -311,6 +343,36 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
                 class="w-full pl-8 pr-3 py-1.5 bg-background border border-secondary/30 rounded-md text-xs focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-all"
                 placeholder="Cari opsi..."
               />
+            </div>
+            <!-- Quick Actions for Search Results -->
+            <div
+              v-if="searchable && searchQuery && filteredOptions.length > 0"
+              class="w-full flex items-center justify-between px-1 py-1.5 text-[10px] text-text/60 border-t border-secondary/10 mt-1"
+            >
+              <span>Hasil: {{ filteredOptions.length }}</span>
+              <div class="flex gap-2">
+                <button
+                  type="button"
+                  @click.stop="includeFiltered"
+                  class="text-primary hover:underline font-bold transition-colors"
+                  :disabled="excludeCount > 0"
+                  :class="{ 'opacity-50 cursor-not-allowed': excludeCount > 0 }"
+                  :title="excludeCount > 0 ? 'Tidak bisa include saat ada exclude aktif' : 'Include Semua'"
+                >
+                  + Include Semua
+                </button>
+                <span class="text-secondary/40">|</span>
+                <button
+                  type="button"
+                  @click.stop="excludeFiltered"
+                  class="text-danger hover:underline font-bold transition-colors"
+                  :disabled="includeCount > 0"
+                  :class="{ 'opacity-50 cursor-not-allowed': includeCount > 0 }"
+                  :title="includeCount > 0 ? 'Tidak bisa exclude saat ada include aktif' : 'Exclude Semua'"
+                >
+                  - Exclude Semua
+                </button>
+              </div>
             </div>
             <button
               @click="clearAll"
