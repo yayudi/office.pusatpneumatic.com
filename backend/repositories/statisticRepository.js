@@ -24,8 +24,28 @@ export const buildTriStateWhere = (field, filter, queryParams) => {
         queryParams.push(excludeItems);
       }
     } else if (typeof filter === 'string' && filter !== "all" && filter !== "") {
-      clauses.push(`${field} = ?`);
-      queryParams.push(filter);
+      let parsedFilter = null;
+      try {
+        parsedFilter = JSON.parse(filter);
+      } catch (e) {
+        // Not JSON string, treat as normal string
+      }
+
+      if (parsedFilter && typeof parsedFilter === 'object' && !Array.isArray(parsedFilter)) {
+        const includeItems = parsedFilter.include ? (Array.isArray(parsedFilter.include) ? parsedFilter.include : Object.values(parsedFilter.include)) : [];
+        if (includeItems.length > 0) {
+          clauses.push(`${field} IN (?)`);
+          queryParams.push(includeItems);
+        }
+        const excludeItems = parsedFilter.exclude ? (Array.isArray(parsedFilter.exclude) ? parsedFilter.exclude : Object.values(parsedFilter.exclude)) : [];
+        if (excludeItems.length > 0) {
+          clauses.push(`${field} NOT IN (?)`);
+          queryParams.push(excludeItems);
+        }
+      } else {
+        clauses.push(`${field} = ?`);
+        queryParams.push(filter);
+      }
     }
   }
   return clauses;
@@ -543,6 +563,7 @@ export const getPeriodComparison = async (connection, filters) => {
 export const getPackageComponentAnalysis = async (connection, filters) => {
   const { startDate, endDate, categoryId, searchQuery } = filters;
   const queryParams = [startDate, endDate];
+  console.log('[statisticRepo] getPackageComponentAnalysis called. filters:', filters);
   let searchFilter = "";
 
   if (searchQuery) {
@@ -560,9 +581,11 @@ export const getPackageComponentAnalysis = async (connection, filters) => {
       cp.id as component_product_id,
       cp.sku as component_sku,
       cp.name as component_name,
+      cp.category_id as component_category_id,
       COALESCE((SELECT SUM(quantity) FROM stock_locations WHERE product_id = cp.id), 0) as current_stock,
       pp.sku as package_sku,
       pp.name as package_name,
+      pp.category_id as package_category_id,
       COALESCE(s_mov.comp_needed, 0) / pc.quantity_per_package as sold,
       pc.quantity_per_package as qty_per_package,
       COALESCE(s_mov.comp_needed, 0) as subtotal_needed
@@ -586,6 +609,9 @@ export const getPackageComponentAnalysis = async (connection, filters) => {
   `;
 
   const [rows] = await connection.query(query, queryParams);
+  console.log('[statisticRepo] query:\n', query);
+  console.log('[statisticRepo] queryParams:', queryParams);
+  console.log('[statisticRepo] rows length:', rows.length);
   return rows;
 };
 

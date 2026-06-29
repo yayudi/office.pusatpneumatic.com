@@ -1,12 +1,13 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns'
-import { useTheme } from '@/composables/useTheme.js'
+import { format, startOfMonth, endOfMonth } from 'date-fns'
 import FilterBar from '@/components/ui/FilterBar.vue'
+import BasePagination from '@/components/ui/BasePagination.vue'
 import { fetchPackageAnalysis } from '@/api/helpers/stats.js'
 import { formatNumber } from '@/utils/formatters.js'
+import { useMasterDataStore } from '@/stores/masterData.js'
 
-const { themeColors, isDarkTheme } = useTheme()
+const masterStore = useMasterDataStore()
 const isDataLoading = ref(false)
 const analysisData = ref([])
 const expandedRows = ref([])
@@ -17,8 +18,14 @@ const filterValues = ref({
   selectedMonth: ('0' + (new Date().getMonth() + 1)).slice(-2),
   startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
   endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
-  searchQuery: ''
+  searchQuery: '',
+  packageCategoryId: { include: [], exclude: [] },
+  componentCategoryId: { include: [], exclude: [] },
+  stockStatus: { include: [], exclude: [] }
 })
+
+const currentPage = ref(1)
+const itemsPerPage = ref(10)
 
 const reportTypeOptions = [
   { value: 'monthly', label: 'Bulan', icon: 'fa-solid fa-calendar' },
@@ -47,6 +54,7 @@ const availableYears = computed(() => {
 })
 
 const getApiPayload = () => {
+  console.log('[PackageAnalysisTable] getApiPayload called with filterValues:', filterValues.value);
   let startDate, endDate
   if (filterValues.value.reportType === 'annual') {
     startDate = `${filterValues.value.year}-01-01`
@@ -62,7 +70,11 @@ const getApiPayload = () => {
   return {
     startDate,
     endDate,
-    searchQuery: filterValues.value.searchQuery
+    categoryId: JSON.stringify(filterValues.value.componentCategoryId),
+    packageCategoryId: JSON.stringify(filterValues.value.packageCategoryId),
+    stockStatus: JSON.stringify(filterValues.value.stockStatus),
+    searchQuery: filterValues.value.searchQuery,
+    limit: 1000 // Get a large amount of data for client-side pagination
   }
 }
 
@@ -74,7 +86,7 @@ const mainFilters = computed(() => {
       type: 'select',
       key: 'year',
       label: 'Tahun',
-      options: availableYears.value.map(y => ({ id: y, label: y })),
+      options: availableYears.value.map(y => ({ value: y, label: y.toString() })),
       clearable: false,
       searchable: false
     })
@@ -84,7 +96,6 @@ const mainFilters = computed(() => {
       key: 'selectedMonth',
       label: 'Bulan',
       options: availableMonths,
-      trackBy: 'value',
       clearable: false,
       searchable: false,
       placeholder: 'Pilih Bulan'
@@ -93,22 +104,61 @@ const mainFilters = computed(() => {
       type: 'select',
       key: 'year',
       label: 'Tahun',
-      options: availableYears.value.map(y => ({ id: y, label: y })),
+      options: availableYears.value.map(y => ({ value: y, label: y.toString() })),
       clearable: false,
       searchable: false
     })
   } else {
     filters.push({ type: 'daterange', keyStart: 'startDate', keyEnd: 'endDate', label: 'Rentang Waktu' })
   }
+
+  // Stock Status Filter (Local Frontend TriState)
+  filters.push({
+    type: 'triselect',
+    key: 'stockStatus',
+    label: 'Status Stok',
+    options: [
+      { id: 'SAFE', label: 'Aman' },
+      { id: 'WARNING', label: 'Peringatan' },
+      { id: 'DEFICIT', label: 'Perlu Beli' }
+    ],
+    placeholder: 'Semua Status'
+  })
+
+  // Category Filters (TriState)
+  if (masterStore.categories && masterStore.categories.length > 0) {
+    const catOptions = masterStore.categories.map(c => ({ id: c.id, label: c.name }))
+    filters.push({
+      type: 'triselect',
+      key: 'componentCategoryId',
+      label: 'Kategori Komponen',
+      options: catOptions,
+      placeholder: 'Semua Komponen',
+      searchable: true
+    })
+    // Note: If you want to filter package category locally or server side later, it's ready as triselect too
+    filters.push({
+      type: 'triselect',
+      key: 'packageCategoryId',
+      label: 'Kategori Paket (Lokal)',
+      options: catOptions,
+      placeholder: 'Semua Paket',
+      searchable: true
+    })
+  }
+
   return filters
 })
 
 const fetchStatistics = async () => {
+  console.log('[PackageAnalysisTable] fetchStatistics called');
   const payload = getApiPayload()
+  console.log('[PackageAnalysisTable] fetchStatistics payload:', payload);
   if (!payload.startDate || !payload.endDate) return
   isDataLoading.value = true
   try {
     const data = await fetchPackageAnalysis(payload)
+    console.log('[PackageAnalysisTable] fetchPackageAnalysis response:', data);
     analysisData.value = data || []
     expandedRows.value = []
   } catch (error) {
@@ -118,13 +168,19 @@ const fetchStatistics = async () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  console.log('[PackageAnalysisTable] onMounted');
+  await masterStore.getCategories();
   fetchStatistics()
 })
 
-const applyFilters = () => fetchStatistics()
+const applyFilters = () => {
+  console.log('[PackageAnalysisTable] applyFilters called');
+  currentPage.value = 1
+  fetchStatistics()
+}
 
-const toggleRow = (id) => {
+const toggleRow = id => {
   const index = expandedRows.value.indexOf(id)
   if (index === -1) {
     expandedRows.value.push(id)
@@ -133,14 +189,65 @@ const toggleRow = (id) => {
   }
 }
 
-const getStatusBadge = (status) => {
+const filteredAnalysisData = computed(() => {
+  console.log('[PackageAnalysisTable] filteredAnalysisData computed triggered');
+  let result = analysisData.value || []
+
+  // Filter 1: Kategori Paket (Frontend TriState)
+  if (
+    filterValues.value.packageCategoryId.include.length > 0 ||
+    filterValues.value.packageCategoryId.exclude.length > 0
+  ) {
+    result = result.filter(item => {
+      let isIncluded = true
+      let isExcluded = false
+
+      if (filterValues.value.packageCategoryId.include.length > 0) {
+        // Must belong to at least one package in the included categories
+        isIncluded = item.packages.some(pkg =>
+          filterValues.value.packageCategoryId.include.includes(pkg.package_category_id)
+        )
+      }
+
+      if (filterValues.value.packageCategoryId.exclude.length > 0) {
+        // Must NOT belong to ANY package in the excluded categories
+        // Or if you want strict: if it belongs to ANY excluded category, we exclude it
+        isExcluded = item.packages.some(pkg =>
+          filterValues.value.packageCategoryId.exclude.includes(pkg.package_category_id)
+        )
+      }
+
+      return isIncluded && !isExcluded
+    })
+  }
+
+  // Filter 2: Status Stok (Frontend TriState)
+  if (filterValues.value.stockStatus.include.length > 0) {
+    result = result.filter(item => filterValues.value.stockStatus.include.includes(item.status))
+  }
+  if (filterValues.value.stockStatus.exclude.length > 0) {
+    result = result.filter(item => !filterValues.value.stockStatus.exclude.includes(item.status))
+  }
+
+  return result
+})
+
+const paginatedData = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value
+  const end = start + itemsPerPage.value
+  return filteredAnalysisData.value.slice(start, end)
+})
+
+const totalItems = computed(() => filteredAnalysisData.value.length)
+
+const getStatusBadge = status => {
   if (status === 'SAFE') return 'bg-success/10 text-success border-success/20'
   if (status === 'WARNING') return 'bg-warning/10 text-warning border-warning/20'
   if (status === 'DEFICIT') return 'bg-danger/10 text-danger border-danger/20'
   return 'bg-secondary/10 text-text/50 border-secondary/20'
 }
 
-const getStatusText = (status) => {
+const getStatusText = status => {
   if (status === 'SAFE') return 'Aman'
   if (status === 'WARNING') return 'Peringatan'
   if (status === 'DEFICIT') return 'Perlu Beli'
@@ -168,7 +275,10 @@ const getStatusText = (status) => {
             selectedMonth: ('0' + (new Date().getMonth() + 1)).slice(-2),
             startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
             endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
-            searchQuery: ''
+            searchQuery: '',
+            packageCategoryId: { include: [], exclude: [] },
+            componentCategoryId: { include: [], exclude: [] },
+            stockStatus: { include: [], exclude: [] }
           }
           applyFilters()
         }
@@ -213,11 +323,18 @@ const getStatusText = (status) => {
               </tr>
             </thead>
             <tbody class="divide-y divide-secondary/20">
-              <template v-for="item in analysisData" :key="item.component_product_id">
-                <tr class="hover:bg-secondary/5 transition-colors cursor-pointer group" @click="toggleRow(item.component_product_id)">
+              <template v-for="item in paginatedData" :key="item.component_product_id">
+                <tr
+                  class="hover:bg-secondary/5 transition-colors cursor-pointer group"
+                  @click="toggleRow(item.component_product_id)"
+                >
                   <td class="px-4 py-3 text-center text-text/40 group-hover:text-primary transition-colors">
-                    <font-awesome-icon 
-                      :icon="expandedRows.includes(item.component_product_id) ? 'fa-solid fa-chevron-down' : 'fa-solid fa-chevron-right'" 
+                    <font-awesome-icon
+                      :icon="
+                        expandedRows.includes(item.component_product_id)
+                          ? 'fa-solid fa-chevron-down'
+                          : 'fa-solid fa-chevron-right'
+                      "
                       class="transition-transform duration-200"
                     />
                   </td>
@@ -225,22 +342,32 @@ const getStatusText = (status) => {
                   <td class="px-4 py-3 font-medium text-text">{{ item.name }}</td>
                   <td class="px-4 py-3 text-right font-mono">{{ formatNumber(item.current_stock) }}</td>
                   <td class="px-4 py-3 text-right font-mono font-bold">{{ formatNumber(item.total_needed) }}</td>
-                  <td class="px-4 py-3 text-right font-mono font-bold" :class="item.deficit > 0 ? 'text-danger' : 'text-text/30'">
+                  <td
+                    class="px-4 py-3 text-right font-mono font-bold"
+                    :class="item.deficit > 0 ? 'text-danger' : 'text-text/30'"
+                  >
                     {{ item.deficit > 0 ? '-' + formatNumber(item.deficit) : '0' }}
                   </td>
                   <td class="px-4 py-3 text-center">
-                    <span class="px-2 py-1 border rounded-md text-xs font-bold inline-block min-w-[80px]" :class="getStatusBadge(item.status)">
+                    <span
+                      class="px-2 py-1 border rounded-md text-xs font-bold inline-block min-w-[80px]"
+                      :class="getStatusBadge(item.status)"
+                    >
                       {{ getStatusText(item.status) }}
                     </span>
                   </td>
                 </tr>
-                
+
                 <!-- Expanded Row for Package Details -->
                 <tr v-if="expandedRows.includes(item.component_product_id)" class="bg-secondary/5 border-t-0">
                   <td colspan="7" class="p-0">
                     <div class="px-10 py-4 border-l-4 border-primary/40">
-                      <p class="text-xs font-bold text-text/50 uppercase tracking-wider mb-3">Detail Penjualan Paket yang Menggunakan Komponen Ini:</p>
-                      <table class="w-full text-left text-xs bg-background rounded-lg overflow-hidden border border-secondary/20">
+                      <p class="text-xs font-bold text-text/50 uppercase tracking-wider mb-3">
+                        Detail Penjualan Paket yang Menggunakan Komponen Ini:
+                      </p>
+                      <table
+                        class="w-full text-left text-xs bg-background rounded-lg overflow-hidden border border-secondary/20"
+                      >
                         <thead class="bg-secondary/10 text-text/60 border-b border-secondary/20">
                           <tr>
                             <th class="px-3 py-2 font-semibold">SKU Paket</th>
@@ -256,7 +383,9 @@ const getStatusText = (status) => {
                             <td class="px-3 py-2">{{ pkg.package_name }}</td>
                             <td class="px-3 py-2 text-right font-mono">{{ formatNumber(pkg.sold) }}</td>
                             <td class="px-3 py-2 text-right font-mono">{{ formatNumber(pkg.qty_per_package) }}</td>
-                            <td class="px-3 py-2 text-right font-mono font-bold">{{ formatNumber(pkg.subtotal_needed) }}</td>
+                            <td class="px-3 py-2 text-right font-mono font-bold">
+                              {{ formatNumber(pkg.subtotal_needed) }}
+                            </td>
                           </tr>
                         </tbody>
                       </table>
@@ -267,6 +396,16 @@ const getStatusText = (status) => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div class="mt-4 flex justify-end">
+        <BasePagination
+          v-if="totalItems > 0"
+          v-model:current-page="currentPage"
+          v-model:items-per-page="itemsPerPage"
+          :total-items="totalItems"
+          :items-per-page-options="[10, 25, 50, 100]"
+        />
       </div>
     </template>
   </div>

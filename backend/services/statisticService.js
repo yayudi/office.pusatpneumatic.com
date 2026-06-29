@@ -1,5 +1,5 @@
 // backend/services/statisticService.js
-import * as statisticRepo from '../repositories/statisticRepository.js';
+import * as statisticRepo from "../repositories/statisticRepository.js";
 import db from "../config/db.js";
 import ExcelJS from "exceljs";
 import fs from "fs";
@@ -18,7 +18,7 @@ export const getStockMovementStatistics = async (filters) => {
     // Fetch data paralel
     const [rows, timelineRows] = await Promise.all([
       statisticRepo.getStockMovementStats(connection, filters),
-      statisticRepo.getMovementTimelineStats(connection, filters)
+      statisticRepo.getMovementTimelineStats(connection, filters),
     ]);
 
     // Calculate Days Diff to find Avg Daily Sales
@@ -28,26 +28,26 @@ export const getStockMovementStatistics = async (filters) => {
     // Add 1 to include both start and end dates
     const days = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1 || 1;
 
-    let data = rows.map(row => {
+    let data = rows.map((row) => {
       const avgDailySales = Number(row.total_sold) / days;
       const currentStock = Number(row.current_stock);
-      const daysOfInventory = avgDailySales > 0 ? (currentStock / avgDailySales) : -1;
+      const daysOfInventory = avgDailySales > 0 ? currentStock / avgDailySales : -1;
 
       let status;
 
       // Stok 0 atau minus dianggap CRITICAL
       if (currentStock < 0) {
-        status = 'NEGATIVE';
+        status = "NEGATIVE";
       } else if (currentStock === 0) {
-        status = 'EMPTY';
+        status = "EMPTY";
       } else if (daysOfInventory >= 0 && daysOfInventory <= 7) {
-        status = 'CRITICAL';
+        status = "CRITICAL";
       } else if (daysOfInventory > 7 && daysOfInventory <= 14) {
-        status = 'WARNING';
+        status = "WARNING";
       } else if (daysOfInventory === -1 && currentStock > 0 && currentStock >= 100) {
-        status = 'OVERSTOCK';
+        status = "OVERSTOCK";
       } else {
-        status = 'SAFE';
+        status = "SAFE";
       }
 
       return {
@@ -57,45 +57,53 @@ export const getStockMovementStatistics = async (filters) => {
         total_inbound: Number(row.total_inbound),
         avg_daily_sales: Number(avgDailySales.toFixed(2)),
         days_of_inventory: daysOfInventory >= 0 ? Number(daysOfInventory.toFixed(1)) : null,
-        status
+        status,
       };
     });
 
     if (filterStatus) {
-      if (typeof filterStatus === 'string' && filterStatus !== 'all') {
-        data = data.filter(item => item.status === filterStatus.toUpperCase());
-      } else if (typeof filterStatus === 'object') {
-        const inc = filterStatus.include ? (Array.isArray(filterStatus.include) ? filterStatus.include : Object.values(filterStatus.include)) : [];
+      if (typeof filterStatus === "string" && filterStatus !== "all") {
+        data = data.filter((item) => item.status === filterStatus.toUpperCase());
+      } else if (typeof filterStatus === "object") {
+        const inc = filterStatus.include
+          ? Array.isArray(filterStatus.include)
+            ? filterStatus.include
+            : Object.values(filterStatus.include)
+          : [];
         if (inc.length > 0) {
-          const incUpper = inc.map(s => String(s).toUpperCase());
-          data = data.filter(item => incUpper.includes(item.status));
+          const incUpper = inc.map((s) => String(s).toUpperCase());
+          data = data.filter((item) => incUpper.includes(item.status));
         }
-        const exc = filterStatus.exclude ? (Array.isArray(filterStatus.exclude) ? filterStatus.exclude : Object.values(filterStatus.exclude)) : [];
+        const exc = filterStatus.exclude
+          ? Array.isArray(filterStatus.exclude)
+            ? filterStatus.exclude
+            : Object.values(filterStatus.exclude)
+          : [];
         if (exc.length > 0) {
-          const excUpper = exc.map(s => String(s).toUpperCase());
-          data = data.filter(item => !excUpper.includes(item.status));
+          const excUpper = exc.map((s) => String(s).toUpperCase());
+          data = data.filter((item) => !excUpper.includes(item.status));
         }
       }
     }
 
-    if (filterMovement && filterMovement !== 'all') {
-      if (filterMovement === 'active') {
-        data = data.filter(item => item.total_sold > 0 || item.total_inbound > 0);
-      } else if (filterMovement === 'dead') {
-        data = data.filter(item => item.total_sold === 0 && item.total_inbound === 0);
+    if (filterMovement && filterMovement !== "all") {
+      if (filterMovement === "active") {
+        data = data.filter((item) => item.total_sold > 0 || item.total_inbound > 0);
+      } else if (filterMovement === "dead") {
+        data = data.filter((item) => item.total_sold === 0 && item.total_inbound === 0);
       }
     }
 
     // Format timeline dates nicely (e.g. YYYY-MM-DD to handle local time offsets) preserving string
-    const timeline = timelineRows.map(t => ({
+    const timeline = timelineRows.map((t) => ({
       date: t.date,
       total_out: Number(t.total_out),
-      total_in: Number(t.total_in)
+      total_in: Number(t.total_in),
     }));
 
     return {
       summary: data,
-      timeline: timeline
+      timeline: timeline,
     };
   } finally {
     if (connection) connection.release();
@@ -114,11 +122,11 @@ export const getStockTimelineStatistics = async (filters) => {
     const rows = await statisticRepo.getMovementTimelineStats(connection, filters);
 
     // Map to expected format with totals
-    const data = rows.map(row => ({
+    const data = rows.map((row) => ({
       date: row.date,
       totalIn: Number(row.total_in),
       totalOut: Number(row.total_out),
-      netChange: Number(row.total_in) - Number(row.total_out)
+      netChange: Number(row.total_in) - Number(row.total_out),
     }));
 
     return data;
@@ -138,26 +146,27 @@ export const getInventoryValueStatistics = async (filters) => {
 
     // Calculate global total
     let globalTotalValue = 0;
-    rows.forEach(row => {
+    rows.forEach((row) => {
       globalTotalValue += Number(row.total_value);
     });
 
-    const data = rows.map(row => {
-      const percentage = globalTotalValue > 0 ? (Number(row.total_value) / globalTotalValue) * 100 : 0;
+    const data = rows.map((row) => {
+      const percentage =
+        globalTotalValue > 0 ? (Number(row.total_value) / globalTotalValue) * 100 : 0;
 
       let status;
       if (Number(row.total_quantity) === 0) {
-        status = 'EMPTY';
+        status = "EMPTY";
       } else if (Number(row.total_quantity) < 0) {
-        status = 'NEGATIVE';
+        status = "NEGATIVE";
       } else if (Number(row.total_quantity) > 100) {
-        status = 'OVERSTOCK';
+        status = "OVERSTOCK";
       } else if (Number(row.total_quantity) > 50 && Number(row.total_quantity) < 100) {
-        status = 'WARNING';
+        status = "WARNING";
       } else if (Number(row.total_quantity) > 0 && Number(row.total_quantity) < 50) {
-        status = 'CRITICAL';
+        status = "CRITICAL";
       } else {
-        status = 'SAFE';
+        status = "SAFE";
       }
 
       return {
@@ -165,7 +174,7 @@ export const getInventoryValueStatistics = async (filters) => {
         total_quantity: Number(row.total_quantity),
         total_value: Number(row.total_value),
         percentage: Number(percentage.toFixed(2)),
-        status
+        status,
       };
     });
 
@@ -174,7 +183,6 @@ export const getInventoryValueStatistics = async (filters) => {
     if (connection) connection.release();
   }
 };
-
 
 /**
  * @param {any} filters
@@ -190,14 +198,25 @@ export const generateStatisticExport = async (filters, filePath) => {
     useSharedStrings: true,
   });
 
-  const styleHeaderLocal = (ws, rowNumber, colCount, bgColor = "FFD9E1F2", fontColor = "FF000000") => {
+  const styleHeaderLocal = (
+    ws,
+    rowNumber,
+    colCount,
+    bgColor = "FFD9E1F2",
+    fontColor = "FF000000",
+  ) => {
     const row = ws.getRow(rowNumber);
     row.height = 20;
     for (let i = 1; i <= colCount; i++) {
       const cell = row.getCell(i);
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bgColor } };
       cell.font = { bold: true, color: { argb: fontColor } };
-      cell.border = { top: { style: "thin" }, left: { style: "thin" }, bottom: { style: "thin" }, right: { style: "thin" } };
+      cell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
       cell.alignment = { vertical: "middle", horizontal: "center" };
     }
     row.commit();
@@ -205,11 +224,20 @@ export const generateStatisticExport = async (filters, filePath) => {
 
   const writeDataToSheet = (sheetName, data) => {
     // Ensure sheet name is valid for Excel (max 31 chars, no invalid chars)
-    const safeSheetName = String(sheetName).substring(0, 31).replace(/[\\/?*[\]]/g, '-');
+    const safeSheetName = String(sheetName)
+      .substring(0, 31)
+      .replace(/[\\/?*[\]]/g, "-");
     const sheet = workbookWriter.addWorksheet(safeSheetName);
 
     const headers = [
-      "SKU", "Nama Produk", "Status", "Stok Saat Ini", "Total Terjual", "Total Masuk", "Rata-rata Terjual Harian", "Estimasi Hari Stok"
+      "SKU",
+      "Nama Produk",
+      "Status",
+      "Stok Saat Ini",
+      "Total Terjual",
+      "Total Masuk",
+      "Rata-rata Terjual Harian",
+      "Estimasi Hari Stok",
     ];
 
     sheet.columns = [
@@ -227,16 +255,18 @@ export const generateStatisticExport = async (filters, filePath) => {
     styleHeaderLocal(sheet, 1, headers.length, "FF4472C4", "FFFFFFFF");
 
     for (const row of data) {
-      sheet.addRow({
-        sku: row.sku,
-        name: row.name,
-        status: row.status,
-        current_stock: row.current_stock,
-        total_sold: row.total_sold,
-        total_inbound: row.total_inbound,
-        avg_daily_sales: row.avg_daily_sales,
-        days_of_inventory: row.days_of_inventory !== null ? row.days_of_inventory : "N/A"
-      }).commit();
+      sheet
+        .addRow({
+          sku: row.sku,
+          name: row.name,
+          status: row.status,
+          current_stock: row.current_stock,
+          total_sold: row.total_sold,
+          total_inbound: row.total_inbound,
+          avg_daily_sales: row.avg_daily_sales,
+          days_of_inventory: row.days_of_inventory !== null ? row.days_of_inventory : "N/A",
+        })
+        .commit();
     }
 
     sheet.commit();
@@ -270,7 +300,11 @@ export const generateStatisticExport = async (filters, filePath) => {
     Logger.info("Finished.", "STATISTIC_SERVICE");
   } catch (error) {
     Logger.error("Error in generateStatisticExport", error, "STATISTIC_SERVICE");
-    try { stream.end(); } catch { /* ignore */ }
+    try {
+      stream.end();
+    } catch {
+      /* ignore */
+    }
     throw error;
   }
 };
@@ -302,21 +336,21 @@ export const getShopPerformanceStats = async (filters) => {
     const [summaryRows, trendRows, topRows, healthRows] = results;
     const comparisonRows = results[4] || [];
 
-    const summary = summaryRows.map(row => ({
+    const summary = summaryRows.map((row) => ({
       ...row,
       total_orders: Number(row.total_orders),
       total_items_sold: Number(row.total_items_sold),
       total_revenue: Number(row.total_revenue),
     }));
 
-    const dailyTrend = trendRows.map(row => ({
+    const dailyTrend = trendRows.map((row) => ({
       date: row.date,
       totalOrders: Number(row.total_orders),
       totalItemsSold: Number(row.total_items_sold),
       totalRevenue: Number(row.total_revenue),
     }));
 
-    const topProducts = topRows.map(row => ({
+    const topProducts = topRows.map((row) => ({
       source: row.source,
       shopName: row.shop_name,
       sku: row.sku,
@@ -325,7 +359,7 @@ export const getShopPerformanceStats = async (filters) => {
       revenue: Number(row.revenue),
     }));
 
-    const fulfillment = healthRows.map(row => {
+    const fulfillment = healthRows.map((row) => {
       const total = Number(row.total_orders);
       const completed = Number(row.completed_orders);
       const cancelled = Number(row.cancelled_orders);
@@ -347,9 +381,10 @@ export const getShopPerformanceStats = async (filters) => {
     });
 
     // Build comparison object
-    const currentRow = comparisonRows.find(r => r.period === 'current');
-    const previousRow = comparisonRows.find(r => r.period === 'previous');
-    const calcDelta = (curr, prev) => prev > 0 ? Number((((curr - prev) / prev) * 100).toFixed(1)) : (curr > 0 ? 100 : 0);
+    const currentRow = comparisonRows.find((r) => r.period === "current");
+    const previousRow = comparisonRows.find((r) => r.period === "previous");
+    const calcDelta = (curr, prev) =>
+      prev > 0 ? Number((((curr - prev) / prev) * 100).toFixed(1)) : curr > 0 ? 100 : 0;
 
     const comparison = {
       current: {
@@ -365,15 +400,15 @@ export const getShopPerformanceStats = async (filters) => {
       delta: {
         orders: calcDelta(
           currentRow ? Number(currentRow.total_orders) : 0,
-          previousRow ? Number(previousRow.total_orders) : 0
+          previousRow ? Number(previousRow.total_orders) : 0,
         ),
         items: calcDelta(
           currentRow ? Number(currentRow.total_items_sold) : 0,
-          previousRow ? Number(previousRow.total_items_sold) : 0
+          previousRow ? Number(previousRow.total_items_sold) : 0,
         ),
         revenue: calcDelta(
           currentRow ? Number(currentRow.total_revenue) : 0,
-          previousRow ? Number(previousRow.total_revenue) : 0
+          previousRow ? Number(previousRow.total_revenue) : 0,
         ),
       },
     };
@@ -393,69 +428,117 @@ export const getShopPerformanceStats = async (filters) => {
  * @returns {Promise<Array>}
  */
 export const getPackageComponentAnalysis = async (filters) => {
+  console.log('[statisticService] getPackageComponentAnalysis called with filters:', filters);
   let connection;
   try {
     connection = await db.getConnection();
     const rows = await statisticRepo.getPackageComponentAnalysis(connection, filters);
+    console.log('[statisticService] raw rows returned from repo:', rows.length);
+
+    // Parse packageCategoryId filter
+    let pInclude = [];
+    let pExclude = [];
+    if (filters.packageCategoryId) {
+      try {
+        const parsed = JSON.parse(filters.packageCategoryId);
+        pInclude = parsed.include || [];
+        pExclude = parsed.exclude || [];
+      } catch {
+        /* ignore */
+      }
+    }
 
     const componentMap = new Map();
-    
-    rows.forEach(row => {
+
+    rows.forEach((row) => {
       const cmpId = row.component_product_id;
       if (!componentMap.has(cmpId)) {
         componentMap.set(cmpId, {
-          component_product_id: cmpId,
+          component_product_id: row.component_product_id,
           sku: row.component_sku,
           name: row.component_name,
-          current_stock: Number(row.current_stock),
+          category_id: row.component_category_id,
+          current_stock: parseInt(row.current_stock) || 0,
           total_needed: 0,
-          packages: []
+          packages: [],
         });
       }
-      
+
       const comp = componentMap.get(cmpId);
       const subtotalNeeded = Number(row.subtotal_needed);
-      
-      comp.packages.push({
-        package_sku: row.package_sku,
-        package_name: row.package_name,
-        sold: Number(row.sold),
-        qty_per_package: Number(row.qty_per_package),
-        subtotal_needed: subtotalNeeded
-      });
-      
-      comp.total_needed += subtotalNeeded;
+
+      // Filter packages based on packageCategoryId
+      const pid = row.package_category_id;
+      let includePackage = true;
+      if (pInclude.length > 0 && !pInclude.includes(pid)) includePackage = false;
+      if (pExclude.length > 0 && pExclude.includes(pid)) includePackage = false;
+
+      if (includePackage) {
+        comp.packages.push({
+          package_sku: row.package_sku,
+          package_name: row.package_name,
+          package_category_id: row.package_category_id,
+          sold: parseInt(row.sold) || 0,
+          qty_per_package: parseInt(row.qty_per_package) || 0,
+          subtotal_needed: parseInt(row.subtotal_needed) || 0,
+        });
+
+        comp.total_needed += subtotalNeeded;
+      }
     });
 
-    const data = Array.from(componentMap.values()).map(comp => {
+    const data = Array.from(componentMap.values()).map((comp) => {
       const currentStock = comp.current_stock;
       const totalNeeded = comp.total_needed;
       const deficit = totalNeeded - currentStock;
 
-      let status = 'SAFE';
+      let status = "SAFE";
       if (deficit > 0) {
-        status = 'DEFICIT';
+        status = "DEFICIT";
       } else if (currentStock === 0 && totalNeeded > 0) {
-        status = 'DEFICIT';
+        status = "DEFICIT";
       } else if (deficit <= 0 && deficit >= -20) {
-        status = 'WARNING';
+        status = "WARNING";
       }
 
       return {
         ...comp,
         deficit,
-        status
+        status,
       };
     });
 
-    // Sort by total needed descending
-    data.sort((a, b) => b.total_needed - a.total_needed);
+    // Parse stockStatus filter
+    let sInclude = [];
+    let sExclude = [];
+    if (filters.stockStatus) {
+      try {
+        const parsed = JSON.parse(filters.stockStatus);
+        sInclude = parsed.include || [];
+        sExclude = parsed.exclude || [];
+      } catch {
+        /* ignore */
+      }
+    }
 
-    return data;  } catch (error) {
+    const finalData = data.filter((comp) => {
+      // Don't show components that are not needed by ANY package after filtering
+      if (comp.total_needed === 0) return false;
+
+      // Filter by stock status
+      if (sInclude.length > 0 && !sInclude.includes(comp.status)) return false;
+      if (sExclude.length > 0 && sExclude.includes(comp.status)) return false;
+      return true;
+    });
+
+    // Sort by total needed descending
+    finalData.sort((a, b) => b.total_needed - a.total_needed);
+
+    return finalData;
+  } catch (error) {
     Logger.error("Error in getPackageComponentAnalysis", error, "STATISTIC_SERVICE");
     throw error;
   } finally {
     if (connection) connection.release();
   }
 };
-

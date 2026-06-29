@@ -323,7 +323,11 @@ function formatJobType(type) {
             </div>
 
             <template v-else>
-              <OverviewDashboard v-if="activeReport === 'overview' && kpiData" :kpi-data="kpiData" @navigate="(report) => activeReport = report" />
+              <OverviewDashboard
+                v-if="activeReport === 'overview' && kpiData"
+                :kpi-data="kpiData"
+                @navigate="report => (activeReport = report)"
+              />
 
               <KeepAlive>
                 <StockMovementStats v-if="activeReport === 'stock-movement'" class="animate-fade-in" />

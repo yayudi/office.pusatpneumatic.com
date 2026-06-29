@@ -187,6 +187,8 @@ export const getShopPerformance = async (req, res, next) => {
 export const getPackageAnalysis = async (req, res, next) => {
   try {
     const { startDate, endDate, categoryId, searchQuery } = req.query;
+    console.log('\n--- [statisticController] getPackageAnalysis ---');
+    console.log('[statisticController] req.query:', req.query);
     
     if (!startDate || !endDate) {
       return res.status(400).json({
