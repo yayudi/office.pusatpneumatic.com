@@ -10,6 +10,7 @@ import { formatBytes } from '@/utils/formatBytes.js'
 import { resolveUrl } from '@/composables/useImageUrl'
 import { useMobile } from '@/composables/useMobile.js'
 import { formatTags } from '@/utils/formatters.js'
+import { useFloating, autoUpdate, offset, flip, shift, size } from '@floating-ui/vue'
 
 const { isMobile } = useMobile()
 
@@ -75,7 +76,7 @@ function startEditTags() {
 
 async function saveTags() {
   if (!props.mediaId) return
-  
+
   const rawTags = tagsInput.value
     .split(',')
     .map(t => t.trim())
@@ -107,6 +108,26 @@ const {
   clear: clearSearch
 } = useProductSearch({ maxResults: 5 })
 
+const triggerRef = ref(null)
+const dropdownRef = ref(null)
+
+const { floatingStyles } = useFloating(triggerRef, dropdownRef, {
+  placement: 'bottom-start',
+  whileElementsMounted: autoUpdate,
+  middleware: [
+    offset(4),
+    flip(),
+    shift({ padding: 8 }),
+    size({
+      apply({ rects, elements }) {
+        Object.assign(elements.floating.style, {
+          width: `${rects.reference.width}px`
+        })
+      }
+    })
+  ]
+})
+
 async function linkProduct(product) {
   if (!product || !props.mediaId) return
   const existing = mediaData.value?.products?.find(p => p.id === product.id)
@@ -117,8 +138,8 @@ async function linkProduct(product) {
 
   loading.value = true
   try {
-    const payload = { mediaIds: [props.mediaId] }
-    const { data } = await instance.post(`/products/${product.id}/images`, payload)
+    const payload = { mediaIds: [Number(props.mediaId)] }
+    const { data } = await instance.post(`/products/${product.id}/link-media`, payload)
     if (data.success) {
       toast('Produk berhasil disematkan!', 'success')
       clearSearch()
@@ -133,7 +154,7 @@ async function linkProduct(product) {
 }
 
 async function unlinkProduct(productRaw) {
-  if (!await swalConfirm(`Lepaskan gambar dari produk ${productRaw.sku}?`)) return
+  if (!(await swalConfirm(`Lepaskan gambar dari produk ${productRaw.sku}?`))) return
   loading.value = true
   try {
     const { data } = await instance.delete(`/products/${productRaw.id}/images/${productRaw.pivot_id}`)
@@ -246,8 +267,8 @@ watch(Alt_S, pressed => {
           <font-awesome-icon icon="fa-solid fa-times" />
         </button>
 
-        <div class="p-6 flex-1 overflow-y-auto w-full">
-          <div class="mb-4">
+        <div class="p-4 flex-1 overflow-y-auto w-full">
+          <div class="mb-2">
             <h3 class="font-bold text-xl text-text mb-1">Detail Media</h3>
 
             <div v-if="!isEditingTitle" class="flex items-center gap-2 group">
@@ -283,7 +304,7 @@ watch(Alt_S, pressed => {
 
           <template v-if="mediaData && !fetching">
             <!-- Meta Stats -->
-            <div class="grid grid-cols-2 gap-4 mb-6">
+            <div class="grid grid-cols-2 gap-4 mb-2">
               <div class="bg-secondary/5 rounded-lg p-3 border border-secondary/10">
                 <span class="block text-[10px] text-text/50 font-bold uppercase mb-1">Status</span>
                 <span
@@ -306,7 +327,7 @@ watch(Alt_S, pressed => {
             </div>
 
             <!-- Informasi File -->
-            <div v-if="mediaData.width || mediaData.size_bytes" class="mb-6">
+            <div v-if="mediaData.width || mediaData.size_bytes" class="mb-4">
               <span class="block text-[10px] text-text/50 font-bold uppercase mb-2">Informasi File</span>
               <div class="grid grid-cols-2 gap-3">
                 <div
@@ -335,7 +356,7 @@ watch(Alt_S, pressed => {
             </div>
 
             <!-- Tags -->
-            <div class="mb-6">
+            <div class="mb-2 border border-secondary rounded-lg p-2">
               <div class="flex justify-between items-center mb-2">
                 <span class="block text-[10px] text-text/50 font-bold uppercase">Global Tags</span>
                 <button
@@ -391,10 +412,8 @@ watch(Alt_S, pressed => {
               </div>
             </div>
 
-            <hr class="border-secondary/10 my-6" />
-
             <!-- Attached Products -->
-            <div class="mb-4">
+            <div class="mb-1">
               <h4 class="font-bold text-sm text-text flex items-center justify-between mb-3">
                 Sematan Produk
                 <span class="bg-primary/10 text-primary text-[10px] px-2 py-1 rounded-full font-mono">
@@ -402,7 +421,68 @@ watch(Alt_S, pressed => {
                 </span>
               </h4>
 
-              <div v-if="mediaData.products?.length > 0" class="flex flex-col gap-2">
+              <!-- Product Search & Attach -->
+              <div class="mb-2 relative" v-if="canUpload && mediaData.status === 'COMPLETED'">
+                <span class="block text-[10px] text-text/50 font-bold uppercase mb-2">Tautkan ke Produk Baru</span>
+                <div class="relative" ref="triggerRef">
+                  <font-awesome-icon
+                    icon="fa-solid fa-search"
+                    class="absolute left-3 top-1/2 -translate-y-1/2 text-text/40"
+                  />
+                  <input
+                    type="text"
+                    v-model="searchQuery"
+                    placeholder="Cari Kode SKU / Nama Produk..."
+                    class="w-full bg-background border-2 border-secondary rounded-lg py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-text/30 text-text transition-colors"
+                  />
+                  <font-awesome-icon
+                    v-if="searching"
+                    icon="fa-solid fa-spinner"
+                    spin
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-primary"
+                  />
+                </div>
+
+                <!-- Dropdown List -->
+                <teleport to="body">
+                  <div
+                    v-if="searchResults.length > 0 && show"
+                    ref="dropdownRef"
+                    :style="floatingStyles"
+                    class="absolute z-[1500] bg-background border border-secondary/20 shadow-xl rounded-lg max-h-48 overflow-y-auto"
+                  >
+                    <button
+                      v-for="res in searchResults"
+                      :key="res.id"
+                      @click="linkProduct(res)"
+                      class="w-full text-left px-4 py-2 hover:bg-primary/5 border-b border-secondary/10 last:border-0 flex items-center justify-between group transition-colors"
+                    >
+                      <div class="flex flex-col">
+                        <span class="font-mono text-[10px] text-text/60 font-bold">{{ res.sku }}</span>
+                        <span class="text-xs font-semibold text-text/90">{{ res.name }}</span>
+                      </div>
+                      <div
+                        class="w-6 h-6 flex items-center justify-center rounded-full bg-primary/10 text-primary transition-opacity"
+                        :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
+                      >
+                        <font-awesome-icon icon="fa-solid fa-plus" class="text-xs" />
+                      </div>
+                    </button>
+                  </div>
+                </teleport>
+              </div>
+              <div
+                v-else-if="mediaData.status !== 'COMPLETED'"
+                class="p-3 bg-secondary/10 rounded-lg border border-secondary/20 text-center flex flex-col items-center justify-center"
+              >
+                <font-awesome-icon icon="fa-solid fa-info-circle" class="text-text/40 text-lg mb-1" />
+                <p class="text-[10px] font-bold text-text/50 uppercase">Tunggu Kompresi Selesai Sebelum Menautkan</p>
+              </div>
+
+              <div
+                v-if="mediaData.products?.length > 0"
+                class="flex rounded-lg flex-col gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-2"
+              >
                 <div
                   v-for="prod in mediaData.products"
                   :key="prod.id"
@@ -436,60 +516,6 @@ watch(Alt_S, pressed => {
                 <font-awesome-icon icon="fa-solid fa-box-open" class="text-text/30 text-2xl mb-2" />
                 <p class="text-xs text-text/50 font-semibold mb-1">Aset ini belum dipasang ke produk apapun.</p>
               </div>
-            </div>
-
-            <!-- Product Search & Attach -->
-            <div class="mt-4 relative" v-if="canUpload && mediaData.status === 'COMPLETED'">
-              <span class="block text-[10px] text-text/50 font-bold uppercase mb-2">Tautkan ke Produk Baru</span>
-              <div class="relative">
-                <font-awesome-icon
-                  icon="fa-solid fa-search"
-                  class="absolute left-3 top-1/2 -translate-y-1/2 text-text/40"
-                />
-                <input
-                  type="text"
-                  v-model="searchQuery"
-                  placeholder="Cari Kode SKU / Nama Produk..."
-                  class="w-full bg-background border border-secondary/30 rounded-lg py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-text/30 text-text transition-colors"
-                />
-                <font-awesome-icon
-                  v-if="searching"
-                  icon="fa-solid fa-spinner"
-                  spin
-                  class="absolute right-3 top-1/2 -translate-y-1/2 text-primary"
-                />
-              </div>
-
-              <!-- Dropdown List -->
-              <div
-                v-if="searchResults.length > 0"
-                class="absolute z-20 top-[calc(100%+0.5rem)] left-0 right-0 bg-background border border-secondary/20 shadow-xl rounded-lg max-h-48 overflow-y-auto"
-              >
-                <button
-                  v-for="res in searchResults"
-                  :key="res.id"
-                  @click="linkProduct(res)"
-                  class="w-full text-left px-4 py-2 hover:bg-primary/5 border-b border-secondary/10 last:border-0 flex items-center justify-between group transition-colors"
-                >
-                  <div class="flex flex-col">
-                    <span class="font-mono text-[10px] text-text/60 font-bold">{{ res.sku }}</span>
-                    <span class="text-xs font-semibold text-text/90">{{ res.name }}</span>
-                  </div>
-                  <div
-                    class="w-6 h-6 flex items-center justify-center rounded-full bg-primary/10 text-primary transition-opacity"
-                    :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
-                  >
-                    <font-awesome-icon icon="fa-solid fa-plus" class="text-xs" />
-                  </div>
-                </button>
-              </div>
-            </div>
-            <div
-              v-else-if="mediaData.status !== 'COMPLETED'"
-              class="p-3 bg-secondary/10 rounded-lg border border-secondary/20 text-center flex flex-col items-center justify-center"
-            >
-              <font-awesome-icon icon="fa-solid fa-info-circle" class="text-text/40 text-lg mb-1" />
-              <p class="text-[10px] font-bold text-text/50 uppercase">Tunggu Kompresi Selesai Sebelum Menautkan</p>
             </div>
           </template>
         </div>

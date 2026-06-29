@@ -844,15 +844,20 @@ onUnmounted(() => {
       placement="top"
       :show-arrow="true"
     >
-      <ul v-if="hoveredMediaItem?.linked_products" class="list-disc list-inside text-xs space-y-1">
-        <li
-          v-for="prodName in hoveredMediaItem.linked_products.split('||')"
-          :key="prodName"
-          class="whitespace-normal break-words leading-tight"
-        >
-          {{ prodName }}
-        </li>
-      </ul>
+      <template v-if="hoveredMediaItem?.linked_products">
+        <ul class="list-disc list-inside text-xs space-y-1">
+          <li
+            v-for="prodName in hoveredMediaItem.linked_products.split('||').slice(0, 7)"
+            :key="prodName"
+            class="whitespace-normal break-words leading-tight"
+          >
+            {{ prodName }}
+          </li>
+        </ul>
+        <div v-if="hoveredMediaItem.linked_products.split('||').length > 7" class="text-[10px] text-text/60 italic mt-2 pt-1 border-t border-secondary/30 text-center">
+          + {{ hoveredMediaItem.linked_products.split('||').length - 7 }} produk lainnya
+        </div>
+      </template>
       <p v-else class="text-xs">Memuat...</p>
     </FloatingTooltip>
 

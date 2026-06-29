@@ -1,3 +1,4 @@
+<!-- frontend\src\components\stats\PackageAnalysisTable.vue -->
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
@@ -54,7 +55,6 @@ const availableYears = computed(() => {
 })
 
 const getApiPayload = () => {
-  console.log('[PackageAnalysisTable] getApiPayload called with filterValues:', filterValues.value);
   let startDate, endDate
   if (filterValues.value.reportType === 'annual') {
     startDate = `${filterValues.value.year}-01-01`
@@ -151,14 +151,11 @@ const mainFilters = computed(() => {
 })
 
 const fetchStatistics = async () => {
-  console.log('[PackageAnalysisTable] fetchStatistics called');
   const payload = getApiPayload()
-  console.log('[PackageAnalysisTable] fetchStatistics payload:', payload);
   if (!payload.startDate || !payload.endDate) return
   isDataLoading.value = true
   try {
     const data = await fetchPackageAnalysis(payload)
-    console.log('[PackageAnalysisTable] fetchPackageAnalysis response:', data);
     analysisData.value = data || []
     expandedRows.value = []
   } catch (error) {
@@ -169,13 +166,11 @@ const fetchStatistics = async () => {
 }
 
 onMounted(async () => {
-  console.log('[PackageAnalysisTable] onMounted');
-  await masterStore.getCategories();
+  await masterStore.getCategories()
   fetchStatistics()
 })
 
 const applyFilters = () => {
-  console.log('[PackageAnalysisTable] applyFilters called');
   currentPage.value = 1
   fetchStatistics()
 }
@@ -190,7 +185,6 @@ const toggleRow = id => {
 }
 
 const filteredAnalysisData = computed(() => {
-  console.log('[PackageAnalysisTable] filteredAnalysisData computed triggered');
   let result = analysisData.value || []
 
   // Filter 1: Kategori Paket (Frontend TriState)
@@ -210,8 +204,6 @@ const filteredAnalysisData = computed(() => {
       }
 
       if (filterValues.value.packageCategoryId.exclude.length > 0) {
-        // Must NOT belong to ANY package in the excluded categories
-        // Or if you want strict: if it belongs to ANY excluded category, we exclude it
         isExcluded = item.packages.some(pkg =>
           filterValues.value.packageCategoryId.exclude.includes(pkg.package_category_id)
         )

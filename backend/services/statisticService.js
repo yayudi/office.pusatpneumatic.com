@@ -428,12 +428,10 @@ export const getShopPerformanceStats = async (filters) => {
  * @returns {Promise<Array>}
  */
 export const getPackageComponentAnalysis = async (filters) => {
-  console.log('[statisticService] getPackageComponentAnalysis called with filters:', filters);
   let connection;
   try {
     connection = await db.getConnection();
     const rows = await statisticRepo.getPackageComponentAnalysis(connection, filters);
-    console.log('[statisticService] raw rows returned from repo:', rows.length);
 
     // Parse packageCategoryId filter
     let pInclude = [];

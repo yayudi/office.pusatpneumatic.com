@@ -12,18 +12,26 @@ export const buildTriStateWhere = (field, filter, queryParams) => {
     if (Array.isArray(filter) && filter.length > 0) {
       clauses.push(`${field} IN (?)`);
       queryParams.push(filter);
-    } else if (typeof filter === 'object' && !Array.isArray(filter)) {
-      const includeItems = filter.include ? (Array.isArray(filter.include) ? filter.include : Object.values(filter.include)) : [];
+    } else if (typeof filter === "object" && !Array.isArray(filter)) {
+      const includeItems = filter.include
+        ? Array.isArray(filter.include)
+          ? filter.include
+          : Object.values(filter.include)
+        : [];
       if (includeItems.length > 0) {
         clauses.push(`${field} IN (?)`);
         queryParams.push(includeItems);
       }
-      const excludeItems = filter.exclude ? (Array.isArray(filter.exclude) ? filter.exclude : Object.values(filter.exclude)) : [];
+      const excludeItems = filter.exclude
+        ? Array.isArray(filter.exclude)
+          ? filter.exclude
+          : Object.values(filter.exclude)
+        : [];
       if (excludeItems.length > 0) {
         clauses.push(`${field} NOT IN (?)`);
         queryParams.push(excludeItems);
       }
-    } else if (typeof filter === 'string' && filter !== "all" && filter !== "") {
+    } else if (typeof filter === "string" && filter !== "all" && filter !== "") {
       let parsedFilter = null;
       try {
         parsedFilter = JSON.parse(filter);
@@ -31,13 +39,21 @@ export const buildTriStateWhere = (field, filter, queryParams) => {
         // Not JSON string, treat as normal string
       }
 
-      if (parsedFilter && typeof parsedFilter === 'object' && !Array.isArray(parsedFilter)) {
-        const includeItems = parsedFilter.include ? (Array.isArray(parsedFilter.include) ? parsedFilter.include : Object.values(parsedFilter.include)) : [];
+      if (parsedFilter && typeof parsedFilter === "object" && !Array.isArray(parsedFilter)) {
+        const includeItems = parsedFilter.include
+          ? Array.isArray(parsedFilter.include)
+            ? parsedFilter.include
+            : Object.values(parsedFilter.include)
+          : [];
         if (includeItems.length > 0) {
           clauses.push(`${field} IN (?)`);
           queryParams.push(includeItems);
         }
-        const excludeItems = parsedFilter.exclude ? (Array.isArray(parsedFilter.exclude) ? parsedFilter.exclude : Object.values(parsedFilter.exclude)) : [];
+        const excludeItems = parsedFilter.exclude
+          ? Array.isArray(parsedFilter.exclude)
+            ? parsedFilter.exclude
+            : Object.values(parsedFilter.exclude)
+          : [];
         if (excludeItems.length > 0) {
           clauses.push(`${field} NOT IN (?)`);
           queryParams.push(excludeItems);
@@ -67,9 +83,7 @@ export const getStockMovementStats = async (connection, filters) => {
     FROM stock_locations
   `;
 
-
-
-  const bClauses = buildTriStateWhere('l.building', buildings, queryParams);
+  const bClauses = buildTriStateWhere("l.building", buildings, queryParams);
   if (bClauses.length > 0) {
     locSubquery = `
       SELECT sl.product_id, SUM(sl.quantity) as current_stock
@@ -85,7 +99,7 @@ export const getStockMovementStats = async (connection, filters) => {
   // Stock Movements Subquery (Filtered by Building)
   let movFilter = "";
   const movParams = [startDate, endDate];
-  
+
   if (buildings) {
     if (Array.isArray(buildings) && buildings.length > 0) {
       movFilter = `
@@ -96,8 +110,12 @@ export const getStockMovementStats = async (connection, filters) => {
         )
       `;
       movParams.push(buildings, buildings);
-    } else if (typeof buildings === 'object' && !Array.isArray(buildings)) {
-      const inc = buildings.include ? (Array.isArray(buildings.include) ? buildings.include : Object.values(buildings.include)) : [];
+    } else if (typeof buildings === "object" && !Array.isArray(buildings)) {
+      const inc = buildings.include
+        ? Array.isArray(buildings.include)
+          ? buildings.include
+          : Object.values(buildings.include)
+        : [];
       if (inc.length > 0) {
         movFilter += `
           AND (
@@ -108,7 +126,11 @@ export const getStockMovementStats = async (connection, filters) => {
         `;
         movParams.push(inc, inc);
       }
-      const exc = buildings.exclude ? (Array.isArray(buildings.exclude) ? buildings.exclude : Object.values(buildings.exclude)) : [];
+      const exc = buildings.exclude
+        ? Array.isArray(buildings.exclude)
+          ? buildings.exclude
+          : Object.values(buildings.exclude)
+        : [];
       if (exc.length > 0) {
         movFilter += `
           AND (
@@ -161,7 +183,7 @@ export const getStockMovementStats = async (connection, filters) => {
   }
 
   // Category Filter
-  const cClauses = buildTriStateWhere('p.category_id', categoryId, queryParams);
+  const cClauses = buildTriStateWhere("p.category_id", categoryId, queryParams);
   if (cClauses.length > 0) {
     query += ` AND ${cClauses.join(" AND ")}`;
   }
@@ -195,16 +217,24 @@ export const getInventoryValueStats = async (connection, filters) => {
       return null;
     };
 
-    if (typeof stockStatus === 'string' && stockStatus !== 'all') {
+    if (typeof stockStatus === "string" && stockStatus !== "all") {
       const cond = applyStockStatus([stockStatus]);
       if (cond) whereClauses.push(cond);
-    } else if (typeof stockStatus === 'object') {
-      const inc = stockStatus.include ? (Array.isArray(stockStatus.include) ? stockStatus.include : Object.values(stockStatus.include)) : [];
+    } else if (typeof stockStatus === "object") {
+      const inc = stockStatus.include
+        ? Array.isArray(stockStatus.include)
+          ? stockStatus.include
+          : Object.values(stockStatus.include)
+        : [];
       if (inc.length > 0) {
         const cond = applyStockStatus(inc);
         if (cond) whereClauses.push(cond);
       }
-      const exc = stockStatus.exclude ? (Array.isArray(stockStatus.exclude) ? stockStatus.exclude : Object.values(stockStatus.exclude)) : [];
+      const exc = stockStatus.exclude
+        ? Array.isArray(stockStatus.exclude)
+          ? stockStatus.exclude
+          : Object.values(stockStatus.exclude)
+        : [];
       if (exc.length > 0) {
         // Exclude needs to invert the condition
         const conds = [];
@@ -218,7 +248,7 @@ export const getInventoryValueStats = async (connection, filters) => {
     }
   }
 
-  const bClauses = buildTriStateWhere('l.building', building, queryParams);
+  const bClauses = buildTriStateWhere("l.building", building, queryParams);
   if (bClauses.length > 0) {
     whereClauses.push(...bClauses);
   }
@@ -228,7 +258,7 @@ export const getInventoryValueStats = async (connection, filters) => {
     queryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
   }
 
-  const pClauses = buildTriStateWhere('l.purpose', purpose, queryParams);
+  const pClauses = buildTriStateWhere("l.purpose", purpose, queryParams);
   if (pClauses.length > 0) {
     whereClauses.push(...pClauses);
   }
@@ -238,7 +268,7 @@ export const getInventoryValueStats = async (connection, filters) => {
     queryParams.push(isPackage);
   }
 
-  const cClauses = buildTriStateWhere('p.category_id', categoryId, queryParams);
+  const cClauses = buildTriStateWhere("p.category_id", categoryId, queryParams);
   if (cClauses.length > 0) {
     whereClauses.push(...cClauses);
   }
@@ -286,8 +316,12 @@ export const getMovementTimelineStats = async (connection, filters) => {
         )
       `;
       queryParams.push(buildings, buildings);
-    } else if (typeof buildings === 'object' && !Array.isArray(buildings)) {
-      const inc = buildings.include ? (Array.isArray(buildings.include) ? buildings.include : Object.values(buildings.include)) : [];
+    } else if (typeof buildings === "object" && !Array.isArray(buildings)) {
+      const inc = buildings.include
+        ? Array.isArray(buildings.include)
+          ? buildings.include
+          : Object.values(buildings.include)
+        : [];
       if (inc.length > 0) {
         buildingFilter += `
           AND (
@@ -298,7 +332,11 @@ export const getMovementTimelineStats = async (connection, filters) => {
         `;
         queryParams.push(inc, inc);
       }
-      const exc = buildings.exclude ? (Array.isArray(buildings.exclude) ? buildings.exclude : Object.values(buildings.exclude)) : [];
+      const exc = buildings.exclude
+        ? Array.isArray(buildings.exclude)
+          ? buildings.exclude
+          : Object.values(buildings.exclude)
+        : [];
       if (exc.length > 0) {
         buildingFilter += `
           AND (
@@ -318,23 +356,23 @@ export const getMovementTimelineStats = async (connection, filters) => {
   // Kita butuh JOIN products jika ada searchQuery ATAU categoryId
   if (searchQuery || (categoryId && categoryId !== "all")) {
     searchJoin = "JOIN products p ON sm.product_id = p.id";
-    
+
     if (searchQuery) {
       searchFilter += " AND (p.sku LIKE ? OR p.name LIKE ?)";
       const likeTerm = `%${searchQuery}%`;
       queryParams.push(likeTerm, likeTerm);
     }
 
-    const cClauses = buildTriStateWhere('p.category_id', categoryId, queryParams);
+    const cClauses = buildTriStateWhere("p.category_id", categoryId, queryParams);
     if (cClauses.length > 0) {
       searchFilter += ` AND ${cClauses.join(" AND ")}`;
     }
   }
 
   let dateSelect = "DATE_FORMAT(sm.created_at, '%Y-%m-%d')";
-  if (timeResolution === 'monthly') {
+  if (timeResolution === "monthly") {
     dateSelect = "DATE_FORMAT(sm.created_at, '%Y-%m')";
-  } else if (timeResolution === 'annual') {
+  } else if (timeResolution === "annual") {
     dateSelect = "DATE_FORMAT(sm.created_at, '%Y')";
   }
 
@@ -368,15 +406,15 @@ const buildShopFilters = (filters) => {
   const filterParams = [];
   const clauses = [];
 
-  const sourceClauses = buildTriStateWhere('pl.source', source, filterParams);
+  const sourceClauses = buildTriStateWhere("pl.source", source, filterParams);
   if (sourceClauses.length > 0) clauses.push(...sourceClauses);
 
-  const shopClauses = buildTriStateWhere('pl.shop_name', shopName, filterParams);
+  const shopClauses = buildTriStateWhere("pl.shop_name", shopName, filterParams);
   if (shopClauses.length > 0) clauses.push(...shopClauses);
 
-  let filterSql = '';
+  let filterSql = "";
   if (clauses.length > 0) {
-    filterSql = ` AND ` + clauses.join(' AND ');
+    filterSql = ` AND ` + clauses.join(" AND ");
   }
 
   return { filterSql, filterParams };
@@ -393,7 +431,7 @@ export const getShopPerformanceStats = async (connection, filters) => {
   const { filterSql, filterParams } = buildShopFilters(filters);
 
   const query = `
-    SELECT 
+    SELECT
       pl.source,
       COALESCE(pl.shop_name, 'Toko Tidak Diketahui') as shop_name,
       COUNT(DISTINCT pl.id) as total_orders,
@@ -401,7 +439,7 @@ export const getShopPerformanceStats = async (connection, filters) => {
       SUM(pli.quantity * pli.price) as total_revenue
     FROM picking_lists pl
     JOIN picking_list_items pli ON pl.id = pli.picking_list_id
-    WHERE pl.order_date >= ? 
+    WHERE pl.order_date >= ?
       AND pl.order_date <= ?
       AND pl.status NOT IN ('CANCEL', 'OBSOLETE')
       AND pl.is_active = 1
@@ -476,7 +514,12 @@ export const getTopSellingProducts = async (connection, filters) => {
     LIMIT ?
   `;
 
-  const [rows] = await connection.query(query, [startDate, endDate, ...filterParams, Number(limit)]);
+  const [rows] = await connection.query(query, [
+    startDate,
+    endDate,
+    ...filterParams,
+    Number(limit),
+  ]);
   return rows;
 };
 
@@ -545,9 +588,15 @@ export const getPeriodComparison = async (connection, filters) => {
 
   // Params: CASE current start/end, CASE prev start/end, WHERE current start/end, WHERE prev start/end, ...shopFilters
   const params = [
-    startDate, endDate, prevStartDate, prevEndDate,
-    startDate, endDate, prevStartDate, prevEndDate,
-    ...filterParams
+    startDate,
+    endDate,
+    prevStartDate,
+    prevEndDate,
+    startDate,
+    endDate,
+    prevStartDate,
+    prevEndDate,
+    ...filterParams,
   ];
 
   const [rows] = await connection.query(query, params);
@@ -563,7 +612,6 @@ export const getPeriodComparison = async (connection, filters) => {
 export const getPackageComponentAnalysis = async (connection, filters) => {
   const { startDate, endDate, categoryId, searchQuery } = filters;
   const queryParams = [startDate, endDate];
-  console.log('[statisticRepo] getPackageComponentAnalysis called. filters:', filters);
   let searchFilter = "";
 
   if (searchQuery) {
@@ -571,7 +619,7 @@ export const getPackageComponentAnalysis = async (connection, filters) => {
     queryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
   }
 
-  const cClauses = buildTriStateWhere('cp.category_id', categoryId, queryParams);
+  const cClauses = buildTriStateWhere("cp.category_id", categoryId, queryParams);
   if (cClauses.length > 0) {
     searchFilter += ` AND ${cClauses.join(" AND ")}`;
   }
@@ -598,7 +646,7 @@ export const getPackageComponentAnalysis = async (connection, filters) => {
         JOIN picking_lists pl ON pli.picking_list_id = pl.id
         WHERE pl.status NOT IN ('CANCEL', 'OBSOLETE')
           AND pl.is_active = 1
-          AND COALESCE(DATE(pl.order_date), DATE(pl.created_at)) >= ? 
+          AND COALESCE(DATE(pl.order_date), DATE(pl.created_at)) >= ?
           AND COALESCE(DATE(pl.order_date), DATE(pl.created_at)) <= ?
         GROUP BY pli.original_sku, pli.product_id
     ) s_mov ON pp.sku = s_mov.original_sku AND cp.id = s_mov.product_id
@@ -609,9 +657,5 @@ export const getPackageComponentAnalysis = async (connection, filters) => {
   `;
 
   const [rows] = await connection.query(query, queryParams);
-  console.log('[statisticRepo] query:\n', query);
-  console.log('[statisticRepo] queryParams:', queryParams);
-  console.log('[statisticRepo] rows length:', rows.length);
   return rows;
 };
-
