@@ -41,7 +41,8 @@ const selectedFilters = ref({
   building: { include: [], exclude: [] },
   purpose: { include: [], exclude: [] },
   isPackage: 'all',
-  stockStatus: 'all'
+  stockStatus: 'all',
+  format: 'xlsx'
 })
 const reportFilters = ref({
   allBuildings: [],
@@ -163,6 +164,11 @@ const stockStatusOptions = [
   { value: 'negative', label: 'Minus', icon: 'fa-solid fa-minus' }
 ]
 
+const formatOptions = [
+  { value: 'xlsx', label: 'Excel (.xlsx)', icon: 'fa-solid fa-file-excel' },
+  { value: 'csv', label: 'CSV (.csv)', icon: 'fa-solid fa-file-csv' }
+]
+
 const availableBuildings = computed(() => {
   const includedPurposes = selectedFilters.value.purpose?.include || []
   if (!includedPurposes || includedPurposes.length === 0) {
@@ -192,6 +198,7 @@ async function handleRequestExport() {
     purpose: selectedFilters.value.purpose,
     isPackage: selectedFilters.value.isPackage === 'all' ? '' : selectedFilters.value.isPackage,
     stockStatus: selectedFilters.value.stockStatus || 'all',
+    format: selectedFilters.value.format || 'xlsx',
     exportType: 'STOCK_REPORT'
   }
 
@@ -359,17 +366,6 @@ function formatJobType(type) {
                           </div>
 
                           <div>
-                            <label class="label-input">Gedung</label>
-                            <TriStateSelect
-                              v-model="selectedFilters.building"
-                              :options="availableBuildings"
-                              label="label"
-                              track-by="value"
-                              placeholder="Semua Gedung"
-                            />
-                          </div>
-
-                          <div>
                             <label class="label-input">Tujuan</label>
                             <TriStateSelect
                               v-model="selectedFilters.purpose"
@@ -377,6 +373,17 @@ function formatJobType(type) {
                               label="label"
                               track-by="value"
                               placeholder="Semua Tujuan"
+                            />
+                          </div>
+
+                          <div>
+                            <label class="label-input">Gedung</label>
+                            <TriStateSelect
+                              v-model="selectedFilters.building"
+                              :options="availableBuildings"
+                              label="label"
+                              track-by="value"
+                              placeholder="Semua Gedung"
                             />
                           </div>
 
@@ -392,6 +399,13 @@ function formatJobType(type) {
                             label-variant="compact"
                             v-model="selectedFilters.stockStatus"
                             :options="stockStatusOptions"
+                          />
+
+                          <SegmentedControl
+                            label="Format File"
+                            label-variant="compact"
+                            v-model="selectedFilters.format"
+                            :options="formatOptions"
                           />
 
                           <button

@@ -25,6 +25,66 @@ export const getAllLocationCodes = async (connection) => {
 };
 
 /**
+ * Mengambil daftar kode lokasi dengan memfilter berdasarkan parameter (misal: building, purpose)
+ * agar kolom Pivot hanya menampilkan lokasi yang relevan.
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {Object} filters
+ * @returns {Promise<string[]>}
+ */
+export const getFilteredLocationCodes = async (connection, filters) => {
+  const whereClauses = ["code IS NOT NULL", "code != ''"];
+  const queryParams = [];
+
+  // Filter Building
+  if (filters && filters.building) {
+    if (Array.isArray(filters.building)) {
+      if (filters.building.length > 0) {
+        whereClauses.push("building IN (?)");
+        queryParams.push(filters.building);
+      }
+    } else if (typeof filters.building === "object") {
+      if (filters.building.include && filters.building.include.length > 0) {
+        whereClauses.push("building IN (?)");
+        queryParams.push(filters.building.include);
+      }
+      if (filters.building.exclude && filters.building.exclude.length > 0) {
+        whereClauses.push("building NOT IN (?)");
+        queryParams.push(filters.building.exclude);
+      }
+    } else if (filters.building !== "all" && filters.building !== "") {
+      whereClauses.push("building = ?");
+      queryParams.push(filters.building);
+    }
+  }
+
+  // Filter Purpose
+  if (filters && filters.purpose) {
+    if (Array.isArray(filters.purpose)) {
+      if (filters.purpose.length > 0) {
+        whereClauses.push("purpose IN (?)");
+        queryParams.push(filters.purpose);
+      }
+    } else if (typeof filters.purpose === "object") {
+      if (filters.purpose.include && filters.purpose.include.length > 0) {
+        whereClauses.push("purpose IN (?)");
+        queryParams.push(filters.purpose.include);
+      }
+      if (filters.purpose.exclude && filters.purpose.exclude.length > 0) {
+        whereClauses.push("purpose NOT IN (?)");
+        queryParams.push(filters.purpose.exclude);
+      }
+    } else if (filters.purpose !== "all" && filters.purpose !== "") {
+      whereClauses.push("purpose = ?");
+      queryParams.push(filters.purpose);
+    }
+  }
+
+  const query = `SELECT DISTINCT code FROM locations WHERE ${whereClauses.join(" AND ")} ORDER BY code ASC`;
+  const [rows] = await connection.query(query, queryParams);
+  return rows.map((r) => r.code);
+};
+
+/**
  * @param {import('mysql2/promise').Connection} connection
  * @returns {Promise<any>}
  */

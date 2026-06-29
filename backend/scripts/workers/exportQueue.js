@@ -51,16 +51,17 @@ export const processQueue = async () => {
     const filters = JSON.parse(job.filters || "{}");
     const exportType = filters.exportType || "STOCK_REPORT";
     const dateStr = getFormattedDateTime();
+    const ext = filters.format === "csv" ? ".csv" : ".xlsx";
     const fileName =
       exportType === "PRODUCT_MASTER"
-        ? `Master_Produk_${dateStr}_(Job-${jobId}).xlsx`
+        ? `Master_Produk_${dateStr}_(Job-${jobId})${ext}`
         : exportType === "EXPORT_PACKAGES"
-          ? `Data_Paket_${dateStr}_(Job-${jobId}).xlsx`
+          ? `Data_Paket_${dateStr}_(Job-${jobId})${ext}`
           : exportType === "STATISTICS_STOCK_MOVEMENT"
-            ? `Statistik_Stok_${dateStr}_(Job-${jobId}).xlsx`
+            ? `Statistik_Stok_${dateStr}_(Job-${jobId})${ext}`
             : exportType === "INVENTORY_VALUE"
-              ? `Nilai_Inventaris_${dateStr}_(Job-${jobId}).xlsx`
-              : `Laporan_Stok_${dateStr}_(Job-${jobId}).xlsx`;
+              ? `Nilai_Inventaris_${dateStr}_(Job-${jobId})${ext}`
+              : `Laporan_Stok_${dateStr}_(Job-${jobId})${ext}`;
 
     const filePath = path.join(EXPORT_DIR_PATH, fileName);
 

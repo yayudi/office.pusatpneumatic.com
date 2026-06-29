@@ -38,29 +38,57 @@ const styleHeader = (
  * Service: Generate Stock Report (Streaming)
  */
 export const generateStockReportStreaming = async (filters, filePath) => {
-  Logger.info(`Mulai generate STOCK ke: ${filePath}`, "EXPORT_SERVICE");
+  const isCsv = filters.format === "csv";
+  Logger.info(`Mulai generate STOCK (${isCsv ? "CSV" : "XLSX"}) ke: ${filePath}`, "EXPORT_SERVICE");
   let connection;
 
   const stream = fs.createWriteStream(filePath);
-  const writer = new ExcelJS.stream.xlsx.WorkbookWriter({
-    stream: stream,
-    useStyles: true,
-    useSharedStrings: true,
-  });
-
-  const negativeRedText = { font: { color: { argb: "FF9C0006" } } };
-  const currencyFormat = '"Rp"#,##0.00';
-  const numberFormat = "#,##0";
-  const textFormat = "@";
+  let writer = null;
 
   try {
     connection = await db.getConnection();
+    
+    // --- CSV LOGIC ---
+    if (isCsv) {
+      Logger.info("Starting CSV Pipeline for STOCK_REPORT...", "EXPORT_SERVICE");
+      const queryStream = reportRepo.getStockReportStream(connection, filters);
 
-    // Ambil Daftar Lokasi untuk Header Pivot
-    const locationCodes = await locationRepo.getAllLocationCodes(connection);
+      const transformRow = (row) => ({
+        SKU: row.Sku,
+        "Nama Produk": row.NamaProduk,
+        Lokasi: row.Lokasi || "-",
+        Kuantitas: row.Kuantitas
+      });
+
+      await pipeline(
+        queryStream,
+        fastCsv.format({ headers: true, delimiter: ';' }).transform(transformRow),
+        stream
+      );
+
+      Logger.info("CSV Pipeline Completed.", "EXPORT_SERVICE");
+      if (connection) connection.release();
+      return;
+    }
+
+    // --- XLSX LOGIC ---
+    writer = new ExcelJS.stream.xlsx.WorkbookWriter({
+      stream: stream,
+      useStyles: true,
+      useSharedStrings: true,
+    });
+
+    const negativeRedText = { font: { color: { argb: "FF9C0006" } } };
+    const numberFormat = "#,##0";
+    const textFormat = "@";
+
+    // Ambil Daftar Lokasi untuk Header Pivot (Hanya yang relevan dengan filter)
+    const locationCodes = await locationRepo.getFilteredLocationCodes(connection, filters);
 
     // Setup Sheet 1: Pivot / Ringkasan
-    const pivotSheet = writer.addWorksheet("Ringkasan Stok");
+    const pivotSheet = writer.addWorksheet("Ringkasan Stok", {
+      views: [{ state: "frozen", xSplit: 2, ySplit: 2 }],
+    });
     const pivotHeaderTexts = ["SKU", "Nama Produk", ...locationCodes, "Grand Total"];
 
     // Setup Columns
@@ -73,19 +101,22 @@ export const generateStockReportStreaming = async (filters, filePath) => {
     pivotSheet.columns = pivotColumns;
 
     // Judul & Header
-    pivotSheet.mergeCells(1, 1, 1, pivotHeaderTexts.length);
+    pivotSheet.mergeCells(1, 1, 1, 2);
     const titleCell = pivotSheet.getCell("A1");
     titleCell.value = "Laporan Ringkasan Stok (Per Lokasi)";
     titleCell.font = { size: 14, bold: true };
     titleCell.alignment = { horizontal: "center" };
     pivotSheet.getRow(1).commit();
 
-    const pivotHeaderRow = pivotSheet.getRow(3);
+    const pivotHeaderRow = pivotSheet.getRow(2);
     pivotHeaderRow.values = pivotHeaderTexts;
-    styleHeader(pivotSheet, 3, pivotHeaderTexts.length, "FF4472C4", "FFFFFFFF");
+
+    styleHeader(pivotSheet, 2, pivotHeaderTexts.length, "AA4472C4", "FFFFFFFF");
 
     // Setup Sheet 2: Raw Data
-    const rawSheet = writer.addWorksheet("Data Mentah");
+    const rawSheet = writer.addWorksheet("Data Mentah", {
+      views: [{ state: "frozen", ySplit: 1 }],
+    });
     const rawHeaderTexts = ["SKU", "Nama Produk", "Lokasi", "Kuantitas"];
     rawSheet.columns = [
       { key: "Sku", width: 20 },
@@ -94,7 +125,7 @@ export const generateStockReportStreaming = async (filters, filePath) => {
       { key: "Kuantitas", width: 12 },
     ];
     rawSheet.getRow(1).values = rawHeaderTexts;
-    styleHeader(rawSheet, 1, 6, "FFD9E1F2", "FF000000");
+    styleHeader(rawSheet, 1, 4, "FFD9E1F2", "FF000000");
 
     // Streaming Query
     const queryStream = reportRepo.getStockReportStream(connection, filters);
@@ -161,7 +192,7 @@ export const generateStockReportStreaming = async (filters, filePath) => {
           rawSheet.commit(); // Selesai Raw Sheet
 
           // C. Tulis Pivot Sheet
-          for (const [data] of pivotData) {
+          for (const data of pivotData.values()) {
             const rowArray = [
               data.Sku,
               data.NamaProduk,
@@ -186,12 +217,7 @@ export const generateStockReportStreaming = async (filters, filePath) => {
             grandTotalCell.font = { bold: true };
             if (data.GrandTotalKuantitas < 0)
               grandTotalCell.font = { bold: true, ...negativeRedText.font };
-
-            colIdx++;
             grandTotalCell.font = { bold: true, ...negativeRedText.font };
-
-            colIdx++;
-
             addedRow.commit();
           }
 
@@ -239,17 +265,13 @@ export const generateProductExportStreaming = async (filters, filePath) => {
   let connection;
   const stream = fs.createWriteStream(filePath);
   let workbookWriter = null;
-  let csvStream = null;
   Logger.info(`Stream created for ${filePath}`, "EXPORT_SERVICE");
 
   try {
     connection = await db.getConnection();
 
     // Setup Writter
-    if (isCsv) {
-      csvStream = fastCsv.format({ headers: true });
-      csvStream.pipe(stream);
-    } else {
+    if (!isCsv) {
       workbookWriter = new ExcelJS.stream.xlsx.WorkbookWriter({
         stream: stream,
         useStyles: true,
@@ -276,7 +298,7 @@ export const generateProductExportStreaming = async (filters, filePath) => {
 
       await pipeline(
         queryStream,
-        fastCsv.format({ headers: true }).transform(transformRow),
+        fastCsv.format({ headers: true, delimiter: ';' }).transform(transformRow),
         stream,
       );
 
