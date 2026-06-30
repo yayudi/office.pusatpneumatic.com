@@ -260,7 +260,7 @@ const handleBulkPrintLabel = () => {
 }
 
 // Batch Edit (Export & Import)
-const handleExport = async ({ format }) => {
+const handleExport = async ({ format, includeImages }) => {
   isExporting.value = true
   try {
     const params = {
@@ -272,7 +272,8 @@ const handleExport = async ({ format }) => {
       status: filterStatus.value,
       categoryInclude: JSON.stringify(filterCategory.value.include),
       categoryExclude: JSON.stringify(filterCategory.value.exclude),
-      format: format // 'xlsx' or 'csv'
+      format: format, // 'xlsx' or 'csv'
+      includeImages: includeImages
     }
 
     // Request Job Creation
@@ -529,7 +530,7 @@ watch(Slash, pressed => {
         class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-background border border-secondary/20 shadow-2xl rounded-2xl px-6 py-3 flex items-center gap-6 z-40 text-sm"
       >
         <div class="flex items-center gap-2 text-text font-bold border-r border-secondary/10 pr-6">
-          <span class="bg-primary/10 text-primary w-6 h-6 flex items-center justify-center rounded-full text-xs">{{
+          <span class="bg-primary/10 text-primary p-2 flex items-center justify-center rounded-full text-xs">{{
             selectionCount
           }}</span>
           <span>Dipilih</span>

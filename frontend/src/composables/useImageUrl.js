@@ -8,11 +8,10 @@ import { useAuthStore } from '@/stores/auth.js'
  * MediaInfoModal, and MediaLightbox.
  */
 
-const baseUrl =
-  apiClient.defaults.baseURL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
+const baseUrl = apiClient.defaults.baseURL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
 
 /** Backend root URL (without /api suffix) */
-export const backendUrl = baseUrl.replace(/\/api\/?$/, '')
+export const backendUrl = import.meta.env.VITE_API_MEDIA_URL || baseUrl.replace(/\/api\/?$/, '')
 
 /**
  * Resolve any relative image path into a full URL.
@@ -20,11 +19,28 @@ export const backendUrl = baseUrl.replace(/\/api\/?$/, '')
  * @param {string | null | undefined} path
  * @returns {string | null}
  */
-export const resolveUrl = (path) => {
+export const resolveUrl = path => {
   if (!path) return null
-  const cleanPath = path.startsWith('/') ? path.substring(1) : path
-  const prefix = cleanPath.startsWith('uploads/') ? '' : 'uploads/'
-  const url = `${backendUrl}/${prefix}${cleanPath}`
+  
+  // 1. Bersihkan path dari awalan '/' atau 'uploads/' agar seragam
+  let cleanPath = path.replace(/^\/+/, '')
+  if (cleanPath.startsWith('uploads/')) {
+    cleanPath = cleanPath.replace(/^uploads\//, '')
+  }
+
+  // 2. Tentukan base url
+  let base
+  if (import.meta.env.VITE_API_MEDIA_URL) {
+    base = import.meta.env.VITE_API_MEDIA_URL
+    if (!base.endsWith('/')) base += '/'
+  } else {
+    // baseUrl fallback biasanya http://localhost:3000
+    let root = baseUrl.replace(/\/api\/?$/, '')
+    if (!root.endsWith('/')) root += '/'
+    base = root + 'uploads/'
+  }
+
+  const url = `${base}${cleanPath}`
 
   // Ambil token dari store (bypass reactivity jika dijalankan diluar setup, pinia sudah terinisialisasi)
   try {
@@ -44,7 +60,7 @@ export const resolveUrl = (path) => {
  * @param {object} product
  * @returns {string | null}
  */
-export const resolveProductImageUrl = (product) => {
+export const resolveProductImageUrl = product => {
   const targetPath = product?.thumbnail_path || product?.image_path
   return resolveUrl(targetPath)
 }
@@ -57,7 +73,7 @@ export function useBrokenImages() {
   const brokenImages = ref(new Set())
 
   /** @param {number|string} id */
-  const onImgError = (id) => {
+  const onImgError = id => {
     brokenImages.value.add(id)
   }
 

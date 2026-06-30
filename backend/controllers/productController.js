@@ -351,6 +351,7 @@ export const exportProducts = async (req, res, next) => {
       offset: 0,
       exportType: "PRODUCT_MASTER",
       format: req.query.format || "xlsx",
+      includeImages: req.query.includeImages === "true" || req.query.includeImages === true,
     };
 
     const userId = req.user.id;

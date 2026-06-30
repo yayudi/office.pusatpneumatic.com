@@ -24,6 +24,7 @@ const tabOptions = [
 ]
 
 const exportFormat = ref('xlsx')
+const includeImages = ref(false)
 const fileInput = ref(null)
 const selectedFile = ref(null)
 const isDryRun = ref(false)
@@ -96,7 +97,7 @@ const formatDate = date => dayjs(date).format('DD MMM YYYY, HH:mm')
 
 // Actions
 const handleExport = () => {
-  emit('export', { format: exportFormat.value })
+  emit('export', { format: exportFormat.value, includeImages: includeImages.value })
 }
 
 const handleFileSelect = event => {
@@ -130,7 +131,7 @@ const close = () => {
 
 <template>
   <BaseModal :show="isOpen" @close="close" title="Batch Edit Produk" maxWidth="max-w-3xl">
-    <div class="flex flex-col h-[600px] md:h-[550px]">
+    <div class="flex flex-col h-[700px] md:h-[550px]">
       <!-- TABS -->
       <div class="mb-6 shrink-0 mt-2">
         <BaseTabs :tabs="tabOptions" v-model="activeTab" class="w-full shadow-sm" />
@@ -178,9 +179,26 @@ const close = () => {
             </label>
           </div>
 
+          <div
+            class="mb-6 flex items-center justify-between p-4 bg-primary/5 rounded-xl border border-primary/20 shrink-0"
+          >
+            <div>
+              <div class="font-semibold text-text text-sm">Sertakan Tautan (Link) Gambar</div>
+              <div class="text-[12px] text-text/60 font-medium">
+                Tambahkan kolom berisi tautan menuju gambar utama produk
+              </div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer shrink-0">
+              <input type="checkbox" v-model="includeImages" class="sr-only peer" />
+              <div
+                class="w-11 h-6 bg-secondary peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-secondary after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-primary after:border-primary after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary peer-checked:after:bg-secondary"
+              ></div>
+            </label>
+          </div>
+
           <!-- LIST EXPORT JOBS -->
           <div
-            class="flex-1 overflow-y-auto mb-6 scrollbar-thin border-2 border-secondary/10 rounded-2xl p-4 bg-secondary/5 flex flex-col"
+            class="flex-1 overflow-y-auto custom-scrollbar mb-6 scrollbar-thin border-2 border-secondary/10 rounded-2xl p-4 bg-secondary/5 flex flex-col"
           >
             <h5 class="font-bold text-sm mb-4 text-text flex items-center gap-2 shrink-0">
               <font-awesome-icon icon="fa-solid fa-clock-rotate-left" class="text-primary" />

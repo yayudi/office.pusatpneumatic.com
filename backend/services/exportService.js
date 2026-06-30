@@ -47,7 +47,7 @@ export const generateStockReportStreaming = async (filters, filePath) => {
 
   try {
     connection = await db.getConnection();
-    
+
     // --- CSV LOGIC ---
     if (isCsv) {
       Logger.info("Starting CSV Pipeline for STOCK_REPORT...", "EXPORT_SERVICE");
@@ -57,13 +57,13 @@ export const generateStockReportStreaming = async (filters, filePath) => {
         SKU: row.Sku,
         "Nama Produk": row.NamaProduk,
         Lokasi: row.Lokasi || "-",
-        Kuantitas: row.Kuantitas
+        Kuantitas: row.Kuantitas,
       });
 
       await pipeline(
         queryStream,
-        fastCsv.format({ headers: true, delimiter: ';' }).transform(transformRow),
-        stream
+        fastCsv.format({ headers: true, delimiter: ";" }).transform(transformRow),
+        stream,
       );
 
       Logger.info("CSV Pipeline Completed.", "EXPORT_SERVICE");
@@ -284,21 +284,42 @@ export const generateProductExportStreaming = async (filters, filePath) => {
     const queryStream = productRepo.getProductsWithFiltersStream(connection, exportFilters);
 
     // --- WRITE DATA ---
+    const includeImages = filters.includeImages === "true" || filters.includeImages === true;
+    const getImageUrl = (path) => {
+      if (!path) return "";
+      let cleanPath = path.replace(/^\/+/, '');
+      if (cleanPath.startsWith('uploads/')) cleanPath = cleanPath.replace(/^uploads\//, '');
+      const base = process.env.MEDIA_URL || process.env.VITE_API_MEDIA_URL || "http://localhost:3000/uploads/";
+      const separator = base && !base.endsWith('/') ? '/' : '';
+      return `${base}${separator}${cleanPath}`;
+    };
+
     if (isCsv) {
       // CSV WRITING via Pipeline (Safer & Auto-close)
       Logger.info("Starting CSV Pipeline...", "EXPORT_SERVICE");
 
-      const transformRow = (p) => ({
-        sku: p.sku,
-        name: p.name,
-        price: p.price,
-        weight: p.weight || 0,
-        is_active: p.is_active ? 1 : 0,
-      });
+      const transformRow = (p) => {
+        const row = {
+          sku: p.sku,
+          name: p.name,
+          price: p.price,
+          weight: p.weight || 0,
+          is_active: p.is_active ? 1 : 0,
+        };
+        if (includeImages) {
+          row.image_url = p.main_paths
+            ? p.main_paths
+                .split(",")
+                .map((path) => getImageUrl(path.trim()))
+                .join(", ")
+            : "";
+        }
+        return row;
+      };
 
       await pipeline(
         queryStream,
-        fastCsv.format({ headers: true, delimiter: ';' }).transform(transformRow),
+        fastCsv.format({ headers: true, delimiter: ";" }).transform(transformRow),
         stream,
       );
 
@@ -307,34 +328,58 @@ export const generateProductExportStreaming = async (filters, filePath) => {
       // EXCEL WRITING
       const sheet = workbookWriter.addWorksheet("Master Produk");
       const headers = ["sku", "name", "price", "weight", "is_active"];
-
-      sheet.columns = [
+      const columns = [
         { key: "sku", width: 12 },
         { key: "name", width: 75 },
         { key: "price", width: 15 },
         { key: "weight", width: 12 },
         { key: "is_active", width: 12 },
       ];
-
+      sheet.columns = columns;
       sheet.getRow(1).values = headers;
       styleHeader(sheet, 1, headers.length, "FF4472C4", "FFFFFFFF");
+
+      let imageSheet = null;
+      if (includeImages) {
+        imageSheet = workbookWriter.addWorksheet("Gambar Produk");
+        imageSheet.columns = [
+          { key: "sku", width: 15 },
+          { key: "image_url", width: 80 },
+        ];
+        imageSheet.getRow(1).values = ["sku", "image_url"];
+        styleHeader(imageSheet, 1, 2, "FF4472C4", "FFFFFFFF");
+      }
 
       await new Promise((resolve, reject) => {
         queryStream.on("error", (err) => reject(err));
         queryStream.on("data", (p) => {
-          sheet
-            .addRow({
-              sku: p.sku,
-              name: p.name,
-              price: p.price,
-              weight: p.weight || 0,
-              is_active: p.is_active ? 1 : 0,
-            })
-            .commit();
+          const rowData = {
+            sku: p.sku,
+            name: p.name,
+            price: p.price,
+            weight: p.weight || 0,
+            is_active: p.is_active ? 1 : 0,
+          };
+          sheet.addRow(rowData).commit();
+
+          if (includeImages && imageSheet && p.main_paths) {
+            const paths = p.main_paths.split(",");
+            paths.forEach((path) => {
+              if (path.trim()) {
+                imageSheet
+                  .addRow({
+                    sku: p.sku,
+                    image_url: getImageUrl(path.trim()),
+                  })
+                  .commit();
+              }
+            });
+          }
         });
         queryStream.on("end", async () => {
           try {
             sheet.commit();
+            if (imageSheet) imageSheet.commit();
             await workbookWriter.commit();
             resolve();
           } catch (err) {

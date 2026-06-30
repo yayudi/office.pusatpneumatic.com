@@ -398,8 +398,12 @@ export const getProductsWithFiltersStream = (connection, filters) => {
   }
 
   const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+  const includeImageSql = (filters.includeImages === "true" || filters.includeImages === true)
+    ? ", (SELECT GROUP_CONCAT(ma.main_path ORDER BY pi.is_primary DESC, pi.sort_order ASC SEPARATOR ',') FROM product_images pi JOIN media_assets ma ON pi.media_id = ma.id WHERE pi.product_id = p.id) as main_paths"
+    : "";
+
   const productsQuery = `
-      SELECT p.id, p.sku, p.name, p.category_id, p.price, p.weight, p.is_package, p.is_active, p.deleted_at
+      SELECT p.id, p.sku, p.name, p.category_id, p.price, p.weight, p.is_package, p.is_active, p.deleted_at${includeImageSql}
       FROM products p
       ${whereSql}
       ORDER BY ${safeSortBy} ${sortOrder || "ASC"}
