@@ -27,17 +27,14 @@ let isRendering = false
 let pendingRender = false
 
 const performRender = async () => {
-  console.log('[DEBUG-RENDER] performRender started. canvasRef:', !!canvasRef.value, 'isRendering:', isRendering)
   if (!canvasRef.value) return
   if (isRendering) {
-    console.log('[DEBUG-RENDER] isRendering is true, queueing pendingRender')
     pendingRender = true
     return
   }
 
   isRendering = true
   try {
-    console.log('[DEBUG-RENDER] Lock acquired. Initializing canvas...')
     const [widthMm, heightMm] = props.paperSize.split('x').map(Number)
     const pxPerMm = 7.55
     const canvasWidth = Math.round(widthMm * pxPerMm) || 604
@@ -54,13 +51,24 @@ const performRender = async () => {
     }
 
     const configClone = JSON.parse(JSON.stringify(props.config))
-    console.log('[DEBUG-RENDER] Loading JSON into staticCanvas...')
 
-    await new Promise((resolveRender) => {
+    // Auto-convert legacy IText to Textbox so word-wrapping works for long text
+    if (configClone && configClone.objects) {
+      configClone.objects.forEach(obj => {
+        if (obj.type === 'i-text' || obj.type === 'IText' || obj.type === 'text' || obj.type === 'textbox') {
+          if (obj.type !== 'textbox') {
+            obj.type = 'textbox'
+            // If the object doesn't have a width, give it a sensible default (e.g. 250px)
+            if (!obj.width) obj.width = 250
+          }
+        }
+      })
+    }
+
+    await new Promise(resolveRender => {
       staticCanvas
         .loadFromJSON(configClone)
         .then(() => {
-          console.log('[DEBUG-RENDER] JSON loaded. Processing objects...')
           staticCanvas.setViewportTransform([1, 0, 0, 1, 0, 0])
           staticCanvas.setZoom(1)
           staticCanvas.backgroundColor = '#ffffff'
@@ -94,13 +102,15 @@ const performRender = async () => {
                   return props.variables[varName] !== undefined ? props.variables[varName] : match
                 })
                 obj.set('text', text)
+
+                // Force recalculate bounding box after text change
+                obj.setCoords()
               }
             } else if (obj.isDynamicBarcode) {
               let barcodeVal = obj.barcodeValue || ''
               barcodeVal = barcodeVal.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (match, varName) => {
                 return props.variables[varName] !== undefined ? props.variables[varName] : match
               })
-              console.log('[DEBUG-RENDER] Generating barcode for value:', barcodeVal)
 
               promises.push(
                 new Promise(resolve => {
@@ -121,17 +131,32 @@ const performRender = async () => {
                         dataUrl = canvas.toDataURL('image/png')
                       }
 
+                      const oldScaleX = obj.scaleX
+                      const oldScaleY = obj.scaleY
+                      const oldWidth = obj.width
+                      const oldHeight = obj.height
+
+                      const finalizeImage = () => {
+                        // newWidth * newScale = oldWidth * oldScale
+                        // newScale = (oldWidth * oldScale) / newWidth
+                        obj.set({
+                          scaleX: (oldWidth * oldScaleX) / obj.width,
+                          scaleY: (oldHeight * oldScaleY) / obj.height
+                        })
+                        obj.setCoords()
+                        resolve()
+                      }
+
                       const setSrcResult = obj.setSrc(dataUrl, () => {
                         console.log('[DEBUG-RENDER] Barcode image loaded via callback')
-                        resolve()
+                        finalizeImage()
                       })
-                      
+
                       // FabricJS 6+ returns a Promise instead of using a callback
                       if (setSrcResult && typeof setSrcResult.then === 'function') {
                         setSrcResult
                           .then(() => {
-                            console.log('[DEBUG-RENDER] Barcode image loaded via Promise')
-                            resolve()
+                            finalizeImage()
                           })
                           .catch(err => {
                             console.error('[DEBUG-RENDER] setSrc Promise failed:', err)
@@ -148,9 +173,7 @@ const performRender = async () => {
             }
           })
 
-          console.log('[DEBUG-RENDER] Waiting for', promises.length, 'promises to resolve...')
           Promise.all(promises).then(() => {
-            console.log('[DEBUG-RENDER] Promises resolved, rendering all.')
             staticCanvas.renderAll()
             resolveRender()
           })
@@ -163,7 +186,6 @@ const performRender = async () => {
   } catch (err) {
     console.error('[DEBUG-RENDER] Fatal error in performRender:', err)
   } finally {
-    console.log('[DEBUG-RENDER] Lock released. pendingRender:', pendingRender)
     isRendering = false
     if (pendingRender) {
       pendingRender = false

@@ -7,10 +7,12 @@ const props = defineProps({
   /** Number of active filters to show as badge on mobile toggle */
   activeFilterCount: { type: Number, default: 0 },
   /** Whether the filter panel should collapse on mobile */
-  collapsible: { type: Boolean, default: true }
+  collapsible: { type: Boolean, default: true },
+  /** Breakpoint in pixels for mobile view */
+  collapseBreakpoint: { type: Number, default: 768 }
 })
 
-const { isMobile } = useMobile()
+const { isMobile } = useMobile(props.collapseBreakpoint)
 const slots = useSlots()
 const isExpanded = ref(false)
 

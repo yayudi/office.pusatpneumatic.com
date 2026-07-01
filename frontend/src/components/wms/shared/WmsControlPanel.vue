@@ -53,7 +53,7 @@ const emit = defineEmits([
 ])
 
 const searchInput = ref(null)
-let isMobile = useMobile()
+const { isMobile } = useMobile(1024)
 
 function onSearchInput(e) {
   emit('update:searchValue', e.target.value)
@@ -155,7 +155,7 @@ useEventListener(
 </script>
 
 <template>
-  <BaseFilterPanel class="z-50">
+  <BaseFilterPanel class="z-50" :collapse-breakpoint="1024">
     <!-- Search Row -->
     <template #search>
       <div class="relative flex-grow group w-full xl:w-[1vw] shadow-sm rounded-lg items-end mt-auto">

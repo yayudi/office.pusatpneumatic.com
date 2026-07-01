@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import DpvStickerTemplate from './DpvStickerTemplate.vue'
 const DynamicStickerRenderer = defineAsyncComponent(() => import('./DynamicStickerRenderer.vue'))
 const StickerTemplateBuilder = defineAsyncComponent(() => import('./StickerTemplateBuilder.vue'))
+const PaperSizeManagerModal = defineAsyncComponent(() => import('./PaperSizeManagerModal.vue'))
 import ProductSearchSelector from '@/components/wms/transfer/ProductSearchSelector.vue'
 import ScannerToggle from '@/components/utilities/ScannerToggle.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -22,7 +23,9 @@ const { toast } = useToast()
 
 // Data struktur: array of { id, line1, line2, copies }
 const stickers = ref([])
-const paperType = ref('thermal') // 'thermal' or 'a4'
+const selectedPaperSize = ref(null)
+const paperSizes = ref([])
+const showPaperSizeManager = ref(false)
 const paperOrientation = ref('landscape') // 'landscape' or 'portrait'
 
 const templates = ref([])
@@ -104,9 +107,15 @@ const handleCopyTemplate = () => {
   showBuilder.value = true
 }
 
-const onTemplateSaved = () => {
-  fetchTemplates()
-  // Wait a bit, then select it (simulated by finding it in next fetch, but we don't have full object yet. Let's just re-fetch)
+const onTemplateSaved = async (savedData) => {
+  await fetchTemplates()
+  // Auto-select the newly saved template if it exists in the fetched list
+  if (savedData && savedData.id) {
+    const newlySaved = templates.value.find(t => t.id === savedData.id)
+    if (newlySaved) {
+      selectedTemplate.value = newlySaved
+    }
+  }
 }
 
 const deleteTemplate = async id => {
@@ -130,8 +139,52 @@ const deleteTemplate = async id => {
   }
 }
 
+const applyTemplatePaperSize = () => {
+  if (selectedTemplate.value && selectedTemplate.value.config_json && paperSizes.value.length > 0) {
+    let parsedConfig = selectedTemplate.value.config_json
+    if (typeof parsedConfig === 'string') {
+      try { parsedConfig = JSON.parse(parsedConfig) } catch(err) { console.warn(err) }
+    }
+    if (parsedConfig && parsedConfig.paper_size_id) {
+      const found = paperSizes.value.find(p => p.id === parsedConfig.paper_size_id)
+      if (found) {
+        selectedPaperSize.value = found
+      }
+    }
+  }
+}
+
+const fetchPaperSizes = async () => {
+  try {
+    const res = await api.get('/paper-sizes')
+    if (res.data.success && res.data.data) {
+      paperSizes.value = res.data.data
+      if (paperSizes.value.length > 0 && !selectedPaperSize.value) {
+        selectedPaperSize.value = paperSizes.value[0]
+      }
+      // Re-apply template paper size in case templates loaded before paper sizes
+      applyTemplatePaperSize()
+    }
+  } catch (e) {
+    console.error('Gagal memuat ukuran kertas', e)
+  }
+}
+
+watch(selectedTemplate, applyTemplatePaperSize)
+
+watch(selectedPaperSize, (newSize) => {
+  if (newSize) {
+    if (newSize.labelWidth >= newSize.labelHeight) {
+      paperOrientation.value = 'landscape'
+    } else {
+      paperOrientation.value = 'portrait'
+    }
+  }
+})
+
 onMounted(() => {
   fetchTemplates()
+  fetchPaperSizes()
 })
 
 const handleProductSelected = (product, sticker, varName) => {
@@ -330,18 +383,12 @@ function handlePrint() {
 }
 
 const dynamicStickerWidth = computed(() => {
-  if (selectedTemplate.value && selectedTemplate.value.paper_size) {
-    const parts = selectedTemplate.value.paper_size.split('x')
-    if (parts.length === 2) return parseInt(parts[0]) || 80
-  }
+  if (selectedPaperSize.value) return selectedPaperSize.value.labelWidth || 80
   return 80
 })
 
 const dynamicStickerHeight = computed(() => {
-  if (selectedTemplate.value && selectedTemplate.value.paper_size) {
-    const parts = selectedTemplate.value.paper_size.split('x')
-    if (parts.length === 2) return parseInt(parts[1]) || 40
-  }
+  if (selectedPaperSize.value) return selectedPaperSize.value.labelHeight || 40
   return 40
 })
 
@@ -531,7 +578,7 @@ const printStickerHeight = computed(() => {
                     ref="previewRenderer"
                     :config="selectedTemplate.config_json"
                     :variables="stickers[0].data"
-                    :paper-size="selectedTemplate.paper_size"
+                    :paper-size="selectedPaperSize ? `${selectedPaperSize.labelWidth}x${selectedPaperSize.labelHeight}` : '80x40'"
                   />
                   <DpvStickerTemplate
                     v-else
@@ -552,18 +599,24 @@ const printStickerHeight = computed(() => {
             <div class="flex items-center gap-2 border-r border-primary/20 pr-4">
               <label class="text-sm font-bold text-text/70">Ukuran Kertas:</label>
               <select
-                v-model="paperType"
-                class="bg-secondary border border-primary/20 rounded-lg px-3 py-1.5 text-sm font-bold text-text focus:outline-none focus:border-primary"
+                v-model="selectedPaperSize"
+                :disabled="!!selectedTemplate"
+                class="bg-secondary border border-primary/20 rounded-lg px-3 py-1.5 text-sm font-bold text-text focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                :title="selectedTemplate ? 'Ukuran kertas mengikuti template' : 'Pilih ukuran kertas'"
               >
-                <option value="thermal">Thermal (80x40mm)</option>
-                <option value="a4">A4 (Tiled Grid)</option>
+                <option v-for="size in paperSizes" :key="size.id" :value="size">{{ size.name }}</option>
               </select>
+              <button @click="showPaperSizeManager = true" class="px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary hover:text-white transition-colors" title="Kelola Ukuran Kertas">
+                <font-awesome-icon icon="fa-solid fa-cog" />
+              </button>
             </div>
             <div class="flex items-center gap-2">
               <label class="text-sm font-bold text-text/70">Orientasi:</label>
               <select
                 v-model="paperOrientation"
-                class="bg-secondary border border-primary/20 rounded-lg px-3 py-1.5 text-sm font-bold text-text focus:outline-none focus:border-primary"
+                :disabled="!!selectedTemplate"
+                class="bg-secondary border border-primary/20 rounded-lg px-3 py-1.5 text-sm font-bold text-text focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                :title="selectedTemplate ? 'Orientasi otomatis mengikuti ukuran kertas template' : 'Pilih orientasi'"
               >
                 <option value="landscape">Landscape</option>
                 <option value="portrait">Portrait</option>
@@ -607,13 +660,31 @@ const printStickerHeight = computed(() => {
     <div
       v-if="show"
       class="print-container"
-      :class="[`print-mode-${paperType}`, `print-orientation-${paperOrientation}`]"
+      :class="[((selectedPaperSize?.numberAcross > 1) || (selectedPaperSize?.numberDown > 1)) ? 'print-mode-grid' : 'print-mode-thermal', `print-orientation-${paperOrientation}`]"
     >
       <!-- Inject dynamic @page CSS -->
       <component :is="'style'">
-        @media print { @page { size:
-        {{ paperType === 'a4' ? 'A4' : dynamicStickerWidth + 'mm ' + dynamicStickerHeight + 'mm' }}
-        {{ paperOrientation }}; margin: {{ paperType === 'a4' ? '5mm' : '0' }}; } }
+        @media print { 
+          @page { 
+            size: {{ selectedPaperSize ? `${selectedPaperSize.pageWidth}mm ${selectedPaperSize.pageHeight}mm` : (dynamicStickerWidth + 'mm ' + dynamicStickerHeight + 'mm') }}
+            {{ paperOrientation }}; 
+            margin: 0; 
+          } 
+          
+          .print-mode-grid {
+            display: grid !important;
+            grid-template-columns: repeat({{ selectedPaperSize?.numberAcross || 1 }}, {{ selectedPaperSize?.labelWidth || dynamicStickerWidth }}mm);
+            grid-template-rows: repeat({{ selectedPaperSize?.numberDown || 1 }}, {{ selectedPaperSize?.labelHeight || dynamicStickerHeight }}mm);
+            column-gap: {{ Math.max(0, (selectedPaperSize?.horizontalPitch || 0) - (selectedPaperSize?.labelWidth || 0)) }}mm;
+            row-gap: {{ Math.max(0, (selectedPaperSize?.verticalPitch || 0) - (selectedPaperSize?.labelHeight || 0)) }}mm;
+            padding-top: {{ selectedPaperSize?.topMargin || 0 }}mm;
+            padding-left: {{ selectedPaperSize?.sideMargin || 0 }}mm;
+            background: white;
+            width: 100% !important;
+            height: 100vh !important;
+            box-sizing: border-box;
+          }
+        }
       </component>
 
       <div
@@ -635,7 +706,7 @@ const printStickerHeight = computed(() => {
             "
             :config="selectedTemplate.config_json"
             :variables="ps.data"
-            :paper-size="selectedTemplate.paper_size"
+            :paper-size="selectedPaperSize ? `${selectedPaperSize.labelWidth}x${selectedPaperSize.labelHeight}` : '80x40'"
           />
           <DpvStickerTemplate v-else :line1="ps.data?.data_1 || ''" :line2="ps.data?.data_2 || ''" />
         </div>
@@ -648,6 +719,12 @@ const printStickerHeight = computed(() => {
     :initialTemplate="editTemplateData"
     @close="showBuilder = false"
     @saved="onTemplateSaved"
+  />
+
+  <PaperSizeManagerModal
+    :show="showPaperSizeManager"
+    @close="showPaperSizeManager = false"
+    @updated="fetchPaperSizes"
   />
 </template>
 
@@ -718,17 +795,8 @@ const printStickerHeight = computed(() => {
     page-break-after: auto;
   }
 
-  /* A4 Mode: Tiled grid tanpa paksa break halaman (Grid) */
-  .print-mode-a4 {
-    display: flex !important;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    justify-content: flex-start;
-    gap: 2mm; /* Jarak antar sticker */
-    background: white;
-    width: 100% !important;
-  }
-  .print-mode-a4 .sticker-item {
+  /* Grid mode is dynamically generated in the vue component above */
+  .print-mode-grid .sticker-item {
     /* Optional: Beri border tipis untuk panduan potong (opsional) */
     outline: 2px dashed #ccc;
   }

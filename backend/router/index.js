@@ -29,6 +29,7 @@ import salesChannelsRoutes from "./salesChannels.js";
 import notificationRoutes from "./notificationRouter.js";
 import stickerTemplateRoutes from "./stickerTemplateRouter.js";
 import investigationRoutes from "./investigationRouter.js";
+import paperSizeRoutes from "./paperSizeRouter.js";
 // import cronRouter from "./cronRouter.js";
 
 import AppError from "../utils/AppError.js";
@@ -71,6 +72,7 @@ apiRouter.use("/categories", authenticateToken, categoryRoutes);
 apiRouter.use("/sales-channels", salesChannelsRoutes);
 apiRouter.use("/notifications", authenticateToken, notificationRoutes);
 apiRouter.use("/sticker-templates", authenticateToken, stickerTemplateRoutes);
+apiRouter.use("/paper-sizes", paperSizeRoutes); // Authentication handled in router
 apiRouter.use("/investigation", authenticateToken, investigationRoutes);
 // apiRouter.use("/cron", authenticateToken, cronRouter);
 

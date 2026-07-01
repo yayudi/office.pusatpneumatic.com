@@ -5,6 +5,7 @@ import * as fabric from 'fabric'
 import JsBarcode from 'jsbarcode'
 import QRCode from 'qrcode'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { faXmark } from '@fortawesome/free-solid-svg-icons'
 import MediaPickerModal from '@/components/shared/MediaPickerModal.vue'
 import { resolveUrl } from '@/composables/useImageUrl'
 import api from '@/api/axios'
@@ -24,6 +25,80 @@ let fabricCanvas = null
 
 const templateName = ref('')
 const isSaving = ref(false)
+const paperSizes = ref([])
+const selectedPaperSize = ref(null)
+
+const fetchPaperSizes = async () => {
+  try {
+    const res = await api.get('/paper-sizes')
+    if (res.data.success) {
+      paperSizes.value = res.data.data
+    }
+  } catch (error) {
+    console.error('Gagal memuat ukuran kertas', error)
+  }
+}
+
+const setupCustomControls = () => {
+  function renderDeleteIcon(ctx, left, top, styleOverride, fabricObject) {
+    const size = 24
+    ctx.save()
+    ctx.translate(left, top)
+    ctx.rotate(fabric.util.degreesToRadians(fabricObject.angle))
+
+    // Draw red circle background
+    ctx.beginPath()
+    ctx.arc(0, 0, size / 2, 0, Math.PI * 2)
+    ctx.fillStyle = '#ef4444' // Tailwind text-red-500
+    ctx.fill()
+    ctx.closePath()
+
+    // Draw FontAwesome Xmark icon in white
+    const iconWidth = faXmark.icon[0]
+    const iconHeight = faXmark.icon[1]
+    const pathData = faXmark.icon[4]
+
+    // Scale the path to fit inside the circle (padding ~ 6px each side)
+    const scale = (size * 0.5) / Math.max(iconWidth, iconHeight)
+
+    ctx.scale(scale, scale)
+    // Center the path
+    ctx.translate(-iconWidth / 2, -iconHeight / 2)
+
+    ctx.fillStyle = '#ffffff'
+    ctx.fill(new Path2D(pathData))
+
+    ctx.restore()
+  }
+
+  function deleteObjectControl(eventData, transform) {
+    const target = transform.target
+    if (fabricCanvas) {
+      fabricCanvas.remove(target)
+      fabricCanvas.discardActiveObject()
+      fabricCanvas.requestRenderAll()
+      syncLayers()
+    }
+    return true
+  }
+
+  const deleteControl = new fabric.Control({
+    x: 0.5,
+    y: -0.5,
+    offsetY: -16,
+    offsetX: 16,
+    cursorStyle: 'pointer',
+    mouseUpHandler: deleteObjectControl,
+    render: renderDeleteIcon,
+    cornerSize: 24
+  })
+
+  return deleteControl
+}
+
+onMounted(() => {
+  fetchPaperSizes()
+})
 
 const isMediaPickerOpen = ref(false)
 const isBarcodeModalOpen = ref(false)
@@ -228,7 +303,17 @@ const saveHistory = () => {
   clearTimeout(historyTimeout)
   historyTimeout = setTimeout(() => {
     if (!fabricCanvas || isHistoryProcessing) return
-    const json = fabricCanvas.toJSON(['id', 'selectable', 'evented', 'hasControls', 'lockMovementX', 'lockMovementY', 'lockRotation', 'lockScalingX', 'lockScalingY'])
+    const json = fabricCanvas.toJSON([
+      'id',
+      'selectable',
+      'evented',
+      'hasControls',
+      'lockMovementX',
+      'lockMovementY',
+      'lockRotation',
+      'lockScalingX',
+      'lockScalingY'
+    ])
     const objects = fabricCanvas.getObjects()
     if (json.objects) {
       json.objects.forEach((rawObj, index) => {
@@ -513,6 +598,42 @@ const updateTransformProperty = (key, value) => {
   syncLayers()
 }
 
+const setVerticalAlign = align => {
+  if (!fabricCanvas) return
+  const obj = fabricCanvas.getActiveObject()
+  if (obj && (obj.type === 'i-text' || obj.type === 'text' || obj.type === 'textbox')) {
+    const oldOriginY = obj.originY || 'top'
+    if (oldOriginY === align) return
+
+    const height = obj.height * (obj.scaleY || 1)
+
+    // Find the current visual top edge
+    let topEdge = obj.top
+    if (oldOriginY === 'center') {
+      topEdge = obj.top - height / 2
+    } else if (oldOriginY === 'bottom') {
+      topEdge = obj.top - height
+    }
+
+    // Determine new top coordinate based on new origin
+    let newTop = topEdge
+    if (align === 'center') {
+      newTop = topEdge + height / 2
+    } else if (align === 'bottom') {
+      newTop = topEdge + height
+    }
+
+    obj.set({
+      originY: align,
+      top: newTop
+    })
+
+    obj.setCoords()
+    fabricCanvas.requestRenderAll()
+    handleSelection() // To trigger any reactive state if we had one
+  }
+}
+
 const centerCanvas = () => {
   if (!fabricCanvas || !canvasWrapper.value) return
   const pxPerMm = 7.55
@@ -792,6 +913,21 @@ const initCanvas = () => {
         })
       }
 
+      // Enforce strokeUniform for all loaded objects to prevent scaling distortions
+      objects.forEach(obj => {
+        if (obj) obj.set({ strokeUniform: true })
+      })
+
+      // Auto-select paper size if exists
+      if (parsedConfig.paper_size_id && paperSizes.value.length) {
+        const found = paperSizes.value.find(p => p.id === parsedConfig.paper_size_id)
+        if (found) {
+          selectedPaperSize.value = found
+          paperWidth.value = found.labelWidth || 80
+          paperHeight.value = found.labelHeight || 40
+        }
+      }
+
       // Re-add paper background since it was excluded during save
       const w = Math.round(paperWidth.value * pxPerMm)
       const h = Math.round(paperHeight.value * pxPerMm)
@@ -842,6 +978,15 @@ const initCanvas = () => {
     fabricCanvas.add(paperRect)
   }
 
+  // Attach custom delete control
+  const deleteControl = setupCustomControls()
+  const attachDeleteControl = obj => {
+    if (obj && obj.controls && obj.id !== 'paper-bg') {
+      obj.controls.deleteControl = deleteControl
+    }
+  }
+  fabricCanvas.getObjects().forEach(attachDeleteControl)
+
   fabricCanvas.on('selection:created', () => {
     handleSelection()
     syncLayers()
@@ -854,7 +999,8 @@ const initCanvas = () => {
     handleSelection()
     syncLayers()
   })
-  fabricCanvas.on('object:added', () => {
+  fabricCanvas.on('object:added', e => {
+    attachDeleteControl(e.target)
     syncLayers()
   })
   fabricCanvas.on('object:removed', () => {
@@ -970,15 +1116,43 @@ watch(
     if (newVal) {
       if (props.initialTemplate) {
         templateName.value = props.initialTemplate.name
-        if (props.initialTemplate.paper_size) {
-          const [w, h] = props.initialTemplate.paper_size.split('x').map(Number)
-          paperWidth.value = w || 80
-          paperHeight.value = h || 40
+
+        let parsedConfig = props.initialTemplate.config_json
+        if (typeof parsedConfig === 'string') {
+          try {
+            parsedConfig = JSON.parse(parsedConfig)
+          } catch (err) {
+            console.warn(err)
+          }
+        }
+
+        if (parsedConfig && parsedConfig.paper_size_id && paperSizes.value.length) {
+          const found = paperSizes.value.find(p => p.id === parsedConfig.paper_size_id)
+          if (found) {
+            selectedPaperSize.value = found
+            paperWidth.value = found.labelWidth || 80
+            paperHeight.value = found.labelHeight || 40
+          } else {
+            if (props.initialTemplate.paper_size) {
+              const [w, h] = props.initialTemplate.paper_size.split('x').map(Number)
+              paperWidth.value = w || 80
+              paperHeight.value = h || 40
+            }
+            selectedPaperSize.value = null
+          }
+        } else {
+          if (props.initialTemplate.paper_size) {
+            const [w, h] = props.initialTemplate.paper_size.split('x').map(Number)
+            paperWidth.value = w || 80
+            paperHeight.value = h || 40
+          }
+          selectedPaperSize.value = null
         }
       } else {
         templateName.value = ''
         paperWidth.value = 80
         paperHeight.value = 40
+        selectedPaperSize.value = null
       }
       historyStack.value = []
       historyIndex.value = -1
@@ -994,11 +1168,20 @@ watch(
   }
 )
 
+watch(selectedPaperSize, newSize => {
+  if (newSize) {
+    paperWidth.value = newSize.labelWidth || 80
+    paperHeight.value = newSize.labelHeight || 40
+    applyPaperSize()
+  }
+})
+
 const addText = () => {
   if (!fabricCanvas) return
-  const text = new fabric.IText('Teks Baru', {
+  const text = new fabric.Textbox('Teks Baru', {
     left: 50,
     top: 50,
+    width: 200,
     fontFamily: 'Inter, Arial, sans-serif',
     fontSize: 40,
     fill: '#000000',
@@ -1028,9 +1211,10 @@ const addDynamicText = () => {
   })
 
   const nextIndex = maxIndex + 1
-  const text = new fabric.IText(`{{ data_${nextIndex} }}`, {
+  const text = new fabric.Textbox(`{{ data_${nextIndex} }}`, {
     left: 50,
     top: 50,
+    width: 200,
     fontFamily: 'Inter, Arial, sans-serif',
     fontSize: 40,
     fill: '#000000',
@@ -1045,9 +1229,10 @@ const addDynamicText = () => {
 
 const addSpecificText = variable => {
   if (!fabricCanvas) return
-  const text = new fabric.IText(`{{ ${variable} }}`, {
+  const text = new fabric.Textbox(`{{ ${variable} }}`, {
     left: 50,
     top: 50,
+    width: 200,
     fontFamily: 'Inter, Arial, sans-serif',
     fontSize: 40,
     fill: '#000000',
@@ -1135,7 +1320,8 @@ const addRectangle = async () => {
     top: 50,
     width: 40,
     height: 40,
-    fill: '#000000'
+    fill: '#000000',
+    strokeUniform: true
   })
   fabricCanvas.add(rect)
   fabricCanvas.setActiveObject(rect)
@@ -1148,7 +1334,8 @@ const addCircle = () => {
     left: 50,
     top: 50,
     radius: 20,
-    fill: '#000000'
+    fill: '#000000',
+    strokeUniform: true
   })
   fabricCanvas.add(circle)
   fabricCanvas.setActiveObject(circle)
@@ -1159,7 +1346,8 @@ const addLine = () => {
   if (!fabricCanvas) return
   const line = new fabric.Line([50, 50, 150, 50], {
     stroke: '#000000',
-    strokeWidth: 4
+    strokeWidth: 4,
+    strokeUniform: true
   })
   fabricCanvas.add(line)
   fabricCanvas.setActiveObject(line)
@@ -1182,28 +1370,30 @@ const duplicateSelected = () => {
   if (!fabricCanvas) return
   const activeObject = fabricCanvas.getActiveObject()
   if (activeObject && activeObject.id !== 'paper-bg') {
-    activeObject.clone(['id', 'isDynamicBarcode', 'barcodeType', 'barcodeValue', 'barcodeDisplayValue']).then(cloned => {
-      fabricCanvas.discardActiveObject()
-      cloned.set({
-        left: cloned.left + 15,
-        top: cloned.top + 15,
-        evented: true,
-        id: 'layer_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9)
-      })
-      if (cloned.type === 'activeSelection') {
-        cloned.canvas = fabricCanvas
-        cloned.forEachObject(obj => {
-          obj.id = 'layer_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9)
-          fabricCanvas.add(obj)
+    activeObject
+      .clone(['id', 'isDynamicBarcode', 'barcodeType', 'barcodeValue', 'barcodeDisplayValue'])
+      .then(cloned => {
+        fabricCanvas.discardActiveObject()
+        cloned.set({
+          left: cloned.left + 15,
+          top: cloned.top + 15,
+          evented: true,
+          id: 'layer_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9)
         })
-        cloned.setCoords()
-      } else {
-        fabricCanvas.add(cloned)
-      }
-      fabricCanvas.setActiveObject(cloned)
-      fabricCanvas.requestRenderAll()
-      syncLayers()
-    })
+        if (cloned.type === 'activeSelection') {
+          cloned.canvas = fabricCanvas
+          cloned.forEachObject(obj => {
+            obj.id = 'layer_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9)
+            fabricCanvas.add(obj)
+          })
+          cloned.setCoords()
+        } else {
+          fabricCanvas.add(cloned)
+        }
+        fabricCanvas.setActiveObject(cloned)
+        fabricCanvas.requestRenderAll()
+        syncLayers()
+      })
   }
 }
 
@@ -1221,13 +1411,13 @@ const saveTemplate = async () => {
     if (paperBg) fabricCanvas.remove(paperBg)
 
     const exportData = fabricCanvas.toJSON(['id'])
-    
+
     // Manually inject custom barcode properties (fabric's toJSON might strip them)
     const objects = fabricCanvas.getObjects()
-    // Fabric might have removed paperBg, so we must be careful with indexing. 
+    // Fabric might have removed paperBg, so we must be careful with indexing.
     // exportData.objects corresponds to objects that were NOT removed.
-    // Let's match them by their index or ID. Since we removed paperBg and will put it back, 
-    // the objects in exportData.objects align with fabricCanvas.getObjects() 
+    // Let's match them by their index or ID. Since we removed paperBg and will put it back,
+    // the objects in exportData.objects align with fabricCanvas.getObjects()
     if (exportData.objects) {
       exportData.objects.forEach((rawObj, index) => {
         const obj = objects[index]
@@ -1238,6 +1428,10 @@ const saveTemplate = async () => {
           rawObj.barcodeDisplayValue = obj.barcodeDisplayValue
         }
       })
+    }
+
+    if (selectedPaperSize.value && selectedPaperSize.value.id) {
+      exportData.paper_size_id = selectedPaperSize.value.id
     }
 
     const designData = JSON.stringify(exportData)
@@ -1379,7 +1573,10 @@ onUnmounted(() => {
           <!-- Toolbar Kiri -->
           <div class="w-full lg:w-72 border-r border-primary/10 flex flex-col bg-secondary/30 h-full">
             <!-- PROPERTY INSPECTOR -->
-            <div class="p-4 flex-1 bg-background/50 overflow-y-auto" v-if="activeObject">
+            <div
+              class="p-4 flex-1 bg-background/50 max-h-[calc(100vh-150px)] custom-scrollbar overflow-y-auto"
+              v-if="activeObject"
+            >
               <div class="flex justify-between items-center mb-3">
                 <h4 class="text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2">
                   <font-awesome-icon icon="fa-solid fa-sliders-h" /> Properti Objek
@@ -1477,7 +1674,7 @@ onUnmounted(() => {
               </div>
 
               <!-- Alignment Tools -->
-              <div class="space-y-4 pt-4 border-t border-primary/10">
+              <div class="space-y-4">
                 <label class="text-xs font-bold text-text/70 mb-1 block">
                   Perataan Objek
                   <span class="font-normal opacity-70 text-[10px] ml-1"
@@ -1638,6 +1835,47 @@ onUnmounted(() => {
                       <font-awesome-icon icon="fa-solid fa-align-right" />
                     </button>
                   </div>
+
+                  <!-- Vertical Align Group (originY) -->
+                  <div
+                    class="flex rounded-lg border border-secondary overflow-hidden flex-1"
+                    v-if="
+                      activeObject.type === 'textbox' || activeObject.type === 'i-text' || activeObject.type === 'text'
+                    "
+                  >
+                    <button
+                      @click="setVerticalAlign('top')"
+                      class="flex-1 py-2 text-sm transition-all flex items-center justify-center hover:bg-secondary/50"
+                      :class="
+                        activeObject.originY === 'top' || !activeObject.originY
+                          ? 'bg-secondary text-primary'
+                          : 'bg-background text-text/70'
+                      "
+                      title="Rata Atas (Memanjang ke Bawah)"
+                    >
+                      <font-awesome-icon icon="fa-solid fa-align-left" class="rotate-90" />
+                    </button>
+                    <button
+                      @click="setVerticalAlign('center')"
+                      class="flex-1 py-2 text-sm transition-all border-x border-secondary flex items-center justify-center hover:bg-secondary/50"
+                      :class="
+                        activeObject.originY === 'center' ? 'bg-secondary text-primary' : 'bg-background text-text/70'
+                      "
+                      title="Rata Tengah (Memanjang Dua Arah)"
+                    >
+                      <font-awesome-icon icon="fa-solid fa-align-center" class="rotate-90" />
+                    </button>
+                    <button
+                      @click="setVerticalAlign('bottom')"
+                      class="flex-1 py-2 text-sm transition-all flex items-center justify-center hover:bg-secondary/50"
+                      :class="
+                        activeObject.originY === 'bottom' ? 'bg-secondary text-primary' : 'bg-background text-text/70'
+                      "
+                      title="Rata Bawah (Memanjang ke Atas)"
+                    >
+                      <font-awesome-icon icon="fa-solid fa-align-right" class="rotate-90" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1719,15 +1957,6 @@ onUnmounted(() => {
                   class="w-full accent-primary mt-2"
                 />
               </div>
-
-              <hr class="border-primary/10 my-4" />
-
-              <button
-                @click="deleteSelected"
-                class="w-full px-4 py-2 bg-danger/10 border border-danger/20 text-danger rounded-xl font-semibold text-sm hover:bg-danger hover:text-white transition-all flex items-center justify-center gap-2 shadow-sm"
-              >
-                <font-awesome-icon icon="fa-solid fa-trash" /> Hapus Objek
-              </button>
             </div>
 
             <div
@@ -1792,7 +2021,6 @@ onUnmounted(() => {
                     >
                       <font-awesome-icon icon="fa-solid fa-barcode" class="w-4 opacity-70" /> SKU Produk
                     </button>
-
 
                     <button
                       @click="addSpecificText('harga_rp')"
@@ -2003,7 +2231,7 @@ onUnmounted(() => {
                     class="w-6 h-6 rounded flex items-center justify-center text-text/30 hover:bg-danger/10 hover:text-danger transition-colors"
                     title="Hapus Layer"
                   >
-                    <font-awesome-icon icon="fa-solid fa-trash" class="text-[10px]" />
+                    <font-awesome-icon icon="fa-solid fa-xmark" class="text-[10px]" />
                   </button>
                 </div>
               </div>
@@ -2061,27 +2289,48 @@ onUnmounted(() => {
           class="p-6 border-t border-primary/10 bg-background/50 flex flex-col sm:flex-row justify-between items-center gap-4"
         >
           <!-- PENGATURAN KANVAS -->
-          <div class="flex items-center gap-2 mr-auto bg-secondary/50 px-3 py-1.5 rounded-xl border border-primary/10">
+          <div
+            class="flex flex-wrap items-center gap-2 mr-auto bg-secondary/50 px-3 py-1.5 rounded-xl border border-primary/10"
+          >
             <span class="text-[10px] font-bold text-text/50 uppercase tracking-widest whitespace-nowrap">
-              <font-awesome-icon icon="fa-solid fa-expand" /> Kanvas (mm)
+              <font-awesome-icon icon="fa-solid fa-expand" /> Kanvas
             </span>
-            <input
-              v-model.number="paperWidth"
-              @change="applyPaperSize"
-              type="number"
-              min="10"
-              class="w-16 bg-background border border-primary/20 rounded-md px-2 py-1 text-sm font-bold text-text focus:outline-none focus:border-primary text-center"
-              title="Lebar"
-            />
-            <span class="text-text/50 text-xs font-bold">x</span>
-            <input
-              v-model.number="paperHeight"
-              @change="applyPaperSize"
-              type="number"
-              min="10"
-              class="w-16 bg-background border border-primary/20 rounded-md px-2 py-1 text-sm font-bold text-text focus:outline-none focus:border-primary text-center"
-              title="Tinggi"
-            />
+            <select
+              v-model="selectedPaperSize"
+              class="bg-background border border-primary/20 rounded-md px-2 py-1 text-xs font-bold text-text focus:outline-none focus:border-primary transition-colors min-w-[120px]"
+            >
+              <option :value="null">Kustom (mm)</option>
+              <option v-for="ps in paperSizes" :key="ps.id" :value="ps">
+                {{ ps.name }}
+              </option>
+            </select>
+
+            <template v-if="!selectedPaperSize">
+              <input
+                v-model.number="paperWidth"
+                @change="applyPaperSize"
+                type="number"
+                min="10"
+                class="w-14 bg-background border border-primary/20 rounded-md px-2 py-1 text-sm font-bold text-text focus:outline-none focus:border-primary text-center"
+                title="Lebar"
+              />
+              <span class="text-text/50 text-xs font-bold">x</span>
+              <input
+                v-model.number="paperHeight"
+                @change="applyPaperSize"
+                type="number"
+                min="10"
+                class="w-14 bg-background border border-primary/20 rounded-md px-2 py-1 text-sm font-bold text-text focus:outline-none focus:border-primary text-center"
+                title="Tinggi"
+              />
+            </template>
+            <template v-else>
+              <span
+                class="text-xs font-mono font-bold text-text bg-background px-2 py-1 rounded-md border border-primary/10"
+              >
+                {{ selectedPaperSize.labelWidth }} x {{ selectedPaperSize.labelHeight }} mm
+              </span>
+            </template>
           </div>
 
           <div class="flex-1 w-full max-w-sm ml-auto">
