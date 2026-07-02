@@ -252,6 +252,7 @@ useEventListener(
             placeholder="Tipe"
             label="label"
             track-by="value"
+            emit-value
           />
         </div>
 
@@ -266,6 +267,7 @@ useEventListener(
             placeholder="Status"
             label="label"
             track-by="value"
+            emit-value
           />
         </div>
 

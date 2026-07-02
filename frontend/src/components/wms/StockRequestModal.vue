@@ -27,6 +27,7 @@ const allLocations = ref([])
 const fromLocationId = ref(null)
 const toLocationId = ref(null)
 const notes = ref('')
+const type = ref('TRANSFER')
 const batchList = ref([])
 
 onMounted(async () => {
@@ -116,11 +117,11 @@ function removeFromBatch(sku) {
 }
 
 async function submitRequest() {
-  if (!fromLocationId.value || !toLocationId.value) {
-    return
-  }
-  if (fromLocationId.value === toLocationId.value) {
-    return
+  if (type.value === 'TRANSFER') {
+    if (!fromLocationId.value || !toLocationId.value) return
+    if (fromLocationId.value === toLocationId.value) return
+  } else if (type.value === 'STOCK_OPNAME') {
+    if (!toLocationId.value) return
   }
   if (batchList.value.length === 0) {
     return
@@ -129,7 +130,8 @@ async function submitRequest() {
   isLoading.value = true
   try {
     const payload = {
-      fromLocationId: fromLocationId.value,
+      type: type.value,
+      fromLocationId: type.value === 'TRANSFER' ? fromLocationId.value : null,
       toLocationId: toLocationId.value,
       notes: notes.value,
       items: batchList.value.map(i => ({
@@ -153,6 +155,7 @@ function closeModal() {
   // Reset form
   fromLocationId.value = null
   notes.value = ''
+  type.value = 'TRANSFER'
   batchList.value = []
   if (myLocations.value.length > 1) {
     toLocationId.value = null
@@ -183,6 +186,17 @@ function closeModal() {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-secondary/5 p-4 rounded-xl border border-secondary/20">
           <div class="space-y-4">
             <div>
+              <label class="block text-xs font-bold text-text/60 uppercase mb-1.5">Tipe Permintaan</label>
+              <select
+                v-model="type"
+                class="w-full p-2.5 bg-background border border-secondary/30 rounded-lg text-sm text-text focus:ring-1 focus:ring-primary outline-none"
+              >
+                <option value="TRANSFER">Transfer Stok</option>
+                <option value="STOCK_OPNAME">Stock Opname</option>
+              </select>
+            </div>
+
+            <div v-if="type === 'TRANSFER'">
               <label class="block text-xs font-bold text-text/60 uppercase mb-1.5">Minta Dari Lokasi (Asal)</label>
               <select
                 v-model="fromLocationId"
@@ -196,13 +210,16 @@ function closeModal() {
             </div>
 
             <div>
-              <label class="block text-xs font-bold text-text/60 uppercase mb-1.5">Kirim Ke Lokasi (Tujuan)</label>
+              <label class="block text-xs font-bold text-text/60 uppercase mb-1.5">
+                {{ type === 'TRANSFER' ? 'Kirim Ke Lokasi (Tujuan)' : 'Lokasi Opname' }}
+              </label>
               <select
                 v-model="toLocationId"
                 class="w-full p-2.5 bg-background border border-secondary/30 rounded-lg text-sm text-text focus:ring-1 focus:ring-primary outline-none"
               >
-                <option :value="null" disabled>Pilih Lokasi Tujuan (Lokasi Anda)</option>
-                <option v-for="loc in myLocations" :key="loc.id" :value="loc.id">
+                <option :value="null" disabled>Pilih Lokasi</option>
+                <!-- Untuk opname, operator bebas pilih semua lokasi -->
+                <option v-for="loc in (type === 'TRANSFER' ? myLocations : allLocations)" :key="loc.id" :value="loc.id">
                   {{ loc.code }} - {{ loc.name }}
                 </option>
               </select>
@@ -225,13 +242,13 @@ function closeModal() {
 
           <!-- Pakai komponen yg sama dgn Batch Adjustment -->
           <ProductSearchAddForm
-            active-tab="TRANSFER"
-            :search-location-id="fromLocationId"
-            :disabled="!fromLocationId || isLoading"
+            :active-tab="type"
+            :search-location-id="type === 'TRANSFER' ? fromLocationId : toLocationId"
+            :disabled="type === 'TRANSFER' ? (!fromLocationId || isLoading) : (!toLocationId || isLoading)"
             @add-product="handleAddProduct"
           />
 
-          <BatchItemList class="mt-4" :items="batchList" active-tab="TRANSFER" @remove-item="removeFromBatch" />
+          <BatchItemList class="mt-4" :items="batchList" :active-tab="type" @remove-item="removeFromBatch" />
         </div>
       </div>
 
@@ -245,7 +262,7 @@ function closeModal() {
         </button>
         <button
           @click="submitRequest"
-          :disabled="isLoading || batchList.length === 0 || !fromLocationId || !toLocationId"
+          :disabled="isLoading || batchList.length === 0 || !toLocationId || (type === 'TRANSFER' && !fromLocationId)"
           class="px-5 py-2.5 bg-primary text-secondary rounded-lg text-sm font-bold disabled:opacity-50 flex items-center gap-2 hover:bg-primary/90 transition-colors"
         >
           <font-awesome-icon v-if="isLoading" icon="fa-solid fa-spinner" class="animate-spin" />

@@ -7,9 +7,15 @@ import {
   fetchStockRequests,
   approveStockRequest,
   rejectStockRequest,
-  completeStockRequest
+  completeStockRequest,
+  bulkActionStockRequests
 } from '@/api/helpers/stockRequest'
 import StockRequestModal from '@/components/wms/StockRequestModal.vue'
+import BasePagination from '@/components/ui/BasePagination.vue'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
+const currentUser = computed(() => authStore.user)
 
 const { toast } = useToast()
 
@@ -17,20 +23,35 @@ const requests = ref([])
 const isLoading = ref(false)
 const isModalOpen = ref(false)
 const currentFilter = ref('ALL')
+const selectedIds = ref([])
+const paginationState = ref({
+  page: 1,
+  limit: 15,
+  total: 0,
+  totalPages: 1
+})
 
 async function loadRequests(silent = false) {
   if (!silent) isLoading.value = true
   try {
-    const params = {}
+    const params = {
+      page: paginationState.value.page,
+      limit: paginationState.value.limit
+    }
     if (currentFilter.value !== 'ALL') {
       params.status = currentFilter.value
     }
-    requests.value = await fetchStockRequests(params)
+    const res = await fetchStockRequests(params)
+    requests.value = res.data || []
+    if (res.pagination) {
+      paginationState.value = res.pagination
+    }
   } catch (error) {
     console.error(error)
     if (!silent) toast(error.message || 'Gagal memuat permintaan stok', 'error')
   } finally {
     if (!silent) isLoading.value = false
+    selectedIds.value = [] // Reset selection on reload
   }
 }
 
@@ -72,8 +93,12 @@ async function handleReject(id) {
   }
 }
 
-async function handleComplete(id, items) {
-  if (!await swalConfirm('Tandai telah diterima? Pastikan barang fisik sudah sesuai.')) return
+async function handleComplete(id, items, req) {
+  if (!await swalConfirm(
+    req && req.type === 'STOCK_OPNAME' 
+      ? 'Konfirmasi kuantitas fisik dan simpan perubahan stok opname?'
+      : 'Tandai telah diterima? Pastikan barang fisik sudah sesuai.'
+  )) return
   try {
     const safeItems = Array.isArray(items) ? items : []
     const receivedItems = safeItems.map(item => ({
@@ -86,6 +111,57 @@ async function handleComplete(id, items) {
     loadRequests()
   } catch (e) {
     console.error(e) // Auto-added to prevent unused var
+  }
+}
+
+// Bulk Actions
+const isAllSelected = computed({
+  get() {
+    const selectable = filteredRequests.value.filter(req => req.status === 'PENDING' && req.requester_id !== currentUser.value?.id)
+    return selectable.length > 0 && selectedIds.value.length === selectable.length
+  },
+  set(val) {
+    if (val) {
+      const selectable = filteredRequests.value.filter(req => req.status === 'PENDING' && req.requester_id !== currentUser.value?.id)
+      selectedIds.value = selectable.map(req => req.id)
+    } else {
+      selectedIds.value = []
+    }
+  }
+})
+
+function canSelectRequest(req) {
+  return req.status === 'PENDING' && req.requester_id !== currentUser.value?.id
+}
+
+function handlePageChange(newPage) {
+  paginationState.value.page = newPage
+  loadRequests()
+}
+
+function handleLimitChange(newLimit) {
+  paginationState.value.limit = newLimit
+  paginationState.value.page = 1
+  loadRequests()
+}
+
+async function handleBulkAction(action) {
+  if (selectedIds.value.length === 0) return
+  
+  const actionText = action === 'APPROVE' ? 'menyetujui' : 'menolak'
+  if (!await swalConfirm(`Apakah Anda yakin ${actionText} ${selectedIds.value.length} permintaan sekaligus?`)) return
+  
+  try {
+    const res = await bulkActionStockRequests(action, selectedIds.value)
+    if (res.data?.failedCount > 0) {
+      toast(`Berhasil: ${res.data.successCount}, Gagal: ${res.data.failedCount}`, 'warning')
+    } else {
+      toast(`Berhasil ${actionText} ${res.data.successCount} permintaan`, 'success')
+    }
+    loadRequests()
+  } catch (e) {
+    console.error(e)
+    toast('Gagal memproses permintaan massal', 'error')
   }
 }
 
@@ -282,14 +358,81 @@ function printRequest(req) {
       </button>
     </div>
 
+    <!-- FLOATING ACTION BAR -->
+    <Teleport to="body">
+      <transition name="slide-up">
+        <div
+          v-if="selectedIds.length > 0"
+          class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[98%] md:w-[85%] max-w-5xl bg-secondary/95 border border-secondary/20 backdrop-blur-xl p-3 rounded-2xl shadow-2xl z-[200] flex flex-col gap-3 ring-1 ring-black/5"
+        >
+          <!-- ROW: ACTIONS -->
+          <div class="flex flex-col md:flex-row items-center justify-between gap-3 w-full">
+            <!-- Kontrol Seleksi -->
+            <div class="flex items-center justify-between md:justify-start w-full md:w-auto gap-2 shrink-0">
+              <button
+                @click="isAllSelected = true"
+                class="px-3 py-2 bg-secondary/50 hover:bg-primary/20 text-primary rounded-lg text-xs font-bold transition-colors border border-primary/20 hover:border-primary/50 flex items-center gap-1.5 active:scale-95 flex-1 justify-center md:flex-none"
+                title="Pilih Semua yang Tersedia"
+              >
+                <font-awesome-icon icon="fa-solid fa-check-double" />
+                <span class="hidden sm:inline">Pilih Semua</span>
+              </button>
+
+              <button
+                @click="isAllSelected = false"
+                class="px-3 py-2 bg-secondary/50 hover:bg-danger/20 text-text/60 hover:text-danger rounded-lg text-xs font-bold transition-colors border border-secondary/30 hover:border-danger/50 flex items-center gap-1.5 active:scale-95 flex-1 justify-center md:flex-none"
+                title="Reset Pilihan"
+              >
+                <font-awesome-icon icon="fa-solid fa-xmark" />
+                <span class="hidden sm:inline">Reset</span>
+              </button>
+            </div>
+
+            <!--Info (Jika ada yang dipilih) -->
+            <div class="flex items-center justify-center gap-3 px-2 w-full md:w-auto">
+              <div class="flex flex-col items-center leading-none min-w-[50px]">
+                <span class="font-black text-lg text-text">{{ selectedIds.length }}</span>
+                <span class="text-[9px] font-bold text-text/50 uppercase tracking-wider">Terpilih</span>
+              </div>
+            </div>
+
+            <!-- Tombol Eksekusi -->
+            <div class="flex items-center gap-2 w-full md:w-auto shrink-0 mt-2 md:mt-0">
+              <button
+                @click="handleBulkAction('REJECT')"
+                class="flex-1 sm:flex-none flex items-center justify-center gap-2 text-danger/80 hover:bg-danger/10 hover:text-danger hover:border-danger/30 border border-danger/10 px-4 py-2.5 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                :disabled="isLoading"
+              >
+                <font-awesome-icon icon="fa-solid fa-xmark" /> Tolak
+              </button>
+              <button
+                @click="handleBulkAction('APPROVE')"
+                class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-primary text-secondary hover:bg-primary/90 px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                :disabled="isLoading"
+              >
+                <font-awesome-icon icon="fa-solid fa-check" /> Setujui
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
+
     <!-- Table -->
-    <div class="overflow-x-auto">
+    <div class="overflow-x-auto relative">
       <table class="w-full text-left border-collapse">
         <thead>
           <tr class="bg-secondary/10 border-b border-secondary/20">
+            <th class="p-3 w-10 text-center">
+              <input 
+                type="checkbox" 
+                v-model="isAllSelected"
+                class="rounded border-secondary/30 text-primary focus:ring-primary cursor-pointer w-4 h-4"
+              />
+            </th>
             <th class="p-3 text-xs font-bold text-text/60 uppercase">No. Request</th>
             <th class="p-3 text-xs font-bold text-text/60 uppercase">Tanggal</th>
-            <th class="p-3 text-xs font-bold text-text/60 uppercase">Dari &gt; Tujuan</th>
+            <th class="p-3 text-xs font-bold text-text/60 uppercase">Lokasi</th>
             <th class="p-3 text-xs font-bold text-text/60 uppercase">Peminta</th>
             <th class="p-3 text-xs font-bold text-text/60 uppercase">Status</th>
             <th class="p-3 text-xs font-bold text-text/60 uppercase text-center">Aksi</th>
@@ -297,16 +440,28 @@ function printRequest(req) {
         </thead>
         <tbody class="divide-y divide-secondary/10">
           <tr v-if="isLoading">
-            <td colspan="6" class="p-8 text-center text-text/50">
+            <td colspan="7" class="p-8 text-center text-text/50">
               <font-awesome-icon icon="fa-solid fa-spinner" class="animate-spin text-2xl mb-2" />
               <p>Memuat data...</p>
             </td>
           </tr>
           <tr v-else-if="filteredRequests.length === 0">
-            <td colspan="6" class="p-8 text-center text-text/50 italic">Tidak ada permintaan stok.</td>
+            <td colspan="7" class="p-8 text-center text-text/50 italic">Tidak ada permintaan stok.</td>
           </tr>
           <template v-for="req in filteredRequests" :key="req.id">
             <tr class="hover:bg-secondary/5 transition-colors group">
+              <td class="p-3 text-center">
+                <input 
+                  v-if="canSelectRequest(req)"
+                  type="checkbox" 
+                  :value="req.id"
+                  v-model="selectedIds"
+                  class="rounded border-secondary/30 text-primary focus:ring-primary cursor-pointer w-4 h-4"
+                />
+                <span v-else-if="req.status === 'PENDING'" title="Anda tidak bisa memproses permintaan ini" class="text-secondary/40">
+                  <font-awesome-icon icon="fa-solid fa-ban" class="text-[10px]" />
+                </span>
+              </td>
               <td class="p-3">
                 <button
                   @click="toggleRow(req.id)"
@@ -317,14 +472,23 @@ function printRequest(req) {
                     class="text-xs"
                   />
                   {{ req.request_number }}
+                  <span v-if="req.type" class="ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold border"
+                    :class="req.type === 'STOCK_OPNAME' ? 'bg-primary/20 text-primary border-primary/30' : 'bg-secondary/30 text-text/60 border-secondary/40'">
+                    {{ req.type === 'STOCK_OPNAME' ? 'OPNAME' : 'TRANSFER' }}
+                  </span>
                 </button>
               </td>
               <td class="p-3 text-sm">{{ new Date(req.created_at).toLocaleDateString('id-ID') }}</td>
               <td class="p-3 text-sm">
                 <div class="font-bold">
-                  {{ req.from_location_code }}
-                  <font-awesome-icon icon="fa-solid fa-arrow-right" class="text-text/40 text-xs mx-1" />
-                  {{ req.to_location_code }}
+                  <template v-if="req.type === 'STOCK_OPNAME'">
+                    {{ req.to_location_code }}
+                  </template>
+                  <template v-else>
+                    {{ req.from_location_code }}
+                    <font-awesome-icon icon="fa-solid fa-arrow-right" class="text-text/40 text-xs mx-1" />
+                    {{ req.to_location_code }}
+                  </template>
                 </div>
               </td>
               <td class="p-3 text-sm">{{ req.requester_name }}</td>
@@ -365,7 +529,7 @@ function printRequest(req) {
             </tr>
             <!-- Expanded Items Row -->
             <tr v-if="expandedRows.includes(req.id)" class="bg-secondary/5 border-t-0">
-              <td colspan="6" class="p-4">
+              <td colspan="7" class="p-4">
                 <div class="bg-background rounded-lg border border-secondary/20 p-4">
                   <div class="flex justify-between items-center mb-2">
                     <p class="text-sm font-bold">
@@ -384,8 +548,8 @@ function printRequest(req) {
                       <tr class="border-b border-secondary/20 text-text/60">
                         <th class="py-1">SKU</th>
                         <th class="py-1">Nama Produk</th>
-                        <th class="py-1 text-right">Diminta</th>
-                        <th class="py-1 text-right">Diterima</th>
+                        <th class="py-1 text-right">{{ req.type === 'STOCK_OPNAME' ? 'Tercatat' : 'Diminta' }}</th>
+                        <th class="py-1 text-right">{{ req.type === 'STOCK_OPNAME' ? 'Fisik' : 'Diterima' }}</th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-secondary/10">
@@ -409,7 +573,7 @@ function printRequest(req) {
                   </table>
                   <div v-if="req.status === 'APPROVED'" class="mt-4 flex justify-end">
                     <button
-                      @click="handleComplete(req.id, req.items)"
+                      @click="handleComplete(req.id, req.items, req)"
                       class="px-4 py-2 bg-success text-secondary rounded-lg text-sm font-bold hover:bg-success/90 flex items-center gap-2 transition-all shadow-sm"
                     >
                       <font-awesome-icon icon="fa-solid fa-check-double" />
@@ -423,10 +587,20 @@ function printRequest(req) {
         </tbody>
       </table>
     </div>
-  </div>
 
-  <!-- Modal Form -->
-  <StockRequestModal :is-open="isModalOpen" @close="isModalOpen = false" @request-created="loadRequests" />
+    <!-- Pagination -->
+    <div class="mt-4" v-if="paginationState.totalPages > 1 || requests.length > 15">
+      <BasePagination
+        :pagination="paginationState"
+        :limit-options="[15, 30, 50, 100]"
+        @changePage="handlePageChange"
+        @update:limit="handleLimitChange"
+      />
+    </div>
+
+    <!-- Modal Form -->
+    <StockRequestModal :is-open="isModalOpen" @close="isModalOpen = false" @request-created="loadRequests" />
+  </div>
 </template>
 
 <style scoped></style>

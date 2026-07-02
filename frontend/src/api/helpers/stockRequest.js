@@ -9,7 +9,7 @@ import axios from '../axios'
 export async function fetchStockRequests(params = {}) {
   try {
     const response = await axios.get('/stock-requests', { params })
-    return response.data.data
+    return response.data
   } catch (error) {
     console.error('Error fetching stock requests:', error.response?.data || error.message)
     throw error.response?.data || error
@@ -73,6 +73,22 @@ export async function completeStockRequest(id, receivedItems) {
     return response.data
   } catch (error) {
     console.error('Error completing stock request:', error.response?.data || error.message)
+    throw error.response?.data || error
+  }
+}
+
+/**
+ * Memproses aksi massal pada permintaan stok
+ * @param {string} action - 'APPROVE' atau 'REJECT'
+ * @param {Array<number>} requestIds - Array dari ID stock_request
+ * @returns {Promise<object>}
+ */
+export async function bulkActionStockRequests(action, requestIds) {
+  try {
+    const response = await axios.post('/stock-requests/bulk-action', { action, requestIds })
+    return response.data
+  } catch (error) {
+    console.error('Error in bulk action stock requests:', error.response?.data || error.message)
     throw error.response?.data || error
   }
 }

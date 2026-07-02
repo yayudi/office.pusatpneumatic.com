@@ -26,6 +26,16 @@ router.get("/", stockRequestController.getStockRequests);
 router.post("/", stockRequestController.createStockRequest);
 
 /**
+ * POST /api/stock-requests/bulk-action
+ * Memproses aksi massal pada permintaan stok
+ */
+router.post(
+  "/bulk-action",
+  canAccess(["approve-stock-requests"]),
+  stockRequestController.bulkActionStockRequest
+);
+
+/**
  * POST /api/stock-requests/:id/approve
  * Menyetujui permintaan stok. Menggunakan permission khusus.
  */

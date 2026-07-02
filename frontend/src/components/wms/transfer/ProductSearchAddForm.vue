@@ -4,8 +4,11 @@ import { ref } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import ProductSearchSelector from '@/components/wms/transfer/ProductSearchSelector.vue'
 import ScannerToggle from '@/components/utilities/ScannerToggle.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
+import BaseQrScanner from '@/components/ui/BaseQrScanner.vue'
+import { searchProducts } from '@/api/helpers/products.js'
 
-defineProps({
+const props = defineProps({
   activeTab: { type: String, required: true },
   searchLocationId: { type: [Number, String], default: null },
   disabled: { type: Boolean, default: false }
@@ -48,12 +51,64 @@ function handleScannerMatch(item) {
     }, 50)
   }
 }
+
+const isCameraModalOpen = ref(false)
+const isScannerPaused = ref(false)
+const isSearchingCamera = ref(false)
+
+async function handleCameraDetect(code) {
+  if (isScannerPaused.value || isSearchingCamera.value) return
+  isSearchingCamera.value = true
+  isScannerPaused.value = true
+
+  try {
+    const results = await searchProducts(code, props.searchLocationId, 1, 1)
+    let match = null
+    const data = Array.isArray(results) ? results : results.data || []
+
+    match = data.find(p => p.sku.toLowerCase() === code.toLowerCase())
+
+    if (match) {
+      selectedProduct.value = match
+      quantityToAdd.value = 1
+      onAddClick()
+      toast(`SKU ${code} ditambahkan!`, 'success')
+      // Resume scanner
+      setTimeout(() => {
+        isScannerPaused.value = false
+        isSearchingCamera.value = false
+      }, 1000)
+    } else {
+      toast(`SKU ${code} tidak ditemukan di lokasi ini.`, 'error')
+      setTimeout(() => {
+        isScannerPaused.value = false
+        isSearchingCamera.value = false
+      }, 2000)
+    }
+  } catch (error) {
+    console.error(error)
+    toast(`Gagal mencari SKU ${code}`, 'error')
+    isScannerPaused.value = false
+    isSearchingCamera.value = false
+  }
+}
 </script>
 
 <template>
   <div class="flex flex-col sm:flex-row items-center gap-2 w-full">
+    <!-- Tombol Kamera (Mobile Scanner) -->
+    <button
+      type="button"
+      @click="isCameraModalOpen = true"
+      class="shrink-0 flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border bg-secondary/10 border-secondary/20 text-text/50 hover:bg-secondary/30 h-[34px] sm:h-[42px]"
+      title="Pindai dengan Kamera"
+    >
+      <font-awesome-icon icon="fa-solid fa-camera" />
+      <span class="sm:hidden">Kamera</span>
+    </button>
+
     <!-- Scanner Mode Toggle -->
-    <ScannerToggle v-model="enableScanner" />
+    <ScannerToggle v-model="enableScanner" class="h-[34px] sm:h-[42px]" />
 
     <!-- Selector Pencarian -->
     <div class="flex-grow w-full">
@@ -110,4 +165,22 @@ function handleScannerMatch(item) {
       </button>
     </div>
   </div>
+
+  <Teleport to="body">
+    <BaseModal :show="isCameraModalOpen" title="Pemindai Kamera" @close="isCameraModalOpen = false">
+      <div class="flex flex-col items-center justify-center min-h-[300px]">
+        <BaseQrScanner
+          v-if="isCameraModalOpen"
+          :paused="isScannerPaused"
+          :interval="400"
+          @detect="handleCameraDetect"
+        />
+
+        <div v-if="isSearchingCamera" class="mt-4 text-primary font-bold animate-pulse">Memeriksa SKU...</div>
+        <div v-else class="mt-4 text-sm text-text/60 text-center">
+          Arahkan kamera ke QR Code/Barcode. Data akan ditambahkan secara otomatis.
+        </div>
+      </div>
+    </BaseModal>
+  </Teleport>
 </template>

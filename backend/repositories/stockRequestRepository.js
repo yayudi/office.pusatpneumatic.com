@@ -3,9 +3,10 @@
 /**
  * @typedef {Object} StockRequestPayload
  * @property {number} requesterId
- * @property {number} fromLocationId
- * @property {number} toLocationId
+ * @property {number} [fromLocationId]
+ * @property {number} [toLocationId]
  * @property {string} notes
+ * @property {string} [type]
  * @property {Array<{productId: number, quantity: number}>} items
  */
 
@@ -16,7 +17,7 @@
  * @returns {Promise<number>} ID dari stock_request yang dibuat
  */
 export const createStockRequest = async (connection, payload) => {
-  const { requesterId, fromLocationId, toLocationId, notes, items } = payload;
+  const { requesterId, fromLocationId, toLocationId, notes, items, type = 'TRANSFER' } = payload;
 
   // Generate request_number (contoh SR-YYMMDD-XXXX)
   const dateStr = new Date().toISOString().slice(2, 10).replace(/-/g, "");
@@ -25,9 +26,9 @@ export const createStockRequest = async (connection, payload) => {
 
   const [result] = await connection.execute(
     `INSERT INTO stock_requests
-    (request_number, requester_id, from_location_id, to_location_id, status, notes, created_at, updated_at)
-    VALUES (?, ?, ?, ?, 'PENDING', ?, NOW(), NOW())`,
-    [requestNumber, requesterId, fromLocationId, toLocationId, notes || null],
+    (request_number, type, requester_id, from_location_id, to_location_id, status, notes, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, 'PENDING', ?, NOW(), NOW())`,
+    [requestNumber, type, requesterId, fromLocationId || null, toLocationId || null, notes || null],
   );
 
   const stockRequestId = result.insertId;
@@ -58,35 +59,50 @@ export const createStockRequest = async (connection, payload) => {
  * @returns {Promise<Array>}
  */
 export const getStockRequests = async (connection, filters = {}) => {
+  let baseQuery = `FROM stock_requests sr
+    LEFT JOIN users u ON sr.requester_id = u.id
+    LEFT JOIN locations l1 ON sr.from_location_id = l1.id
+    LEFT JOIN locations l2 ON sr.to_location_id = l2.id
+    WHERE 1=1`;
+    
   let query = `
     SELECT sr.*,
            u.username as requester_name,
            l1.name as from_location_name, l1.code as from_location_code,
            l2.name as to_location_name, l2.code as to_location_code
-    FROM stock_requests sr
-    LEFT JOIN users u ON sr.requester_id = u.id
-    LEFT JOIN locations l1 ON sr.from_location_id = l1.id
-    LEFT JOIN locations l2 ON sr.to_location_id = l2.id
-    WHERE 1=1
   `;
   const queryParams = [];
 
   if (filters.status) {
-    query += ` AND sr.status = ?`;
+    baseQuery += ` AND sr.status = ?`;
     queryParams.push(filters.status);
   }
 
   if (filters.fromLocationId) {
-    query += ` AND sr.from_location_id = ?`;
+    baseQuery += ` AND sr.from_location_id = ?`;
     queryParams.push(filters.fromLocationId);
   }
 
   if (filters.toLocationId) {
-    query += ` AND sr.to_location_id = ?`;
+    baseQuery += ` AND sr.to_location_id = ?`;
     queryParams.push(filters.toLocationId);
   }
 
-  query += ` ORDER BY sr.created_at DESC`;
+  // Count total records before applying limit/offset
+  const [countResult] = await connection.execute(`SELECT COUNT(*) as total ${baseQuery}`, queryParams);
+  const total = countResult[0].total;
+
+  baseQuery += ` ORDER BY sr.created_at DESC`;
+
+  // Apply pagination
+  const page = parseInt(filters.page) || 1;
+  const limit = parseInt(filters.limit) || 50;
+  const offset = (page - 1) * limit;
+
+  baseQuery += ` LIMIT ? OFFSET ?`;
+  queryParams.push(limit, offset);
+  
+  query += baseQuery;
 
   const [rows] = await connection.execute(query, queryParams);
 
@@ -116,7 +132,15 @@ export const getStockRequests = async (connection, filters = {}) => {
     row.items = itemsByRequestId[row.id] || [];
   }
 
-  return rows;
+  return {
+    data: rows,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    }
+  };
 };
 
 /**

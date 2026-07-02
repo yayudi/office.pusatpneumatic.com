@@ -1,8 +1,7 @@
 // backend/services/stockRequestService.js
 import db from "../config/db.js";
 import * as stockRequestRepo from "../repositories/stockRequestRepository.js";
-import { processBatchMovementsService } from "./stockService.js";
-import * as stockRepo from "../repositories/stockMovementRepository.js";
+import { processBatchMovementsService, processBatchOpnameService } from "./stockService.js";
 
 /**
  * Membuat permintaan stok (bulk)
@@ -12,14 +11,22 @@ export const createStockRequestService = async (payload, userId) => {
   await connection.beginTransaction();
   try {
     const fullPayload = { ...payload, requesterId: userId };
+    const type = payload.type || 'TRANSFER';
     
     // Validasi basic
-    if (!payload.fromLocationId || !payload.toLocationId) {
-      throw new Error("Lokasi asal dan tujuan harus diisi.");
+    if (type === 'TRANSFER') {
+      if (!payload.fromLocationId || !payload.toLocationId) {
+        throw new Error("Lokasi asal dan tujuan harus diisi untuk transfer.");
+      }
+      if (payload.fromLocationId === payload.toLocationId) {
+        throw new Error("Lokasi asal dan tujuan tidak boleh sama.");
+      }
+    } else if (type === 'STOCK_OPNAME') {
+      if (!payload.toLocationId) {
+        throw new Error("Lokasi opname harus diisi.");
+      }
     }
-    if (payload.fromLocationId === payload.toLocationId) {
-      throw new Error("Lokasi asal dan tujuan tidak boleh sama.");
-    }
+
     if (!payload.items || payload.items.length === 0) {
       throw new Error("Minimal harus ada satu produk yang diminta.");
     }
@@ -41,8 +48,12 @@ export const createStockRequestService = async (payload, userId) => {
 export const getStockRequestsService = async (filters) => {
   const connection = await db.getConnection();
   try {
-    const requests = await stockRequestRepo.getStockRequests(connection, filters);
-    return { success: true, data: requests };
+    const result = await stockRequestRepo.getStockRequests(connection, filters);
+    return { 
+      success: true, 
+      data: result.data,
+      pagination: result.pagination 
+    };
   } finally {
     connection.release();
   }
@@ -59,8 +70,33 @@ export const approveStockRequestService = async (requestId, user) => {
     if (!request) throw new Error("Permintaan stok tidak ditemukan.");
     if (request.status !== "PENDING") throw new Error("Hanya permintaan berstatus PENDING yang dapat disetujui.");
 
-    // Cek permission user, ini harusnya disematkan ke middleware, tapi kita pastikan di sini jika perlu.
-    // Asumsi: Role harus punya permission 'approve-stock-requests'
+    // Cegah self-approval
+    if (request.requester_id === user.id) {
+      throw new Error("Anda tidak dapat menyetujui permintaan Anda sendiri.");
+    }
+
+    if (request.type === 'STOCK_OPNAME') {
+      const movements = request.items.map(reqItem => ({
+        sku: reqItem.sku,
+        quantity: reqItem.quantity,
+        toLocationId: request.to_location_id,
+        notes: `Stock Request Opname ${request.request_number}`
+      }));
+
+      await processBatchOpnameService({
+        movements: movements,
+        userId: user.id,
+        userRoleId: user.role_id || 1
+      });
+
+      for (const reqItem of request.items) {
+        await stockRequestRepo.updateRequestItemReceived(connection, reqItem.id, reqItem.quantity);
+      }
+
+      await stockRequestRepo.updateStockRequestStatus(connection, requestId, "COMPLETED");
+      await connection.commit();
+      return { success: true, message: "Permintaan stok opname disetujui dan stok disesuaikan." };
+    }
 
     await stockRequestRepo.updateStockRequestStatus(connection, requestId, "APPROVED");
     
@@ -77,7 +113,7 @@ export const approveStockRequestService = async (requestId, user) => {
 /**
  * Reject Permintaan Stok
  */
-export const rejectStockRequestService = async (requestId, user) => {
+export const rejectStockRequestService = async (requestId, _) => {
   const connection = await db.getConnection();
   await connection.beginTransaction();
   try {
@@ -118,14 +154,18 @@ export const completeStockRequestService = async (requestId, receivedItems, user
       
       await stockRequestRepo.updateRequestItemReceived(connection, reqItem.id, rQty);
       
-      if (rQty > 0) {
-        movements.push({
-          sku: reqItem.sku,
-          quantity: rQty,
-          fromLocationId: request.from_location_id,
-          toLocationId: request.to_location_id,
-          notes: `Stock Request ${request.request_number}`
-        });
+      if (request.type === 'STOCK_OPNAME') {
+        throw new Error("Permintaan Stock Opname tidak memerlukan konfirmasi penerimaan.");
+      } else {
+        if (rQty > 0) {
+          movements.push({
+            sku: reqItem.sku,
+            quantity: rQty,
+            fromLocationId: request.from_location_id,
+            toLocationId: request.to_location_id,
+            notes: `Stock Request ${request.request_number}`
+          });
+        }
       }
     }
 
@@ -152,4 +192,44 @@ export const completeStockRequestService = async (requestId, receivedItems, user
   } finally {
     connection.release();
   }
+};
+
+/**
+ * Bulk Action untuk Permintaan Stok
+ * Mendukung aksi APPROVE dan REJECT secara massal.
+ */
+export const bulkActionStockRequestService = async (requestIds, action, user) => {
+  if (!Array.isArray(requestIds) || requestIds.length === 0) {
+    throw new Error("Tidak ada ID permintaan yang dipilih.");
+  }
+
+  const results = {
+    successCount: 0,
+    failedCount: 0,
+    details: []
+  };
+
+  for (const id of requestIds) {
+    try {
+      if (action === "APPROVE") {
+        await approveStockRequestService(id, user);
+      } else if (action === "REJECT") {
+        await rejectStockRequestService(id, user);
+      } else {
+        throw new Error(`Aksi ${action} tidak didukung secara massal.`);
+      }
+      
+      results.successCount++;
+      results.details.push({ id, status: 'success' });
+    } catch (err) {
+      results.failedCount++;
+      results.details.push({ id, status: 'failed', reason: err.message });
+    }
+  }
+
+  return { 
+    success: true, 
+    message: `Memproses ${requestIds.length} permintaan. Berhasil: ${results.successCount}, Gagal: ${results.failedCount}.`,
+    data: results
+  };
 };

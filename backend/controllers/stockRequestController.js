@@ -66,3 +66,16 @@ export const completeStockRequest = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Memproses aksi massal pada permintaan stok
+ */
+export const bulkActionStockRequest = async (req, res, next) => {
+  try {
+    const { action, requestIds } = req.body;
+    const result = await stockRequestService.bulkActionStockRequestService(requestIds, action, req.user);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};

@@ -61,6 +61,12 @@ const routes = [
 
   // --- WMS ROUTES ---
   {
+    path: '/wms/scanner-test',
+    name: 'WMSScannerTest',
+    component: () => import('../views/wms/ScannerTestView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/wms',
     name: 'WMS',
     component: () => import('../views/wms/WmsDashboard.vue'),
