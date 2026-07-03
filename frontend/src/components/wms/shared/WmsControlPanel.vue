@@ -252,6 +252,7 @@ useEventListener(
             placeholder="Tipe"
             label="label"
             track-by="value"
+            :searchable="false"
             emit-value
           />
         </div>
@@ -267,6 +268,7 @@ useEventListener(
             placeholder="Status"
             label="label"
             track-by="value"
+            :searchable="false"
             emit-value
           />
         </div>

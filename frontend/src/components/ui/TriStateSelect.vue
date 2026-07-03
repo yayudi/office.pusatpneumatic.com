@@ -383,7 +383,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
           </div>
 
           <!-- OPTIONS LIST -->
-          <div class="max-h-60 overflow-y-auto custom-scrollbar pt-2 grid gap-y-1" ref="dropdownListRef">
+          <div class="max-h-60 overflow-y-auto custom-scrollbar p-2 grid gap-y-1" ref="dropdownListRef">
             <div v-if="filteredOptions.length === 0" class="px-3 py-4 text-center text-text/40 italic text-xs">
               Tidak ada opsi ditemukan.
             </div>
@@ -393,7 +393,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
               v-for="(option, index) in filteredOptions"
               :key="typeof option === 'object' ? option[trackBy] : index"
               @mouseover="selectedIndex = index"
-              class="select-option rounded-md flex justify-between items-center group px-2 transition-colors hover:bg-secondary/10"
+              class="select-option rounded-md flex justify-between items-center group py-1 px-2 transition-colors hover:bg-secondary/10"
               :class="[
                 getItemState(getOptionValue(option)) === 'include' ? 'bg-primary/5' : '',
                 getItemState(getOptionValue(option)) === 'exclude' ? 'bg-danger/5' : '',
