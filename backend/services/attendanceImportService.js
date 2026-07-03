@@ -1,13 +1,11 @@
 // backend/services/attendanceImportService.js
-import db from "../config/db.js";
 import { parseCsvToUserData, extractDateFromCsv } from "./parsers/attendanceParser.js";
 import Logger from "../utils/logger.js";
-import {
-  // Constants now deprecated for Calculation, but PARSER_CONSTANTS might still be used if parser needs them
-  // Checking usage...
-  // Parser constants are in parser file or config?
-  // WMS Constants used here were JAM_KERJA* which are now dynamic.
-} from "../config/wmsConstants.js";
+import {} from // Constants now deprecated for Calculation, but PARSER_CONSTANTS might still be used if parser needs them
+// Checking usage...
+// Parser constants are in parser file or config?
+// WMS Constants used here were JAM_KERJA* which are now dynamic.
+"../config/wmsConstants.js";
 
 const logTypeMap = { in: "in", out: "out", "break-in": "break-in", "break-out": "break-out" };
 
@@ -22,12 +20,16 @@ export async function processAttendanceImport(
   originalFilename,
   updateProgress,
   isDryRun = false,
-  options = {}
+  options = {},
 ) {
   // --- DEBUG ARGUMENTS ---
   // Cek apakah argumen sudah sesuai
   if (typeof isDryRun === "function") {
-    Logger.error("CRITICAL: Argument Mismatch! 'isDryRun' is a function.", null, "ATTENDANCE_IMPORT");
+    Logger.error(
+      "CRITICAL: Argument Mismatch! 'isDryRun' is a function.",
+      null,
+      "ATTENDANCE_IMPORT",
+    );
     Logger.error("DEBUG ARGS", null, "ATTENDANCE_IMPORT", {
       userId,
       originalFilename,
@@ -102,7 +104,7 @@ export async function processAttendanceImport(
       }
       if (!year || !month) {
         throw new Error(
-          "Gagal mendeteksi periode tanggal. Pastikan header valid atau nama file mengandung tanggal."
+          "Gagal mendeteksi periode tanggal. Pastikan header valid atau nama file mengandung tanggal.",
         );
       }
     }
@@ -123,20 +125,27 @@ export async function processAttendanceImport(
     // 2.5 Prepare User Shifts Cache (Bulk Fetch)
 
     const userShiftMap = {};
-    const defaultShiftResult = await connection.query("SELECT * FROM shifts WHERE is_default = 1 LIMIT 1");
+    const defaultShiftResult = await connection.query(
+      "SELECT * FROM shifts WHERE is_default = 1 LIMIT 1",
+    );
     let defaultShift = defaultShiftResult[0][0];
 
     // Fallback hardcoded if DB is empty (safety)
     if (!defaultShift) {
-      defaultShift = { start_time: '08:00:00', end_time: '16:00:00', flexible_minutes: 0, work_days: '1,2,3,4,5' };
+      defaultShift = {
+        start_time: "08:00:00",
+        end_time: "16:00:00",
+        flexible_minutes: 0,
+        work_days: "1,2,3,4,5",
+      };
     }
 
     // Fetch all users shifts
-    const userNamesInFile = Object.values(parsedData).map(u => u.nama || `User-${u.id}`);
+    const userNamesInFile = Object.values(parsedData).map((u) => u.nama || `User-${u.id}`);
 
     if (userNamesInFile.length > 0) {
       // Use IN clause safely
-      const placeholders = userNamesInFile.map(() => '?').join(',');
+      const placeholders = userNamesInFile.map(() => "?").join(",");
       const shiftQuery = `
             SELECT u.username, s.*
             FROM users u
@@ -146,7 +155,7 @@ export async function processAttendanceImport(
       const [userShifts] = await connection.query(shiftQuery, userNamesInFile);
 
       if (Array.isArray(userShifts)) {
-        userShifts.forEach(row => {
+        userShifts.forEach((row) => {
           userShiftMap[row.username] = row;
         });
       }
@@ -157,10 +166,9 @@ export async function processAttendanceImport(
 
     // Calculate Date Range for Schedule Fetch
     const allExampleDates = [];
-    Object.values(parsedData).forEach(u => {
-      Object.keys(u.days).forEach(d => {
-        const dayVal = parseInt(d);
-        allExampleDates.push(`${year}-${String(month).padStart(2, '0')}-${String(dayVal).padStart(2, '0')}`);
+    Object.values(parsedData).forEach((u) => {
+      Object.keys(u.days).forEach((d) => {
+        allExampleDates.push(d); // d is already 'YYYY-MM-DD' from parser
       });
     });
 
@@ -171,7 +179,7 @@ export async function processAttendanceImport(
       const maxDate = allExampleDates[allExampleDates.length - 1];
 
       // Fetch schedules
-      const placeholders = userNamesInFile.map(() => '?').join(',');
+      const placeholders = userNamesInFile.map(() => "?").join(",");
       const scheduleQuery = `
             SELECT u.username, us.date, s.*
             FROM user_schedules us
@@ -185,10 +193,10 @@ export async function processAttendanceImport(
       const [schedules] = await connection.query(scheduleQuery, params);
 
       if (Array.isArray(schedules)) {
-        schedules.forEach(row => {
+        schedules.forEach((row) => {
           if (!userScheduleMap[row.username]) userScheduleMap[row.username] = {};
           const d = new Date(row.date);
-          const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
           userScheduleMap[row.username][dStr] = row;
         });
       }
@@ -196,7 +204,7 @@ export async function processAttendanceImport(
 
     const timeToMinutes = (timeStr) => {
       if (!timeStr) return 0;
-      const [h, m] = timeStr.split(':').map(Number);
+      const [h, m] = timeStr.split(":").map(Number);
       return h * 60 + m;
     };
 
@@ -217,14 +225,10 @@ export async function processAttendanceImport(
       }
 
       for (const dayKey in user.days) {
-        const dayOfMonth = parseInt(dayKey);
         const dailyLog = user.days[dayKey];
 
-        // Konstruksi Tanggal YYYY-MM-DD
-        const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(dayOfMonth).padStart(
-          2,
-          "0"
-        )}`;
+        // dayKey sudah berformat 'YYYY-MM-DD' dari parser
+        const dateStr = dayKey;
 
         // Determine Specific Shift (Schedule > Default)
         let shift = defaultUserShift;
@@ -235,8 +239,6 @@ export async function processAttendanceImport(
         const shiftStartMin = timeToMinutes(shift.start_time);
         const shiftEndMin = timeToMinutes(shift.end_time);
         const tolerance = shift.flexible_minutes || 0;
-        const dateObj = new Date(dateStr);
-        const dayOfWeek = dateObj.getDay();
 
         // Hitung Jam Masuk & Pulang
         const checkIns = dailyLog.l.filter((log) => log.y === "in").map((log) => log.m);
@@ -248,7 +250,7 @@ export async function processAttendanceImport(
         // Hitung Keterlambatan
         let lateness = 0;
         if (earliestCheckIn) {
-          if (earliestCheckIn > (shiftStartMin + tolerance)) {
+          if (earliestCheckIn > shiftStartMin + tolerance) {
             lateness = earliestCheckIn - shiftStartMin;
           }
         }
@@ -297,7 +299,7 @@ export async function processAttendanceImport(
           if (!summaryId) {
             const [rows] = await connection.query(
               "SELECT id FROM attendance_logs WHERE username = ? AND date = ?",
-              [username, dateStr]
+              [username, dateStr],
             );
             if (rows.length > 0) summaryId = rows[0].id;
           }
@@ -317,7 +319,7 @@ export async function processAttendanceImport(
             if (rawValues.length > 0) {
               await connection.query(
                 "INSERT INTO attendance_raw_logs (attendance_log_id, log_time, log_type) VALUES ?",
-                [rawValues]
+                [rawValues],
               );
             }
             dbInsertCount++; // Increment counter
@@ -333,7 +335,10 @@ export async function processAttendanceImport(
       logSummary = `[SIMULASI SUKSES] Validasi ${totalProcessedDays} hari kerja untuk ${totalUsers} karyawan. Data valid.`;
     } else {
       await connection.commit();
-      Logger.info(`Mode LIVE: Commit transaksi berhasil. ${dbInsertCount} hari kerja tersimpan.`, "ATTENDANCE_IMPORT");
+      Logger.info(
+        `Mode LIVE: Commit transaksi berhasil. ${dbInsertCount} hari kerja tersimpan.`,
+        "ATTENDANCE_IMPORT",
+      );
       logSummary = `Sukses: ${totalProcessedDays} data hari kerja, ${totalUsers} karyawan.`;
     }
 

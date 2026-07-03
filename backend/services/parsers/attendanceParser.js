@@ -124,7 +124,7 @@ export function parseCsvToUserData(filepath) {
           return;
         }
 
-        const dayKey = dateObj.getDate();
+        const dayKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
         const minutes = dateObj.getHours() * 60 + dateObj.getMinutes();
 
         if (!data[id]) {

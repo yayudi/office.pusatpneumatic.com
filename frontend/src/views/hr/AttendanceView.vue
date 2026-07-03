@@ -3,52 +3,43 @@
 import { ref, watch, computed, defineAsyncComponent } from 'vue'
 import { startOfMonth, endOfMonth, format } from 'date-fns'
 import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast.js'
+import { getAbsensiRange } from '@/api/helpers/attendance.js'
+import { useMasterDataStore } from '@/stores/masterData'
+import { useMobile } from '@/composables/useMobile.js'
+import { calculateSummaryForUser } from '@/api/helpers/summary.js'
 import BaseTabs from '@/components/ui/BaseTabs.vue'
 import FilterBar from '@/components/ui/FilterBar.vue'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
-import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 
 // Lazy load tab components
-const SummaryView = defineAsyncComponent(() => import('@/components/hr/SummaryView.vue'))
 const DetailView = defineAsyncComponent(() => import('@/components/hr/DetailView.vue'))
+const SummaryView = defineAsyncComponent(() => import('@/components/hr/SummaryView.vue'))
 const AttendanceStats = defineAsyncComponent(() => import('@/components/stats/AttendanceStats.vue'))
-
-// Lazy load heavy modal components
-const UploadForm = defineAsyncComponent(() => import('@/components/ui/UploadForm.vue'))
+const AttendanceUploadTab = defineAsyncComponent(() => import('@/components/hr/AttendanceUploadTab.vue'))
 const AttendanceExclusionsModal = defineAsyncComponent(() => import('@/components/hr/AttendanceExclusionsModal.vue'))
-import { useToast } from '@/composables/useToast.js'
-import { getAbsensiRange, uploadAbsensiFile } from '@/api/helpers/attendance.js'
-import { useMasterDataStore } from '@/stores/masterData'
-import { useMobile } from '@/composables/useMobile.js'
-
-import { calculateSummaryForUser } from '@/api/helpers/summary.js'
 
 // --- STATE ---
+const { toast } = useToast()
 const authStore = useAuthStore()
 const masterData = useMasterDataStore()
-const { toast } = useToast()
-const isUploadModalOpen = ref(false)
-const isExclusionsModalOpen = ref(false)
-const isUploading = ref(false)
-const isHeaderExpanded = ref(true)
 const activeTab = ref('statistik')
 const summary = ref(null)
 const users = ref([])
-// const availableIndexes = ref({}) // Deprecated
-
+const allUsersForFilter = ref([])
+const dataNotFoundForCurrentUser = ref(false)
+const isExclusionsModalOpen = ref(false)
+const isHeaderExpanded = ref(true)
+const isLoadingUsers = ref(false)
+const isDataLoading = ref(false)
+const { isMobile } = useMobile()
+const mobileLayout = ref(isMobile.value ? 'card' : 'compact') // 'card' | 'compact'
 const filterValues = ref({
   startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
   endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
   name: []
 })
-const allUsersForFilter = ref([])
-const dataNotFoundForCurrentUser = ref(false)
-// const isLoadingIndexes = ref(true) // Deprecated
-const isLoadingUsers = ref(false)
-const isDataLoading = ref(false)
-const { isMobile } = useMobile()
-const mobileLayout = ref(isMobile.value ? 'card' : 'compact') // 'card' | 'compact'
 
 watch(isMobile, mobile => {
   mobileLayout.value = mobile ? 'card' : 'compact'
@@ -111,7 +102,7 @@ function handleRefresh() {
   toast('Data berhasil diperbarui', 'success')
 }
 
-// 3. Watcher User Login: Init Data Awal
+// Watcher User Login: Init Data Awal
 watch(
   () => authStore.user,
   async user => {
@@ -144,42 +135,6 @@ function clearFilters() {
   filterValues.value.endDate = format(endOfMonth(new Date()), 'yyyy-MM-dd')
 }
 
-// --- UPLOAD ---
-async function handleUpload(formData) {
-  isUploading.value = true
-  toast('Mengupload file...', 'info')
-  try {
-    const response = await uploadAbsensiFile(formData)
-
-    if (response.success) {
-      isUploadModalOpen.value = false
-
-      // CASE 1: Job Queue (Async)
-      if (response.jobId) {
-        toast(response.message || 'File masuk antrian background.', 'success')
-      }
-      // CASE 2: Direct Processing (Sync - Legacy Support)
-      else if (response.processed) {
-        toast('Upload berhasil! Menampilkan data terbaru.', 'success')
-
-        const { year, month } = response.processed || {}
-        if (year && month) {
-          // Set range to that month
-          const d = new Date(year, month - 1, 1)
-          filterValues.value.startDate = format(startOfMonth(d), 'yyyy-MM-dd')
-          filterValues.value.endDate = format(endOfMonth(d), 'yyyy-MM-dd')
-        }
-      }
-    } else {
-      throw new Error(response.message || 'Terjadi kesalahan di server.')
-    }
-  } catch (error) {
-    console.error('Upload error:', error)
-  } finally {
-    isUploading.value = false
-  }
-}
-
 // --- EXPORT ---
 async function handleExportExcel() {
   if (displayedUsers.value.length === 0) {
@@ -189,7 +144,7 @@ async function handleExportExcel() {
   toast('Sedang menyiapkan file Excel...', 'info')
 
   try {
-    // 1. Siapkan Sheet Ringkasan
+    // Siapkan Sheet Ringkasan
     const summaryData = displayedUsers.value.map(user => {
       const stats = calculateSummaryForUser(user, currentYear.value, currentMonth.value, summary.value, authStore)
       return {
@@ -205,7 +160,7 @@ async function handleExportExcel() {
       }
     })
 
-    // 2. Siapkan Sheet Detail
+    // Siapkan Sheet Detail
     const detailData = []
     displayedUsers.value.forEach(user => {
       const logs = Array.isArray(user.logs) ? user.logs : []
@@ -229,7 +184,7 @@ async function handleExportExcel() {
       })
     })
 
-    // 3. Buat Workbook
+    // Buat Workbook
     const XLSX = await import('xlsx')
     const wb = XLSX.utils.book_new()
     const wsSummary = XLSX.utils.json_to_sheet(summaryData)
@@ -238,7 +193,7 @@ async function handleExportExcel() {
     XLSX.utils.book_append_sheet(wb, wsSummary, 'Ringkasan')
     XLSX.utils.book_append_sheet(wb, wsDetail, 'Detail Absensi')
 
-    // 4. Download file
+    // Download file
     const filename = `Laporan_Absensi_${filterValues.value.startDate}_to_${filterValues.value.endDate}.xlsx`
     XLSX.writeFile(wb, filename)
     toast('Berhasil mengunduh Excel', 'success')
@@ -249,7 +204,7 @@ async function handleExportExcel() {
 </script>
 <template>
   <header
-    class="flex flex-col gap-2 bg-background shadow-md fixed left-0 top-[53px] w-full z-30 px-6 py-1 transition-all duration-300"
+    class="flex flex-col gap-2 bg-background shadow-md fixed left-0 top-[53px] w-full z-[100] px-6 py-1 lg:px-0 transition-all duration-300"
   >
     <transition
       enter-active-class="transition-all duration-300 ease-out"
@@ -259,29 +214,62 @@ async function handleExportExcel() {
       leave-from-class="transform translate-y-0 opacity-100 max-h-[500px]"
       leave-to-class="transform -translate-y-4 opacity-0 max-h-0"
     >
-      <div v-show="isHeaderExpanded" class="overflow-hidden py-2 px-1 sm:px-0">
-        <div class="flex flex-col md:flex-row mx-auto justify-center items-center gap-3">
-          <BaseTabs
-            :tabs="[
-              { label: 'Statistik', value: 'statistik' },
-              { label: 'Ringkasan', value: 'summary' },
-              { label: 'Detail Log', value: 'detail' }
-            ]"
-            v-model="activeTab"
-            class="overflow-x-auto shrink-0"
-          />
+      <div v-show="isHeaderExpanded" class="overflow-hidden py-2 px-1 sm:px-0 mx-[7vw]">
+        <div class="flex flex-col gap-3 mx-auto w-full lg:mx-0">
+          <!-- TOP ROW: Tabs and Action Buttons -->
+          <div class="flex flex-col md:flex-row justify-between items-center gap-3 w-full">
+            <BaseTabs
+              :tabs="
+                canViewAll
+                  ? [
+                      { label: 'Statistik', value: 'statistik' },
+                      { label: 'Ringkasan', value: 'summary' },
+                      { label: 'Detail Log', value: 'detail' },
+                      { label: 'Unggah Data', value: 'upload' }
+                    ]
+                  : [
+                      { label: 'Statistik', value: 'statistik' },
+                      { label: 'Ringkasan', value: 'summary' },
+                      { label: 'Detail Log', value: 'detail' }
+                    ]
+              "
+              v-model="activeTab"
+              class="overflow-x-auto shrink-0 w-full md:w-auto custom-scrollbar"
+            />
 
-          <FilterBar :filters="[]" v-model="filterValues" @clear="clearFilters">
+            <div class="flex flex-row items-center justify-end gap-3 shrink-0 w-full md:w-auto">
+              <button
+                v-if="canViewAll"
+                @click="handleExportExcel"
+                title="Export Excel"
+                class="bg-success/10 border border-success/30 text-success hover:bg-success/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap flex-1 md:flex-none shadow-sm"
+              >
+                <font-awesome-icon icon="fa-solid fa-file-excel" />
+              </button>
+
+              <button
+                v-if="canViewAll"
+                @click="isExclusionsModalOpen = true"
+                title="Pengecualian Absen"
+                class="bg-accent/10 border border-accent/30 text-accent hover:bg-accent/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap flex-1 md:flex-none shadow-sm"
+              >
+                <font-awesome-icon icon="fa-solid fa-user-shield" />
+              </button>
+            </div>
+          </div>
+
+          <!-- BOTTOM ROW: FilterBar -->
+          <FilterBar :filters="[]" v-model="filterValues" @clear="clearFilters" class="flex-grow w-full md:w-auto">
             <template #prepend>
-              <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
+              <div class="flex gap-2">
                 <DateRangeFilter
                   v-model:startDate="filterValues.startDate"
                   v-model:endDate="filterValues.endDate"
                   align="left"
-                  class="w-full sm:w-fit"
+                  class="w-full sm:w-fit shrink-0 md:w-1/2"
                 />
 
-                <div v-if="canViewAll" class="w-full md:w-[30vw] lg:w-[20vw]">
+                <div v-if="canViewAll" class="w-full sm:w-fit sm:min-w-[200px] md:w-1/2 shrink-0">
                   <BaseSelect
                     v-model="filterValues.name"
                     :options="allUsersForFilter"
@@ -291,13 +279,14 @@ async function handleExportExcel() {
                     label="label"
                     track-by="value"
                     placeholder="Cari nama karyawan..."
+                    class="w-full"
                   />
                 </div>
               </div>
             </template>
-            <template #actions>
+            <template #filter-actions>
               <div
-                class="flex items-center bg-secondary/20 rounded-lg p-1 border border-secondary/20 lg:hidden ml-auto md:ml-0"
+                class="flex items-center bg-secondary/20 rounded-lg p-1 border border-secondary/20 lg:hidden shrink-0 h-[42px]"
               >
                 <button
                   @click="mobileLayout = 'card'"
@@ -324,35 +313,6 @@ async function handleExportExcel() {
               </div>
             </template>
           </FilterBar>
-
-          <div class="flex flex-row gap-3 shrink-0">
-            <button
-              v-if="canViewAll"
-              @click="handleExportExcel"
-              class="bg-success/10 border border-success/30 text-success hover:bg-success/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap flex-1 md:flex-none"
-            >
-              <font-awesome-icon icon="fa-solid fa-file-excel" />
-              <span v-if="!isMobile">Export Excel</span>
-            </button>
-
-            <button
-              v-if="canViewAll"
-              @click="isExclusionsModalOpen = true"
-              class="bg-accent/10 border border-accent/30 text-accent hover:bg-accent/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap flex-1 md:flex-none"
-            >
-              <font-awesome-icon icon="fa-solid fa-user-shield" />
-              <span v-if="!isMobile">Pengecualian Absen</span>
-            </button>
-
-            <button
-              v-if="canViewAll"
-              @click="isUploadModalOpen = true"
-              class="bg-primary/10 border border-primary/30 text-primary hover:bg-primary/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap flex-1 md:flex-none"
-            >
-              <font-awesome-icon icon="fa-solid fa-file-import" />
-              <span v-if="!isMobile">Import Data</span>
-            </button>
-          </div>
         </div>
       </div>
     </transition>
@@ -429,32 +389,13 @@ async function handleExportExcel() {
           />
           <p v-else class="text-center text-text/60 py-10">Belum ada log detail.</p>
         </div>
+
+        <div v-else-if="activeTab === 'upload' && canViewAll" key="upload">
+          <AttendanceUploadTab @switch-tab="activeTab = $event" />
+        </div>
       </KeepAlive>
     </div>
   </main>
-
-  <!-- MODAL UPLOAD -->
-  <Teleport to="body">
-    <BaseModal :show="isUploadModalOpen" @close="isUploadModalOpen = false" title="Upload File Absensi">
-      <!-- Menggunakan Component UploadForm Baru dengan Drag Drop & Dry Run -->
-      <UploadForm
-        @submit="handleUpload"
-        :loading="isUploading"
-        accept=".csv"
-        submit-label="Mulai Import"
-        :show-dry-run="true"
-      />
-
-      <template #footer>
-        <button
-          @click="isUploadModalOpen = false"
-          class="bg-background border border-secondary/30 text-text/80 hover:bg-secondary/20 text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-        >
-          Tutup
-        </button>
-      </template>
-    </BaseModal>
-  </Teleport>
 
   <!-- MODAL PENGECUALIAN ABSEN -->
   <AttendanceExclusionsModal
