@@ -7,6 +7,9 @@ import * as productRepo from "../repositories/productRepository.js";
 import * as locationRepo from "../repositories/locationRepository.js";
 import * as stockRepo from "../repositories/stockMovementRepository.js";
 
+// SERVICES
+import * as notificationService from "./notificationService.js";
+
 // ==============================================================================
 // INTERNAL HELPER: SMART ITEM RESOLVER (The "Brain")
 // ==============================================================================
@@ -133,6 +136,22 @@ export const transferStockService = async ({
     }
 
     await connection.commit();
+    
+    // Kirim Notifikasi
+    try {
+      const title = "Transfer Stok";
+      const itemsCount = itemsToMove.length;
+      const msg = `Transfer stok untuk ${itemsCount} item (SKU: ${sku}) telah berhasil dilakukan.`;
+      const actionPayload = { productId, fromLocationId, toLocationId, quantity };
+      
+      // Background process untuk notifikasi
+      notificationService.notifyUsersByPermission(
+        'manage-stock-batch', 'WMS', title, msg, actionPayload, userId, true
+      ).catch(e => console.error("[NOTIFY_ERROR] Failed to send notification", e));
+    } catch (e) {
+      console.error("[NOTIFY_ERROR] Failed to prepare notification", e);
+    }
+
     return { success: true, message: "Transfer berhasil." };
   } catch (error) {
     await connection.rollback();
@@ -334,6 +353,23 @@ export const processBatchMovementsService = async ({
     }
 
     await connection.commit();
+    
+    // Kirim Notifikasi untuk Transfer
+    if (type === "TRANSFER" || type === "TRANSFER_MULTI") {
+      try {
+        const title = `Batch Transfer Stok (${type})`;
+        const msg = `Transfer stok massal untuk ${resolvedItems.length} item telah berhasil dilakukan.`;
+        const actionPayload = { type, fromLocationId, toLocationId, count: resolvedItems.length };
+        
+        // Background process untuk notifikasi
+        notificationService.notifyUsersByPermission(
+          'manage-stock-batch', 'WMS', title, msg, actionPayload, userId, true
+        ).catch(e => console.error("[NOTIFY_ERROR] Failed to send notification", e));
+      } catch (e) {
+        console.error("[NOTIFY_ERROR] Failed to prepare batch notification", e);
+      }
+    }
+
     return { success: true, count: resolvedItems.length };
   } catch (error) {
     await connection.rollback();

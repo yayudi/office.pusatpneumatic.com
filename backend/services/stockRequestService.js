@@ -2,6 +2,7 @@
 import db from "../config/db.js";
 import * as stockRequestRepo from "../repositories/stockRequestRepository.js";
 import { processBatchMovementsService, processBatchOpnameService } from "./stockService.js";
+import * as notificationService from "./notificationService.js";
 
 /**
  * Membuat permintaan stok (bulk)
@@ -33,6 +34,16 @@ export const createStockRequestService = async (payload, userId) => {
 
     const requestId = await stockRequestRepo.createStockRequest(connection, fullPayload);
     await connection.commit();
+
+    // Notifikasi ke user dengan permission approve-stock-requests
+    notificationService.notifyUsersByPermission(
+      'approve-stock-requests', 'WMS',
+      'Permintaan Stok Baru',
+      `Permintaan stok baru (${type}) telah dibuat dan menunggu persetujuan.`,
+      { requestId, type },
+      userId
+    ).catch(e => console.error("[NOTIFY_ERROR]", e));
+
     return { success: true, message: "Permintaan stok berhasil dibuat.", requestId };
   } catch (error) {
     await connection.rollback();
@@ -95,12 +106,32 @@ export const approveStockRequestService = async (requestId, user) => {
 
       await stockRequestRepo.updateStockRequestStatus(connection, requestId, "COMPLETED");
       await connection.commit();
+
+      // Notifikasi ke requester
+      notificationService.notifyUsers(
+        [request.requester_id], 'WMS',
+        'Permintaan Opname Disetujui',
+        `Permintaan stok opname ${request.request_number} telah disetujui dan stok disesuaikan.`,
+        { requestId, requestNumber: request.request_number },
+        true
+      ).catch(e => console.error("[NOTIFY_ERROR]", e));
+
       return { success: true, message: "Permintaan stok opname disetujui dan stok disesuaikan." };
     }
 
     await stockRequestRepo.updateStockRequestStatus(connection, requestId, "APPROVED");
     
     await connection.commit();
+
+    // Notifikasi ke requester
+    notificationService.notifyUsers(
+      [request.requester_id], 'WMS',
+      'Permintaan Stok Disetujui',
+      `Permintaan stok ${request.request_number} telah disetujui. Silakan lakukan konfirmasi penerimaan.`,
+      { requestId, requestNumber: request.request_number },
+      true
+    ).catch(e => console.error("[NOTIFY_ERROR]", e));
+
     return { success: true, message: "Permintaan stok berhasil disetujui." };
   } catch (error) {
     await connection.rollback();
@@ -124,6 +155,16 @@ export const rejectStockRequestService = async (requestId, _) => {
     await stockRequestRepo.updateStockRequestStatus(connection, requestId, "REJECTED");
     
     await connection.commit();
+
+    // Notifikasi ke requester
+    notificationService.notifyUsers(
+      [request.requester_id], 'WMS',
+      'Permintaan Stok Ditolak',
+      `Permintaan stok ${request.request_number} telah ditolak.`,
+      { requestId, requestNumber: request.request_number },
+      true
+    ).catch(e => console.error("[NOTIFY_ERROR]", e));
+
     return { success: true, message: "Permintaan stok telah ditolak." };
   } catch (error) {
     await connection.rollback();
@@ -185,6 +226,16 @@ export const completeStockRequestService = async (requestId, receivedItems, user
     await stockRequestRepo.updateStockRequestStatus(connection, requestId, "COMPLETED");
     
     await connection.commit();
+
+    // Notifikasi ke requester
+    notificationService.notifyUsers(
+      [request.requester_id], 'WMS',
+      'Permintaan Stok Selesai',
+      `Permintaan stok ${request.request_number} telah selesai dan stok berhasil ditransfer.`,
+      { requestId, requestNumber: request.request_number },
+      true
+    ).catch(e => console.error("[NOTIFY_ERROR]", e));
+
     return { success: true, message: "Permintaan stok selesai dan stok telah ditransfer." };
   } catch (error) {
     await connection.rollback();

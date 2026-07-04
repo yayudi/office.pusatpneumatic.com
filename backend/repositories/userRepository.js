@@ -93,3 +93,23 @@ export const getUserLocations = async (connection, userId) => {
   const [locations] = await connection.query(query, [userId]);
   return locations;
 };
+
+/**
+ * Mendapatkan daftar ID user berdasarkan permission tertentu.
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {string} permissionName
+ * @returns {Promise<number[]>}
+ */
+export const getUserIdsByPermission = async (connection, permissionName) => {
+  const [rows] = await connection.query(
+    `
+      SELECT u.id 
+      FROM users u
+      JOIN role_permission rp ON u.role_id = rp.role_id
+      JOIN permissions p ON rp.permission_id = p.id
+      WHERE p.name = ? AND u.is_active = 1
+    `,
+    [permissionName]
+  );
+  return rows.map(r => r.id);
+};

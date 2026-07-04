@@ -3,13 +3,13 @@ import * as notificationService from '../services/notificationService.js';
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
-export const getRecentUnread = async (req, res, next) => {
+export const getRecentPending = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const limit = req.query.limit ? parseInt(req.query.limit, 10) : 5;
     
-    const data = await notificationService.fetchRecentUnread(userId, limit);
-    res.json({ success: true, message: "Recent notifications fetched", data });
+    const data = await notificationService.fetchRecentPending(userId, limit);
+    res.json({ success: true, message: "Recent pending notifications fetched", data });
   } catch (error) {
     next(error);
   }
@@ -35,18 +35,18 @@ export const getAll = async (req, res, next) => {
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
-export const markAsRead = async (req, res, next) => {
+export const markAsDone = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const notificationId = req.params.id;
     
     if (notificationId === 'all') {
-      await notificationService.markAllNotificationsAsRead(userId);
+      await notificationService.markAllNotificationsAsDone(userId);
     } else {
-      await notificationService.markNotificationAsRead(notificationId, userId);
+      await notificationService.markNotificationAsDone(notificationId, userId);
     }
     
-    res.json({ success: true, message: "Marked as read" });
+    res.json({ success: true, message: "Marked as done" });
   } catch (error) {
     next(error);
   }
@@ -79,6 +79,27 @@ export const updatePreferences = async (req, res, next) => {
 
     await notificationService.updatePreferences(userId, preferences);
     res.json({ success: true, message: "Preferences updated successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const claimNotification = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const notificationId = req.params.id;
+    
+    const success = await notificationService.claimNotification(notificationId, userId);
+    
+    if (success) {
+      res.json({ success: true, message: "Tugas berhasil diambil" });
+    } else {
+      res.status(400).json({ success: false, message: "Tugas sudah diambil oleh orang lain atau sudah selesai" });
+    }
   } catch (error) {
     next(error);
   }

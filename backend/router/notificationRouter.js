@@ -6,14 +6,17 @@ import { validate } from "../middleware/validate.js";
 import { updatePreferencesSchema } from "../validators/notificationValidator.js";
 
 // /api/notifications/recent
-router.get("/recent", notificationController.getRecentUnread);
+router.get("/recent", notificationController.getRecentPending);
 
 // /api/notifications/preferences
 router.get("/preferences", notificationController.getPreferences);
-router.post("/preferences", validate(updatePreferencesSchema), notificationController.updatePreferences);
+router.put("/preferences", validate(updatePreferencesSchema), notificationController.updatePreferences);
 
-// /api/notifications/:id/read
-router.put("/:id/read", notificationController.markAsRead);
+// /api/notifications/:id/done
+router.put("/:id/done", notificationController.markAsDone);
+
+// /api/notifications/:id/claim
+router.put("/:id/claim", notificationController.claimNotification);
 
 // /api/notifications
 router.get("/", notificationController.getAll);

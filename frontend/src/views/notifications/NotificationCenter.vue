@@ -3,8 +3,8 @@
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold text-text">Pusat Notifikasi</h1>
       <div class="flex gap-3">
-        <button @click="markAllAsRead" class="px-4 py-2 bg-secondary text-primary rounded-md hover:bg-secondary/80 font-medium text-sm transition-colors border border-secondary">
-          Tandai Semua Dibaca
+        <button @click="markAllAsDone" class="px-4 py-2 bg-secondary text-primary rounded-md hover:bg-secondary/80 font-medium text-sm transition-colors border border-secondary">
+          Tandai Semua Selesai
         </button>
         <router-link to="/notifications/preferences" class="px-4 py-2 bg-background border border-secondary text-text rounded-md hover:bg-secondary transition-colors font-medium text-sm flex items-center">
           <font-awesome-icon icon="fa-solid fa-gear" class="mr-2" /> Pengaturan
@@ -38,7 +38,7 @@
       <div v-else>
         <div v-for="notif in notifications" :key="notif.id" 
              class="p-5 border-b border-secondary hover:bg-secondary/50 transition-colors flex flex-col sm:flex-row gap-4"
-             :class="{ 'bg-primary/5': !notif.is_read }">
+             :class="{ 'bg-primary/5': !notif.is_done }">
              
           <div class="flex-shrink-0 pt-1">
             <div class="w-10 h-10 rounded-full flex items-center justify-center" 
@@ -49,19 +49,35 @@
           
           <div class="flex-1">
             <div class="flex justify-between items-start mb-1">
-              <h3 class="text-base font-semibold" :class="!notif.is_read ? 'text-text' : 'text-text/80'">
+              <h3 class="text-base font-semibold" :class="!notif.is_done ? 'text-text' : 'text-text/80'">
                 {{ notif.title }}
-                <span v-if="!notif.is_read" class="ml-2 inline-flex w-2 h-2 rounded-full bg-danger"></span>
+                <span v-if="!notif.is_done" class="ml-2 inline-flex w-2 h-2 rounded-full bg-danger"></span>
               </h3>
               <span class="text-xs text-muted whitespace-nowrap ml-4">{{ formatTime(notif.created_at) }}</span>
             </div>
             
-            <p class="text-sm mb-3" :class="!notif.is_read ? 'text-text' : 'text-muted'">
+            <p class="text-sm mb-3" :class="!notif.is_done ? 'text-text' : 'text-muted'">
               {{ notif.message }}
             </p>
             
-            <div class="flex flex-wrap gap-2" v-if="notif.action_payload && !notif.is_read">
+            <div v-if="notif.is_done && notif.completed_by_name" class="mb-3 text-xs text-primary bg-primary/10 inline-block px-2 py-1 rounded border border-primary/20">
+              <font-awesome-icon icon="fa-solid fa-check-circle" class="mr-1" /> Diselesaikan oleh <span class="font-semibold">{{ notif.completed_by_name }}</span> pada {{ formatTime(notif.completed_at) }}
+            </div>
+            
+            <div v-if="!notif.is_done && notif.claimed_by && notif.claimed_by !== currentUser?.id" class="mb-3 text-xs text-warning bg-warning/10 inline-block px-2 py-1 rounded border border-warning/20">
+              <font-awesome-icon icon="fa-solid fa-hourglass-half" class="mr-1" /> Sedang dikerjakan oleh <span class="font-semibold">{{ notif.claimed_by_name }}</span>
+            </div>
+            
+            <div class="flex flex-wrap gap-2" v-if="!notif.is_done && (!notif.claimed_by || notif.claimed_by === currentUser?.id)">
               <button 
+                v-if="!notif.claimed_by && notif.target_permission"
+                @click="claimTask(notif.id)" 
+                class="px-3 py-1.5 bg-warning text-white text-xs font-medium rounded hover:opacity-90 transition-opacity">
+                <font-awesome-icon icon="fa-solid fa-hand-paper" class="mr-1" /> Ambil Tugas
+              </button>
+
+              <button 
+                v-if="notif.action_payload && (!notif.target_permission || notif.claimed_by === currentUser?.id)"
                 @click="handleAction(notif)" 
                 class="px-3 py-1.5 bg-primary text-white text-xs font-medium rounded hover:opacity-90 transition-opacity">
                 <font-awesome-icon icon="fa-solid fa-arrow-right" class="mr-1" /> Tindak Lanjut
@@ -69,8 +85,8 @@
             </div>
           </div>
           
-          <div class="flex-shrink-0 flex items-center sm:items-start mt-2 sm:mt-0" v-if="!notif.is_read">
-            <button @click="markAsRead(notif.id)" class="text-muted hover:text-primary p-2" title="Tandai dibaca">
+          <div class="flex-shrink-0 flex items-center sm:items-start mt-2 sm:mt-0" v-if="!notif.is_done && (!notif.claimed_by || notif.claimed_by === currentUser?.id)">
+            <button v-if="!notif.target_permission || notif.claimed_by === currentUser?.id" @click="markAsDone(notif.id)" class="text-muted hover:text-primary p-2" title="Tandai selesai">
               <font-awesome-icon icon="fa-solid fa-check" />
             </button>
           </div>
@@ -81,11 +97,15 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/api/axios';
+import { useAuthStore } from '@/stores/auth.js';
 
 const router = useRouter();
+const authStore = useAuthStore();
+const currentUser = computed(() => authStore.user);
+
 const loading = ref(true);
 const notifications = ref([]);
 const activeTab = ref('ALL');
@@ -121,29 +141,44 @@ onMounted(() => {
   fetchNotifications();
 });
 
-const markAllAsRead = async () => {
+const markAllAsDone = async () => {
   try {
-    await api.put('/notifications/all/read');
-    notifications.value.forEach(n => n.is_read = 1);
+    await api.put('/notifications/all/done');
+    notifications.value.forEach(n => n.is_done = 1);
   } catch (error) {
-    console.error('Failed to mark all as read:', error);
+    console.error('Failed to mark all as done:', error);
   }
 };
 
-const markAsRead = async (id) => {
+const markAsDone = async (id) => {
   try {
-    await api.put(`/notifications/${id}/read`);
+    await api.put(`/notifications/${id}/done`);
     const notif = notifications.value.find(n => n.id === id);
-    if (notif) notif.is_read = 1;
+    if (notif) notif.is_done = 1;
   } catch (error) {
-    console.error('Failed to mark as read:', error);
+    console.error('Failed to mark as done:', error);
   }
 };
 
 const handleAction = async (notif) => {
-  await markAsRead(notif.id);
+  await markAsDone(notif.id);
   if (notif.action_payload && notif.action_payload.url) {
     router.push(notif.action_payload.url);
+  }
+};
+
+const claimTask = async (id) => {
+  try {
+    const response = await api.put(`/notifications/${id}/claim`);
+    if (response.data.success) {
+      fetchNotifications();
+    }
+  } catch (error) {
+    console.error('Failed to claim task:', error);
+    if (error.response?.data?.message) {
+      alert(error.response.data.message);
+    }
+    fetchNotifications();
   }
 };
 
