@@ -91,6 +91,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/api/axios'
 import { useAuthStore } from '@/stores/auth.js'
+import { useFirebaseListener } from '@/composables/useFirebaseListener.js'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -99,7 +100,7 @@ const isOpen = ref(false)
 const notifications = ref([])
 const pendingCount = ref(0)
 const loading = ref(false)
-let pollingInterval = null
+let listener = null
 
 const togglePopover = () => {
   isOpen.value = !isOpen.value
@@ -174,17 +175,37 @@ const formatTime = (dateString) => {
   return date.toLocaleDateString('id-ID')
 }
 
-// Polling every 60 seconds
+// Firebase Realtime Listener
 onMounted(() => {
   fetchNotifications()
-  pollingInterval = setInterval(fetchNotifications, 60000)
+  
+  if (currentUser.value?.id) {
+    listener = useFirebaseListener(
+      currentUser.value.id, 
+      currentUser.value.permissions || [], 
+      (data) => {
+        if (data.action === 'REFRESH_NOTIFICATIONS') {
+          // Silent fetch
+          api.get('/notifications/recent?limit=5')
+            .then(res => {
+              if (res.data.success) {
+                notifications.value = res.data.data
+                pendingCount.value = notifications.value.length
+              }
+            })
+            .catch(err => console.error('Silent fetch failed:', err))
+        }
+      }
+    )
+    listener.startListening()
+  }
 
   // Close popover when clicking outside (basic implementation)
   document.addEventListener('click', closeOnOutsideClick)
 })
 
 onUnmounted(() => {
-  if (pollingInterval) clearInterval(pollingInterval)
+  if (listener) listener.stopListening()
   document.removeEventListener('click', closeOnOutsideClick)
 })
 

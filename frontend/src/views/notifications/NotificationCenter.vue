@@ -101,6 +101,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/api/axios';
 import { useAuthStore } from '@/stores/auth.js';
+import { useFirebaseListener } from '@/composables/useFirebaseListener.js';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -139,6 +140,26 @@ watch(activeTab, () => {
 
 onMounted(() => {
   fetchNotifications();
+  
+  // Setup Firebase Listener for Real-time Updates
+  if (currentUser.value?.id) {
+    const { startListening } = useFirebaseListener(
+      currentUser.value.id, 
+      currentUser.value.permissions || [], 
+      (data) => {
+      if (data.action === 'REFRESH_NOTIFICATIONS') {
+        // Fetch silently without full loading indicator
+        api.get('/notifications', { params: { type: activeTab.value } })
+          .then(res => {
+            if (res.data.success) {
+              notifications.value = res.data.data;
+            }
+          })
+          .catch(err => console.error('Silent fetch failed:', err));
+      }
+    });
+    startListening();
+  }
 });
 
 const markAllAsDone = async () => {

@@ -9,6 +9,7 @@ import * as stockRepo from "../repositories/stockMovementRepository.js";
 
 // SERVICES
 import * as notificationService from "./notificationService.js";
+import { emitSharedTaskSignal } from "./firebaseSignalService.js";
 
 // ==============================================================================
 // INTERNAL HELPER: SMART ITEM RESOLVER (The "Brain")
@@ -152,6 +153,8 @@ export const transferStockService = async ({
       console.error("[NOTIFY_ERROR] Failed to prepare notification", e);
     }
 
+    emitSharedTaskSignal('WMS_DASHBOARD', 'REFRESH_STOCK').catch(console.error);
+
     return { success: true, message: "Transfer berhasil." };
   } catch (error) {
     await connection.rollback();
@@ -207,6 +210,9 @@ export const adjustStockService = async ({ productId, locationId, quantity, user
     }
 
     await connection.commit();
+    
+    emitSharedTaskSignal('WMS_DASHBOARD', 'REFRESH_STOCK').catch(console.error);
+    
     return { success: true, message: "Penyesuaian stok berhasil." };
   } catch (error) {
     await connection.rollback();
@@ -370,6 +376,8 @@ export const processBatchMovementsService = async ({
       }
     }
 
+    emitSharedTaskSignal('WMS_DASHBOARD', 'REFRESH_STOCK').catch(console.error);
+
     return { success: true, count: resolvedItems.length };
   } catch (error) {
     await connection.rollback();
@@ -450,6 +458,9 @@ export const processBatchOpnameService = async ({ movements, userId, userRoleId 
     }
 
     await connection.commit();
+    
+    emitSharedTaskSignal('WMS_DASHBOARD', 'REFRESH_STOCK').catch(console.error);
+    
     // Return processedCount (how many actual updates happened)
     return { success: true, count: processedCount };
   } catch (error) {

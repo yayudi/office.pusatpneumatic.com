@@ -4,6 +4,7 @@ import debounce from 'lodash/debounce'
 import { useAuthStore } from '@/stores/auth'
 import { fetchProducts as fetchProductsFromApi } from '@/api/helpers/wms.js'
 import { useMasterDataStore } from '@/stores/masterData'
+import { useFirebaseListener } from '@/composables/useFirebaseListener.js'
 
 const AVAILABLE_COLUMNS = [
   { id: 'sku', label: 'SKU' },
@@ -41,7 +42,16 @@ export function useWms() {
   const startDate = ref('')
   const endDate = ref('')
 
-  let refetchIntervalId = null
+  // Firebase Real-time Event Listener for Stock Updates
+  const { startListening, stopListening } = useFirebaseListener(
+    auth.user?.id || 'guest',
+    ['WMS_DASHBOARD'],
+    (data) => {
+      if (data.action === 'REFRESH_STOCK' && isAutoRefetching.value && currentPage.value === 1) {
+        fetchProducts('silent')
+      }
+    }
+  )
 
   // Column Visibility State
   const visibleColumns = ref(new Set(['sku', 'weight', 'price', 'location', 'stock']))
@@ -399,22 +409,17 @@ export function useWms() {
   })
 
   onUnmounted(() => {
-    clearInterval(refetchIntervalId)
+    stopListening()
     if (observer) observer.disconnect()
   })
 
   watch(
     isAutoRefetching,
     (newValue) => {
-      if (newValue && !refetchIntervalId) {
-        refetchIntervalId = setInterval(() => {
-          if (currentPage.value === 1) {
-            fetchProducts('silent')
-          }
-        }, 30000)
-      } else if (!newValue && refetchIntervalId) {
-        clearInterval(refetchIntervalId)
-        refetchIntervalId = null
+      if (newValue) {
+        startListening()
+      } else {
+        stopListening()
       }
     },
     { immediate: true },
