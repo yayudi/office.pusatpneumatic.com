@@ -1,5 +1,6 @@
 import db from "../config/db.js";
 import * as categoryRepo from "../repositories/categoryRepository.js";
+import { emitSharedTaskSignal } from "./firebaseSignalService.js";
 
 /**
  * Mengambil semua kategori aktif
@@ -26,6 +27,7 @@ export const createCategory = async (name) => {
     const trimmedName = name.trim();
     const id = await categoryRepo.createCategory(connection, trimmedName);
     await connection.commit();
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_CATEGORIES').catch(e => console.error(e));
     return { id, name: trimmedName };
   } catch (error) {
     await connection.rollback();
@@ -57,6 +59,7 @@ export const updateCategory = async (id, name) => {
       throw err;
     }
     await connection.commit();
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_CATEGORIES').catch(e => console.error(e));
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -80,6 +83,7 @@ export const deleteCategory = async (id) => {
       throw err;
     }
     await connection.commit();
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_CATEGORIES').catch(e => console.error(e));
   } catch (error) {
     await connection.rollback();
     throw error;

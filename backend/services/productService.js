@@ -2,6 +2,7 @@
 import db from "../config/db.js";
 import * as productRepo from "../repositories/productRepository.js";
 import Logger from "../utils/logger.js";
+import { emitSharedTaskSignal } from "./firebaseSignalService.js";
 
 import fs from "fs/promises";
 import path from "path";
@@ -99,6 +100,7 @@ export const createProductService = async (data, userId) => {
     }
 
     await connection.commit();
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => console.error(e));
     return newId;
   } catch (error) {
     await connection.rollback();
@@ -193,6 +195,7 @@ export const updateProductService = async (id, data, userId) => {
     }
 
     await connection.commit();
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => console.error(e));
     return true;
   } catch (error) {
     await connection.rollback();
@@ -214,6 +217,7 @@ export const softDeleteProductService = async (id, userId) => {
     await productRepo.updateProductStatus(connection, id, false); // Active = false
     await logChange(connection, id, userId, "DELETE", "status", "Active", "Archived");
     await connection.commit();
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => console.error(e));
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -234,6 +238,7 @@ export const restoreProductService = async (id, userId) => {
     await productRepo.updateProductStatus(connection, id, true); // Active = true
     await logChange(connection, id, userId, "RESTORE", "status", "Archived", "Active");
     await connection.commit();
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => console.error(e));
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -271,6 +276,7 @@ export const uploadProductImagesService = async (id, images, userId) => {
     }
     await logChange(connection, id, userId, "UPDATE", "images", "Add", `${images.length} Images`);
     await connection.commit();
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => console.error(e));
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -292,6 +298,7 @@ export const linkMediaToProductService = async (productId, mediaIds, userId) => 
     await productRepo.linkMedia(connection, productId, mediaIds);
     await logChange(connection, productId, userId, "UPDATE", "images", "Add Media", `${mediaIds.length} Linked Media`);
     await connection.commit();
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => console.error(e));
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -325,6 +332,7 @@ export const deleteProductImageService = async (imageId, userId) => {
     await productRepo.deleteImage(connection, imageId);
     await logChange(connection, image.product_id, userId, "DELETE", "image", image.image_path, "Deleted");
     await connection.commit();
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => console.error(e));
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -347,6 +355,7 @@ export const setPrimaryImageService = async (productId, imageId, userId) => {
     await productRepo.setPrimaryImage(connection, imageId);
     await logChange(connection, productId, userId, "UPDATE", "primary_image", "Changed", `Image ID ${imageId}`);
     await connection.commit();
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => console.error(e));
   } catch (error) {
     await connection.rollback();
     throw error;

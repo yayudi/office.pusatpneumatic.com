@@ -3,6 +3,7 @@ import * as investigationRepo from "../repositories/investigationRepository.js";
 import * as locationRepo from "../repositories/locationRepository.js";
 import * as stockRepo from "../repositories/stockMovementRepository.js";
 import AppError from "../utils/AppError.js";
+import { emitSharedTaskSignal } from "./firebaseSignalService.js";
 
 /**
  * Service to find duplicate stock transactions.
@@ -302,6 +303,8 @@ export const revertTransactionService = async (transactionId, userId) => {
     );
 
     await connection.commit();
+    emitSharedTaskSignal('INVESTIGATION', 'TRANSACTION_REVERTED').catch(e => console.error(e));
+    emitSharedTaskSignal('WMS_DASHBOARD', 'REFRESH_STOCK').catch(e => console.error(e));
     return { success: true, message: "Transaksi berhasil di-revert dan stok dikembalikan." };
   } catch (error) {
     await connection.rollback();

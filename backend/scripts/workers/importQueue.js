@@ -20,6 +20,7 @@ import * as scheduleImportService from "../../services/scheduleImportService.js"
 
 // REPOSITORIES
 import * as jobRepo from "../../repositories/jobRepository.js";
+import { emitSharedTaskSignal } from "../../services/firebaseSignalService.js";
 
 // --- KONFIGURASI & PATH ---
 const __filename = fileURLToPath(import.meta.url);
@@ -302,6 +303,11 @@ export const importQueue = async () => {
     }
 
     await jobRepo.completeImportJob(connection, jobId, finalStatus, logSummary, errorLogJSON);
+    emitSharedTaskSignal('BACKGROUND_JOBS', 'IMPORT_COMPLETED').catch(e => console.error(e));
+
+    if (realJobType === 'IMPORT_ATTENDANCE' || realJobType === 'IMPORT_SCHEDULES') {
+      emitSharedTaskSignal('HRIS_ATTENDANCE', 'REFRESH_ATTENDANCE').catch(e => console.error(e));
+    }
 
     // Hapus file
     if (fs.existsSync(absoluteFilePath)) {
@@ -335,6 +341,7 @@ export const importQueue = async () => {
             jobId,
             `CRASH: ${error.message.substring(0, 255)}`,
           );
+          emitSharedTaskSignal('BACKGROUND_JOBS', 'IMPORT_FAILED').catch(e => console.error(e));
         }
       } catch (e) {
         Logger.error("Gagal update status CRASH/RETRY ke DB", e, "IMPORT_WORKER");

@@ -9,6 +9,7 @@ import { getFormattedDateTime } from "../../services/helpers/sharedHelpers.js";
 
 // REPOSITORIES
 import * as jobRepo from "../../repositories/jobRepository.js";
+import { emitSharedTaskSignal } from "../../services/firebaseSignalService.js";
 
 // SERVICE
 import {
@@ -94,6 +95,7 @@ export const processQueue = async () => {
     try {
       Logger.info(`Updating job ${jobId} status to COMPLETED...`, "EXPORT_WORKER");
       await jobRepo.completeExportJob(updateConnection, jobId, `${fileName}`);
+      emitSharedTaskSignal('BACKGROUND_JOBS', 'EXPORT_COMPLETED').catch(e => console.error(e));
     } finally {
       updateConnection.release();
     }
@@ -106,6 +108,7 @@ export const processQueue = async () => {
         const errConnection = await db.getConnection();
         await jobRepo.failExportJob(errConnection, jobId, error.message.substring(0, 255));
         errConnection.release();
+        emitSharedTaskSignal('BACKGROUND_JOBS', 'EXPORT_FAILED').catch(e => console.error(e));
       } catch (dbError) {
         Logger.error("Fatal DB Error saat update FAILED", dbError, "EXPORT_WORKER");
       }

@@ -3,6 +3,7 @@ import db from "../config/db.js";
 import bcrypt from "bcryptjs";
 import * as adminRepo from "../repositories/adminRepository.js";
 import { createLog } from "../repositories/systemLogRepository.js";
+import { emitSharedTaskSignal } from "./firebaseSignalService.js";
 
 /**
  * Mengambil semua user aktif.
@@ -183,6 +184,11 @@ export const updateUser = async ({ adminId, targetId, data, ip, userAgent }) => 
     }
 
     await connection.commit();
+
+    // Jika terjadi perubahan role atau password, paksa user logout via Firebase
+    if (changesRecord.role_id || changesRecord.password) {
+      emitSharedTaskSignal('AUTH_SECURITY', `FORCE_LOGOUT_${targetId}`).catch(e => console.error(e));
+    }
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -226,6 +232,7 @@ export const deleteUser = async ({ adminId, targetId, ip, userAgent }) => {
     });
 
     await connection.commit();
+    emitSharedTaskSignal('AUTH_SECURITY', `FORCE_LOGOUT_${targetId}`).catch(e => console.error(e));
   } catch (error) {
     await connection.rollback();
     throw error;

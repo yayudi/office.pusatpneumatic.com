@@ -25,6 +25,7 @@ import {
   failMediaJob,
   cleanupMediaJobs
 } from '../../repositories/mediaJobRepository.js'
+import { emitSharedTaskSignal } from '../../services/firebaseSignalService.js'
 
 // Agar environment loaded dengan benar dari CWD cron maupun absolute path
 const __filename = fileURLToPath(import.meta.url)
@@ -137,10 +138,12 @@ export const runMediaWorker = async () => {
           }
         )
 
+        emitSharedTaskSignal('BACKGROUND_JOBS', 'MEDIA_COMPLETED').catch(e => console.error(e));
         Logger.info(`Job ${job.id} completed.`, "MEDIA_WORKER");
       } catch (error) {
         Logger.error(`Job ${job.id} failed`, error, "MEDIA_WORKER");
         await failMediaJob(job.id, error.message || 'Unknown processing error')
+        emitSharedTaskSignal('BACKGROUND_JOBS', 'MEDIA_FAILED').catch(e => console.error(e));
       }
     }
 

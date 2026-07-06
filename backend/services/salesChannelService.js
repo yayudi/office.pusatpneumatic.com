@@ -2,6 +2,7 @@
 import db from '../config/db.js';
 import * as salesChannelRepo from '../repositories/salesChannelRepository.js';
 import Logger from '../utils/logger.js';
+import { emitSharedTaskSignal } from "./firebaseSignalService.js";
 
 /**
  * @param {any} onlyActive
@@ -61,6 +62,7 @@ export const createChannel = async (channelData, userId) => {
     // TODO: Audit logging bisa ditambahkan di sini jika dibutuhkan
 
     await connection.commit();
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_CHANNELS').catch(e => console.error(e));
     return newId;
   } catch (error) {
     if (connection) await connection.rollback();
@@ -95,6 +97,7 @@ export const updateChannel = async (id, channelData, userId) => {
     const success = await salesChannelRepo.update(connection, id, channelData);
 
     await connection.commit();
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_CHANNELS').catch(e => console.error(e));
     return success;
   } catch (error) {
     if (connection) await connection.rollback();
@@ -124,6 +127,7 @@ export const deleteChannel = async (id, userId) => {
     const success = await salesChannelRepo.remove(connection, id);
 
     await connection.commit();
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_CHANNELS').catch(e => console.error(e));
     return success;
   } catch (error) {
     if (connection) await connection.rollback();

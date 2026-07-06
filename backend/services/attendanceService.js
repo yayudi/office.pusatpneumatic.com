@@ -1,6 +1,7 @@
 import * as shiftRepository from '../repositories/shiftRepository.js';
 import * as scheduleRepository from '../repositories/scheduleRepository.js';
 import * as attendanceRepository from '../repositories/attendanceRepository.js'; // Ensure this is imported if used (e.g. at step 3)
+import { emitSharedTaskSignal } from "./firebaseSignalService.js";
 
 // Helper to convert "HH:mm:ss" or "HH:mm" to minutes
 const timeToMinutes = (timeStr) => {
@@ -72,7 +73,7 @@ export const updateAttendance = async (username, date, payload) => {
   }
 
   // 3. Call Repo
-  return await attendanceRepository.upsertLog(username, date, {
+  const result = await attendanceRepository.upsertLog(username, date, {
     check_in,
     check_out,
     notes: finalNotes,
@@ -80,4 +81,8 @@ export const updateAttendance = async (username, date, payload) => {
     overtime_minutes,
     status // Pass status explicitly
   });
+
+  emitSharedTaskSignal('HRIS_ATTENDANCE', 'REFRESH_ATTENDANCE').catch(e => console.error(e));
+
+  return result;
 };
