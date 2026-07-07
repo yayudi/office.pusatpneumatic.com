@@ -53,8 +53,11 @@ export const processMediaLinkImport = async (connection, filePath, userId) => {
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber <= headerRowIndex) return;
 
-      const sku = String(row.getCell(skuCol).value || "").trim();
-      const imageRef = String(row.getCell(titleCol).value || "").trim();
+      const skuVal = row.getCell(skuCol).value;
+      const sku = String((skuVal && typeof skuVal === 'object' ? skuVal.text : skuVal) || "").trim();
+      
+      const imgVal = row.getCell(titleCol).value;
+      const imageRef = String((imgVal && typeof imgVal === 'object' ? (imgVal.hyperlink || imgVal.text) : imgVal) || "").trim();
 
       if (sku && imageRef) {
         rowsToProcess.push({ sku, imageRef, row: rowNumber });
@@ -84,11 +87,13 @@ export const processMediaLinkImport = async (connection, filePath, userId) => {
           const parts = searchPath.split('/');
           searchPath = parts[parts.length - 1];
         }
+        // Hapus query string jika ada (?dl=1, #hash)
+        searchPath = searchPath.split('?')[0].split('#')[0];
 
-        // Cari image berdasar path (mencocokkan nama file persis di DB)
+        // Cari image berdasar path (mencocokkan nama file persis di DB, baik main maupun thumb)
         const [images] = await connection.query(
-          "SELECT id FROM media_assets WHERE main_path LIKE ?",
-          [`%${searchPath}`]
+          "SELECT id FROM media_assets WHERE main_path LIKE ? OR thumbnail_path LIKE ?",
+          [`%${searchPath}`, `%${searchPath}`]
         );
 
         if (images.length === 0) {
