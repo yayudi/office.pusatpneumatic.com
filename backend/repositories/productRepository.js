@@ -537,13 +537,15 @@ export const getAllActiveProducts = async (connection) => {
  * @param {number} limit - Jumlah per halaman
  * @returns {Promise<{data: Array<object>, nextCursor: number|null}>}
  */
-export const searchProducts = async (connection, searchTerm, locationId, page = 1, limit = 20) => {
+export const searchProducts = async (connection, searchTerm, locationId, page = 1, limit = 20, inStockOnly = false) => {
   const queryParams = [];
   const offset = (page - 1) * limit;
 
   const keywords = (searchTerm || "").split(" ").filter((k) => k.length > 0);
   const keywordClauses = keywords.map(() => "(LOWER(p.name) LIKE ? OR LOWER(p.sku) LIKE ?)");
   const keywordSql = keywordClauses.length > 0 ? `AND (${keywordClauses.join(" AND ")})` : "";
+  
+  const inStockSql = inStockOnly ? `AND EXISTS (SELECT 1 FROM stock_locations sl WHERE sl.product_id = p.id AND sl.quantity > 0)` : "";
 
   const keywordParams = [];
   keywords.forEach((keyword) => {
@@ -559,14 +561,14 @@ export const searchProducts = async (connection, searchTerm, locationId, page = 
                     COALESCE(sl.quantity, 0) AS current_stock
              FROM products p 
              LEFT JOIN stock_locations sl ON p.id = sl.product_id AND sl.location_id = ?
-             WHERE p.is_active = 1 AND p.deleted_at IS NULL ${keywordSql}
+             WHERE p.is_active = 1 AND p.deleted_at IS NULL ${keywordSql} ${inStockSql}
              ORDER BY (COALESCE(sl.quantity, 0) > 0) DESC, p.name ASC
              LIMIT ? OFFSET ?`;
     queryParams.push(locationId, ...keywordParams, limit, offset);
   } else {
     query = `SELECT p.id, p.sku, p.name, p.price, p.weight 
              FROM products p
-             WHERE p.is_active = 1 AND p.deleted_at IS NULL ${keywordSql} 
+             WHERE p.is_active = 1 AND p.deleted_at IS NULL ${keywordSql} ${inStockSql}
              ORDER BY p.name ASC
              LIMIT ? OFFSET ?`;
     queryParams.push(...keywordParams, limit, offset);

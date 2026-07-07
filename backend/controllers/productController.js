@@ -15,13 +15,13 @@ import AppError from "../utils/AppError.js";
 // Mencari produk untuk autocomplete
 export const searchProducts = async (req, res, next) => {
   try {
-    const { q, locationId } = req.query;
+    const { q, locationId, inStockOnly } = req.query;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     
     // Pass raw string to repo for keyword-based search
     const searchTerm = q ? q.toLowerCase().trim() : "";
-    const results = await productRepo.searchProducts(db, searchTerm, locationId, page, limit);
+    const results = await productRepo.searchProducts(db, searchTerm, locationId, page, limit, inStockOnly === 'true');
     res.json(results);
   } catch (error) {
     next(error);

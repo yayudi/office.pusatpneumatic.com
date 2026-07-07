@@ -8,11 +8,14 @@ import api from '../axios'
  * @param {number|string|null} locationId - (Opsional) ID lokasi untuk memfilter
  * @returns {Promise<Array<object>>}
  */
-export const searchProducts = async (query, locationId, page = 1, limit = 20) => {
+export const searchProducts = async (query, locationId, page = 1, limit = 20, inStockOnly = false) => {
   try {
     const params = { q: query, page, limit } // Buat objek params
     if (locationId) {
       params.locationId = locationId // Tambahkan locationId jika ada
+    }
+    if (inStockOnly) {
+      params.inStockOnly = true
     }
 
     // Menggunakan path relatif jika baseURL sudah '/api'
@@ -72,18 +75,20 @@ export const fetchProductStockDetails = async (productId) => {
     // Menggunakan path relatif
     const response = await api.get(`/products/${productId}/stock-details`)
 
-    // Logika pengaman "pembuka" data
+    let data = []
     if (Array.isArray(response.data)) {
-      return response.data
+      data = response.data
+    } else if (response.data && Array.isArray(response.data.data)) {
+      data = response.data.data
+    } else if (response.data && Array.isArray(response.data.details)) {
+      data = response.data.details
+    } else {
+      console.error('Unexpected response format for stock details:', response.data)
+      return []
     }
-    if (response.data && Array.isArray(response.data.data)) {
-      return response.data.data
-    }
-    if (response.data && Array.isArray(response.data.details)) {
-      return response.data.details
-    }
-    console.error('Unexpected response format for stock details:', response.data)
-    return []
+
+    // Kembalikan semua data mentah (termasuk stok 0) untuk audit/opname
+    return data
   } catch (error) {
     console.error('Error fetching product stock details:', error)
     throw new Error(error.response?.data?.message || 'Gagal mengambil detail stok')

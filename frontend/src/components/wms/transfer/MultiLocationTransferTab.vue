@@ -50,8 +50,17 @@ async function onProductSelect(product) {
   isLoadingDetails.value = true
   try {
     const details = await fetchProductStockDetails(product.id)
-    stockDetails.value = details.filter(item => item.quantity > 0)
-  } catch (e) { console.error(e) } finally {
+    const validStock = details.filter(item => item.quantity > 0)
+    
+    if (validStock.length === 0) {
+      toast('Produk ini tidak memiliki stok yang tersedia untuk ditransfer.', 'warning')
+      selectedProduct.value = null
+    } else {
+      stockDetails.value = validStock
+    }
+  } catch (e) { 
+    console.error(e) 
+  } finally {
     isLoadingDetails.value = false
   }
 }
@@ -253,6 +262,7 @@ defineExpose({ submitDetailedBatch, hasData, resetData })
           v-model="selectedProduct"
           @update:model-value="onProductSelect"
           placeholder="Ketik SKU atau Nama..."
+          :in-stock-only="true"
         />
       </div>
 

@@ -11,7 +11,8 @@ const props = defineProps({
   locationId: { type: [Number, String], default: null },
   disabled: { type: Boolean, default: false },
   enableScanner: { type: Boolean, default: false },
-  displayField: { type: String, default: 'name' }
+  displayField: { type: String, default: 'name' },
+  inStockOnly: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['update:modelValue', 'scanner-match'])
@@ -24,7 +25,10 @@ const {
   fetchNextPage,
   hasNextPage,
   isFetchingNextPage
-} = useProductSearch({ locationId: toRef(props, 'locationId') })
+} = useProductSearch({ 
+  locationId: toRef(props, 'locationId'),
+  inStockOnly: toRef(props, 'inStockOnly')
+})
 
 import { useIntersectionObserver } from '@vueuse/core'
 const bottomSentinelRef = ref(null)

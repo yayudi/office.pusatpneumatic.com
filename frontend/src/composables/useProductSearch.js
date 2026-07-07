@@ -14,7 +14,7 @@ import { searchProducts } from '@/api/helpers/products.js'
  * @param {import('vue').Ref<string|number|null>} [options.locationId] - Reactive locationId filter
  */
 export const useProductSearch = (options = {}) => {
-  const { debounceMs = 300, minChars = 2, maxResults = 20, locationId = ref(null) } = options
+  const { debounceMs = 300, minChars = 2, maxResults = 20, locationId = ref(null), inStockOnly = ref(false) } = options
 
   const query = ref('')
   const debouncedQuery = ref('')
@@ -26,15 +26,21 @@ export const useProductSearch = (options = {}) => {
       ? locationId.value
       : locationId
   })
+  
+  const resolvedInStockOnly = computed(() => {
+    return typeof inStockOnly === 'object' && inStockOnly !== null && 'value' in inStockOnly
+      ? inStockOnly.value
+      : inStockOnly
+  })
 
   // Setup Infinite Query
   const { data, fetchNextPage, hasNextPage, isFetching, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: computed(() => ['productSearch', debouncedQuery.value, resolvedLocationId.value]),
+    queryKey: computed(() => ['productSearch', debouncedQuery.value, resolvedLocationId.value, resolvedInStockOnly.value]),
     queryFn: async ({ pageParam = 1 }) => {
       if (!debouncedQuery.value || debouncedQuery.value.trim().length < minChars) {
         return { data: [], nextCursor: null }
       }
-      const res = await searchProducts(debouncedQuery.value.trim(), resolvedLocationId.value, pageParam, maxResults)
+      const res = await searchProducts(debouncedQuery.value.trim(), resolvedLocationId.value, pageParam, maxResults, resolvedInStockOnly.value)
       // If res is array (backward compat), wrap it. Else it is { data, nextCursor }
       return Array.isArray(res) ? { data: res, nextCursor: null } : res
     },
