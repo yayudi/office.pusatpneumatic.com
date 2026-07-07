@@ -177,8 +177,8 @@ export const voidPickingListService = async (pickingListId, userId) => {
 
     await connection.commit();
 
-    emitSharedTaskSignal('PICKING_LIST', 'REFRESH_PICKING').catch(e => console.error(e));
-    emitSharedTaskSignal('WMS_DASHBOARD', 'REFRESH_STOCK').catch(e => console.error(e));
+    emitSharedTaskSignal('PICKING_LIST', 'REFRESH_PICKING').catch(e => Logger.error("Signal Error", e, "PICKING_DATA_SERVICE"));
+    emitSharedTaskSignal('WMS_DASHBOARD', 'REFRESH_STOCK').catch(e => Logger.error("Signal Error", e, "PICKING_DATA_SERVICE"));
 
     return { success: true, message: "Picking List dibatalkan." };
   } catch (error) {
@@ -242,7 +242,7 @@ export const retryBackordersService = async (pickingListId) => {
     await connection.commit();
 
     if (recoveredCount > 0) {
-      emitSharedTaskSignal('PICKING_LIST', 'REFRESH_PICKING').catch(e => console.error(e));
+      emitSharedTaskSignal('PICKING_LIST', 'REFRESH_PICKING').catch(e => Logger.error("Signal Error", e, "PICKING_DATA_SERVICE"));
       return { success: true, message: `Berhasil mendapatkan stok untuk ${recoveredCount} dari ${unfulfillableRows.length} item backorder.` };
     } else {
       return { success: true, message: `Stok masih belum tersedia untuk ${unfulfillableRows.length} item.` };
@@ -328,7 +328,7 @@ export const retryBackordersBatchService = async (pickingListIds) => {
     await connection.commit();
 
     if (recoveredCount > 0 || downgradedCount > 0) {
-      emitSharedTaskSignal('PICKING_LIST', 'REFRESH_PICKING').catch(e => console.error(e));
+      emitSharedTaskSignal('PICKING_LIST', 'REFRESH_PICKING').catch(e => Logger.error("Signal Error", e, "PICKING_DATA_SERVICE"));
     }
 
     const msg = [];
@@ -524,8 +524,8 @@ export const completePickingItemsService = async (payloadItems, userId) => {
 
     await connection.commit();
 
-    emitSharedTaskSignal('PICKING_LIST', 'REFRESH_PICKING').catch(e => console.error(e));
-    emitSharedTaskSignal('WMS_DASHBOARD', 'REFRESH_STOCK').catch(e => console.error(e));
+    emitSharedTaskSignal('PICKING_LIST', 'REFRESH_PICKING').catch(e => Logger.error("Signal Error", e, "PICKING_DATA_SERVICE"));
+    emitSharedTaskSignal('WMS_DASHBOARD', 'REFRESH_STOCK').catch(e => Logger.error("Signal Error", e, "PICKING_DATA_SERVICE"));
 
     return {
       success: true,

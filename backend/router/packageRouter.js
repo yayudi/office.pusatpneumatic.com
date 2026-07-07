@@ -1,10 +1,8 @@
 import express from "express";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
 import { canAccess } from "../middleware/permissionMiddleware.js";
 import * as packageController from "../controllers/packageController.js";
-import Logger from "../utils/logger.js";
+import { createDiskStorage } from "../utils/multerUtils.js";
 
 const router = express.Router();
 
@@ -12,25 +10,7 @@ const router = express.Router();
 // CONFIGURATION (Shared Uploads Directory)
 // ============================================================================
 const uploadDir = "uploads/imports/";
-if (!fs.existsSync(uploadDir)) {
-  try {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  } catch (err) {
-    Logger.error(`Failed to create folder ${uploadDir}`, err, "PACKAGE_ROUTER");
-  }
-}
-
-// Setup Multer
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, "package-update-" + uniqueSuffix + path.extname(file.originalname));
-  },
-});
-
+const storage = createDiskStorage(uploadDir, "package-update");
 const upload = multer({ storage: storage });
 
 // ============================================================================

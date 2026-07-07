@@ -1,5 +1,6 @@
 // backend/services/stockRequestService.js
 import db from "../config/db.js";
+import Logger from "../utils/logger.js";
 import { processBatchMovementsService, processBatchOpnameService } from "./stockService.js";
 import { emitSharedTaskSignal } from "./firebaseSignalService.js";
 import * as stockRequestRepo from "../repositories/stockRequestRepository.js";
@@ -35,7 +36,7 @@ export const createStockRequestService = async (payload, userId) => {
 
     const requestId = await stockRequestRepo.createStockRequest(connection, fullPayload);
     await connection.commit();
-    emitSharedTaskSignal("STOCK_REQUESTS", "REFRESH_REQUESTS").catch((e) => console.error(e));
+    emitSharedTaskSignal("STOCK_REQUESTS", "REFRESH_REQUESTS").catch((e) => Logger.error("Signal Error", e, "STOCK_REQUEST_SERVICE"));
 
     // Notifikasi ke user dengan permission approve-stock-requests
     notificationService
@@ -46,8 +47,9 @@ export const createStockRequestService = async (payload, userId) => {
         `Permintaan stok baru (${type}) telah dibuat dan menunggu persetujuan.`,
         { requestId, type },
         userId,
+        true,
       )
-      .catch((e) => console.error("[NOTIFY_ERROR]", e));
+      .catch((e) => Logger.error("Failed to send notification", e, "STOCK_REQUEST_SERVICE"));
 
     return { success: true, message: "Permintaan stok berhasil dibuat.", requestId };
   } catch (error) {
@@ -112,7 +114,7 @@ export const approveStockRequestService = async (requestId, user) => {
 
       await stockRequestRepo.updateStockRequestStatus(connection, requestId, "COMPLETED");
       await connection.commit();
-      emitSharedTaskSignal("STOCK_REQUESTS", "REFRESH_REQUESTS").catch((e) => console.error(e));
+      emitSharedTaskSignal("STOCK_REQUESTS", "REFRESH_REQUESTS").catch((e) => Logger.error("Signal Error", e, "STOCK_REQUEST_SERVICE"));
 
       // Notifikasi ke requester
       notificationService
@@ -124,7 +126,7 @@ export const approveStockRequestService = async (requestId, user) => {
           { requestId, requestNumber: request.request_number },
           true,
         )
-        .catch((e) => console.error("[NOTIFY_ERROR]", e));
+        .catch((e) => Logger.error("Failed to send notification", e, "STOCK_REQUEST_SERVICE"));
 
       return { success: true, message: "Permintaan stok opname disetujui dan stok disesuaikan." };
     }
@@ -132,7 +134,7 @@ export const approveStockRequestService = async (requestId, user) => {
     await stockRequestRepo.updateStockRequestStatus(connection, requestId, "APPROVED");
 
     await connection.commit();
-    emitSharedTaskSignal("STOCK_REQUESTS", "REFRESH_REQUESTS").catch((e) => console.error(e));
+    emitSharedTaskSignal("STOCK_REQUESTS", "REFRESH_REQUESTS").catch((e) => Logger.error("Signal Error", e, "STOCK_REQUEST_SERVICE"));
 
     // Notifikasi ke requester
     notificationService
@@ -144,7 +146,7 @@ export const approveStockRequestService = async (requestId, user) => {
         { requestId, requestNumber: request.request_number },
         true,
       )
-      .catch((e) => console.error("[NOTIFY_ERROR]", e));
+      .catch((e) => Logger.error("Failed to send notification", e, "STOCK_REQUEST_SERVICE"));
 
     return { success: true, message: "Permintaan stok berhasil disetujui." };
   } catch (error) {
@@ -170,7 +172,7 @@ export const rejectStockRequestService = async (requestId, _) => {
     await stockRequestRepo.updateStockRequestStatus(connection, requestId, "REJECTED");
 
     await connection.commit();
-    emitSharedTaskSignal("STOCK_REQUESTS", "REFRESH_REQUESTS").catch((e) => console.error(e));
+    emitSharedTaskSignal("STOCK_REQUESTS", "REFRESH_REQUESTS").catch((e) => Logger.error("Signal Error", e, "STOCK_REQUEST_SERVICE"));
 
     // Notifikasi ke requester
     notificationService
@@ -182,7 +184,7 @@ export const rejectStockRequestService = async (requestId, _) => {
         { requestId, requestNumber: request.request_number },
         true,
       )
-      .catch((e) => console.error("[NOTIFY_ERROR]", e));
+      .catch((e) => Logger.error("Failed to send notification", e, "STOCK_REQUEST_SERVICE"));
 
     return { success: true, message: "Permintaan stok telah ditolak." };
   } catch (error) {
@@ -248,7 +250,7 @@ export const completeStockRequestService = async (requestId, receivedItems, user
     await stockRequestRepo.updateStockRequestStatus(connection, requestId, "COMPLETED");
 
     await connection.commit();
-    emitSharedTaskSignal("STOCK_REQUESTS", "REFRESH_REQUESTS").catch((e) => console.error(e));
+    emitSharedTaskSignal("STOCK_REQUESTS", "REFRESH_REQUESTS").catch((e) => Logger.error("Signal Error", e, "STOCK_REQUEST_SERVICE"));
 
     // Notifikasi ke requester
     notificationService
@@ -260,7 +262,7 @@ export const completeStockRequestService = async (requestId, receivedItems, user
         { requestId, requestNumber: request.request_number },
         true,
       )
-      .catch((e) => console.error("[NOTIFY_ERROR]", e));
+      .catch((e) => Logger.error("Failed to send notification", e, "STOCK_REQUEST_SERVICE"));
 
     return { success: true, message: "Permintaan stok selesai dan stok telah ditransfer." };
   } catch (error) {

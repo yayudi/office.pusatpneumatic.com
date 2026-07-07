@@ -8,24 +8,7 @@ import fs from "fs/promises";
 import path from "path";
 import * as mediaService from "./mediaService.js";
 
-const stripExtension = (filename) => {
-  if (!filename) return '';
-  return filename.replace(/\.[^/.]+$/, '');
-};
-
-const isGenericTitle = (title) => {
-  if (!title || !title.trim()) return true;
-  const lower = title.trim().toLowerCase();
-  
-  // Jika hanya berupa angka (misal: "1", "1234", "01"), dianggap generik
-  if (/^\d+$/.test(lower)) return true;
-
-  const genericKeywords = [
-    'image', 'images', 'gambar', 'img', 'photo', 'pic', 'untitled',
-    'whatsapp', 'telegram', 'screenshot', 'capture', 'dcim', 'picture', 'snip', 'blob'
-  ];
-  return genericKeywords.some((kw) => lower.includes(kw));
-};
+import { stripExtension, isGenericTitle } from "../utils/mediaUtils.js";
 
 const resolveProductImageTitle = (file, data, index) => {
   let title = stripExtension(file.originalname);
@@ -39,7 +22,7 @@ const resolveProductImageTitle = (file, data, index) => {
 };
 
 // Helper Internal: Mencatat Log Audit hanya jika ada perubahan
-const logChange = async (connection, productId, userId, action, field, oldVal, newVal) => {
+export const logChange = async (connection, productId, userId, action, field, oldVal, newVal) => {
   if (oldVal !== newVal) {
     await productRepo.insertAuditLog(connection, {
       productId,
@@ -100,7 +83,7 @@ export const createProductService = async (data, userId) => {
     }
 
     await connection.commit();
-    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => console.error(e));
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => Logger.error("Signal Error", e, "PRODUCT_SERVICE"));
     return newId;
   } catch (error) {
     await connection.rollback();
@@ -195,7 +178,7 @@ export const updateProductService = async (id, data, userId) => {
     }
 
     await connection.commit();
-    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => console.error(e));
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => Logger.error("Signal Error", e, "PRODUCT_SERVICE"));
     return true;
   } catch (error) {
     await connection.rollback();
@@ -217,7 +200,7 @@ export const softDeleteProductService = async (id, userId) => {
     await productRepo.updateProductStatus(connection, id, false); // Active = false
     await logChange(connection, id, userId, "DELETE", "status", "Active", "Archived");
     await connection.commit();
-    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => console.error(e));
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => Logger.error("Signal Error", e, "PRODUCT_SERVICE"));
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -238,7 +221,7 @@ export const restoreProductService = async (id, userId) => {
     await productRepo.updateProductStatus(connection, id, true); // Active = true
     await logChange(connection, id, userId, "RESTORE", "status", "Archived", "Active");
     await connection.commit();
-    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => console.error(e));
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => Logger.error("Signal Error", e, "PRODUCT_SERVICE"));
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -276,7 +259,7 @@ export const uploadProductImagesService = async (id, images, userId) => {
     }
     await logChange(connection, id, userId, "UPDATE", "images", "Add", `${images.length} Images`);
     await connection.commit();
-    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => console.error(e));
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => Logger.error("Signal Error", e, "PRODUCT_SERVICE"));
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -298,7 +281,7 @@ export const linkMediaToProductService = async (productId, mediaIds, userId) => 
     await productRepo.linkMedia(connection, productId, mediaIds);
     await logChange(connection, productId, userId, "UPDATE", "images", "Add Media", `${mediaIds.length} Linked Media`);
     await connection.commit();
-    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => console.error(e));
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => Logger.error("Signal Error", e, "PRODUCT_SERVICE"));
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -321,7 +304,6 @@ export const deleteProductImageService = async (imageId, userId) => {
 
     if (image.image_path && !image.media_id) {
       try {
-        const fullPath = path.resolve("uploads/products/", "legacy_" + image.image_path);
         const actualPath = path.resolve("uploads/products/", image.image_path);
         await fs.unlink(actualPath);
       } catch (err) {
@@ -332,7 +314,7 @@ export const deleteProductImageService = async (imageId, userId) => {
     await productRepo.deleteImage(connection, imageId);
     await logChange(connection, image.product_id, userId, "DELETE", "image", image.image_path, "Deleted");
     await connection.commit();
-    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => console.error(e));
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => Logger.error("Signal Error", e, "PRODUCT_SERVICE"));
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -355,7 +337,7 @@ export const setPrimaryImageService = async (productId, imageId, userId) => {
     await productRepo.setPrimaryImage(connection, imageId);
     await logChange(connection, productId, userId, "UPDATE", "primary_image", "Changed", `Image ID ${imageId}`);
     await connection.commit();
-    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => console.error(e));
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => Logger.error("Signal Error", e, "PRODUCT_SERVICE"));
   } catch (error) {
     await connection.rollback();
     throw error;

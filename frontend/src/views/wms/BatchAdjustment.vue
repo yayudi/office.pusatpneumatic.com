@@ -5,8 +5,8 @@ import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import { fetchMyLocations } from '@/api/helpers/user.js'
 import { processBatchMovement, requestAdjustmentUpload, getImportJobs } from '@/api/helpers/stock.js'
-import { swalAlert, swalConfirm } from '@/composables/useSweetAlert'
-import api from '@/api/axios.js'
+import { swalAlert, swalConfirm } from '@/composables/useSweetAlert.js'
+import { useDownload } from '@/composables/useDownload.js'
 import { useMobile } from '@/composables/useMobile.js'
 
 import BatchAdjustmentHeader from '@/components/wms/transfer/BatchAdjustmentHeader.vue'
@@ -15,6 +15,7 @@ import BatchItemList from '@/components/wms/transfer/BatchItemList.vue'
 
 const { toast } = useToast()
 const { isMobile } = useMobile()
+const { downloadFile } = useDownload()
 
 // --- STATE UTAMA ---
 const myLocations = ref([])
@@ -99,19 +100,7 @@ async function handleUploadAdjustment() {
 async function downloadTemplate() {
   isDownloading.value = true
   try {
-    const response = await api.get('/stock/download-adjustment-template', {
-      responseType: 'blob'
-    })
-
-    const url = window.URL.createObjectURL(new Blob([response.data]))
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', 'Template_Adjustment_Stok.xlsx')
-
-    document.body.appendChild(link)
-    link.click()
-    link.parentNode.removeChild(link)
-    window.URL.revokeObjectURL(url)
+    await downloadFile('/stock/download-adjustment-template', 'Template_Adjustment_Stok.xlsx')
   } catch {
     toast('Gagal mengunduh template', 'error')
   } finally {

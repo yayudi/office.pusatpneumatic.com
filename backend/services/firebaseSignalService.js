@@ -1,4 +1,5 @@
 import { isInitialized, firebaseDb } from '../config/firebase.js';
+import Logger from '../utils/logger.js';
 
 /**
  * Mengirim sinyal (ping) ke Firebase Realtime Database
@@ -8,7 +9,7 @@ import { isInitialized, firebaseDb } from '../config/firebase.js';
  */
 const emitSignal = async (path, payload = {}) => {
   if (!isInitialized || !firebaseDb) {
-    console.warn('[FIREBASE_SIGNAL] Tidak dapat mengirim sinyal karena Firebase belum terinisialisasi. Path:', path);
+    Logger.warn(`Tidak dapat mengirim sinyal karena Firebase belum terinisialisasi. Path: ${path}`, "FIREBASE_SIGNAL");
     return false;
   }
 
@@ -21,7 +22,7 @@ const emitSignal = async (path, payload = {}) => {
     await firebaseDb.ref(path).set(dataToSet);
     return true;
   } catch (error) {
-    console.error(`[FIREBASE_SIGNAL] Gagal mengirim sinyal ke ${path}:`, error.message);
+    Logger.error(`Gagal mengirim sinyal ke ${path}:`, error, "FIREBASE_SIGNAL");
     return false;
   }
 };
@@ -31,7 +32,8 @@ const emitSignal = async (path, payload = {}) => {
  * @param {string} action
  */
 export const emitUserSignal = async (userId, action = 'REFRESH_NOTIFICATIONS') => {
-  return await emitSignal(`signals/users/${userId}`, { action });
+  const safeUserId = String(userId).replace(/[.#$[\]]/g, '_');
+  return await emitSignal(`signals/users/${safeUserId}`, { action });
 };
 
 /**
@@ -39,5 +41,6 @@ export const emitUserSignal = async (userId, action = 'REFRESH_NOTIFICATIONS') =
  * @param {string} action
  */
 export const emitSharedTaskSignal = async (permission, action = 'REFRESH_NOTIFICATIONS') => {
-  return await emitSignal(`signals/permissions/${permission}`, { action });
+  const safePermission = permission.replace(/[.#$[\]]/g, '_');
+  return await emitSignal(`signals/permissions/${safePermission}`, { action });
 };

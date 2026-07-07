@@ -17,7 +17,8 @@ export const useFirebaseListener = (userId, permissions = [], onSignalReceived) 
     if (!userId) return;
     
     // Listen for personal user signals
-    userSignalRef = dbRef(firebaseDb, `signals/users/${userId}`);
+    const safeUserId = String(userId).replace(/[.#$[\]]/g, '_');
+    userSignalRef = dbRef(firebaseDb, `signals/users/${safeUserId}`);
     onValue(userSignalRef, (snapshot) => {
       const data = snapshot.val();
       if (data && data.action) {
@@ -28,7 +29,8 @@ export const useFirebaseListener = (userId, permissions = [], onSignalReceived) 
     // Listen for shared task signals based on permissions
     if (permissions && Array.isArray(permissions)) {
       permissions.forEach(permission => {
-        const pRef = dbRef(firebaseDb, `signals/permissions/${permission}`);
+        const safePermission = permission.replace(/[.#$[\]]/g, '_');
+        const pRef = dbRef(firebaseDb, `signals/permissions/${safePermission}`);
         onValue(pRef, (snapshot) => {
           const data = snapshot.val();
           if (data && data.action) {

@@ -1,4 +1,5 @@
 import * as shiftRepository from '../repositories/shiftRepository.js';
+import Logger from '../utils/logger.js';
 import * as scheduleRepository from '../repositories/scheduleRepository.js';
 import * as attendanceRepository from '../repositories/attendanceRepository.js'; // Ensure this is imported if used (e.g. at step 3)
 import { emitSharedTaskSignal } from "./firebaseSignalService.js";
@@ -82,7 +83,7 @@ export const updateAttendance = async (username, date, payload) => {
     status // Pass status explicitly
   });
 
-  emitSharedTaskSignal('HRIS_ATTENDANCE', 'REFRESH_ATTENDANCE').catch(e => console.error(e));
+  emitSharedTaskSignal('HRIS_ATTENDANCE', 'REFRESH_ATTENDANCE').catch(e => Logger.error("Signal Error", e, "ATTENDANCE_SERVICE"));
 
   return result;
 };

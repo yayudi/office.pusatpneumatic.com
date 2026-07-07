@@ -13,6 +13,7 @@ import MediaLightbox from '@/components/common/MediaLightbox.vue'
 const ImageCropperModal = defineAsyncComponent(() => import('@/views/media/ImageCropperModal.vue'))
 import { autoCropCenter } from '@/utils/imageCropper.js'
 import BaseModal from '@/components/ui/BaseModal.vue'
+import { isGenericTitle, stripExtension } from '@/utils/mediaUtils'
 
 const props = defineProps({
   show: Boolean,
@@ -106,7 +107,7 @@ watch(
 const fileTitles = ref([])
 const uploadTagsStr = ref('')
 
-const stripExtension = (filename) => filename.replace(/\.[^/.]+$/, '')
+
 
 async function handleImageUpload(event) {
   const files = Array.from(event.target.files)
@@ -166,28 +167,7 @@ const handleCroppedSave = (newFile) => {
   }
 }
 
-const genericKeywords = [
-  'image',
-  'images',
-  'gambar',
-  'img',
-  'photo',
-  'pic',
-  'untitled',
-  'whatsapp image',
-  'telegram',
-  'screenshot',
-  'screen shot',
-  'capture',
-  'dcim',
-  'picture',
-  'snip',
-]
-const isGenericTitle = (title) => {
-  if (!title || !title.trim()) return true
-  const lower = title.toLowerCase()
-  return genericKeywords.some((kw) => lower.includes(kw))
-}
+
 
 async function saveNewImages() {
   if (selectedImages.value.length === 0) return

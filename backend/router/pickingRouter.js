@@ -2,7 +2,6 @@
 import express from "express";
 import multer from "multer";
 import path from "path";
-import fs from "fs";
 import { fileURLToPath } from "url";
 
 // Middleware
@@ -13,6 +12,7 @@ import * as pickingController from "../controllers/pickingController.js";
 import AppError from "../utils/AppError.js";
 import { validate } from "../middleware/validate.js";
 import { completeItemsSchema } from "../validators/pickingValidator.js";
+import { createDiskStorage } from "../utils/multerUtils.js";
 
 const router = express.Router();
 
@@ -20,21 +20,7 @@ const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const UPLOAD_DIR_SALES = path.join(__dirname, "..", "uploads", "sales_reports");
-
-if (!fs.existsSync(UPLOAD_DIR_SALES)) {
-  fs.mkdirSync(UPLOAD_DIR_SALES, { recursive: true });
-}
-
-const salesStorage = multer.diskStorage({
-  destination: (_, __, cb) => cb(null, UPLOAD_DIR_SALES),
-  filename: (_, file, cb) => {
-    // Format: NamaAsli_Timestamp_Unique.ext
-    const name = path.parse(file.originalname).name.replace(/[^a-z0-9]/gi, "_");
-    const ext = path.extname(file.originalname);
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, `${name}_${uniqueSuffix}${ext}`);
-  },
-});
+const salesStorage = createDiskStorage(UPLOAD_DIR_SALES);
 
 const uploadSales = multer({
   storage: salesStorage,
@@ -60,12 +46,16 @@ router.post(
   "/upload-and-validate",
   canAccess("upload-picking-list"),
   uploadSales.array("files", 20), // Support Multiple Files
-  pickingController.uploadAndValidate
+  pickingController.uploadAndValidate,
 );
 
 // ACTIONS (User Operations)
-router.post("/complete-items", canAccess("confirm-picking-list"), validate(completeItemsSchema), pickingController.completeItems);
-
+router.post(
+  "/complete-items",
+  canAccess("confirm-picking-list"),
+  validate(completeItemsSchema),
+  pickingController.completeItems,
+);
 router.post("/void/:id", canAccess("void-picking-list"), pickingController.voidPickingList);
 router.post("/retry-backorders-batch", pickingController.retryBackordersBatch);
 router.post("/:id/retry-backorders", pickingController.retryBackorders);

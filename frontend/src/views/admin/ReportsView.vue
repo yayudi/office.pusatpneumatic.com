@@ -3,6 +3,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import axios from '@/api/axios.js'
 import { useToast } from '@/composables/useToast.js'
+import { useDownload } from '@/composables/useDownload.js'
 import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 import dayjs from 'dayjs'
@@ -11,6 +12,7 @@ import { useMobile } from '@/composables/useMobile.js'
 const { isMobile } = useMobile()
 
 const { toast } = useToast()
+const { downloadFile } = useDownload()
 
 const jobs = ref([])
 const loading = ref(false)
@@ -30,29 +32,7 @@ const fetchJobs = async () => {
 const handleDownload = async (url, fileName) => {
   try {
     toast('Memulai unduhan...', 'info')
-    console.log(`[Frontend] Downloading from: ${url}`);
-    console.log(`[Frontend] Desired Filename: ${fileName}`);
-
-    // Fetch as Blob using Axios to bypass CORS/Browser naming issues
-    const response = await axios.get(url, { responseType: 'blob' })
-    console.log(`[Frontend] Response Headers:`, response.headers);
-    console.log(`[Frontend] Content-Type:`, response.headers['content-type']);
-
-    // Create Object URL
-    const blobUrl = window.URL.createObjectURL(new Blob([response.data]))
-    console.log(`[Frontend] Blob URL created: ${blobUrl}`);
-
-    toast('Unduhan berhasil.', 'success')
-    const link = document.createElement('a')
-    link.href = blobUrl
-    link.setAttribute('download', fileName || 'download.xlsx')
-    document.body.appendChild(link)
-    link.click()
-
-    // Clean up
-    document.body.removeChild(link)
-    window.URL.revokeObjectURL(blobUrl)
-
+    await downloadFile(url, fileName || 'download.xlsx')
     toast('Unduhan berhasil.', 'success')
   } catch (err) {
     console.error('Download error:', err)

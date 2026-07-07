@@ -309,6 +309,8 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useToast } from '@/composables/useToast.js'
+import { useDownload } from '@/composables/useDownload.js'
+import { useUpload } from '@/composables/useUpload.js'
 import { useMobile } from '@/composables/useMobile.js'
 import axios from '@/api/axios.js'
 import { processBatchMovement } from '@/api/helpers/stock.js'
@@ -326,6 +328,8 @@ const props = defineProps({
 const emit = defineEmits(['close', 'success'])
 
 const { toast } = useToast()
+const { downloadFile } = useDownload()
+const { uploadFile } = useUpload()
 const { isMobile } = useMobile()
 const file = ref(null)
 const isDragging = ref(false)
@@ -415,21 +419,10 @@ watch(() => props.isOpen, (newVal) => {
 const downloadTemplate = async () => {
   try {
     isDownloading.value = true
-    const response = await axios.get('/stock/template/inbound', {
-      responseType: 'blob'
-    })
-
-    const url = window.URL.createObjectURL(new Blob([response.data]))
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', 'Template_Inbound_Stok.xlsx')
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-
+    await downloadFile('/stock/template/inbound', 'Template_Inbound_Stok.xlsx')
     toast('Template berhasil diunduh', 'success')
-  } catch (error) {
-    console.error('Download error:', error)
+  } catch (err) {
+    console.error('Failed to download template:', err)
   } finally {
     isDownloading.value = false
   }
@@ -657,14 +650,7 @@ const submitBatchJSON = async () => {
 const uploadExcelFile = async () => {
   try {
     isUploading.value = true
-    const formData = new FormData()
-    formData.append('file', file.value)
-
-    const response = await axios.post('/stock/import-batch', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
+    const response = await uploadFile('/stock/import-batch', file.value)
 
     if (response.data.success) {
       toast(response.data.message, 'success')

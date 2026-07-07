@@ -1,5 +1,6 @@
 // backend/services/adminService.js
 import db from "../config/db.js";
+import Logger from "../utils/logger.js";
 import bcrypt from "bcryptjs";
 import * as adminRepo from "../repositories/adminRepository.js";
 import { createLog } from "../repositories/systemLogRepository.js";
@@ -187,7 +188,7 @@ export const updateUser = async ({ adminId, targetId, data, ip, userAgent }) => 
 
     // Jika terjadi perubahan role atau password, paksa user logout via Firebase
     if (changesRecord.role_id || changesRecord.password) {
-      emitSharedTaskSignal('AUTH_SECURITY', `FORCE_LOGOUT_${targetId}`).catch(e => console.error(e));
+      emitSharedTaskSignal('AUTH_SECURITY', `FORCE_LOGOUT_${targetId}`).catch(e => Logger.error("Signal Error", e, "ADMIN_SERVICE"));
     }
   } catch (error) {
     await connection.rollback();
@@ -232,7 +233,7 @@ export const deleteUser = async ({ adminId, targetId, ip, userAgent }) => {
     });
 
     await connection.commit();
-    emitSharedTaskSignal('AUTH_SECURITY', `FORCE_LOGOUT_${targetId}`).catch(e => console.error(e));
+    emitSharedTaskSignal('AUTH_SECURITY', `FORCE_LOGOUT_${targetId}`).catch(e => Logger.error("Signal Error", e, "ADMIN_SERVICE"));
   } catch (error) {
     await connection.rollback();
     throw error;

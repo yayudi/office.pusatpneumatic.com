@@ -1,4 +1,5 @@
 import db from "../config/db.js";
+import Logger from "../utils/logger.js";
 import * as notificationRepo from "../repositories/notificationRepository.js";
 import { emitUserSignal, emitSharedTaskSignal } from "./firebaseSignalService.js";
 
@@ -57,7 +58,7 @@ export const markNotificationAsDone = async (notificationId, userId) => {
 
     if (affected > 0) {
       // Fire-and-forget signal to current user
-      emitUserSignal(userId).catch(console.error);
+      emitUserSignal(userId).catch(e => Logger.error("Signal Error", e, "NOTIFICATION_SERVICE"));
     }
 
     return affected > 0;
@@ -90,7 +91,7 @@ export const claimNotification = async (notificationId, userId) => {
       // or fetch the permission name. Let's just emit to the user's personal channel for now
       // and ideally we should broadcast to the permission.
       // But actually, we don't have permission name here. Let's just emit to user.
-      emitUserSignal(userId).catch(console.error);
+      emitUserSignal(userId).catch(e => Logger.error("Signal Error", e, "NOTIFICATION_SERVICE"));
     }
 
     return affected > 0;
@@ -117,7 +118,7 @@ export const markAllNotificationsAsDone = async (userId) => {
     await connection.commit();
 
     if (affected > 0) {
-      emitUserSignal(userId).catch(console.error);
+      emitUserSignal(userId).catch(e => Logger.error("Signal Error", e, "NOTIFICATION_SERVICE"));
     }
 
     return affected;
@@ -219,11 +220,11 @@ export const notifyUsers = async (
         });
 
         // Fire-and-forget signal
-        emitUserSignal(userId).catch(console.error);
+        emitUserSignal(userId).catch(e => Logger.error("Signal Error", e, "NOTIFICATION_SERVICE"));
       }
     }
   } catch (error) {
-    console.error("[NOTIFY_ERROR] Gagal mengirim notifikasi:", error);
+    Logger.error("Gagal mengirim notifikasi:", error, "NOTIFICATION_SERVICE");
   } finally {
     if (connection) connection.release();
   }
@@ -267,9 +268,9 @@ export const notifyUsersByPermission = async (
     });
 
     // Send signal to all users who listen to this permission
-    emitSharedTaskSignal(permissionName).catch(console.error);
+    emitSharedTaskSignal(permissionName).catch(e => Logger.error("Signal Error", e, "NOTIFICATION_SERVICE"));
   } catch (error) {
-    console.error("[NOTIFY_ERROR] Gagal membuat shared task notification:", error);
+    Logger.error("Gagal membuat shared task notification:", error, "NOTIFICATION_SERVICE");
   } finally {
     if (connection) connection.release();
   }

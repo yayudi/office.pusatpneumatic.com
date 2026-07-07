@@ -95,7 +95,7 @@ export const processQueue = async () => {
     try {
       Logger.info(`Updating job ${jobId} status to COMPLETED...`, "EXPORT_WORKER");
       await jobRepo.completeExportJob(updateConnection, jobId, `${fileName}`);
-      emitSharedTaskSignal('BACKGROUND_JOBS', 'EXPORT_COMPLETED').catch(e => console.error(e));
+      emitSharedTaskSignal('BACKGROUND_JOBS', 'EXPORT_COMPLETED').catch(e => Logger.error("Signal Error", e, "EXPORT_WORKER"));
     } finally {
       updateConnection.release();
     }
@@ -108,7 +108,7 @@ export const processQueue = async () => {
         const errConnection = await db.getConnection();
         await jobRepo.failExportJob(errConnection, jobId, error.message.substring(0, 255));
         errConnection.release();
-        emitSharedTaskSignal('BACKGROUND_JOBS', 'EXPORT_FAILED').catch(e => console.error(e));
+        emitSharedTaskSignal('BACKGROUND_JOBS', 'EXPORT_FAILED').catch(e => Logger.error("Signal Error", e, "EXPORT_WORKER"));
       } catch (dbError) {
         Logger.error("Fatal DB Error saat update FAILED", dbError, "EXPORT_WORKER");
       }

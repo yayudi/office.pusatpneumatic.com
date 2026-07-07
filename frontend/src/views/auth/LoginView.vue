@@ -69,7 +69,7 @@ onMounted(() => {
   }
 
   runTest()
-  
+
   // Auto focus username input
   if (usernameInput.value) {
     usernameInput.value.focus()
@@ -133,7 +133,7 @@ onMounted(() => {
           class="w-full bg-primary text-secondary py-3 rounded-lg font-bold hover:bg-primary/90 transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-2 shadow-lg shadow-primary/20"
         >
           <font-awesome-icon v-if="loading" icon="fa-solid fa-spinner" class="animate-spin" />
-          <span>{{ loading ? 'Memproses...' : testResult === false ? 'Server Offline' : 'Masuk Sistem' }}</span>
+          <span>{{ loading ? 'Memproses...' : testResult === false ? 'Server Offline' : 'Masuk' }}</span>
         </button>
       </form>
 

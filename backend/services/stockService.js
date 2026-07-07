@@ -1,5 +1,6 @@
 // backend/services/stockService.js
 import db from "../config/db.js";
+import Logger from "../utils/logger.js";
 import ExcelJS from "exceljs";
 
 // REPOSITORIES
@@ -156,12 +157,12 @@ export const transferStockService = async ({
           userId,
           true,
         )
-        .catch((e) => console.error("[NOTIFY_ERROR] Failed to send notification", e));
+        .catch((e) => Logger.error("Failed to send notification", e, "STOCK_SERVICE"));
     } catch (e) {
-      console.error("[NOTIFY_ERROR] Failed to prepare notification", e);
+      Logger.error("Failed to prepare notification", e, "STOCK_SERVICE");
     }
 
-    emitSharedTaskSignal("WMS_DASHBOARD", "REFRESH_STOCK").catch(console.error);
+    emitSharedTaskSignal("WMS_DASHBOARD", "REFRESH_STOCK").catch(e => Logger.error("Signal Error", e, "STOCK_SERVICE"));
 
     return { success: true, message: "Transfer berhasil." };
   } catch (error) {
@@ -219,7 +220,7 @@ export const adjustStockService = async ({ productId, locationId, quantity, user
 
     await connection.commit();
 
-    emitSharedTaskSignal("WMS_DASHBOARD", "REFRESH_STOCK").catch(console.error);
+    emitSharedTaskSignal("WMS_DASHBOARD", "REFRESH_STOCK").catch(e => Logger.error("Signal Error", e, "STOCK_SERVICE"));
 
     return { success: true, message: "Penyesuaian stok berhasil." };
   } catch (error) {
@@ -386,13 +387,13 @@ export const processBatchMovementsService = async ({
             userId,
             true,
           )
-          .catch((e) => console.error("[NOTIFY_ERROR] Failed to send notification", e));
+          .catch((e) => Logger.error("Failed to send notification", e, "STOCK_SERVICE"));
       } catch (e) {
-        console.error("[NOTIFY_ERROR] Failed to prepare batch notification", e);
+        Logger.error("Failed to prepare batch notification", e, "STOCK_SERVICE");
       }
     }
 
-    emitSharedTaskSignal("WMS_DASHBOARD", "REFRESH_STOCK").catch(console.error);
+    emitSharedTaskSignal("WMS_DASHBOARD", "REFRESH_STOCK").catch(e => Logger.error("Signal Error", e, "STOCK_SERVICE"));
 
     return { success: true, count: resolvedItems.length };
   } catch (error) {
@@ -480,7 +481,7 @@ export const processBatchOpnameService = async ({ movements, userId, userRoleId 
 
     await connection.commit();
 
-    emitSharedTaskSignal("WMS_DASHBOARD", "REFRESH_STOCK").catch(console.error);
+    emitSharedTaskSignal("WMS_DASHBOARD", "REFRESH_STOCK").catch(e => Logger.error("Signal Error", e, "STOCK_SERVICE"));
 
     // Return processedCount (how many actual updates happened)
     return { success: true, count: processedCount };
@@ -899,8 +900,8 @@ export const validateReturnService = async ({ pickingListItemId, returnToLocatio
     );
 
     await connection.commit();
-    emitSharedTaskSignal("WMS_DASHBOARD", "REFRESH_STOCK").catch((e) => console.error(e));
-    emitSharedTaskSignal("PICKING_LIST", "REFRESH_PICKING").catch((e) => console.error(e));
+    emitSharedTaskSignal("WMS_DASHBOARD", "REFRESH_STOCK").catch((e) => Logger.error("Signal Error", e, "STOCK_SERVICE"));
+    emitSharedTaskSignal("PICKING_LIST", "REFRESH_PICKING").catch((e) => Logger.error("Signal Error", e, "STOCK_SERVICE"));
     return { success: true, message: `Item (ID: ${pickingListItemId}) berhasil divalidasi.` };
   } catch (error) {
     await connection.rollback();

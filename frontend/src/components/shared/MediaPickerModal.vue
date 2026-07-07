@@ -7,6 +7,7 @@ import { resolveUrl } from '@/composables/useImageUrl'
 import MediaCard from '@/components/common/MediaCard.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import debounce from 'lodash/debounce'
+import { isGenericTitle, stripExtension } from '@/utils/mediaUtils'
 
 const props = defineProps({
   show: Boolean,
@@ -70,7 +71,7 @@ watch(
 
 const fileTitles = ref([])
 
-const stripExtension = filename => filename.replace(/\.[^/.]+$/, '')
+
 
 async function handleImageUpload(event) {
   const files = Array.from(event.target.files)
@@ -127,30 +128,10 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('paste', handlePaste)
+  if (debouncedFetch) debouncedFetch.cancel()
 })
 
-const genericKeywords = [
-  'image',
-  'images',
-  'gambar',
-  'img',
-  'photo',
-  'pic',
-  'untitled',
-  'whatsapp image',
-  'telegram',
-  'screenshot',
-  'screen shot',
-  'capture',
-  'dcim',
-  'picture',
-  'snip'
-]
-const isGenericTitle = title => {
-  if (!title || !title.trim()) return true
-  const lower = title.toLowerCase()
-  return genericKeywords.some(kw => lower.includes(kw))
-}
+
 
 async function saveNewImages() {
   if (selectedImages.value.length === 0) return
@@ -242,43 +223,7 @@ const getImageUrl = resolveUrl
       </div>
 
       <div v-else class="flex flex-col gap-8">
-        <div>
-          <div class="flex items-center justify-between mb-3">
-            <h4 class="font-bold text-text/80 text-sm uppercase tracking-wide">Pilih Dari Galeri</h4>
-            <span class="text-xs text-text/50">{{ existingImages.length }} gambar</span>
-          </div>
-
-          <div
-            v-if="existingImages.length === 0"
-            class="p-8 border-2 border-dashed border-secondary/20 rounded-xl flex flex-col items-center text-text/30 bg-secondary/5"
-          >
-            <font-awesome-icon icon="fa-solid fa-images" class="text-4xl mb-2" />
-            <span class="text-sm font-medium">Belum ada gambar yang sesuai pencarian.</span>
-          </div>
-
-          <div v-else class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            <MediaCard
-              v-for="img in existingImages"
-              :key="img.id"
-              :image-url="getImageUrl(img.thumbnail_path || img.main_path)"
-              :image-id="img.id"
-              :display-name="img.title || 'Gambar'"
-              @click="selectImage(img)"
-              class="cursor-pointer hover:ring-2 hover:ring-primary transition-all"
-            >
-              <template #badges>
-                <div
-                  v-if="img.status === 'PENDING'"
-                  class="absolute top-2 right-2 bg-warning text-text text-[10px] font-bold px-2 py-0.5 rounded shadow-sm z-10 flex items-center gap-1"
-                >
-                  <font-awesome-icon icon="fa-solid fa-spinner" spin /> Proses
-                </div>
-              </template>
-            </MediaCard>
-          </div>
-        </div>
-
-        <div v-if="canUpload" class="border-t border-secondary/10 pt-6">
+        <div v-if="canUpload" class="border-t border-secondary/10 pb-6">
           <div class="flex justify-between items-center mb-3">
             <h4 class="font-bold text-text/80 text-sm uppercase tracking-wide">Upload Gambar Baru</h4>
           </div>
@@ -365,6 +310,41 @@ const getImageUrl = resolveUrl
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="font-bold text-text/80 text-sm uppercase tracking-wide">Pilih Dari Galeri</h4>
+            <span class="text-xs text-text/50">{{ existingImages.length }} gambar</span>
+          </div>
+
+          <div
+            v-if="existingImages.length === 0"
+            class="p-8 border-2 border-dashed border-secondary/20 rounded-xl flex flex-col items-center text-text/30 bg-secondary/5"
+          >
+            <font-awesome-icon icon="fa-solid fa-images" class="text-4xl mb-2" />
+            <span class="text-sm font-medium">Belum ada gambar yang sesuai pencarian.</span>
+          </div>
+
+          <div v-else class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <MediaCard
+              v-for="img in existingImages"
+              :key="img.id"
+              :image-url="getImageUrl(img.thumbnail_path || img.main_path)"
+              :image-id="img.id"
+              :display-name="img.title || 'Gambar'"
+              @click="selectImage(img)"
+              class="cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+            >
+              <template #badges>
+                <div
+                  v-if="img.status === 'PENDING'"
+                  class="absolute top-2 right-2 bg-warning text-text text-[10px] font-bold px-2 py-0.5 rounded shadow-sm z-10 flex items-center gap-1"
+                >
+                  <font-awesome-icon icon="fa-solid fa-spinner" spin /> Proses
+                </div>
+              </template>
+            </MediaCard>
           </div>
         </div>
       </div>

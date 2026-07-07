@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { emitSharedTaskSignal } from './services/firebaseSignalService.js';
 
 async function runTest() {

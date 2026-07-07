@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import db from './config/db.js';
 
 async function calculateStats() {

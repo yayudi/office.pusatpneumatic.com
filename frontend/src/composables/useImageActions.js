@@ -1,5 +1,6 @@
 // frontend/src/composables/useImageActions.js
 import { useToast } from '@/composables/useToast.js'
+import { useDownload } from '@/composables/useDownload.js'
 
 /**
  * Composable for image clipboard and download operations.
@@ -7,6 +8,7 @@ import { useToast } from '@/composables/useToast.js'
  */
 export function useImageActions() {
   const { toast } = useToast()
+  const { downloadBlob } = useDownload()
 
   /**
    * Copy a URL string to clipboard.
@@ -47,13 +49,7 @@ export function useImageActions() {
       const res = await fetch(url)
       const blob = await res.blob()
       const safeName = (filename || 'image').replace(/\.[^.]+$/, '') + '.webp'
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = safeName
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(a.href)
+      downloadBlob(blob, safeName)
     } catch (err) {
       console.error(err)
     }

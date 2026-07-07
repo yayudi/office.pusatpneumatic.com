@@ -17,6 +17,7 @@ import * as productImportService from "../../services/productImportService.js";
 import { processPackageImport } from "../../services/packageImportService.js";
 import * as stockImportService from "../../services/stockImportService.js";
 import * as scheduleImportService from "../../services/scheduleImportService.js";
+import * as mediaImportService from "../../services/mediaImportService.js";
 
 // REPOSITORIES
 import * as jobRepo from "../../repositories/jobRepository.js";
@@ -239,6 +240,24 @@ export const importQueue = async () => {
         processStats = { success: 0 };
         errors = result.errors || [];
       }
+    } else if (realJobType === "LINK_MEDIA_EXCEL") {
+      const result = await mediaImportService.processMediaLinkImport(
+        connection,
+        absoluteFilePath,
+        job.user_id,
+      );
+      if (result.success) {
+        logSummary = `Selesai Tautkan Massal Media via Excel. Berhasil: ${result.successCount}, Gagal: ${result.failCount}.`;
+        processStats = { success: result.successCount, fail: result.failCount };
+        errors = result.errors || [];
+        // Firebase notification logic will be added at the end if needed, but we can emit signals directly in the service or here.
+        emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => Logger.error("Signal Error", e, "IMPORT_WORKER"));
+        emitSharedTaskSignal('MASTER_DATA', 'REFRESH_MEDIA').catch(e => Logger.error("Signal Error", e, "IMPORT_WORKER"));
+      } else {
+        logSummary = "Gagal memproses Tautkan Massal Media.";
+        processStats = { success: 0 };
+        errors = result.errors || [];
+      }
     } else {
       throw new Error(`Job Type tidak dikenal: ${job.job_type}`);
     }
@@ -303,10 +322,10 @@ export const importQueue = async () => {
     }
 
     await jobRepo.completeImportJob(connection, jobId, finalStatus, logSummary, errorLogJSON);
-    emitSharedTaskSignal('BACKGROUND_JOBS', 'IMPORT_COMPLETED').catch(e => console.error(e));
+    emitSharedTaskSignal('BACKGROUND_JOBS', 'IMPORT_COMPLETED').catch(e => Logger.error("Signal Error", e, "IMPORT_WORKER"));
 
     if (realJobType === 'IMPORT_ATTENDANCE' || realJobType === 'IMPORT_SCHEDULES') {
-      emitSharedTaskSignal('HRIS_ATTENDANCE', 'REFRESH_ATTENDANCE').catch(e => console.error(e));
+      emitSharedTaskSignal('HRIS_ATTENDANCE', 'REFRESH_ATTENDANCE').catch(e => Logger.error("Signal Error", e, "IMPORT_WORKER"));
     }
 
     // Hapus file
@@ -341,7 +360,7 @@ export const importQueue = async () => {
             jobId,
             `CRASH: ${error.message.substring(0, 255)}`,
           );
-          emitSharedTaskSignal('BACKGROUND_JOBS', 'IMPORT_FAILED').catch(e => console.error(e));
+          emitSharedTaskSignal('BACKGROUND_JOBS', 'IMPORT_FAILED').catch(e => Logger.error("Signal Error", e, "IMPORT_WORKER"));
         }
       } catch (e) {
         Logger.error("Gagal update status CRASH/RETRY ke DB", e, "IMPORT_WORKER");

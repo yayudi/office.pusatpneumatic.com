@@ -1,14 +1,15 @@
-<!-- frontend/src/components/wms/shared/ProductFormModal.vue -->
+<!-- frontend/src/components/products/ProductFormModal.vue -->
 <script setup>
 import { ref, watch, onMounted } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
+import { useToast } from '@/composables/useToast.js'
+import { useUpload } from '@/composables/useUpload.js'
+import { useMobile } from '@/composables/useMobile.js'
+import axios from '@/api/axios.js'
 import debounce from 'lodash/debounce'
 import BaseModal from '@/components/ui/BaseModal.vue'
-import axios from '@/api/axios.js'
-import { useToast } from '@/composables/useToast.js'
-import ProductHistoryList from '@/components/products/ProductHistoryList.vue'
-import { useMobile } from '@/composables/useMobile.js'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import ProductHistoryList from '@/components/products/ProductHistoryList.vue'
 import SegmentedControl from '@/components/ui/SegmentedControl.vue'
 
 const { isMobile } = useMobile()
@@ -26,6 +27,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'refresh'])
 const { toast } = useToast()
+const { uploadFile } = useUpload()
 
 const form = ref({
   sku: '',
@@ -305,25 +307,19 @@ async function handleSubmit() {
     // Switch ke FormData jika ada gambar
     let response
     if (selectedImage.value) {
-      const formData = new FormData()
-      // Append semua field dasar
-      Object.keys(payload).forEach(key => {
-        if (key === 'components') {
-          formData.append(key, JSON.stringify(payload[key]))
-        } else {
-          formData.append(key, payload[key])
-        }
-      })
-      formData.append('images', selectedImage.value)
+      const uploadPayload = { ...payload }
+      uploadPayload.components = JSON.stringify(uploadPayload.components)
 
       if (props.mode === 'create') {
-        response = await axios.post('/products', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        })
+        response = await uploadFile('/products', selectedImage.value, 'images', uploadPayload, 'post')
       } else {
-        response = await axios.put(`/products/${props.productData.id}`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        })
+        response = await uploadFile(
+          `/products/${props.productData.id}`,
+          selectedImage.value,
+          'images',
+          uploadPayload,
+          'put'
+        )
       }
     } else {
       // JSON Biasa

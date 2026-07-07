@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getDatabase } from 'firebase-admin/database';
 import path from 'path';

@@ -1,4 +1,5 @@
 import db from "../config/db.js";
+import Logger from "../utils/logger.js";
 import * as investigationRepo from "../repositories/investigationRepository.js";
 import * as locationRepo from "../repositories/locationRepository.js";
 import * as stockRepo from "../repositories/stockMovementRepository.js";
@@ -303,8 +304,8 @@ export const revertTransactionService = async (transactionId, userId) => {
     );
 
     await connection.commit();
-    emitSharedTaskSignal('INVESTIGATION', 'TRANSACTION_REVERTED').catch(e => console.error(e));
-    emitSharedTaskSignal('WMS_DASHBOARD', 'REFRESH_STOCK').catch(e => console.error(e));
+    emitSharedTaskSignal('INVESTIGATION', 'TRANSACTION_REVERTED').catch(e => Logger.error("Signal Error", e, "INVESTIGATION_SERVICE"));
+    emitSharedTaskSignal('WMS_DASHBOARD', 'REFRESH_STOCK').catch(e => Logger.error("Signal Error", e, "INVESTIGATION_SERVICE"));
     return { success: true, message: "Transaksi berhasil di-revert dan stok dikembalikan." };
   } catch (error) {
     await connection.rollback();

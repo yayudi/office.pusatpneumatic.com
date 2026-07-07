@@ -1,4 +1,5 @@
 import * as paperSizeService from '../services/paperSizeService.js';
+import Logger from '../utils/logger.js';
 
 export const getAllPaperSizes = async (req, res) => {
   try {
@@ -9,7 +10,7 @@ export const getAllPaperSizes = async (req, res) => {
       data
     });
   } catch (error) {
-    console.error('[PaperSizeController] Error getAllPaperSizes:', error);
+    Logger.error('[PaperSizeController] Error getAllPaperSizes:', error);
     return res.status(500).json({
       success: false,
       message: 'Gagal mengambil data paper size'
@@ -59,7 +60,7 @@ export const createPaperSize = async (req, res) => {
       data
     });
   } catch (error) {
-    console.error('[PaperSizeController] Error createPaperSize:', error);
+    Logger.error('[PaperSizeController] Error createPaperSize:', error);
     return res.status(500).json({
       success: false,
       message: error.message || 'Gagal membuat paper size'
@@ -93,7 +94,7 @@ export const updatePaperSize = async (req, res) => {
       data
     });
   } catch (error) {
-    console.error('[PaperSizeController] Error updatePaperSize:', error);
+    Logger.error('[PaperSizeController] Error updatePaperSize:', error);
     return res.status(500).json({
       success: false,
       message: error.message || 'Gagal memperbarui paper size'
@@ -110,7 +111,7 @@ export const deletePaperSize = async (req, res) => {
       message: 'Berhasil menghapus paper size'
     });
   } catch (error) {
-    console.error('[PaperSizeController] Error deletePaperSize:', error);
+    Logger.error('[PaperSizeController] Error deletePaperSize:', error);
     return res.status(500).json({
       success: false,
       message: error.message || 'Gagal menghapus paper size'

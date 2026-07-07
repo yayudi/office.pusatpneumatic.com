@@ -1,13 +1,13 @@
 // backend/router/productRouter.js
 import express from "express";
 import multer from "multer";
-import path from "path";
 import fs from "fs";
 import { canAccess } from "../middleware/permissionMiddleware.js";
 import * as productController from "../controllers/productController.js";
 import { createJobService } from "../services/jobService.js";
 import AppError from "../utils/AppError.js";
 import Logger from "../utils/logger.js";
+import { createDiskStorage } from "../utils/multerUtils.js";
 import { validate } from "../middleware/validate.js";
 import { productSchema, linkMediaSchema } from "../validators/productValidator.js";
 
@@ -27,16 +27,7 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 // Setup Multer (Simpan sementara di folder imports sebelum diproses worker)
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, "price-update-" + uniqueSuffix + path.extname(file.originalname));
-  },
-});
-
+const storage = createDiskStorage(uploadDir, "price-update");
 const upload = multer({ storage: storage });
 
 // CONFIG: Multer untuk Product Images
@@ -50,15 +41,7 @@ if (!fs.existsSync(productUploadDir)) {
   }
 }
 
-const productStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, productUploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, "prod-" + uniqueSuffix + path.extname(file.originalname));
-  },
-});
+const productStorage = createDiskStorage(productUploadDir, "prod");
 
 const productUpload = multer({
   storage: productStorage,

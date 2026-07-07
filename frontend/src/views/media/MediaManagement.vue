@@ -9,6 +9,7 @@ import apiClient from '@/api/axios'
 import MediaInfoModal from './MediaInfoModal.vue'
 import MediaLightbox from '@/components/common/MediaLightbox.vue'
 import LinkProductModal from './LinkProductModal.vue'
+import BulkLinkMediaModal from './BulkLinkMediaModal.vue'
 const ImageCropperModal = defineAsyncComponent(() => import('./ImageCropperModal.vue'))
 import BulkEditTagsModal from './BulkEditTagsModal.vue'
 import SegmentedControl from '@/components/ui/SegmentedControl.vue'
@@ -23,6 +24,7 @@ import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 import { useMobile } from '@/composables/useMobile.js'
 
 import { formatBytes } from '@/utils/formatBytes.js'
+import { useUpload } from '@/composables/useUpload.js'
 import { formatTags } from '@/utils/formatters.js'
 import { useProductSearch } from '@/composables/useProductSearch.js'
 
@@ -35,6 +37,7 @@ const linkStatusOptions = [
 const { isMobile } = useMobile()
 const { toast } = useToast()
 const { downloadImage } = useImageActions()
+const { uploadFiles } = useUpload()
 const mediaList = ref([])
 const viewMode = ref(localStorage.getItem('mediaViewMode') || 'grid')
 watch(viewMode, newMode => {
@@ -44,6 +47,7 @@ watch(viewMode, newMode => {
 const pagination = ref({ page: 1, limit: 18, total: 0, totalPages: 1 })
 const isLoading = ref(false)
 const uploaderInput = ref(null)
+const isBulkLinkMediaModalOpen = ref(false)
 const isUploading = ref(false)
 const globalSearchStr = ref('')
 const linkStatusFilter = ref('all')
@@ -225,6 +229,10 @@ const triggerUpload = async () => {
   }
 }
 
+const triggerExcelUpload = () => {
+  isBulkLinkMediaModalOpen.value = true
+}
+
 const stripExtension = filename => filename.replace(/\.[^/.]+$/, '')
 
 const processFilesForUpload = files => {
@@ -340,28 +348,7 @@ const handlePaste = async event => {
   }
 }
 
-const genericKeywords = [
-  'image',
-  'images',
-  'gambar',
-  'img',
-  'photo',
-  'pic',
-  'untitled',
-  'whatsapp image',
-  'telegram',
-  'screenshot',
-  'screen shot',
-  'capture',
-  'dcim',
-  'picture',
-  'snip'
-]
-const isGenericTitle = title => {
-  if (!title || !title.trim()) return true
-  const lower = title.toLowerCase()
-  return genericKeywords.some(kw => lower.includes(kw))
-}
+import { isGenericTitle } from '@/utils/mediaUtils'
 
 const executeBulkUpload = async () => {
   if (selectedFiles.value.length === 0) return
@@ -385,22 +372,20 @@ const executeBulkUpload = async () => {
       const formData = new FormData()
       chunk.forEach(f => formData.append('images', f))
 
-      // Kirim custom titles sejajar dengan chunk
       const chunkTitles = fileTitles.value.slice(i, i + chunkSize)
-      formData.append('titles', JSON.stringify(chunkTitles))
+      const additionalData = {
+        titles: JSON.stringify(chunkTitles)
+      }
 
       if (bulkTagsStr.value.trim()) {
-        formData.append('tags', bulkTagsStr.value.trim())
+        additionalData.tags = bulkTagsStr.value.trim()
       }
 
       if (bulkSelectedProducts.value.length > 0) {
-        const pIds = bulkSelectedProducts.value.map(p => p.id).join(',')
-        formData.append('products', pIds)
+        additionalData.products = bulkSelectedProducts.value.map(p => p.id).join(',')
       }
 
-      const result = await apiClient.post('/media/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
+      const result = await uploadFiles('/media/upload', chunk, 'images', additionalData)
 
       if (!result.data.success) {
         throw result.data
@@ -523,6 +508,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('paste', handlePaste)
   if (pollInterval) clearInterval(pollInterval)
+  if (debouncedFetchMedia) debouncedFetchMedia.cancel()
 })
 </script>
 
@@ -672,6 +658,15 @@ onUnmounted(() => {
           >
             <font-awesome-icon icon="fa-solid fa-check-double" class="mr-2" />
             <span v-text="isSelectionMode ? 'Batal' : 'Pilih'"></span>
+          </button>
+          <button
+            @click="triggerExcelUpload"
+            class="px-4 py-1.5 rounded-lg bg-accent text-background font-medium hover:brightness-110 transition-colors flex items-center justify-center whitespace-nowrap"
+            :disabled="isUploading || isLoading"
+            title="Tautkan Massal via Excel"
+          >
+            <font-awesome-icon icon="fa-solid fa-file-excel" :class="isMobile ? 'mr-2' : ''" />
+            <span v-if="isMobile">Tautkan Massal (Excel)</span>
           </button>
           <button
             @click="triggerUpload"
@@ -854,7 +849,10 @@ onUnmounted(() => {
             {{ prodName }}
           </li>
         </ul>
-        <div v-if="hoveredMediaItem.linked_products.split('||').length > 7" class="text-[10px] text-text/60 italic mt-2 pt-1 border-t border-secondary/30 text-center">
+        <div
+          v-if="hoveredMediaItem.linked_products.split('||').length > 7"
+          class="text-[10px] text-text/60 italic mt-2 pt-1 border-t border-secondary/30 text-center"
+        >
           + {{ hoveredMediaItem.linked_products.split('||').length - 7 }} produk lainnya
         </div>
       </template>
@@ -1117,6 +1115,12 @@ onUnmounted(() => {
     :selectedMediaIds="Array.from(selectedMediaIds)"
     @close="isLinkProductModalOpen = false"
     @linked="(fetchMedia(pagination.page, true), toggleSelectionMode())"
+  />
+
+  <BulkLinkMediaModal
+    :show="isBulkLinkMediaModalOpen"
+    @close="isBulkLinkMediaModalOpen = false"
+    @uploaded="fetchMedia(pagination.page, true)"
   />
 
   <BulkEditTagsModal

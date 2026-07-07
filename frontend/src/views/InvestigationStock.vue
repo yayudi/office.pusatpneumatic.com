@@ -685,8 +685,10 @@ import BasePagination from '@/components/ui/BasePagination.vue'
 import TriStateSelect from '@/components/ui/TriStateSelect.vue'
 import SegmentedControl from '@/components/ui/SegmentedControl.vue'
 import { fetchAllLocations } from '@/api/helpers/locations.js'
+import { useDownload } from '@/composables/useDownload.js'
 
 const { toast } = useToast()
+const { downloadBlob } = useDownload()
 const loading = ref(false)
 const results = ref([])
 const openGroups = ref([])
@@ -970,14 +972,7 @@ const exportToCSV = () => {
 
   const csvContent = rows.map(e => e.join(',')).join('\n')
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-  const link = document.createElement('a')
-  const url = URL.createObjectURL(blob)
-  link.setAttribute('href', url)
-  link.setAttribute('download', `investigasi_stok_${new Date().toISOString().slice(0, 10)}.csv`)
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
+  downloadBlob(blob, `investigasi_stok_${new Date().toISOString().slice(0, 10)}.csv`)
 }
 
 onMounted(async () => {

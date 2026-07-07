@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 // backend/utils/logger.js
 import fs from "fs";
 import path from "path";
@@ -92,7 +93,7 @@ class Logger {
     try {
       const cleanData = this.#sanitize(data);
       return `\nData: ${JSON.stringify(cleanData, null, 2)}`;
-    } catch (e) {
+    } catch {
       return `\nData: [Circular/Non-serializable]`;
     }
   }

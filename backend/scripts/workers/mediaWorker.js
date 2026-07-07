@@ -138,12 +138,12 @@ export const runMediaWorker = async () => {
           }
         )
 
-        emitSharedTaskSignal('BACKGROUND_JOBS', 'MEDIA_COMPLETED').catch(e => console.error(e));
+        emitSharedTaskSignal('BACKGROUND_JOBS', 'MEDIA_COMPLETED').catch(e => Logger.error("Signal Error", e, "MEDIA_WORKER"));
         Logger.info(`Job ${job.id} completed.`, "MEDIA_WORKER");
       } catch (error) {
         Logger.error(`Job ${job.id} failed`, error, "MEDIA_WORKER");
         await failMediaJob(job.id, error.message || 'Unknown processing error')
-        emitSharedTaskSignal('BACKGROUND_JOBS', 'MEDIA_FAILED').catch(e => console.error(e));
+        emitSharedTaskSignal('BACKGROUND_JOBS', 'MEDIA_FAILED').catch(e => Logger.error("Signal Error", e, "MEDIA_WORKER"));
       }
     }
 

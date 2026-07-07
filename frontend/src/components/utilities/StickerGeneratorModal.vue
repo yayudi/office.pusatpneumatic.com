@@ -2,6 +2,7 @@
 import { swalConfirm, swalAlert } from '@/composables/useSweetAlert'
 import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue'
 import { useToast } from '@/composables/useToast.js'
+import { useDownload } from '@/composables/useDownload.js'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import DpvStickerTemplate from './DpvStickerTemplate.vue'
 const DynamicStickerRenderer = defineAsyncComponent(() => import('./DynamicStickerRenderer.vue'))
@@ -20,6 +21,7 @@ const props = defineProps({
 
 defineEmits(['close'])
 const { toast } = useToast()
+const { downloadBlob } = useDownload()
 
 // Data struktur: array of { id, line1, line2, copies }
 const stickers = ref([])
@@ -362,10 +364,7 @@ const handleDownloadZip = async () => {
 
     if (count > 0) {
       const content = await zip.generateAsync({ type: 'blob' })
-      const link = document.createElement('a')
-      link.href = URL.createObjectURL(content)
-      link.download = `stickers_batch_${Date.now()}.zip`
-      link.click()
+      downloadBlob(content, `stickers_batch_${Date.now()}.zip`)
       toast(`Berhasil mengunduh ${count} stiker.`, 'success')
     } else {
       //

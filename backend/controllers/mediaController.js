@@ -26,7 +26,7 @@ export const listMedia = async (req, res, next) => {
     try {
       filters.linkStatus = JSON.parse(req.query.linkStatus);
     } catch {
-      if (['linked', 'orphaned'].includes(req.query.linkStatus)) {
+      if (["linked", "orphaned"].includes(req.query.linkStatus)) {
         filters.linkStatus = req.query.linkStatus;
       }
     }
@@ -45,8 +45,8 @@ export const listMedia = async (req, res, next) => {
         page,
         limit,
         total,
-        totalPages: Math.ceil(total / limit)
-      }
+        totalPages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
     next(error);
@@ -86,7 +86,10 @@ export const getMediaStatus = async (req, res, next) => {
     return res.json({ success: true, data: [] });
   }
 
-  const mediaIds = idsStr.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
+  const mediaIds = idsStr
+    .split(",")
+    .map((id) => parseInt(id.trim(), 10))
+    .filter((id) => !isNaN(id));
 
   if (mediaIds.length === 0) {
     return res.json({ success: true, data: [] });
@@ -117,12 +120,15 @@ export const uploadMedia = async (req, res, next) => {
 
   let tags = [];
   if (req.body.tags) {
-    if (typeof req.body.tags === 'string') {
+    if (typeof req.body.tags === "string") {
       try {
         tags = JSON.parse(req.body.tags);
       } catch {
         // Fallback untuk raw string koma (FormData browser)
-        tags = req.body.tags.split(',').map(t => t.trim()).filter(Boolean);
+        tags = req.body.tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean);
       }
     } else if (Array.isArray(req.body.tags)) {
       tags = req.body.tags;
@@ -151,7 +157,9 @@ export const uploadMedia = async (req, res, next) => {
     for (let i = 0; i < req.files.length; i++) {
       const file = req.files[i];
       if (!file.filename) {
-        throw new Error("File tidak memiliki filename. Pastikan multerConfig 'uploadDisk' berjalan normal.");
+        throw new Error(
+          "File tidak memiliki filename. Pastikan multerConfig 'uploadDisk' berjalan normal.",
+        );
       }
 
       const fileTitle = (titles[i] && titles[i].trim()) || file.originalname;
@@ -159,17 +167,27 @@ export const uploadMedia = async (req, res, next) => {
       // EXIF stripping and hashing are handled in mediaService
 
       // Use service to process and store the file, handling EXIF stripping, hashing, and duplicate detection
-      const mediaId = await mediaService.processMediaFile(file, fileTitle, tags, userId, connection);
+      const mediaId = await mediaService.processMediaFile(
+        file,
+        fileTitle,
+        tags,
+        userId,
+        connection,
+      );
 
       // Tautkan otomatis ke Produk jika ada (fitur Bulk Upload Link)
       if (req.body.products) {
         let productIds = [];
-        if (typeof req.body.products === 'string') {
-          try { 
-            const parsed = JSON.parse(req.body.products); 
+        if (typeof req.body.products === "string") {
+          try {
+            const parsed = JSON.parse(req.body.products);
             productIds = Array.isArray(parsed) ? parsed : [parsed];
+          } catch {
+            productIds = req.body.products
+              .split(",")
+              .map((id) => id.trim())
+              .filter(Boolean);
           }
-          catch { productIds = req.body.products.split(',').map(id => id.trim()).filter(Boolean); }
         } else if (Array.isArray(req.body.products)) {
           productIds = req.body.products;
         } else if (req.body.products) {
@@ -184,7 +202,7 @@ export const uploadMedia = async (req, res, next) => {
       uploadedAssets.push({
         id: mediaId,
         originalName: file.originalname,
-        status: "PENDING"
+        status: "PENDING",
       });
     }
 
@@ -192,15 +210,15 @@ export const uploadMedia = async (req, res, next) => {
     res.json({
       success: true,
       message: `${uploadedAssets.length} file berhasil diantrekan`,
-      data: uploadedAssets
+      data: uploadedAssets,
     });
   } catch (error) {
     if (connection) await connection.rollback();
     // Cleanup temporary files on failure
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        const filePath = file.path || path.resolve('uploads/temp', file.filename);
-        await fs.unlink(filePath).catch(() => { });
+        const filePath = file.path || path.resolve("uploads/temp", file.filename);
+        await fs.unlink(filePath).catch(() => {});
       }
     }
 
@@ -208,7 +226,7 @@ export const uploadMedia = async (req, res, next) => {
       return res.status(409).json({
         success: false,
         message: `File ${error.filename} sudah pernah diunggah sebelumnya.`,
-        error_code: 'DUPLICATE_MEDIA'
+        error_code: "DUPLICATE_MEDIA",
       });
     }
 
@@ -240,7 +258,7 @@ export const deleteMedia = async (req, res, next) => {
     // If successful, delete the physical files
     const deleteFile = async (subPath) => {
       if (!subPath) return;
-      const fullPath = path.resolve('uploads', subPath);
+      const fullPath = path.resolve("uploads", subPath);
       try {
         await fs.unlink(fullPath);
       } catch (err) {
@@ -252,13 +270,13 @@ export const deleteMedia = async (req, res, next) => {
     await deleteFile(asset.thumbnail_path);
 
     // If it was still in temp
-    if (asset.status === 'PENDING' && asset.main_path?.startsWith('temp/')) {
+    if (asset.status === "PENDING" && asset.main_path?.startsWith("temp/")) {
       await deleteFile(asset.main_path); // already hit by main_path
     }
 
     res.json({ success: true, message: "Aset berhasil dihapus" });
   } catch (error) {
-    if (error.code === 'ER_ROW_IS_REFERENCED_2') {
+    if (error.code === "ER_ROW_IS_REFERENCED_2") {
       return next(new AppError("Tidak bisa dihapus karena sedang dipakai oleh produk", 409));
     }
     return next(new AppError("Gagal menghapus media", 500));
@@ -284,7 +302,6 @@ export const updateMediaTagsController = async (req, res, next) => {
 
     await mediaRepo.updateMediaTags(connection, id, tags);
     res.json({ success: true, message: "Tags berhasil diperbarui" });
-
   } catch (error) {
     next(error);
   } finally {
@@ -309,10 +326,80 @@ export const updateMediaTitleController = async (req, res, next) => {
 
     await mediaRepo.updateMediaTitle(connection, id, title.trim());
     res.json({ success: true, message: "Judul berhasil diperbarui" });
-
   } catch (error) {
     next(error);
   } finally {
     if (connection) connection.release();
+  }
+};
+
+/**
+ * POST /api/media/bulk-link-excel
+ * Upload Excel untuk Tautkan Massal produk ke aset gambar.
+ */
+import { createJobService } from "../services/jobService.js";
+
+export const bulkLinkMediaExcel = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return next(new AppError("File tidak ditemukan.", 400));
+    }
+    const jobId = await createJobService({
+      userId: req.user.id,
+      type: "LINK_MEDIA_EXCEL",
+      originalname: req.file.originalname,
+      serverFilePath: req.file.path,
+      notes: "Bulk Link Media via Excel",
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "File berhasil diunggah. Proses tautan massal berjalan di latar belakang.",
+      jobId: jobId,
+    });
+  } catch (error) {
+    next(new AppError(`Gagal memproses upload: ${error.message}`, 500));
+  }
+};
+
+import ExcelJS from "exceljs";
+
+export const downloadBulkLinkTemplate = async (req, res, next) => {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Template Tautkan Media");
+
+    sheet.columns = [
+      { header: "SKU", key: "sku", width: 20 },
+      { header: "Image_URL", key: "image_url", width: 50 },
+    ];
+
+    sheet.getRow(1).font = { bold: true };
+    sheet.getRow(1).fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFDDDDDD" },
+    };
+
+    sheet.addRow({
+      sku: "PP000R081",
+      image_url: "https://api.dpvindonesia.com/uploads/main/main-1783397524366-325551216.webp",
+    });
+    sheet.addRow({
+      sku: "PP000453P",
+      image_url:
+        "https://api.dpvindonesia.com/uploads/main/main-dpv_indonesia_logo-white_lettermark_sm.png",
+    });
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    res.setHeader("Content-Disposition", "attachment; filename=Template_Tautkan_Media.xlsx");
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch {
+    next(new AppError("Gagal men-generate template excel", 500));
   }
 };

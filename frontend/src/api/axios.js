@@ -6,7 +6,7 @@ import { useLoadingStore } from '@/stores/loadingStore'
 // Buat instance axios
 const instance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
-  timeout: 10000, // Timeout dalam 10 detik
+  timeout: 30000, // Timeout dalam 30 detik untuk shared hosting
   headers: {
     'Content-Type': 'application/json'
   }

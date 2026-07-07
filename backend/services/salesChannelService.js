@@ -47,7 +47,7 @@ export const getChannelById = async (id) => {
  * @param {number|string} userId
  * @returns {Promise<any>}
  */
-export const createChannel = async (channelData, userId) => {
+export const createChannel = async (channelData, _) => {
   let connection;
   try {
     connection = await db.getConnection();
@@ -62,7 +62,7 @@ export const createChannel = async (channelData, userId) => {
     // TODO: Audit logging bisa ditambahkan di sini jika dibutuhkan
 
     await connection.commit();
-    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_CHANNELS').catch(e => console.error(e));
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_CHANNELS').catch(e => Logger.error("Signal Error", e, "SALES_CHANNEL_SERVICE"));
     return newId;
   } catch (error) {
     if (connection) await connection.rollback();
@@ -79,7 +79,7 @@ export const createChannel = async (channelData, userId) => {
  * @param {number|string} userId
  * @returns {Promise<any>}
  */
-export const updateChannel = async (id, channelData, userId) => {
+export const updateChannel = async (id, channelData, _) => {
   let connection;
   try {
     connection = await db.getConnection();
@@ -97,7 +97,7 @@ export const updateChannel = async (id, channelData, userId) => {
     const success = await salesChannelRepo.update(connection, id, channelData);
 
     await connection.commit();
-    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_CHANNELS').catch(e => console.error(e));
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_CHANNELS').catch(e => Logger.error("Signal Error", e, "SALES_CHANNEL_SERVICE"));
     return success;
   } catch (error) {
     if (connection) await connection.rollback();
@@ -113,7 +113,7 @@ export const updateChannel = async (id, channelData, userId) => {
  * @param {number|string} userId
  * @returns {Promise<any>}
  */
-export const deleteChannel = async (id, userId) => {
+export const deleteChannel = async (id, _) => {
   let connection;
   try {
     connection = await db.getConnection();
@@ -127,7 +127,7 @@ export const deleteChannel = async (id, userId) => {
     const success = await salesChannelRepo.remove(connection, id);
 
     await connection.commit();
-    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_CHANNELS').catch(e => console.error(e));
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_CHANNELS').catch(e => Logger.error("Signal Error", e, "SALES_CHANNEL_SERVICE"));
     return success;
   } catch (error) {
     if (connection) await connection.rollback();
