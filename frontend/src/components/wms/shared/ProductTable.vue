@@ -249,11 +249,13 @@ onUnmounted(() => {
         class="hidden md:table-header-group sticky top-0 z-50 bg-background shadow-sm uppercase text-xs font-bold text-text/60"
       >
         <tr>
-          <th class="px-4 py-3 w-16 text-center md:sticky md:left-0 z-30 md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]">
+          <th
+            class="px-4 py-3 w-16 text-center md:sticky md:left-0 z-30 bg-background md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]"
+          >
             Foto
           </th>
           <th
-            class="px-6 py-3 md:sticky md:left-16 md:border-r md:border-secondary/50 z-30 md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] text-left cursor-pointer hover:text-primary transition-colors min-w-[250px] md:w-[350px]"
+            class="px-6 py-3 md:sticky md:left-16 md:border-r md:border-secondary/50 z-30 bg-background md:shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)] text-left cursor-pointer hover:text-primary transition-colors min-w-[250px] md:w-[350px]"
             @click="handleSort('name')"
           >
             <div class="flex items-center gap-2">Produk <font-awesome-icon :icon="sortIcon('name')" /></div>
@@ -295,7 +297,7 @@ onUnmounted(() => {
             Stok
           </th>
           <th
-            class="px-6 py-3 md:sticky md:right-0 z-30 md:border-r md:border-secondary/50 md:shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)] text-center min-w-[80px]"
+            class="p-3 md:sticky md:right-0 z-30 bg-background md:border-r md:border-secondary/50 md:shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)] text-center w-[40px]"
           >
             Aksi
           </th>
@@ -312,7 +314,10 @@ onUnmounted(() => {
         <template v-if="loading">
           <tr v-for="n in 10" :key="`skeleton-${n}`" class="border-b border-secondary/20 animate-pulse">
             <td v-for="i in 8" :key="i" class="px-6 py-4">
-              <BaseSkeleton :shape="i === 8 ? 'rect' : 'text'" :className="i === 1 ? 'w-8 h-4 mx-auto' : i === 8 ? 'w-16 h-6 mx-auto rounded-md' : 'w-full h-4'" />
+              <BaseSkeleton
+                :shape="i === 8 ? 'rect' : 'text'"
+                :className="i === 1 ? 'w-8 h-4 mx-auto' : i === 8 ? 'w-12 h-6 mx-auto rounded-md' : 'w-full h-4'"
+              />
             </td>
           </tr>
         </template>
@@ -521,7 +526,7 @@ onUnmounted(() => {
 
           <!-- ACTIONS (Sticky Right) -->
           <td
-            class="hidden md:table-cell px-6 py-2 w-[80px] text-center md:sticky md:right-0 z-20 bg-background group-hover:bg-gradient-to-r group-hover:from-secondary/10 group-hover:to-secondary/10 transition-colors shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)] border-b border-secondary/80"
+            class="hidden md:table-cell p-3 w-[80px] text-center md:sticky md:right-0 z-20 bg-background group-hover:bg-gradient-to-r group-hover:from-secondary/10 group-hover:to-secondary/10 transition-colors shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)] border-b border-secondary/80"
           >
             <div class="flex justify-center items-center relative">
               <button

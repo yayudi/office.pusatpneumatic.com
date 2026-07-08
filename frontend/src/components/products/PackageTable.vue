@@ -331,16 +331,16 @@ function getSortIcon(field) {
                   "
                 >
                   <div
-                    class="flex items-center justify-center gap-2 transition-opacity"
-                    :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
+                    class="flex items-center justify-center gap-2 transition-all duration-200"
+                    :class="isMobile ? 'opacity-100' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100'"
                   >
                     <button
                       @click="emit('edit', product)"
-                      class="flex items-center justify-center rounded-lg hover:bg-primary/10 text-primary transition-colors"
+                      class="flex items-center justify-center rounded-lg hover:bg-primary/10 transition-colors"
                       :class="
                         isMobile
-                          ? 'px-3 py-1.5 bg-primary/10 font-semibold text-xs gap-2'
-                          : 'w-8 h-8'
+                          ? 'px-3 py-1.5 bg-primary/10 text-primary font-semibold text-xs gap-2'
+                          : 'w-8 h-8 text-text/40 hover:text-primary'
                       "
                       title="Edit Paket"
                     >
@@ -350,11 +350,11 @@ function getSortIcon(field) {
                     <button
                       v-if="product.is_active"
                       @click="emit('delete', product)"
-                      class="flex items-center justify-center rounded-lg hover:bg-danger/10 text-danger transition-colors"
+                      class="flex items-center justify-center rounded-lg hover:bg-danger/10 transition-colors"
                       :class="
                         isMobile
-                          ? 'px-3 py-1.5 bg-danger/10 font-semibold text-xs gap-2'
-                          : 'w-8 h-8'
+                          ? 'px-3 py-1.5 bg-danger/10 text-danger font-semibold text-xs gap-2'
+                          : 'w-8 h-8 text-text/40 hover:text-danger'
                       "
                       title="Arsipkan"
                     >
@@ -364,11 +364,11 @@ function getSortIcon(field) {
                     <button
                       v-else
                       @click="emit('restore', product)"
-                      class="flex items-center justify-center rounded-lg hover:bg-success/10 text-success transition-colors"
+                      class="flex items-center justify-center rounded-lg hover:bg-success/10 transition-colors"
                       :class="
                         isMobile
-                          ? 'px-3 py-1.5 bg-success/10 font-semibold text-xs gap-2'
-                          : 'w-8 h-8'
+                          ? 'px-3 py-1.5 bg-success/10 text-success font-semibold text-xs gap-2'
+                          : 'w-8 h-8 text-text/40 hover:text-success'
                       "
                       title="Pulihkan"
                     >

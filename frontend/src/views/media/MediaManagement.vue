@@ -22,7 +22,6 @@ import MediaCard from '@/components/common/MediaCard.vue'
 import MediaActionBar from '@/components/common/MediaActionBar.vue'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 import { useMobile } from '@/composables/useMobile.js'
-
 import { formatBytes } from '@/utils/formatBytes.js'
 import { useUpload } from '@/composables/useUpload.js'
 import { formatTags } from '@/utils/formatters.js'
@@ -44,13 +43,21 @@ watch(viewMode, newMode => {
   localStorage.setItem('mediaViewMode', newMode)
 })
 
-const pagination = ref({ page: 1, limit: 18, total: 0, totalPages: 1 })
+const initialPageSize = Number(localStorage.getItem('mediaPageSize')) || 18
+const pagination = ref({ page: 1, limit: initialPageSize, total: 0, totalPages: 1 })
+
+const changePageSize = newLimit => {
+  pagination.value.limit = newLimit
+  localStorage.setItem('mediaPageSize', newLimit)
+  fetchMedia(1)
+}
+
 const isLoading = ref(false)
 const uploaderInput = ref(null)
-const isBulkLinkMediaModalOpen = ref(false)
 const isUploading = ref(false)
 const globalSearchStr = ref('')
 const linkStatusFilter = ref('all')
+const isBulkLinkMediaModalOpen = ref(false)
 const isUsageTooltipVisible = ref(false)
 const usageTooltipTarget = ref(null)
 const hoveredMediaItem = ref(null)
@@ -649,7 +656,7 @@ onUnmounted(() => {
           </button>
           <button
             @click="toggleSelectionMode"
-            class="px-4 py-1.5 rounded-lg font-medium transition-colors flex items-center justify-center whitespace-nowrap"
+            class="px-4 py-1.5 h-10 rounded-lg font-medium transition-colors flex items-center justify-center whitespace-nowrap"
             :class="
               isSelectionMode
                 ? 'bg-secondary text-text border border-secondary hover:brightness-95'
@@ -661,7 +668,7 @@ onUnmounted(() => {
           </button>
           <button
             @click="triggerExcelUpload"
-            class="px-4 py-1.5 rounded-lg bg-accent text-background font-medium hover:brightness-110 transition-colors flex items-center justify-center whitespace-nowrap"
+            class="px-4 py-1.5 w-10 h-10 rounded-lg bg-accent text-background font-medium hover:brightness-110 transition-colors flex items-center justify-center whitespace-nowrap"
             :disabled="isUploading || isLoading"
             title="Tautkan Massal via Excel"
           >
@@ -670,7 +677,7 @@ onUnmounted(() => {
           </button>
           <button
             @click="triggerUpload"
-            class="px-4 py-1.5 rounded-lg bg-primary text-background font-medium hover:bg-accent transition-colors flex items-center justify-center whitespace-nowrap"
+            class="px-4 py-1.5 w-10 h-10 rounded-lg bg-primary text-background font-medium hover:bg-accent transition-colors flex items-center justify-center whitespace-nowrap"
             :disabled="isUploading"
           >
             <font-awesome-icon icon="fa-solid fa-upload" :class="isMobile ? 'mr-2' : ''" />
@@ -682,7 +689,7 @@ onUnmounted(() => {
 
     <div
       :class="{
-        'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 relative': viewMode === 'grid',
+        'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 relative': viewMode === 'grid',
         'flex flex-col gap-3 relative': viewMode === 'list',
         'grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 xl:grid-cols-10 gap-2 relative': viewMode === 'compact'
       }"
@@ -690,10 +697,10 @@ onUnmounted(() => {
       <div
         v-for="(item, index) in mediaList"
         :key="item.id"
-        class="card border transition-all relative overflow-hidden"
+        class="card border transition-all relative overflow-hidden rounded-xl"
         :class="[
           selectedMediaIds.has(item.id)
-            ? 'border-primary ring-2 ring-primary ring-offset-2 ring-offset-background'
+            ? 'border-primary ring-1 ring-primary ring-offset-0 ring-offset-background'
             : 'bg-background border-secondary hover:border-primary/50',
           viewMode === 'list' ? 'flex flex-row items-center py-2 px-3 gap-4' : 'shadow-sm'
         ]"
@@ -763,7 +770,7 @@ onUnmounted(() => {
             class="relative overflow-hidden cursor-pointer rounded-xl h-full flex flex-col"
             :class="[
               selectedMediaIds.has(item.id)
-                ? 'bg-primary/10 ring-2 ring-primary border border-transparent'
+                ? 'bg-primary/10 border border-transparent'
                 : 'bg-secondary/5 border border-transparent hover:border-secondary/30',
               viewMode === 'compact' ? 'p-0.5' : 'p-2'
             ]"
@@ -891,7 +898,12 @@ onUnmounted(() => {
     class="mt-4 border-secondary/50 border rounded-xl overflow-hidden bg-background"
     v-if="pagination.totalPages > 1"
   >
-    <BasePagination :pagination="pagination" :show-limit-picker="false" @changePage="p => fetchMedia(p)" />
+    <BasePagination
+      :pagination="pagination"
+      :show-limit-picker="true"
+      @changePage="p => fetchMedia(p)"
+      @update:limit="changePageSize"
+    />
   </div>
 
   <!-- Bulk Upload Modal -->

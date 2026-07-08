@@ -1,6 +1,6 @@
 <!-- frontend\src\components\stats\PackageAnalysisTable.vue -->
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, reactive, watch } from 'vue'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import FilterBar from '@/components/ui/FilterBar.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
@@ -25,8 +25,12 @@ const filterValues = ref({
   stockStatus: { include: [], exclude: [] }
 })
 
-const currentPage = ref(1)
-const itemsPerPage = ref(10)
+const pagination = reactive({
+  page: 1,
+  limit: 25,
+  total: 0,
+  totalPages: 1
+})
 
 const reportTypeOptions = [
   { value: 'monthly', label: 'Bulan', icon: 'fa-solid fa-calendar' },
@@ -171,7 +175,7 @@ onMounted(async () => {
 })
 
 const applyFilters = () => {
-  currentPage.value = 1
+  pagination.page = 1
   fetchStatistics()
 }
 
@@ -224,13 +228,23 @@ const filteredAnalysisData = computed(() => {
   return result
 })
 
+watch([() => filteredAnalysisData.value.length, () => pagination.limit], () => {
+  pagination.total = filteredAnalysisData.value.length
+  pagination.totalPages = Math.ceil(pagination.total / pagination.limit) || 1
+  if (pagination.page > pagination.totalPages) pagination.page = pagination.totalPages || 1
+}, { immediate: true })
+
 const paginatedData = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage.value
-  const end = start + itemsPerPage.value
+  const start = (pagination.page - 1) * pagination.limit
+  const end = start + pagination.limit
   return filteredAnalysisData.value.slice(start, end)
 })
 
-const totalItems = computed(() => filteredAnalysisData.value.length)
+const handleChangePage = (p) => pagination.page = p
+const handleUpdateLimit = (l) => {
+  pagination.limit = l
+  pagination.page = 1
+}
 
 const getStatusBadge = status => {
   if (status === 'SAFE') return 'bg-success/10 text-success border-success/20'
@@ -389,14 +403,12 @@ const getStatusText = status => {
           </table>
         </div>
       </div>
-
-      <div class="mt-4 flex justify-end">
+      <div class="mt-4 border-t border-secondary/20 bg-secondary/5 rounded-xl overflow-hidden flex flex-col sm:flex-row items-center justify-between">
         <BasePagination
-          v-if="totalItems > 0"
-          v-model:current-page="currentPage"
-          v-model:items-per-page="itemsPerPage"
-          :total-items="totalItems"
-          :items-per-page-options="[10, 25, 50, 100]"
+          v-if="pagination.total > 0"
+          :pagination="pagination"
+          @changePage="handleChangePage"
+          @update:limit="handleUpdateLimit"
         />
       </div>
     </template>

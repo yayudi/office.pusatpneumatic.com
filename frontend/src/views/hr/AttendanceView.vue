@@ -327,8 +327,8 @@ async function handleExportExcel() {
     </div>
   </header>
 
-  <main class="mt-10 lg:mt-20">
-    <div class="bg-secondary/20 rounded-xl shadow-md border border-secondary/20 p-6 space-y-6">
+  <main class="mt-10 lg:mt-32">
+    <div class="bg-secondary/20 rounded-xl shadow-md border border-secondary/20 px-6 py-4 space-y-3">
       <KeepAlive>
         <div v-if="activeTab === 'summary'" key="summary">
           <p v-if="dataNotFoundForCurrentUser" class="text-center text-text/60 py-10">

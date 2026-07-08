@@ -18,7 +18,7 @@ defineProps({
   /** Whether to show the bulk-select checkbox indicator */
   selectable: { type: Boolean, default: false },
   /** Whether to show the hover overlay with actions */
-  showOverlay: { type: Boolean, default: true },
+  showOverlay: { type: Boolean, default: true }
 })
 
 defineEmits(['click'])
@@ -28,20 +28,12 @@ const { brokenImages, onImgError } = useBrokenImages()
 
 <template>
   <div
-    class="group flex flex-col bg-background rounded-xl border overflow-hidden shadow-sm hover:shadow-md transition-all relative"
-    :class="[
-      selected
-        ? 'border-primary ring-2 ring-primary ring-offset-2 ring-offset-background'
-        : 'border-secondary/20',
-      !isMobile ? 'aspect-square h-full' : 'h-full',
-    ]"
+    class="group flex flex-col border-secondary/20 bg-background rounded-xl border overflow-hidden shadow-sm hover:shadow-lg hover:border-primary transition-all relative"
+    :class="[!isMobile ? 'aspect-square h-full' : 'h-full']"
     @click="$emit('click')"
   >
     <!-- Area Gambar -->
-    <figure
-      class="relative w-full bg-secondary/10 shrink-0"
-      :class="!isMobile ? 'h-full' : 'aspect-square'"
-    >
+    <figure class="relative w-full bg-secondary/10 shrink-0" :class="!isMobile ? 'h-full' : 'aspect-square'">
       <!-- Bulk Checkbox Indicator -->
       <div v-if="selectable" class="absolute top-2 left-2 z-20 pointer-events-none">
         <div
@@ -73,21 +65,14 @@ const { brokenImages, onImgError } = useBrokenImages()
         <span class="text-[10px] font-medium">No Image</span>
       </div>
 
-      <div
-        v-else
-        class="flex flex-col items-center justify-center w-full h-full opacity-60 text-text"
-      >
+      <div v-else class="flex flex-col items-center justify-center w-full h-full opacity-60 text-text">
         <font-awesome-icon
           v-if="status === 'PENDING' || status === 'PROCESSING'"
           icon="fa-solid fa-spinner"
           spin
           class="text-primary text-2xl"
         />
-        <font-awesome-icon
-          v-else
-          icon="fa-solid fa-triangle-exclamation"
-          class="text-danger text-2xl"
-        />
+        <font-awesome-icon v-else icon="fa-solid fa-triangle-exclamation" class="text-danger text-2xl" />
         <span class="text-xs font-semibold mt-2">{{ status }}</span>
       </div>
 

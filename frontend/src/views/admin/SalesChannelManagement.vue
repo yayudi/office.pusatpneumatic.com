@@ -4,8 +4,13 @@ import { useToast } from '@/composables/useToast.js'
 import api from '@/api/axios.js'
 import { swalConfirm } from '@/composables/useSweetAlert'
 import BaseModal from '@/components/ui/BaseModal.vue'
+import BasePagination from '@/components/ui/BasePagination.vue'
+import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
+import { computed, watch } from 'vue'
+import { useMobile } from '@/composables/useMobile.js'
 
+const { isMobile } = useMobile()
 const { toast } = useToast()
 const channels = ref([])
 const isLoading = ref(false)
@@ -13,6 +18,45 @@ const isSaving = ref(false)
 
 const isModalOpen = ref(false)
 const modalMode = ref('add') // 'add' or 'edit'
+
+const currentPage = ref(1)
+const currentLimit = ref(Number(localStorage.getItem('channelPageSize')) || 10)
+
+const pagination = computed(() => {
+  const total = channels.value.length
+  return {
+    page: currentPage.value,
+    limit: currentLimit.value,
+    total,
+    totalPages: Math.ceil(total / currentLimit.value) || 1
+  }
+})
+
+watch(
+  () => channels.value.length,
+  (newTotal) => {
+    const maxPage = Math.ceil(newTotal / currentLimit.value) || 1
+    if (currentPage.value > maxPage) {
+      currentPage.value = 1
+    }
+  }
+)
+
+const visibleChannels = computed(() => {
+  const start = (currentPage.value - 1) * currentLimit.value
+  const end = start + currentLimit.value
+  return channels.value.slice(start, end)
+})
+
+const changePage = (page) => {
+  currentPage.value = page
+}
+
+const changePageSize = (limit) => {
+  currentLimit.value = limit
+  currentPage.value = 1
+  localStorage.setItem('channelPageSize', limit)
+}
 
 const formData = ref({
   id: null,
@@ -126,40 +170,69 @@ const confirmDelete = async item => {
       <template #actions>
         <button
           @click="openAddModal"
-          class="bg-primary text-secondary px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-sm"
+          class="bg-primary text-secondary text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 shadow-md shadow-primary/20"
         >
           <font-awesome-icon icon="fa-solid fa-plus" />
-          Tambah Saluran
+          <span>Tambah Saluran</span>
         </button>
       </template>
     </WmsActionHeader>
 
     <!-- Table Content -->
-    <div class="bg-background rounded-xl border border-secondary/20 shadow-sm overflow-hidden">
-      <div v-if="isLoading" class="p-8 text-center text-text/50">
-        <font-awesome-icon icon="fa-solid fa-spinner" spin class="text-2xl mb-2 text-primary" />
-        <p>Memuat data...</p>
-      </div>
-
-      <div v-else-if="channels.length === 0" class="p-12 text-center text-text/50">
-        <font-awesome-icon icon="fa-solid fa-store-slash" class="text-4xl mb-3 text-text/30" />
-        <p>Belum ada data saluran penjualan.</p>
-      </div>
-
-      <div v-else class="overflow-x-auto">
-        <table class="w-full text-left text-sm whitespace-nowrap">
-          <thead class="bg-secondary/5 border-b border-secondary/20">
-            <tr>
-              <th class="px-6 py-4 font-semibold text-text/80">Platform</th>
-              <th class="px-6 py-4 font-semibold text-text/80">Nama Toko / Sales</th>
-              <th class="px-6 py-4 font-semibold text-text/80">Keterangan</th>
-              <th class="px-6 py-4 font-semibold text-text/80 text-center">Status</th>
-              <th class="px-6 py-4 font-semibold text-text/80 text-right">Aksi</th>
+    <div>
+      <div
+        class="bg-background shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(95vh-100px)] table-container"
+      >
+        <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : 'min-w-[600px]'">
+          <thead
+            class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5"
+            :class="isMobile ? 'hidden' : 'sticky top-0 z-30'"
+          >
+            <tr class="text-xs text-text/80 uppercase">
+              <th class="px-6 py-3 border-b border-secondary/10">Platform</th>
+              <th class="px-6 py-3 border-b border-secondary/10">Nama Toko / Sales</th>
+              <th class="px-6 py-3 border-b border-secondary/10">Keterangan</th>
+              <th class="px-6 py-3 border-b border-secondary/10 text-center">Status</th>
+              <th class="px-6 py-3 text-center border-b border-secondary/10 w-32">Aksi</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-secondary/10">
-            <tr v-for="item in channels" :key="item.id" class="hover:bg-secondary/5 transition-colors">
-              <td class="px-6 py-4">
+          <TransitionGroup
+            tag="tbody"
+            name="list"
+            class="relative"
+            :class="isMobile ? 'block' : 'divide-y divide-secondary/5'"
+          >
+            <!-- Loading State -->
+            <template v-if="isLoading">
+              <tr v-for="n in 5" :key="`skeleton-${n}`" class="border-b border-secondary/20 animate-pulse">
+                <td class="px-6 py-4"><BaseSkeleton shape="rect" className="w-16 h-6 rounded-lg" /></td>
+                <td class="px-6 py-4"><BaseSkeleton shape="text" className="w-1/2 h-4" /></td>
+                <td class="px-6 py-4"><BaseSkeleton shape="text" className="w-3/4 h-4" /></td>
+                <td class="px-6 py-4 text-center"><BaseSkeleton shape="rect" className="w-12 h-5 mx-auto rounded-lg" /></td>
+                <td class="px-6 py-4 text-center"><BaseSkeleton shape="rect" className="w-20 h-6 mx-auto rounded-lg" /></td>
+              </tr>
+            </template>
+
+            <tr v-else-if="channels.length === 0" key="empty">
+              <td colspan="5" class="py-12 text-center text-text/50 italic">
+                <font-awesome-icon icon="fa-solid fa-store-slash" class="text-3xl text-text/20 mb-3 block" />
+                Belum ada data saluran penjualan.
+              </td>
+            </tr>
+
+            <tr
+              v-else
+              v-for="item in visibleChannels"
+              :key="item.id"
+              class="transition-colors group relative"
+              :class="
+                isMobile
+                  ? 'block mb-3 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4'
+                  : 'border-b border-secondary/20 hover:bg-secondary/5'
+              "
+            >
+              <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Platform</span>
                 <span
                   class="px-2 py-1 rounded-md text-xs font-bold"
                   :class="
@@ -173,37 +246,60 @@ const confirmDelete = async item => {
                   {{ item.platform }}
                 </span>
               </td>
-              <td class="px-6 py-4 font-bold text-text">{{ item.name }}</td>
-              <td class="px-6 py-4 text-text/60 truncate max-w-xs">
-                {{ item.description || '-' }}
+              <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Nama Toko</span>
+                <span class="font-bold text-text">{{ item.name }}</span>
               </td>
-              <td class="px-6 py-4 text-center">
+              <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Keterangan</span>
+                <span class="text-text/60 truncate max-w-xs">{{ item.description || '-' }}</span>
+              </td>
+              <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4 text-center'">
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Status</span>
                 <span v-if="item.is_active" class="px-2 py-1 bg-success/10 text-success text-xs font-bold rounded-lg"
                   >Aktif</span
                 >
                 <span v-else class="px-2 py-1 bg-danger/10 text-danger text-xs font-bold rounded-lg">Nonaktif</span>
               </td>
-              <td class="px-6 py-4 text-right">
-                <div class="flex justify-end gap-3">
+              <td class="bg-background group-hover:bg-secondary/5 transition-colors" :class="isMobile ? 'flex justify-end items-center pt-4' : 'px-6 py-4 text-center'">
+                <div
+                  class="flex items-center justify-center gap-2 transition-all duration-200"
+                  :class="isMobile ? 'opacity-100' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100'"
+                >
                   <button
                     @click="openEditModal(item)"
-                    class="w-8 h-8 rounded bg-primary/10 text-primary hover:bg-primary/20 flex items-center justify-center transition-colors"
-                    title="Edit"
+                    class="flex items-center justify-center rounded-lg hover:bg-primary/10 transition-colors"
+                    :class="isMobile ? 'px-3 py-1.5 bg-primary/10 text-primary font-semibold text-xs gap-2' : 'w-8 h-8 text-text/40 hover:text-primary'"
+                    title="Edit Saluran"
                   >
-                    <font-awesome-icon icon="fa-solid fa-pen" class="text-xs" />
+                    <font-awesome-icon icon="fa-solid fa-pen-to-square" />
+                    <span v-if="isMobile">Edit</span>
                   </button>
                   <button
                     @click="confirmDelete(item)"
-                    class="w-8 h-8 rounded bg-danger/10 text-danger hover:bg-danger/20 flex items-center justify-center transition-colors"
-                    title="Hapus"
+                    class="flex items-center justify-center rounded-lg hover:bg-danger/10 transition-colors"
+                    :class="isMobile ? 'px-3 py-1.5 bg-danger/10 text-danger font-semibold text-xs gap-2' : 'w-8 h-8 text-text/40 hover:text-danger'"
+                    title="Hapus Saluran"
                   >
-                    <font-awesome-icon icon="fa-solid fa-trash" class="text-xs" />
+                    <font-awesome-icon icon="fa-solid fa-trash" />
+                    <span v-if="isMobile">Hapus</span>
                   </button>
                 </div>
               </td>
             </tr>
-          </tbody>
+          </TransitionGroup>
         </table>
+      </div>
+      
+      <!-- Pagination -->
+      <div v-if="!isLoading && channels.length > 0" class="mt-4 rounded-xl overflow-hidden">
+        <BasePagination
+          :pagination="pagination"
+          :show-limit-picker="true"
+          @changePage="changePage"
+          @update:limit="changePageSize"
+          class="bg-transparent mb-0 pb-1"
+        />
       </div>
     </div>
 
@@ -312,5 +408,21 @@ const confirmDelete = async item => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* List Transitions */
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.3s ease;
+}
+
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+
+.list-leave-active {
+  transition: all 0.3s ease;
 }
 </style>

@@ -3,7 +3,7 @@
 import { swalConfirm } from '@/composables/useSweetAlert'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import { createLocation, updateLocation, deleteLocation } from '@/api/helpers/locations.js'
@@ -11,6 +11,7 @@ import { useMasterDataStore } from '@/stores/masterData'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
+import BasePagination from '@/components/ui/BasePagination.vue'
 import { useMobile } from '@/composables/useMobile.js'
 
 const { isMobile } = useMobile()
@@ -25,6 +26,45 @@ const allLocations = ref([])
 const loading = ref(true)
 const isModalOpen = ref(false)
 const isEditing = ref(false)
+
+const currentPage = ref(1)
+const currentLimit = ref(Number(localStorage.getItem('locationPageSize')) || 10)
+
+const pagination = computed(() => {
+  const total = allLocations.value.length
+  return {
+    page: currentPage.value,
+    limit: currentLimit.value,
+    total,
+    totalPages: Math.ceil(total / currentLimit.value) || 1
+  }
+})
+
+watch(
+  () => allLocations.value.length,
+  (newTotal) => {
+    const maxPage = Math.ceil(newTotal / currentLimit.value) || 1
+    if (currentPage.value > maxPage) {
+      currentPage.value = 1
+    }
+  }
+)
+
+const visibleLocations = computed(() => {
+  const start = (currentPage.value - 1) * currentLimit.value
+  const end = start + currentLimit.value
+  return allLocations.value.slice(start, end)
+})
+
+const changePage = (page) => {
+  currentPage.value = page
+}
+
+const changePageSize = (limit) => {
+  currentLimit.value = limit
+  currentPage.value = 1
+  localStorage.setItem('locationPageSize', limit)
+}
 const selectedLocation = ref({
   id: null,
   code: '',
@@ -128,9 +168,10 @@ watch(Alt_S, pressed => {
     </template>
   </WmsActionHeader>
 
-  <div
-    class="bg-background shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(100vh-100px)]"
-  >
+  <div>
+    <div
+      class="bg-background shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(100vh-150px)] table-container"
+    >
     <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : 'min-w-[600px]'">
       <thead
         class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5"
@@ -176,7 +217,7 @@ watch(Alt_S, pressed => {
 
         <tr
           v-else
-          v-for="loc in allLocations"
+          v-for="loc in visibleLocations"
           :key="loc.id"
           class="transition-colors group relative"
           :class="
@@ -219,31 +260,52 @@ watch(Alt_S, pressed => {
             <span>{{ loc.purpose || '-' }}</span>
           </td>
           <td
-            class="space-x-4 bg-background group-hover:bg-secondary/5 transition-colors"
+            class="bg-background group-hover:bg-secondary/5 transition-colors"
             :class="
               isMobile
                 ? 'flex justify-end items-center pt-4'
                 : 'px-6 py-4 text-center sticky right-0 z-20 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]'
             "
           >
-            <button
-              @click="openEditModal(loc)"
-              class="text-primary hover:text-primary/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105"
+            <div
+              class="flex items-center justify-center gap-2 transition-all duration-200"
+              :class="isMobile ? 'opacity-100' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100'"
             >
-              <font-awesome-icon icon="fa-solid fa-edit" />
-              <span>Edit</span>
-            </button>
-            <button
-              @click="handleDelete(loc.id)"
-              class="text-danger hover:text-danger/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105"
-            >
-              <font-awesome-icon icon="fa-solid fa-trash" />
-              <span>Hapus</span>
-            </button>
+              <button
+                @click="openEditModal(loc)"
+                class="flex items-center justify-center rounded-lg hover:bg-primary/10 transition-colors"
+                :class="isMobile ? 'px-3 py-1.5 bg-primary/10 text-primary font-semibold text-xs gap-2' : 'w-8 h-8 text-text/40 hover:text-primary'"
+                title="Edit Lokasi"
+              >
+                <font-awesome-icon icon="fa-solid fa-pen-to-square" />
+                <span v-if="isMobile">Edit</span>
+              </button>
+              <button
+                @click="handleDelete(loc.id)"
+                class="flex items-center justify-center rounded-lg hover:bg-danger/10 transition-colors"
+                :class="isMobile ? 'px-3 py-1.5 bg-danger/10 text-danger font-semibold text-xs gap-2' : 'w-8 h-8 text-text/40 hover:text-danger'"
+                title="Hapus Lokasi"
+              >
+                <font-awesome-icon icon="fa-solid fa-trash" />
+                <span v-if="isMobile">Hapus</span>
+              </button>
+            </div>
           </td>
         </tr>
       </TransitionGroup>
     </table>
+    </div>
+
+    <!-- Pagination -->
+    <div v-if="!loading && allLocations.length > 0" class="mt-4 rounded-xl overflow-hidden">
+      <BasePagination
+        :pagination="pagination"
+        :show-limit-picker="true"
+        @changePage="changePage"
+        @update:limit="changePageSize"
+        class="bg-transparent mb-0 pb-1"
+      />
+    </div>
   </div>
 
   <!-- Modal untuk Tambah/Edit Lokasi -->

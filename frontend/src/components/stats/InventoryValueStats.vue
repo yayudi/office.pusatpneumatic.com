@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, defineAsyncComponent } from 'vue'
+import { ref, onMounted, computed, defineAsyncComponent, reactive, watch } from 'vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseTabs from '@/components/ui/BaseTabs.vue'
 import { useTheme } from '@/composables/useTheme.js'
@@ -10,6 +10,8 @@ import { useStatsTable } from '@/composables/useStatsTable.js'
 import { useMasterDataStore } from '@/stores/masterData'
 import StatsChartCard from './shared/StatsChartCard.vue'
 import FilterBar from '@/components/ui/FilterBar.vue'
+import BasePagination from '@/components/ui/BasePagination.vue'
+
 const masterData = useMasterDataStore()
 // const { toast } = useToast()
 
@@ -18,9 +20,35 @@ const statisticsList = ref([])
 const viewMode = ref('table')
 const chartMaxCap = ref(10)
 
-const { displayedData, visibleData, sortBy, getSortIcon, handleTableScroll } = useStatsTable(statisticsList, {
+const { displayedData, sortBy, getSortIcon } = useStatsTable(statisticsList, {
   initialSortKey: 'total_value'
 })
+
+const pagination = reactive({
+  page: 1,
+  limit: 50,
+  total: 0,
+  totalPages: 1
+})
+
+watch([() => displayedData.value.length, () => pagination.limit], () => {
+  pagination.total = displayedData.value.length
+  pagination.totalPages = Math.ceil(pagination.total / pagination.limit) || 1
+  if (pagination.page > pagination.totalPages) pagination.page = pagination.totalPages || 1
+}, { immediate: true })
+
+const paginatedData = computed(() => {
+  const start = (pagination.page - 1) * pagination.limit
+  const end = start + pagination.limit
+  return displayedData.value.slice(start, end)
+})
+
+const handleChangePage = (p) => pagination.page = p
+const handleUpdateLimit = (l) => {
+  pagination.limit = l
+  pagination.page = 1
+}
+
 const fetchStatistics = async () => {
   isDataLoading.value = true
   try {
@@ -303,7 +331,7 @@ const chartTopAssetProportionOptions = computed(() => {
           </div>
         </div>
 
-        <div class="overflow-auto max-h-[600px] custom-scrollbar" @scroll="handleTableScroll">
+        <div class="overflow-auto max-h-[600px] custom-scrollbar">
           <table class="w-full text-left text-sm whitespace-nowrap">
             <thead
               class="bg-background border-b border-secondary sticky top-0 z-10 after:absolute after:inset-0 after:bg-secondary/20 after:-z-10"
@@ -382,7 +410,7 @@ const chartTopAssetProportionOptions = computed(() => {
                 </tr>
               </template>
               <template v-else>
-                <tr v-for="item in visibleData" :key="item.sku" class="hover:bg-secondary/10 transition-colors">
+                <tr v-for="item in paginatedData" :key="item.sku" class="hover:bg-secondary/10 transition-colors">
                   <td class="px-4 py-3 font-medium text-text bg-background/50 border-r border-secondary/10 w-auto">
                     {{ item.sku }}
                   </td>
@@ -432,6 +460,13 @@ const chartTopAssetProportionOptions = computed(() => {
               </template>
             </tbody>
           </table>
+        </div>
+        <div class="border-t border-secondary/20 bg-secondary/5 flex flex-col sm:flex-row items-center justify-between">
+          <BasePagination
+            :pagination="pagination"
+            @changePage="handleChangePage"
+            @update:limit="handleUpdateLimit"
+          />
         </div>
       </main>
 

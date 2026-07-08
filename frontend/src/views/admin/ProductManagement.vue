@@ -405,14 +405,14 @@ watch(Slash, pressed => {
           <div class="flex flex-col lg:flex-row flex-wrap gap-4 items-center w-full">
             <!-- Filter Tipe Produk -->
             <div
-              class="flex bg-background rounded-xl p-1 border border-secondary/10 shrink-0 overflow-x-auto w-full lg:w-auto"
+              class="flex bg-secondary/20 rounded-xl p-1 border border-secondary/10 shrink-0 overflow-x-auto w-full lg:w-auto"
             >
               <button
                 @click="filterType = 'all'"
                 class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2"
                 :class="
                   filterType === 'all'
-                    ? 'bg-secondary/10 text-text shadow-sm'
+                    ? 'bg-background text-text shadow-sm'
                     : 'text-text/50 hover:text-text hover:bg-secondary/5'
                 "
               >

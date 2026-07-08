@@ -194,16 +194,17 @@ useEventListener(
           :model-value="searchBy"
           @update:modelValue="emit('update:searchBy', $event)"
           :options="searchTabs.map(t => ({ value: t.value, label: t.label }))"
-          class="w-full lg:w-[125px]"
+          class="w-full md:w-auto shrink-0"
         />
 
         <!-- View Tabs -->
         <div class="flex flex-col gap-1 w-full lg:w-[260px] shrink-0">
-          <label class="block text-xs font-semibold text-text/60 text-center mb-1">Lokasi</label>
+          <label class="hidden md:block text-xs font-semibold text-text/60 text-center">Lokasi</label>
           <SegmentedControl
             :model-value="activeView"
             @update:modelValue="emit('update:activeView', $event)"
             :options="warehouseViews.map(v => ({ value: v.value, label: v.label }))"
+            class="w-full"
           />
         </div>
       </div>
@@ -211,7 +212,7 @@ useEventListener(
 
     <!-- Actions & Filters (Inline Right) -->
     <template #actions>
-      <div class="flex flex-wrap items-end justify-start lg:justify-end gap-2 w-full lg:w-auto mt-2 lg:mt-0">
+      <div class="flex flex-wrap items-end justify-start lg:justify-end gap-2 w-full lg:w-auto">
         <!-- Filter Warehouse (Hanya tampil jika view gudang) -->
         <div v-if="activeView === 'gudang'" class="flex gap-2 w-full lg:w-auto shrink-0">
           <div class="flex flex-col gap-1 w-1/2 lg:w-[110px]">

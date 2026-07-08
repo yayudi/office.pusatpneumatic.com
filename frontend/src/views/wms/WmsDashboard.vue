@@ -173,7 +173,7 @@ function openEditProductModal(product) {
 }
 
 async function handleDeleteProduct(product) {
-  if (!await swalConfirm(`Yakin ingin menghapus "${product.name}"?`)) return
+  if (!(await swalConfirm(`Yakin ingin menghapus "${product.name}"?`))) return
   try {
     const response = await axios.delete(`/products/${product.id}`)
     if (response.data.success) {
@@ -369,7 +369,10 @@ watch(Escape, pressed => {
         @openSticker="openStickerModal"
       >
         <template #footer>
-          <div v-if="viewMode === 'pagination'" class="border-t border-secondary/20 bg-background sticky bottom-0 z-40 left-0 min-w-max md:min-w-full">
+          <div
+            v-if="viewMode === 'pagination'"
+            class="border-t border-secondary/20 bg-background sticky bottom-0 z-40 left-0 min-w-max md:min-w-full"
+          >
             <BasePagination
               :pagination="{
                 page: currentPage,
@@ -380,6 +383,7 @@ watch(Escape, pressed => {
               :show-limit-picker="true"
               @changePage="goToPage"
               @update:limit="changePageSize"
+              :limit-options="[25, 50, 75, 108]"
             />
           </div>
           <div v-else ref="loader" class="text-center pt-6 pb-2">
