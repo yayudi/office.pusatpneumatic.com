@@ -1,3 +1,4 @@
+import catchAsync from "../utils/catchAsync.js";
 // backend/controllers/attendanceController.js
 import { createJobService } from "../services/jobService.js";
 import db from "../config/db.js";
@@ -18,41 +19,33 @@ import {
  * @param {object} req
  * @param {object} res
  */
-export const getHistory = async (req, res, next) => {
-  try {
-    const { startDate, endDate, search } = req.query;
+export const getHistory = catchAsync(async (req, res, next) => {
+  const { startDate, endDate, search } = req.query;
 
-    const data = await attendanceService.getHistory(startDate, endDate, search);
-    res.json({ success: true, data: data.logs });
-  } catch (error) {
-    next(error);
-  }
-};
+  const data = await attendanceService.getHistory(startDate, endDate, search);
+  res.json({ success: true, data: data.logs });
+});
 
 /**
  * Get available year/month indexes for attendance data.
  * Used for filtering dropdowns in Frontend.
  */
-export const getIndexes = async (req, res, next) => {
-  try {
-    const query = `
-            SELECT DISTINCT YEAR(date) AS year, MONTH(date) AS month
-            FROM attendance_logs
-            ORDER BY year DESC, month DESC
-        `;
-    const [rows] = await db.query(query);
-    const indexes = {};
-    for (const row of rows) {
-      if (!indexes[row.year]) indexes[row.year] = [];
-      if (!indexes[row.year].includes(row.month)) {
-        indexes[row.year].push(row.month);
-      }
+export const getIndexes = catchAsync(async (req, res, next) => {
+  const query = `
+          SELECT DISTINCT YEAR(date) AS year, MONTH(date) AS month
+          FROM attendance_logs
+          ORDER BY year DESC, month DESC
+      `;
+  const [rows] = await db.query(query);
+  const indexes = {};
+  for (const row of rows) {
+    if (!indexes[row.year]) indexes[row.year] = [];
+    if (!indexes[row.year].includes(row.month)) {
+      indexes[row.year].push(row.month);
     }
-    res.json(indexes);
-  } catch (error) {
-    next(error);
   }
-};
+  res.json(indexes);
+});
 
 /**
  * Get attendance data by Date Range.
@@ -214,56 +207,48 @@ export const getMonthlyData = async (req, res, next) => {
  * Upload Attendance File (Job Queue Based).
  * Supports Dry Run mode via req.body.dryRun.
  */
-export const uploadAttendanceLogs = async (req, res, next) => {
-  try {
-    if (!req.file) {
-      return next(new AppError("No file uploaded", 400));
-    }
-
-    const userId = req.user.id;
-    // Deteksi flag dryRun dari form-data (dikirim sebagai string 'true'/'false')
-    const isDryRun = req.body.dryRun === "true" || req.body.dryRun === true;
-
-    // Tentukan Tipe Job berdasarkan Mode
-    const jobType = isDryRun ? "IMPORT_ATTENDANCE_DRY_RUN" : "IMPORT_ATTENDANCE";
-
-    // Create Job di Database via JobService
-    const jobId = await createJobService({
-      userId,
-      type: jobType,
-      originalname: req.file.originalname,
-      serverFilePath: req.file.path,
-      notes: isDryRun ? "Simulasi Import Absensi (Dry Run)" : "Import Absensi",
-    });
-
-    res.json({
-      success: true,
-      message: isDryRun
-        ? "Simulasi validasi berjalan di background..."
-        : "File masuk antrian pemrosesan.",
-      jobId: jobId,
-    });
-  } catch (error) {
-    next(error);
+export const uploadAttendanceLogs = catchAsync(async (req, res, next) => {
+  if (!req.file) {
+    return next(new AppError("No file uploaded", 400));
   }
-};
+
+  const userId = req.user.id;
+  // Deteksi flag dryRun dari form-data (dikirim sebagai string 'true'/'false')
+  const isDryRun = req.body.dryRun === "true" || req.body.dryRun === true;
+
+  // Tentukan Tipe Job berdasarkan Mode
+  const jobType = isDryRun ? "IMPORT_ATTENDANCE_DRY_RUN" : "IMPORT_ATTENDANCE";
+
+  // Create Job di Database via JobService
+  const jobId = await createJobService({
+    userId,
+    type: jobType,
+    originalname: req.file.originalname,
+    serverFilePath: req.file.path,
+    notes: isDryRun ? "Simulasi Import Absensi (Dry Run)" : "Import Absensi",
+  });
+
+  res.json({
+    success: true,
+    message: isDryRun
+      ? "Simulasi validasi berjalan di background..."
+      : "File masuk antrian pemrosesan.",
+    jobId: jobId,
+  });
+});
 
 /**
  * Update attendance log manually.
  */
-export const updateLog = async (req, res, next) => {
-  try {
-    const { username, date, timeIn, timeOut, status, notes } = req.body;
+export const updateLog = catchAsync(async (req, res, next) => {
+  const { username, date, timeIn, timeOut, status, notes } = req.body;
 
-    const result = await attendanceService.updateAttendance(username, date, {
-      timeIn,
-      timeOut,
-      status,
-      notes,
-    });
+  const result = await attendanceService.updateAttendance(username, date, {
+    timeIn,
+    timeOut,
+    status,
+    notes,
+  });
 
-    res.json({ success: true, message: "Data updated successfully", data: result });
-  } catch (error) {
-    next(error);
-  }
-};
+  res.json({ success: true, message: "Data updated successfully", data: result });
+});

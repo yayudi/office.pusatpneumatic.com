@@ -1,3 +1,4 @@
+import catchAsync from "../utils/catchAsync.js";
 // backend/controllers/pickingController.js
 import fs from "fs";
 
@@ -16,40 +17,28 @@ import Logger from "../utils/logger.js";
 /**
  * Get all pending picking items.
  */
-export const getPendingItems = async (req, res, next) => {
-  try {
-    const items = await pickingService.getPendingPickingItemsService();
-    res.json({ success: true, data: items });
-  } catch (error) {
-    next(error);
-  }
-};
+export const getPendingItems = catchAsync(async (req, res, next) => {
+  const items = await pickingService.getPendingPickingItemsService();
+  res.json({ success: true, data: items });
+});
 
 /**
  * Get history of picking items.
  */
-export const getHistoryItems = async (req, res, next) => {
-  try {
-    const limit = parseInt(req.query.limit) || 1000;
-    const items = await pickingService.getHistoryPickingItemsService(limit);
-    res.json({ success: true, data: items });
-  } catch (error) {
-    next(error);
-  }
-};
+export const getHistoryItems = catchAsync(async (req, res, next) => {
+  const limit = parseInt(req.query.limit) || 1000;
+  const items = await pickingService.getHistoryPickingItemsService(limit);
+  res.json({ success: true, data: items });
+});
 
 /**
  * Get details of a specific picking list.
  */
-export const getPickingDetail = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const items = await pickingService.fetchPickingListDetails(id);
-    res.json({ success: true, data: items });
-  } catch (error) {
-    next(error);
-  }
-};
+export const getPickingDetail = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const items = await pickingService.fetchPickingListDetails(id);
+  res.json({ success: true, data: items });
+});
 
 // ============================================================================
 //                             WRITE OPERATIONS
@@ -137,55 +126,39 @@ export const uploadAndValidate = async (req, res, next) => {
 /**
  * Void a Picking List.
  */
-export const voidPickingList = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user?.id || 1;
-    await pickingService.voidPickingListService(id, userId);
-    res.json({ success: true, message: "Picking List divoid (dibatalkan)." });
-  } catch (error) {
-    next(error);
-  }
-};
+export const voidPickingList = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const userId = req.user?.id || 1;
+  await pickingService.voidPickingListService(id, userId);
+  res.json({ success: true, message: "Picking List divoid (dibatalkan)." });
+});
 
 /**
  * Complete Picking items.
  */
-export const completeItems = async (req, res, next) => {
-  try {
-    const { items } = req.body;
-    const userId = req.user?.id || 1;
+export const completeItems = catchAsync(async (req, res, next) => {
+  const { items } = req.body;
+  const userId = req.user?.id || 1;
 
 
-    const result = await pickingService.completePickingItemsService(items, userId);
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
-};
+  const result = await pickingService.completePickingItemsService(items, userId);
+  res.json(result);
+});
 
 /**
  * Retry backorders for a specific Picking List.
  */
-export const retryBackorders = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const result = await pickingService.retryBackordersService(id);
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
-};
+export const retryBackorders = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const result = await pickingService.retryBackordersService(id);
+  res.json(result);
+});
 
 /**
  * Retry backorders for multiple Picking Lists.
  */
-export const retryBackordersBatch = async (req, res, next) => {
-  try {
-    const { pickingListIds } = req.body;
-    const result = await pickingService.retryBackordersBatchService(pickingListIds);
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
-};
+export const retryBackordersBatch = catchAsync(async (req, res, next) => {
+  const { pickingListIds } = req.body;
+  const result = await pickingService.retryBackordersBatchService(pickingListIds);
+  res.json(result);
+});

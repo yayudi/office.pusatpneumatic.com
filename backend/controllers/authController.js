@@ -1,3 +1,4 @@
+import catchAsync from "../utils/catchAsync.js";
 // backend/controllers/authController.js
 import * as authService from "../services/authService.js";
 
@@ -7,20 +8,16 @@ import * as authService from "../services/authService.js";
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
  */
-export const login = async (req, res, next) => {
-  try {
-    const { username, password } = req.body;
-    const { token, user } = await authService.loginService(username, password, req.ip, req.headers["user-agent"]);
+export const login = catchAsync(async (req, res, next) => {
+  const { username, password } = req.body;
+  const { token, user } = await authService.loginService(username, password, req.ip, req.headers["user-agent"]);
 
-    res.json({
-      success: true,
-      token,
-      user,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+  res.json({
+    success: true,
+    token,
+    user,
+  });
+});
 
 /**
  * Controller untuk logout user.

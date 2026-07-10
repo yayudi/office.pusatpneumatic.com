@@ -58,6 +58,7 @@ instance.interceptors.response.use(
   async error => {
     const authStore = useAuthStore() // Pastikan import store sudah benar di sini
     const loadingStore = useLoadingStore()
+    const { toast } = await import('@/composables/useToast.js').then(m => m.useToast())
     
     loadingStore.stopLoading()
 
@@ -68,14 +69,13 @@ instance.interceptors.response.use(
       // -> HANYA Logout jika statusnya 401 dan BUKAN request dari login
       if (status === 401 && !error.config.url.includes('/auth/login')) {
         authStore.logout()
-        // Tampilkan Toast "Sesi expired"
-        // Redirect ke login page
+        toast("Sesi Anda telah habis, silakan login kembali.", "error")
         window.location.href = '/login'
       }
       // Tidak Punya Izin (403)
       // -> JANGAN Logout, tapi beri tahu user
       else if (status === 403) {
-//         const serverMessage = data?.message || 'Akses ditolak.' // Disabled due to unused var
+        toast(data?.message || 'Akses ditolak.', 'warning')
       }
       // Global Error Handler untuk Server Error atau Bad Request
       else if (status >= 400 && status !== 401 && status !== 403) {
@@ -88,10 +88,13 @@ instance.interceptors.response.use(
              serverMessage = serverMessage.replace(/(body\.|query\.|params\.)/g, '')
              data.message = serverMessage // Sinkronkan ke response agar komponen menerima pesan yang sudah bersih
            }
+           
+           toast(serverMessage, 'error')
         }
       }
     } else {
       // Network Error atau server mati
+      toast("Tidak dapat terhubung ke server (Network Error).", "error")
     }
 
     return Promise.reject(error)

@@ -1,6 +1,5 @@
 import db from "../config/db.js";
 import ExcelJS from "exceljs";
-import fs from "fs";
 import * as scheduleRepository from "../repositories/scheduleRepository.js";
 
 /**
@@ -18,8 +17,8 @@ export const processScheduleImport = async (jobId, filePath, userId) => {
     const [users] = await connection.query("SELECT id, username FROM users");
     const [shifts] = await connection.query("SELECT id, name FROM shifts");
 
-    const userMap = new Map(users.map(u => [u.username.toLowerCase(), u.id]));
-    const shiftMap = new Map(shifts.map(s => [s.name.toLowerCase(), s.id]));
+    const userMap = new Map(users.map((u) => [u.username.toLowerCase(), u.id]));
+    const shiftMap = new Map(shifts.map((s) => [s.name.toLowerCase(), s.id]));
 
     // Read Excel
     const workbook = new ExcelJS.Workbook();
@@ -43,12 +42,12 @@ export const processScheduleImport = async (jobId, filePath, userId) => {
       let dateStr = "";
       if (dateVal instanceof Date) {
         const year = dateVal.getFullYear();
-        const month = String(dateVal.getMonth() + 1).padStart(2, '0');
-        const day = String(dateVal.getDate()).padStart(2, '0');
+        const month = String(dateVal.getMonth() + 1).padStart(2, "0");
+        const day = String(dateVal.getDate()).padStart(2, "0");
         dateStr = `${year}-${month}-${day}`;
-      } else if (typeof dateVal === 'string') {
+      } else if (typeof dateVal === "string") {
         dateStr = dateVal.trim();
-      } else if (typeof dateVal === 'object' && dateVal !== null && dateVal.text) {
+      } else if (typeof dateVal === "object" && dateVal !== null && dateVal.text) {
         dateStr = dateVal.text;
       }
 
@@ -84,7 +83,7 @@ export const processScheduleImport = async (jobId, filePath, userId) => {
         userId: uId,
         shiftId: sId,
         date: dateStr,
-        createdBy: userId
+        createdBy: userId,
       });
     });
 
@@ -105,7 +104,6 @@ export const processScheduleImport = async (jobId, filePath, userId) => {
     await connection.commit();
 
     return { success: true, count: successCount, errors: [] };
-
   } catch (error) {
     if (connection) await connection.rollback();
     throw error;

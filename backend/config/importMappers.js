@@ -15,14 +15,18 @@ const parseDate = (val) => {
   try {
     let date;
     // Prioritaskan pencocokan format DD/MM/YYYY atau DD-MM-YYYY (standar Indonesia)
-    const idFormatRegex = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})(?:\s(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/;
+    const idFormatRegex =
+      /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})(?:\s(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/;
     const match = dateStr.match(idFormatRegex);
 
     if (match) {
-      const [_, day, month, year, hour, minute, second] = match;
+      const [day, month, year, hour, minute, second] = match;
       const isoStr = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T${(
         hour || "00"
-      ).padStart(2, "0")}:${(minute || "00").padStart(2, "0")}:${(second || "00").padStart(2, "0")}`;
+      ).padStart(
+        2,
+        "0",
+      )}:${(minute || "00").padStart(2, "0")}:${(second || "00").padStart(2, "0")}`;
       date = new Date(isoStr);
     } else {
       // Fallback ke Date bawaan JS (contoh: untuk YYYY-MM-DD, ISO string, atau format penamaan bulan inggris)
@@ -92,7 +96,10 @@ export const Mappers = {
         "returned quantity",
       ]);
       const returnedQty = parseInt(rawReturnQty || "0", 10);
-      Logger.debug(`Raw Return Qty for Invoice ${id}, SKU ${sku}: ${rawReturnQty}`, "TOKOPEDIA_MAPPER");
+      Logger.debug(
+        `Raw Return Qty for Invoice ${id}, SKU ${sku}: ${rawReturnQty}`,
+        "TOKOPEDIA_MAPPER",
+      );
       Logger.debug(`Parsed Return Qty: ${returnedQty}`, "TOKOPEDIA_MAPPER");
 
       // [DEBUG LOG] Aktifkan ini untuk melihat per baris jika masih bermasalah
@@ -100,7 +107,7 @@ export const Mappers = {
 
       const recipient = getter(["recipient", "nama penerima", "penerima"]);
       const orderDate = parseDate(
-        getter(["created time", "waktu pesanan", "tanggal pemesanan", "order time"])
+        getter(["created time", "waktu pesanan", "tanggal pemesanan", "order time"]),
       );
 
       if (!id || !sku || isNaN(qty)) return null;
@@ -124,7 +131,12 @@ export const Mappers = {
       )
         return MP_STATUS.RETURNED;
       if (retType.includes("cancel") || retType.includes("batal")) return MP_STATUS.VOID;
-      if (status.includes("batal") || status.includes("dibatalkan") || status.includes("cancelled") || status.includes("void"))
+      if (
+        status.includes("batal") ||
+        status.includes("dibatalkan") ||
+        status.includes("cancelled") ||
+        status.includes("void")
+      )
         return MP_STATUS.VOID;
       if (
         status.includes("selesai") ||
@@ -189,7 +201,7 @@ export const Mappers = {
       const qty = parseInt(getter(["jumlah", "quantity"]) || "0", 10);
       const returnedQty = parseInt(
         getter(["returned quantity", "jumlah dikembalikan", "quantity returned"]) || "0",
-        10
+        10,
       );
       const customer = getter(["username (pembeli)", "username pembeli", "nama penerima"]);
       const orderDate = parseDate(getter(["waktu pesanan dibuat", "order creation time"]));
@@ -207,7 +219,8 @@ export const Mappers = {
         retStatus.includes("disetujui")
       )
         return MP_STATUS.RETURNED;
-      if (status.includes("batal") || status.includes("cancelled") || status.includes("void")) return MP_STATUS.VOID;
+      if (status.includes("batal") || status.includes("cancelled") || status.includes("void"))
+        return MP_STATUS.VOID;
       if (
         status.includes("selesai") ||
         status.includes("completed") ||
@@ -249,13 +262,16 @@ export const Mappers = {
       "nama kontak",
       "perusahaan",
       "retur",
-      "return"
+      "return",
     ],
     extract: (getter) => {
       const id = getter(["*nomor tagihan", "nomor tagihan", "no tagihan"]);
       const sku = getter(["*kode produk (sku)", "kode produk (sku)", "kode produk", "sku"]);
       const qty = parseInt(getter(["*jumlah produk", "jumlah produk", "jumlah"]) || "0", 10);
-      const returnedQty = parseInt(getter(["retur", "return", "returned quantity", "jumlah dikembalikan"]) || "0", 10);
+      const returnedQty = parseInt(
+        getter(["retur", "return", "returned quantity", "jumlah dikembalikan"]) || "0",
+        10,
+      );
       const customer = getter(["*nama kontak", "nama kontak", "perusahaan"]) || "Offline Customer";
       const orderDate = parseDate(getter(["*tanggal transaksi (dd/mm/yyyy)", "tanggal", "date"]));
 
@@ -266,8 +282,10 @@ export const Mappers = {
       const status = getter(["status"])?.toLowerCase() || "";
       const retur = getter(["retur", "return"]) || "0";
 
-      if (parseInt(retur, 10) > 0 || status.includes("retur") || status.includes("return")) return MP_STATUS.RETURNED;
-      if (status.includes("void") || status.includes("batal") || status.includes("cancel")) return MP_STATUS.VOID;
+      if (parseInt(retur, 10) > 0 || status.includes("retur") || status.includes("return"))
+        return MP_STATUS.RETURNED;
+      if (status.includes("void") || status.includes("batal") || status.includes("cancel"))
+        return MP_STATUS.VOID;
       return MP_STATUS.NEW;
     },
   },
@@ -290,7 +308,7 @@ export const Mappers = {
       "harga jual",
       "weight",
       "berat",
-      "bobot",
+      consobot",
       "type",
       "tipe",
       "is_package",
@@ -304,14 +322,14 @@ export const Mappers = {
       const sku = getter(["sku", "kode produk", "nomor sku"]);
       if (!sku) return null;
 
-      // 2. Optional Fields (Ambil jika ada)
+      cons 2. Optional Fields (Ambil jika ada)
       const name = getter(["name", "nama", "nama produk", "product name"]);
 
       // Harga
       let rawPrice = getter(["price", "harga", "harga jual"]);
       let price = undefined;
       if (rawPrice) {
-        let clean = rawPrice
+      conslet clean = rawPrice
           .toString()
           .replace(/Rp\.?\s?/gi, "")
           .trim();
@@ -324,7 +342,7 @@ export const Mappers = {
       // Berat
       let rawWeight = getter(["weight", "berat", "bobot"]);
       let weight = undefined;
-      if (rawWeight) {
+      cons (rawWeight) {
         weight = parseFloat(rawWeight.toString().replace(/[^0-9.]/g, ""));
       }
 

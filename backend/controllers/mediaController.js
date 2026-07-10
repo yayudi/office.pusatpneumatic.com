@@ -1,3 +1,4 @@
+import catchAsync from "../utils/catchAsync.js";
 // backend/controllers/mediaController.js
 import path from "path";
 import fs from "fs/promises";
@@ -339,67 +340,59 @@ export const updateMediaTitleController = async (req, res, next) => {
  */
 import { createJobService } from "../services/jobService.js";
 
-export const bulkLinkMediaExcel = async (req, res, next) => {
-  try {
-    if (!req.file) {
-      return next(new AppError("File tidak ditemukan.", 400));
-    }
-    const jobId = await createJobService({
-      userId: req.user.id,
-      type: "LINK_MEDIA_EXCEL",
-      originalname: req.file.originalname,
-      serverFilePath: req.file.path,
-      notes: "Bulk Link Media via Excel",
-    });
-
-    res.status(201).json({
-      success: true,
-      message: "File berhasil diunggah. Proses tautan massal berjalan di latar belakang.",
-      jobId: jobId,
-    });
-  } catch (error) {
-    next(new AppError(`Gagal memproses upload: ${error.message}`, 500));
+export const bulkLinkMediaExcel = catchAsync(async (req, res, next) => {
+  if (!req.file) {
+    return next(new AppError("File tidak ditemukan.", 400));
   }
-};
+  const jobId = await createJobService({
+    userId: req.user.id,
+    type: "LINK_MEDIA_EXCEL",
+    originalname: req.file.originalname,
+    serverFilePath: req.file.path,
+    notes: "Bulk Link Media via Excel",
+  });
+
+  res.status(201).json({
+    success: true,
+    message: "File berhasil diunggah. Proses tautan massal berjalan di latar belakang.",
+    jobId: jobId,
+  });
+});
 
 import ExcelJS from "exceljs";
 
-export const downloadBulkLinkTemplate = async (req, res, next) => {
-  try {
-    const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet("Template Tautkan Media");
+export const downloadBulkLinkTemplate = catchAsync(async (req, res, next) => {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("Template Tautkan Media");
 
-    sheet.columns = [
-      { header: "SKU", key: "sku", width: 20 },
-      { header: "Image_URL", key: "image_url", width: 50 },
-    ];
+  sheet.columns = [
+    { header: "SKU", key: "sku", width: 20 },
+    { header: "Image_URL", key: "image_url", width: 50 },
+  ];
 
-    sheet.getRow(1).font = { bold: true };
-    sheet.getRow(1).fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FFDDDDDD" },
-    };
+  sheet.getRow(1).font = { bold: true };
+  sheet.getRow(1).fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FFDDDDDD" },
+  };
 
-    sheet.addRow({
-      sku: "PP000R081",
-      image_url: "https://api.dpvindonesia.com/uploads/main/main-1783397524366-325551216.webp",
-    });
-    sheet.addRow({
-      sku: "PP000453P",
-      image_url:
-        "https://api.dpvindonesia.com/uploads/main/main-dpv_indonesia_logo-white_lettermark_sm.png",
-    });
+  sheet.addRow({
+    sku: "PP000R081",
+    image_url: "https://api.dpvindonesia.com/uploads/main/main-1783397524366-325551216.webp",
+  });
+  sheet.addRow({
+    sku: "PP000453P",
+    image_url:
+      "https://api.dpvindonesia.com/uploads/main/main-dpv_indonesia_logo-white_lettermark_sm.png",
+  });
 
-    res.setHeader(
-      "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    );
-    res.setHeader("Content-Disposition", "attachment; filename=Template_Tautkan_Media.xlsx");
+  res.setHeader(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  );
+  res.setHeader("Content-Disposition", "attachment; filename=Template_Tautkan_Media.xlsx");
 
-    await workbook.xlsx.write(res);
-    res.end();
-  } catch {
-    next(new AppError("Gagal men-generate template excel", 500));
-  }
-};
+  await workbook.xlsx.write(res);
+  res.end();
+});

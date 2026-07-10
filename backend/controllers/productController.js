@@ -1,3 +1,4 @@
+import catchAsync from "../utils/catchAsync.js";
 // backend/controllers/productController.js
 import db from "../config/db.js";
 import cache from "../config/cache.js";
@@ -13,31 +14,23 @@ import AppError from "../utils/AppError.js";
 
 // GET /search
 // Mencari produk untuk autocomplete
-export const searchProducts = async (req, res, next) => {
-  try {
-    const { q, locationId, inStockOnly } = req.query;
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    
-    // Pass raw string to repo for keyword-based search
-    const searchTerm = q ? q.toLowerCase().trim() : "";
-    const results = await productRepo.searchProducts(db, searchTerm, locationId, page, limit, inStockOnly === 'true');
-    res.json(results);
-  } catch (error) {
-    next(error);
-  }
-};
+export const searchProducts = catchAsync(async (req, res, next) => {
+  const { q, locationId, inStockOnly } = req.query;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  
+  // Pass raw string to repo for keyword-based search
+  const searchTerm = q ? q.toLowerCase().trim() : "";
+  const results = await productRepo.searchProducts(db, searchTerm, locationId, page, limit, inStockOnly === 'true');
+  res.json(results);
+});
 
 // GET /admin-list
 // Mengambil daftar ringkas untuk dropdown/list admin
-export const getAdminProductList = async (req, res, next) => {
-  try {
-    const rows = await productRepo.getAllActiveProducts(db);
-    res.json({ success: true, data: rows });
-  } catch (error) {
-    next(error);
-  }
-};
+export const getAdminProductList = catchAsync(async (req, res, next) => {
+  const rows = await productRepo.getAllActiveProducts(db);
+  res.json({ success: true, data: rows });
+});
 
 // GET /
 // Main Product List (Mendukung Filter Status, Tipe, Search, Sort)
@@ -116,42 +109,34 @@ export const getProductStockDetails = async (req, res, next) => {
 };
 
 // GET /:id/history
-export const getProductHistory = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const history = await productRepo.getProductHistory(db, id);
-    res.json({ success: true, data: history });
-  } catch (error) {
-    next(error);
-  }
-};
+export const getProductHistory = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const history = await productRepo.getProductHistory(db, id);
+  res.json({ success: true, data: history });
+});
 
 // GET /:id/stock-timeline
-export const getProductStockTimeline = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { page, limit, building } = req.query;
+export const getProductStockTimeline = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const { page, limit, building } = req.query;
 
-    let buildingsArray = [];
-    if (building) {
-      buildingsArray = Array.isArray(building) ? building : building.split(",");
-    }
-
-    const filters = {
-      buildings: buildingsArray,
-    };
-
-    const timeline = await productService.getHistoricalStockTimelineService(
-      id,
-      page,
-      limit,
-      filters,
-    );
-    res.json({ success: true, data: timeline });
-  } catch (error) {
-    next(error);
+  let buildingsArray = [];
+  if (building) {
+    buildingsArray = Array.isArray(building) ? building : building.split(",");
   }
-};
+
+  const filters = {
+    buildings: buildingsArray,
+  };
+
+  const timeline = await productService.getHistoricalStockTimelineService(
+    id,
+    page,
+    limit,
+    filters,
+  );
+  res.json({ success: true, data: timeline });
+});
 
 // ============================================================================
 // WRITE OPERATIONS (Via Service Layer)
@@ -333,36 +318,32 @@ export const setPrimaryImage = async (req, res, next) => {
  * GET /api/products/export
  * Mengenerate Job Export CSV berdasarkan filter yang aktif (untuk Template Edit Massal)
  */
-export const exportProducts = async (req, res, next) => {
-  try {
-    const filters = {
-      search: req.query.search || "",
-      searchBy: req.query.searchBy === "sku" ? "sku" : "name",
-      location: req.query.location || "all",
-      status: req.query.status || "active",
-      is_package: req.query.is_package !== undefined ? req.query.is_package === "true" : undefined,
-      packageOnly: req.query.packageOnly === "true",
-      minusStockOnly: req.query.minusOnly === "true",
-      building: req.query.building || "all",
-      floor: req.query.floor || "all",
-      sortBy: req.query.sortBy || "sku",
-      sortOrder: req.query.sortOrder === "desc" ? "DESC" : "ASC",
-      limit: 1000000,
-      offset: 0,
-      exportType: "PRODUCT_MASTER",
-      format: req.query.format || "xlsx",
-      includeImages: req.query.includeImages === "true" || req.query.includeImages === true,
-    };
+export const exportProducts = catchAsync(async (req, res, next) => {
+  const filters = {
+    search: req.query.search || "",
+    searchBy: req.query.searchBy === "sku" ? "sku" : "name",
+    location: req.query.location || "all",
+    status: req.query.status || "active",
+    is_package: req.query.is_package !== undefined ? req.query.is_package === "true" : undefined,
+    packageOnly: req.query.packageOnly === "true",
+    minusStockOnly: req.query.minusOnly === "true",
+    building: req.query.building || "all",
+    floor: req.query.floor || "all",
+    sortBy: req.query.sortBy || "sku",
+    sortOrder: req.query.sortOrder === "desc" ? "DESC" : "ASC",
+    limit: 1000000,
+    offset: 0,
+    exportType: "PRODUCT_MASTER",
+    format: req.query.format || "xlsx",
+    includeImages: req.query.includeImages === "true" || req.query.includeImages === true,
+  };
 
-    const userId = req.user.id;
-    const jobId = await jobRepo.createExportJob(db, { userId, filters, jobType: "PRODUCT_MASTER" });
+  const userId = req.user.id;
+  const jobId = await jobRepo.createExportJob(db, { userId, filters, jobType: "PRODUCT_MASTER" });
 
-    res.json({
-      success: true,
-      message: "Permintaan ekspor diterima. Silakan cek menu 'Laporan Saya' untuk mengunduh.",
-      jobId,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+  res.json({
+    success: true,
+    message: "Permintaan ekspor diterima. Silakan cek menu 'Laporan Saya' untuk mengunduh.",
+    jobId,
+  });
+});

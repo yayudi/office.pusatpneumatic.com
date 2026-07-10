@@ -1,3 +1,4 @@
+import catchAsync from "../utils/catchAsync.js";
 // backend/controllers/categoryController.js
 import * as categoryService from "../services/categoryService.js";
 import Logger from "../utils/logger.js";
@@ -6,18 +7,14 @@ import AppError from "../utils/AppError.js";
 /**
  * Mengambil semua kategori yang aktif
  */
-export const getCategories = async (req, res, next) => {
-  try {
-    const data = await categoryService.getAllCategories();
-    res.status(200).json({
-      success: true,
-      message: "Data kategori berhasil diambil",
-      data,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+export const getCategories = catchAsync(async (req, res, next) => {
+  const data = await categoryService.getAllCategories();
+  res.status(200).json({
+    success: true,
+    message: "Data kategori berhasil diambil",
+    data,
+  });
+});
 
 /**
  * Membuat kategori baru

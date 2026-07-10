@@ -234,6 +234,7 @@ async function updatePackageQuantities() {
       Logger.warn("------------------------------", "UPDATE_PKG_QTY");
     }
 
+    Logger.info(`Berhasil mengupdate ${updatedRows} baris data.`, "UPDATE_PKG_QTY");
     await connection.commit();
   } catch (error) {
     if (connection) {

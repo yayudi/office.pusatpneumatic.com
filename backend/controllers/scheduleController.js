@@ -1,3 +1,4 @@
+import catchAsync from "../utils/catchAsync.js";
 import * as scheduleService from '../services/scheduleService.js';
 import * as jobRepositories from '../repositories/jobRepository.js';
 import db from '../config/db.js';
@@ -5,69 +6,53 @@ import ExcelJS from 'exceljs';
 import Logger from '../utils/logger.js';
 
 import AppError from "../utils/AppError.js";
-export const getSchedules = async (req, res, next) => {
-  try {
-    const { userId, startDate, endDate } = req.query;
+export const getSchedules = catchAsync(async (req, res, next) => {
+  const { userId, startDate, endDate } = req.query;
 
-    const schedules = await scheduleService.getSchedules(userId, startDate, endDate);
-    res.json({ success: true, data: schedules });
-  } catch (error) {
-    next(error);
-  }
-};
+  const schedules = await scheduleService.getSchedules(userId, startDate, endDate);
+  res.json({ success: true, data: schedules });
+});
 
-export const createSchedule = async (req, res, next) => {
-  try {
-    const { userId, shiftId, date } = req.body;
-    // createdBy could be from req.user
-    const createdBy = req.user ? req.user.id : null;
+export const createSchedule = catchAsync(async (req, res, next) => {
+  const { userId, shiftId, date } = req.body;
+  // createdBy could be from req.user
+  const createdBy = req.user ? req.user.id : null;
 
-    await scheduleService.createSchedule(userId, shiftId, date, createdBy);
-    res.json({ success: true, message: 'Schedule saved' });
-  } catch (error) {
-    next(error);
-  }
-};
+  await scheduleService.createSchedule(userId, shiftId, date, createdBy);
+  res.json({ success: true, message: 'Schedule saved' });
+});
 
-export const deleteSchedule = async (req, res, next) => {
-  try {
-    const { userId, date } = req.query; // Or req.body / req.params
+export const deleteSchedule = catchAsync(async (req, res, next) => {
+  const { userId, date } = req.query; // Or req.body / req.params
 
-    await scheduleService.deleteSchedule(userId, date);
-    res.json({ success: true, message: 'Schedule deleted' });
-  } catch (error) {
-    next(error);
-  }
-};
+  await scheduleService.deleteSchedule(userId, date);
+  res.json({ success: true, message: 'Schedule deleted' });
+});
 
 /**
  * POST /api/schedules/import
  */
-export const uploadImportSchedule = async (req, res, next) => {
-  try {
-    if (!req.file) {
-      return next(new AppError("File Excel wajib diupload.", 400));
-    }
-
-    const jobId = await jobRepositories.createImportJob(
-      req.connection,
-      {
-        userId: req.user.id,
-        jobType: "IMPORT_SCHEDULES",
-        filePath: req.file.path,
-        filename: req.file.originalname
-      }
-    );
-
-    res.json({
-      success: true,
-      message: "Import Jadwal sedang diproses di background.",
-      data: { jobId }
-    });
-  } catch (error) {
-    next(error);
+export const uploadImportSchedule = catchAsync(async (req, res, next) => {
+  if (!req.file) {
+    return next(new AppError("File Excel wajib diupload.", 400));
   }
-};
+
+  const jobId = await jobRepositories.createImportJob(
+    req.connection,
+    {
+      userId: req.user.id,
+      jobType: "IMPORT_SCHEDULES",
+      filePath: req.file.path,
+      filename: req.file.originalname
+    }
+  );
+
+  res.json({
+    success: true,
+    message: "Import Jadwal sedang diproses di background.",
+    data: { jobId }
+  });
+});
 
 /**
  * GET /api/schedules/template

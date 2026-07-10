@@ -1,3 +1,4 @@
+import catchAsync from "../utils/catchAsync.js";
 // backend/controllers/adminController.js
 import * as adminService from "../services/adminService.js";
 
@@ -6,14 +7,10 @@ import AppError from "../utils/AppError.js";
  * GET /api/admin/users
  * Mengambil semua user aktif.
  */
-export const getUsers = async (req, res, next) => {
-  try {
-    const users = await adminService.getAllUsers();
-    res.json({ success: true, users });
-  } catch (err) {
-    next(err);
-  }
-};
+export const getUsers = catchAsync(async (req, res, next) => {
+  const users = await adminService.getAllUsers();
+  res.json({ success: true, users });
+});
 
 /**
  * POST /api/admin/users
@@ -48,14 +45,10 @@ export const createUser = async (req, res, next) => {
  * GET /api/admin/users/roles
  * Mengambil semua role.
  */
-export const getRoles = async (req, res, next) => {
-  try {
-    const roles = await adminService.getAllRoles();
-    res.json({ success: true, roles });
-  } catch (err) {
-    next(err);
-  }
-};
+export const getRoles = catchAsync(async (req, res, next) => {
+  const roles = await adminService.getAllRoles();
+  res.json({ success: true, roles });
+});
 
 /**
  * PUT /api/admin/users/:id

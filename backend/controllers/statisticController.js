@@ -1,208 +1,181 @@
+import catchAsync from "../utils/catchAsync.js";
 // backend/controllers/statisticController.js
 import * as statisticService from "../services/statisticService.js";
 import db from "../config/db.js";
 import * as jobRepo from "../repositories/jobRepository.js";
-export const getStockMovements = async (req, res, next) => {
-  try {
-    const {
-      startDate,
-      endDate,
-      searchQuery,
-      status,
-      movement,
-      building,
-      timeResolution,
-      categoryId,
-    } = req.query;
+export const getStockMovements = catchAsync(async (req, res, next) => {
+  const {
+    startDate,
+    endDate,
+    searchQuery,
+    status,
+    movement,
+    building,
+    timeResolution,
+    categoryId,
+  } = req.query;
 
-    let buildingsArray = [];
-    if (building) {
-      if (typeof building === "object" && !Array.isArray(building)) {
-        buildingsArray = building;
-      } else {
-        buildingsArray = Array.isArray(building) ? building : building.split(",");
-      }
+  let buildingsArray = [];
+  if (building) {
+    if (typeof building === "object" && !Array.isArray(building)) {
+      buildingsArray = building;
+    } else {
+      buildingsArray = Array.isArray(building) ? building : building.split(",");
     }
-
-    const filters = {
-      startDate,
-      endDate,
-      searchQuery,
-      status,
-      movement,
-      buildings: buildingsArray,
-      timeResolution,
-      categoryId,
-    };
-
-    const data = await statisticService.getStockMovementStatistics(filters);
-    res.json({
-      success: true,
-      data,
-    });
-  } catch (error) {
-    next(error);
   }
-};
 
-export const requestStockMovementsExport = async (req, res, next) => {
-  try {
-    const userId = req.user.id;
-    const { startDate, endDate, searchQuery, status, movement, building, categoryId } = req.body;
+  const filters = {
+    startDate,
+    endDate,
+    searchQuery,
+    status,
+    movement,
+    buildings: buildingsArray,
+    timeResolution,
+    categoryId,
+  };
 
-    const filters = {
-      startDate,
-      endDate,
-      searchQuery,
-      status,
-      movement,
-      buildings: building, // array if passed from UI usually
-      categoryId,
-      exportType: "STATISTICS_STOCK_MOVEMENT",
-    };
+  const data = await statisticService.getStockMovementStatistics(filters);
+  res.json({
+    success: true,
+    data,
+  });
+});
 
-    const jobId = await jobRepo.createExportJob(db, {
-      userId,
-      filters,
-      jobType: "STATISTICS_STOCK_MOVEMENT",
-    });
+export const requestStockMovementsExport = catchAsync(async (req, res, next) => {
+  const userId = req.user.id;
+  const { startDate, endDate, searchQuery, status, movement, building, categoryId } = req.body;
 
-    res.status(202).json({
-      success: true,
-      message: "Permintaan ekspor statistik stok diterima. File sedang diproses.",
-      jobId,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+  const filters = {
+    startDate,
+    endDate,
+    searchQuery,
+    status,
+    movement,
+    buildings: building, // array if passed from UI usually
+    categoryId,
+    exportType: "STATISTICS_STOCK_MOVEMENT",
+  };
 
-export const getStockTimeline = async (req, res, next) => {
-  try {
-    const { searchQuery, building, status, movement } = req.query;
+  const jobId = await jobRepo.createExportJob(db, {
+    userId,
+    filters,
+    jobType: "STATISTICS_STOCK_MOVEMENT",
+  });
 
-    let buildingsArray = [];
-    if (building) {
-      if (typeof building === "object" && !Array.isArray(building)) {
-        buildingsArray = building;
-      } else {
-        buildingsArray = Array.isArray(building) ? building : building.split(",");
-      }
+  res.status(202).json({
+    success: true,
+    message: "Permintaan ekspor statistik stok diterima. File sedang diproses.",
+    jobId,
+  });
+});
+
+export const getStockTimeline = catchAsync(async (req, res, next) => {
+  const { searchQuery, building, status, movement } = req.query;
+
+  let buildingsArray = [];
+  if (building) {
+    if (typeof building === "object" && !Array.isArray(building)) {
+      buildingsArray = building;
+    } else {
+      buildingsArray = Array.isArray(building) ? building : building.split(",");
     }
-
-    const filters = {
-      searchQuery,
-      status,
-      movement,
-      buildings: buildingsArray,
-    };
-
-    const data = await statisticService.getStockTimelineStatistics(filters);
-    res.json({
-      success: true,
-      data,
-    });
-  } catch (error) {
-    next(error);
   }
-};
 
-export const requestStockTimelineExport = async (req, res, next) => {
-  try {
-    const userId = req.user.id;
-    const { searchQuery, building, status, movement } = req.body;
+  const filters = {
+    searchQuery,
+    status,
+    movement,
+    buildings: buildingsArray,
+  };
 
-    const filters = {
-      searchQuery,
-      status: status || "all",
-      movement: movement || "all",
-      buildings: building || [],
-      exportType: "STATISTICS_STOCK_TIMELINE",
-    };
+  const data = await statisticService.getStockTimelineStatistics(filters);
+  res.json({
+    success: true,
+    data,
+  });
+});
 
-    const jobId = await jobRepo.createExportJob(db, {
-      userId,
-      filters,
-      jobType: "STATISTICS_STOCK_TIMELINE",
-    });
+export const requestStockTimelineExport = catchAsync(async (req, res, next) => {
+  const userId = req.user.id;
+  const { searchQuery, building, status, movement } = req.body;
 
-    res.status(202).json({
-      success: true,
-      message: "Permintaan ekspor statistik timeline stok diterima. File sedang diproses.",
-      jobId,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+  const filters = {
+    searchQuery,
+    status: status || "all",
+    movement: movement || "all",
+    buildings: building || [],
+    exportType: "STATISTICS_STOCK_TIMELINE",
+  };
 
-export const getInventoryValue = async (req, res, next) => {
-  try {
-    const { searchQuery, building, purpose, isPackage, stockStatus, categoryId } = req.query;
+  const jobId = await jobRepo.createExportJob(db, {
+    userId,
+    filters,
+    jobType: "STATISTICS_STOCK_TIMELINE",
+  });
 
-    let buildingsArray = [];
-    if (building) {
-      if (typeof building === "object" && !Array.isArray(building)) {
-        buildingsArray = building;
-      } else {
-        buildingsArray = Array.isArray(building) ? building : building.split(",");
-      }
+  res.status(202).json({
+    success: true,
+    message: "Permintaan ekspor statistik timeline stok diterima. File sedang diproses.",
+    jobId,
+  });
+});
+
+export const getInventoryValue = catchAsync(async (req, res, next) => {
+  const { searchQuery, building, purpose, isPackage, stockStatus, categoryId } = req.query;
+
+  let buildingsArray = [];
+  if (building) {
+    if (typeof building === "object" && !Array.isArray(building)) {
+      buildingsArray = building;
+    } else {
+      buildingsArray = Array.isArray(building) ? building : building.split(",");
     }
-
-    const filters = {
-      searchQuery,
-      building: buildingsArray,
-      purpose,
-      isPackage,
-      stockStatus,
-      categoryId,
-    };
-
-    const data = await statisticService.getInventoryValueStatistics(filters);
-    res.json({
-      success: true,
-      data,
-    });
-  } catch (error) {
-    next(error);
   }
-};
 
-export const getShopPerformance = async (req, res, next) => {
-  try {
-    const { startDate, endDate, source, shopName, prevStartDate, prevEndDate } = req.query;
+  const filters = {
+    searchQuery,
+    building: buildingsArray,
+    purpose,
+    isPackage,
+    stockStatus,
+    categoryId,
+  };
 
-    const filters = { startDate, endDate, source, shopName, prevStartDate, prevEndDate };
-    const data = await statisticService.getShopPerformanceStats(filters);
+  const data = await statisticService.getInventoryValueStatistics(filters);
+  res.json({
+    success: true,
+    data,
+  });
+});
 
-    res.json({
-      success: true,
-      data,
+export const getShopPerformance = catchAsync(async (req, res, next) => {
+  const { startDate, endDate, source, shopName, prevStartDate, prevEndDate } = req.query;
+
+  const filters = { startDate, endDate, source, shopName, prevStartDate, prevEndDate };
+  const data = await statisticService.getShopPerformanceStats(filters);
+
+  res.json({
+    success: true,
+    data,
+  });
+});
+
+export const getPackageAnalysis = catchAsync(async (req, res, next) => {
+  const { startDate, endDate, categoryId, searchQuery } = req.query;
+
+  if (!startDate || !endDate) {
+    return res.status(400).json({
+      success: false,
+      message: "startDate dan endDate wajib diisi",
     });
-  } catch (error) {
-    next(error);
   }
-};
 
-export const getPackageAnalysis = async (req, res, next) => {
-  try {
-    const { startDate, endDate, categoryId, searchQuery } = req.query;
+  const filters = { startDate, endDate, categoryId, searchQuery };
+  const data = await statisticService.getPackageComponentAnalysis(filters);
 
-    if (!startDate || !endDate) {
-      return res.status(400).json({
-        success: false,
-        message: "startDate dan endDate wajib diisi",
-      });
-    }
-
-    const filters = { startDate, endDate, categoryId, searchQuery };
-    const data = await statisticService.getPackageComponentAnalysis(filters);
-
-    res.json({
-      success: true,
-      data,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+  res.json({
+    success: true,
+    data,
+  });
+});
