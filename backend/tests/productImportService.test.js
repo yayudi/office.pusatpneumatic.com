@@ -97,7 +97,7 @@ describe("Product Import Service - Logic Processing", () => {
     expect(productRepo.createProductTransaction).not.toHaveBeenCalled();
   });
 
-  test("Scenario 2: Create New Product (SKU Not Found)", async () => {
+  test("Scenario 2: Skip New Product (SKU Not Found)", async () => {
     // SETUP
     const csvData = new Map();
     csvData.set("SKU-NEW", {
@@ -124,18 +124,12 @@ describe("Product Import Service - Logic Processing", () => {
     );
 
     // ASSERT
-    expect(result.stats.success).toBe(1);
-    // Pastikan create dipanggil
-    expect(productRepo.createProductTransaction).toHaveBeenCalledWith(
-      mockConnection,
-      expect.objectContaining({
-        sku: "SKU-NEW",
-        name: "Produk Baru",
-        price: 100000,
-      }),
-      expect.any(Array),
-      1
-    );
+    expect(result.stats.success).toBe(0);
+    expect(result.errors.length).toBeGreaterThan(0);
+    expect(result.errors[0].message).toContain("tidak ditemukan");
+    
+    // Pastikan tidak ada create / update yang dipanggil
+    expect(productRepo.createProductTransaction).not.toHaveBeenCalled();
     expect(productRepo.updateProductTransaction).not.toHaveBeenCalled();
   });
 
@@ -173,7 +167,13 @@ describe("Product Import Service - Logic Processing", () => {
     csvData.set("SKU-3", { sku: "SKU-3", name: "C", row: 3 });
 
     mockParserRun.mockResolvedValue({ orders: csvData, stats: {}, errors: [] });
-    mockConnection.query.mockResolvedValue([[]]); // Anggap semua data baru
+    // Mock DB query to return existing products so they can be updated
+    mockConnection.query.mockResolvedValue([
+      [
+        { id: 2, sku: "SKU-2", name: "Old B" },
+        { id: 3, sku: "SKU-3", name: "Old C" }
+      ]
+    ]);
 
     // EXECUTE (Start from index 1 -> Skip SKU-1)
     await productImportService.processProductImport(
@@ -187,11 +187,12 @@ describe("Product Import Service - Logic Processing", () => {
     );
 
     // ASSERT
-    // Create harusnya hanya dipanggil 2 kali (SKU-2 dan SKU-3)
-    expect(productRepo.createProductTransaction).toHaveBeenCalledTimes(2);
-    expect(productRepo.createProductTransaction).toHaveBeenCalledWith(
+    // Update harusnya hanya dipanggil 2 kali (SKU-2 dan SKU-3)
+    expect(productRepo.updateProductTransaction).toHaveBeenCalledTimes(2);
+    expect(productRepo.updateProductTransaction).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ sku: "SKU-2" }), // First processed
+      2, // Product ID for SKU-2
+      expect.objectContaining({ name: "B" }),
       expect.anything(),
       expect.anything()
     );

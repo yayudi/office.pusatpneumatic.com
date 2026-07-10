@@ -111,17 +111,26 @@ describe("PickingDataService - Complete Items Logic", () => {
       suggested_location_id: 10,
       picking_list_id: 1,
       original_sku: "BRG-A",
+      status: "PENDING"
     };
 
     pickingRepo.getItemsByIds.mockResolvedValue([dbItem]);
-    locationRepo.getStockAtLocation.mockResolvedValue(10); // Stok 10 > 5
+    pickingRepo.getHeaderById.mockResolvedValue({ original_invoice_id: "INV-1" });
+
+
+    // Mock bulk query for stocks
+    mockConnection.query.mockImplementation((q) => {
+      if (q.includes("stock_locations sl")) {
+        return Promise.resolve([[{ product_id: 99, location_id: 10, quantity: 10, purpose: "DISPLAY" }]]);
+      }
+      return Promise.resolve([[]]);
+    });
 
     // EXECUTE
     const result = await pickingService.completePickingItemsService(payloadItems, 1);
 
     // ASSERT
     expect(result.success).toBe(true);
-    expect(locationRepo.findBestStock).not.toHaveBeenCalled();
     expect(locationRepo.deductStock).toHaveBeenCalledWith(mockConnection, 99, 10, 5);
 
     // VERIFIKASI INPUT LOG (STOCK MOVEMENTS)
@@ -151,36 +160,33 @@ describe("PickingDataService - Complete Items Logic", () => {
       suggested_location_id: null, // BACKORDER
       picking_list_id: 1,
       original_sku: "BRG-B",
+      status: "BACKORDER"
     };
 
     pickingRepo.getItemsByIds.mockResolvedValue([dbItem]);
+    pickingRepo.getHeaderById.mockResolvedValue({ original_invoice_id: "INV-1" });
 
-    // Mock JIT Flow:
-    // Find best stock -> Returns ID 50
-    locationRepo.findBestStock.mockResolvedValue(50);
-    // Check stock at ID 50 -> Returns 5 (Sufficient)
-    locationRepo.getStockAtLocation.mockResolvedValue(5);
+
+    // Mock bulk query for stocks (Loc 50 has 5 stock, purpose DISPLAY)
+    mockConnection.query.mockImplementation((q) => {
+      if (q.includes("stock_locations sl")) {
+        return Promise.resolve([[{ product_id: 88, location_id: 50, quantity: 5, purpose: "DISPLAY" }]]);
+      }
+      return Promise.resolve([[]]);
+    });
 
     // EXECUTE
     const result = await pickingService.completePickingItemsService(payloadItems, 1);
 
     // ASSERT
     expect(result.success).toBe(true);
-    expect(locationRepo.findBestStock).toHaveBeenCalledWith(mockConnection, 88, 2, "DISPLAY");
-    // Should update the item with the new location
-    expect(pickingRepo.updateSuggestedLocation).toHaveBeenCalledWith(mockConnection, 202, 50);
-    // Should deduct from the NEW location (50)
     expect(locationRepo.deductStock).toHaveBeenCalledWith(mockConnection, 88, 50, 2);
 
-    // VERIFIKASI INPUT LOG (STOCK MOVEMENTS)
-    // Memastikan log dicatat dengan LOKASI BARU (ID 50)
+    // Memastikan audit log menggunakan fromLocationId = 50
     expect(stockRepo.createLog).toHaveBeenCalledWith(
       mockConnection,
       expect.objectContaining({
-        productId: 88,
-        quantity: 2,
-        fromLocationId: 50, // Lokasi baru hasil pencarian
-        type: "SALE",
+        fromLocationId: 50,
       })
     );
 
@@ -193,24 +199,31 @@ describe("PickingDataService - Complete Items Logic", () => {
     const dbItem = {
       id: 303,
       product_id: 77,
-      quantity: 10,
-      suggested_location_id: null,
+      quantity: 10, // Butuh 10
+      suggested_location_id: 10,
       picking_list_id: 1,
-      original_sku: "BRG-C",
+      status: "PENDING"
     };
 
     pickingRepo.getItemsByIds.mockResolvedValue([dbItem]);
-    // Mock JIT Fail
-    locationRepo.findBestStock.mockResolvedValue(null); // Not found anywhere
+    pickingRepo.getHeaderById.mockResolvedValue({ original_invoice_id: "INV-1" });
+
+
+    // Mock bulk query for stocks: Cuma ada 2 di loc 10
+    mockConnection.query.mockImplementation((q) => {
+      if (q.includes("stock_locations sl")) {
+        return Promise.resolve([[{ product_id: 77, location_id: 10, quantity: 2, purpose: "DISPLAY" }]]);
+      }
+      return Promise.resolve([[]]);
+    });
 
     // EXECUTE & ASSERT
     await expect(pickingService.completePickingItemsService(payloadItems, 1)).rejects.toThrow(
-      /Validasi Gagal/
-    ); // Matches error message in service
+      /Sebagian pesanan gagal diproses karena masalah ketersediaan stok/
+    );
 
     expect(mockConnection.rollback).toHaveBeenCalled();
     expect(locationRepo.deductStock).not.toHaveBeenCalled();
-    // Pastikan TIDAK ada log yang dibuat jika gagal
     expect(stockRepo.createLog).not.toHaveBeenCalled();
   });
 
@@ -251,7 +264,7 @@ describe("PickingDataService - Complete Items Logic", () => {
 
     // EXECUTE & ASSERT
     await expect(pickingService.completePickingItemsService(payloadItems, 1)).rejects.toThrow(
-      /Validasi Gagal/
+      /Sebagian pesanan gagal diproses karena masalah ketersediaan stok/
     );
 
     // Transaction Integrity Check

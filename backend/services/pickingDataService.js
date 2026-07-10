@@ -177,8 +177,12 @@ export const voidPickingListService = async (pickingListId, userId) => {
 
     await connection.commit();
 
-    emitSharedTaskSignal('PICKING_LIST', 'REFRESH_PICKING').catch(e => Logger.error("Signal Error", e, "PICKING_DATA_SERVICE"));
-    emitSharedTaskSignal('WMS_DASHBOARD', 'REFRESH_STOCK').catch(e => Logger.error("Signal Error", e, "PICKING_DATA_SERVICE"));
+    emitSharedTaskSignal("PICKING_LIST", "REFRESH_PICKING").catch((e) =>
+      Logger.error("Signal Error", e, "PICKING_DATA_SERVICE"),
+    );
+    emitSharedTaskSignal("WMS_DASHBOARD", "REFRESH_STOCK").catch((e) =>
+      Logger.error("Signal Error", e, "PICKING_DATA_SERVICE"),
+    );
 
     return { success: true, message: "Picking List dibatalkan." };
   } catch (error) {
@@ -197,11 +201,12 @@ export const retryBackordersService = async (pickingListId) => {
   await connection.beginTransaction();
 
   try {
-    const [unfulfillableRows] = await connection.query(`
-      SELECT 
-        pli.id, 
-        pli.product_id, 
-        pli.quantity, 
+    const [unfulfillableRows] = await connection.query(
+      `
+      SELECT
+        pli.id,
+        pli.product_id,
+        pli.quantity,
         pli.original_sku,
         pl.location_purpose
       FROM picking_list_items pli
@@ -210,7 +215,9 @@ export const retryBackordersService = async (pickingListId) => {
         AND (pli.status = 'BACKORDER' OR (pli.status = 'PENDING' AND pli.suggested_location_id IS NULL))
         AND pl.status IN ('PENDING', 'VALIDATED')
         AND pl.is_active = 1
-    `, [pickingListId]);
+    `,
+      [pickingListId],
+    );
 
     if (unfulfillableRows.length === 0) {
       await connection.rollback();
@@ -224,7 +231,7 @@ export const retryBackordersService = async (pickingListId) => {
         connection,
         item.product_id,
         item.quantity,
-        item.location_purpose || "DISPLAY"
+        item.location_purpose || "DISPLAY",
       );
 
       if (bestLocation) {
@@ -233,7 +240,7 @@ export const retryBackordersService = async (pickingListId) => {
           item.id,
           bestLocation.location_id,
           bestLocation.stock_location_id,
-          "PENDING"
+          "PENDING",
         );
         recoveredCount++;
       }
@@ -242,12 +249,19 @@ export const retryBackordersService = async (pickingListId) => {
     await connection.commit();
 
     if (recoveredCount > 0) {
-      emitSharedTaskSignal('PICKING_LIST', 'REFRESH_PICKING').catch(e => Logger.error("Signal Error", e, "PICKING_DATA_SERVICE"));
-      return { success: true, message: `Berhasil mendapatkan stok untuk ${recoveredCount} dari ${unfulfillableRows.length} item backorder.` };
+      emitSharedTaskSignal("PICKING_LIST", "REFRESH_PICKING").catch((e) =>
+        Logger.error("Signal Error", e, "PICKING_DATA_SERVICE"),
+      );
+      return {
+        success: true,
+        message: `Berhasil mendapatkan stok untuk ${recoveredCount} dari ${unfulfillableRows.length} item backorder.`,
+      };
     } else {
-      return { success: true, message: `Stok masih belum tersedia untuk ${unfulfillableRows.length} item.` };
+      return {
+        success: true,
+        message: `Stok masih belum tersedia untuk ${unfulfillableRows.length} item.`,
+      };
     }
-
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -268,13 +282,14 @@ export const retryBackordersBatchService = async (pickingListIds) => {
   await connection.beginTransaction();
 
   try {
-    const placeholders = pickingListIds.map(() => '?').join(',');
+    const placeholders = pickingListIds.map(() => "?").join(",");
     // Fetch ALL PENDING & BACKORDER items to ensure no "Ghost Stock" is hiding
-    const [rows] = await connection.query(`
-      SELECT 
-        pli.id, 
-        pli.product_id, 
-        pli.quantity, 
+    const [rows] = await connection.query(
+      `
+      SELECT
+        pli.id,
+        pli.product_id,
+        pli.quantity,
         pli.original_sku,
         pli.status,
         pli.suggested_location_id,
@@ -285,11 +300,16 @@ export const retryBackordersBatchService = async (pickingListIds) => {
         AND pli.status IN ('PENDING', 'BACKORDER')
         AND pl.status IN ('PENDING', 'VALIDATED')
         AND pl.is_active = 1
-    `, pickingListIds);
+    `,
+      pickingListIds,
+    );
 
     if (rows.length === 0) {
       await connection.rollback();
-      return { success: true, message: "Tidak ada item pending/backorder pada pesanan yang dipilih." };
+      return {
+        success: true,
+        message: "Tidak ada item pending/backorder pada pesanan yang dipilih.",
+      };
     }
 
     let recoveredCount = 0;
@@ -301,25 +321,25 @@ export const retryBackordersBatchService = async (pickingListIds) => {
         item.product_id,
         item.quantity,
         item.suggested_location_id,
-        item.location_purpose || "DISPLAY"
+        item.location_purpose || "DISPLAY",
       );
 
       if (locationId) {
         // Stock is sufficient!
-        if (isChanged || item.status === 'BACKORDER') {
+        if (isChanged || item.status === "BACKORDER") {
           // It found a new location, OR it was BACKORDER and now we revived it
           await pickingRepo.updateSuggestedLocation(connection, item.id, locationId);
-          if (item.status === 'BACKORDER') {
-            await pickingRepo.updateItemStatus(connection, item.id, 'PENDING');
+          if (item.status === "BACKORDER") {
+            await pickingRepo.updateItemStatus(connection, item.id, "PENDING");
           }
           recoveredCount++;
         }
       } else {
         // Stock is insufficient (0, or less than needed)
-        if (item.status !== 'BACKORDER' || item.suggested_location_id !== null) {
+        if (item.status !== "BACKORDER" || item.suggested_location_id !== null) {
           // Downgrade if it wasn't already BACKORDER with null location
           await pickingRepo.updateSuggestedLocation(connection, item.id, null);
-          await pickingRepo.updateItemStatus(connection, item.id, 'BACKORDER');
+          await pickingRepo.updateItemStatus(connection, item.id, "BACKORDER");
           downgradedCount++;
         }
       }
@@ -328,19 +348,24 @@ export const retryBackordersBatchService = async (pickingListIds) => {
     await connection.commit();
 
     if (recoveredCount > 0 || downgradedCount > 0) {
-      emitSharedTaskSignal('PICKING_LIST', 'REFRESH_PICKING').catch(e => Logger.error("Signal Error", e, "PICKING_DATA_SERVICE"));
+      emitSharedTaskSignal("PICKING_LIST", "REFRESH_PICKING").catch((e) =>
+        Logger.error("Signal Error", e, "PICKING_DATA_SERVICE"),
+      );
     }
 
     const msg = [];
     if (recoveredCount > 0) msg.push(`Berhasil memulihkan/memindahkan ${recoveredCount} item.`);
-    if (downgradedCount > 0) msg.push(`${downgradedCount} item kehabisan stok & menjadi BACKORDER.`);
-    
+    if (downgradedCount > 0)
+      msg.push(`${downgradedCount} item kehabisan stok & menjadi BACKORDER.`);
+
     if (msg.length === 0) {
-      return { success: true, message: `Stok untuk ${rows.length} item telah dievaluasi dan tidak ada perubahan.` };
+      return {
+        success: true,
+        message: `Stok untuk ${rows.length} item telah dievaluasi dan tidak ada perubahan.`,
+      };
     }
 
     return { success: true, message: msg.join(" ") };
-
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -358,7 +383,8 @@ export const completePickingItemsService = async (payloadItems, userId) => {
   await connection.beginTransaction();
 
   try {
-    if (!payloadItems?.length) throw new AppError("Tidak ada item dipilih.", 400, "VALIDATION_ERROR");
+    if (!payloadItems?.length)
+      throw new AppError("Tidak ada item dipilih.", 400, "VALIDATION_ERROR");
 
     // --- SAFETY CHECK START (REAL-TIME INTERRUPTION) ---
     // Pastikan order belum direvisi (menjadi _REV_) saat picker sedang bekerja
@@ -372,7 +398,11 @@ export const completePickingItemsService = async (payloadItems, userId) => {
       const header = await pickingRepo.getHeaderById(connection, listId);
 
       if (!header) {
-        throw new AppError(`Data Picking List #${listId} tidak ditemukan. Mungkin sudah dihapus.`, 404, "NOT_FOUND");
+        throw new AppError(
+          `Data Picking List #${listId} tidak ditemukan. Mungkin sudah dihapus.`,
+          404,
+          "NOT_FOUND",
+        );
       }
 
       // Cek apakah status Header sudah "Obsolete" (ditandai dengan _REV_)
@@ -381,13 +411,17 @@ export const completePickingItemsService = async (payloadItems, userId) => {
           `PERHATIAN: Order ${header.original_invoice_id} telah direvisi oleh Admin! ` +
             `Data Anda usang. Mohon refresh halaman dan kerjakan revisi terbaru.`,
           409,
-          "CONFLICT"
+          "CONFLICT",
         );
       }
 
       // Cek apakah status sudah Void
       if (header.status === "VOID" || header.status === "CANCELLED" || header.status === "CANCEL") {
-        throw new AppError(`Order #${listId} telah divoid (dibatalkan). Tidak dapat diproses.`, 400, "VOID_ORDER");
+        throw new AppError(
+          `Order #${listId} telah divoid (dibatalkan). Tidak dapat diproses.`,
+          400,
+          "VOID_ORDER",
+        );
       }
 
       // --- ANTI PARTIAL PROCESS CHECK ---
@@ -396,13 +430,15 @@ export const completePickingItemsService = async (payloadItems, userId) => {
         `SELECT original_sku FROM picking_list_items
           WHERE picking_list_id = ?
             AND (status = 'BACKORDER' OR (status = 'PENDING' AND suggested_location_id IS NULL))`,
-        [listId]
+        [listId],
       );
 
       if (unfulfillable.length > 0) {
         invalidListIds.add(listId);
         for (const u of unfulfillable) {
-          validationErrors.push(`INV [${header.original_invoice_id}] - SKU ${u.original_sku || "UNKNOWN"}: Stok habis (Anti-Parsial).`);
+          validationErrors.push(
+            `INV [${header.original_invoice_id}] - SKU ${u.original_sku || "UNKNOWN"}: Stok habis (Anti-Parsial).`,
+          );
         }
       }
 
@@ -416,6 +452,27 @@ export const completePickingItemsService = async (payloadItems, userId) => {
 
     // --- FASE 1: STRICT VALIDATION (SATPAM) ---
     const executionPlan = []; // Menyimpan data valid untuk eksekusi nanti
+
+    // [OPTIMIZATION] Pre-fetch and lock all stock locations for the required products
+    const uniqueProductIds = [...new Set(dbItems.map((item) => item.product_id))];
+    const stockMap = new Map();
+    if (uniqueProductIds.length > 0) {
+      uniqueProductIds.sort((a, b) => a - b); // Prevent deadlocks
+      const [stocks] = await connection.query(
+        `SELECT sl.product_id, sl.location_id, sl.quantity, l.purpose
+         FROM stock_locations sl
+         JOIN locations l ON sl.location_id = l.id
+         WHERE sl.product_id IN (?)
+         FOR UPDATE`,
+        [uniqueProductIds],
+      );
+      for (const s of stocks) {
+        if (!stockMap.has(s.product_id)) stockMap.set(s.product_id, []);
+        // Convert quantity to number for safe math
+        s.quantity = Number(s.quantity);
+        stockMap.get(s.product_id).push(s);
+      }
+    }
 
     for (const itemData of dbItems) {
       const {
@@ -440,14 +497,41 @@ export const completePickingItemsService = async (payloadItems, userId) => {
         continue;
       }
 
-      // Cek ketersediaan stok & lokasi
-      const { locationId, isChanged } = await ensureStockLocation(
-        connection,
-        prodId,
-        qty,
-        initialLocId,
-        locationPurpose,
-      );
+      // [OPTIMIZATION] Cek ketersediaan stok & lokasi secara in-memory (O(1))
+      let locationId = null;
+      let isChanged = false;
+      const availableStocks = stockMap.get(prodId) || [];
+
+      const currentLocStock = availableStocks.find((s) => s.location_id === initialLocId);
+
+      if (currentLocStock && currentLocStock.quantity >= qty) {
+        locationId = initialLocId;
+        currentLocStock.quantity -= qty; // Reserve stock in memory
+      } else {
+        // Cari lokasi alternatif dengan purpose yang sesuai
+        const validStocks = availableStocks.filter(
+          (s) => s.purpose === locationPurpose && s.quantity >= qty,
+        );
+
+        if (validStocks.length > 0) {
+          // Sort by priority logic from findBestStock
+          validStocks.sort((a, b) => {
+            const getPriority = (locId) => {
+              if (locId === 2 || locId === 3) return 1;
+              if (locId === 4 || locId === 5) return 2;
+              return 3;
+            };
+            const pA = getPriority(a.location_id);
+            const pB = getPriority(b.location_id);
+            if (pA !== pB) return pA - pB;
+            return b.quantity - a.quantity;
+          });
+
+          locationId = validStocks[0].location_id;
+          isChanged = true;
+          validStocks[0].quantity -= qty; // Reserve stock in memory
+        }
+      }
 
       if (!locationId) {
         // Gagal: Stok tidak ditemukan sama sekali
@@ -524,8 +608,12 @@ export const completePickingItemsService = async (payloadItems, userId) => {
 
     await connection.commit();
 
-    emitSharedTaskSignal('PICKING_LIST', 'REFRESH_PICKING').catch(e => Logger.error("Signal Error", e, "PICKING_DATA_SERVICE"));
-    emitSharedTaskSignal('WMS_DASHBOARD', 'REFRESH_STOCK').catch(e => Logger.error("Signal Error", e, "PICKING_DATA_SERVICE"));
+    emitSharedTaskSignal("PICKING_LIST", "REFRESH_PICKING").catch((e) =>
+      Logger.error("Signal Error", e, "PICKING_DATA_SERVICE"),
+    );
+    emitSharedTaskSignal("WMS_DASHBOARD", "REFRESH_STOCK").catch((e) =>
+      Logger.error("Signal Error", e, "PICKING_DATA_SERVICE"),
+    );
 
     return {
       success: true,

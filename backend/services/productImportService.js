@@ -16,7 +16,6 @@ export const processProductImport = async (
   const logicErrors = [];
   let updatedCount = 0;
   const createdCount = 0;
-  let skippedCount = 0;
 
   // Pagination / Resume Support
   const startIndex = options.lastRow || 0;
@@ -35,13 +34,30 @@ export const processProductImport = async (
     // Gunakan Mapper baru 'MassProductUpdate'
     const parser = new ParserEngine(filePath, "MassProductUpdate");
 
-    const { orders: dataMap, stats, errors: parserErrors } = await parser.run();
+    const { orders: dataMap, errors: parserErrors } = await parser.run();
     logicErrors.push(...parserErrors);
 
     const totalItems = dataMap.size;
     const allData = Array.from(dataMap.values());
 
     logSummary += `Total baris terbaca: ${totalItems}. `;
+
+    // [OPTIMIZATION] Bulk-fetch all relevant products to prevent N+1 queries
+    const skusToFetch = allData
+      .slice(startIndex)
+      .map((item) => item.sku)
+      .filter(Boolean);
+    const dbProductMap = new Map();
+    if (skusToFetch.length > 0) {
+      const chunkSize = 1000;
+      for (let i = 0; i < skusToFetch.length; i += chunkSize) {
+        const chunk = skusToFetch.slice(i, i + chunkSize);
+        const [existingRows] = await connection.query("SELECT * FROM products WHERE sku IN (?)", [
+          chunk,
+        ]);
+        existingRows.forEach((row) => dbProductMap.set(row.sku, row));
+      }
+    }
 
     for (let i = startIndex; i < totalItems; i++) {
       // Cek Timeout
@@ -64,12 +80,9 @@ export const processProductImport = async (
       const { sku } = csvItem;
 
       try {
-        // 1. Cek Eksistensi Produk di DB
-        const [existingRows] = await connection.query("SELECT * FROM products WHERE sku = ?", [
-          sku,
-        ]);
-        const productExists = existingRows.length > 0;
-        const dbProduct = existingRows[0];
+        // 1. Cek Eksistensi Produk di DB (O(1) memory lookup)
+        const dbProduct = dbProductMap.get(sku);
+        const productExists = !!dbProduct;
 
         if (productExists) {
           // --- UPDATE SCENARIO ---
@@ -94,7 +107,6 @@ export const processProductImport = async (
               row,
               message: `SKU '${sku}' adalah Paket. Batch Edit ini hanya untuk Produk Biasa.`,
             });
-            skippedCount++;
             continue;
           }
 
@@ -124,7 +136,6 @@ export const processProductImport = async (
             row,
             message: `SKU '${sku}' tidak ditemukan. Batch Edit hanya untuk update produk yang sudah ada.`,
           });
-          skippedCount++;
         }
       } catch (err) {
         logicErrors.push({ row, message: `Error SKU ${sku}: ${err.message}` });

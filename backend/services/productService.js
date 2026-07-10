@@ -1,20 +1,19 @@
 // backend/services/productService.js
-import db from "../config/db.js";
-import * as productRepo from "../repositories/productRepository.js";
-import Logger from "../utils/logger.js";
-import { emitSharedTaskSignal } from "./firebaseSignalService.js";
-
-import fs from "fs/promises";
 import path from "path";
+import fs from "fs/promises";
+import db from "../config/db.js";
+import Logger from "../utils/logger.js";
 import * as mediaService from "./mediaService.js";
+import * as productRepo from "../repositories/productRepository.js";
+import { emitSharedTaskSignal } from "./firebaseSignalService.js";
 
 import { stripExtension, isGenericTitle } from "../utils/mediaUtils.js";
 
 const resolveProductImageTitle = (file, data, index) => {
   let title = stripExtension(file.originalname);
   if (isGenericTitle(title)) {
-    const skuPart = data.sku ? `[${data.sku}] ` : '';
-    const namePart = data.name || 'Produk';
+    const skuPart = data.sku ? `[${data.sku}] ` : "";
+    const namePart = data.name || "Produk";
     title = `${skuPart}${namePart}`;
     if (index > 0) title += ` - ${index + 1}`;
   }
@@ -64,7 +63,13 @@ export const createProductService = async (data, userId) => {
         const img = data.images[i];
         try {
           const finalTitle = resolveProductImageTitle(img, data, i);
-          const mediaId = await mediaService.processMediaFile(img, finalTitle, [], userId, connection);
+          const mediaId = await mediaService.processMediaFile(
+            img,
+            finalTitle,
+            [],
+            userId,
+            connection,
+          );
           await productRepo.linkMedia(connection, newId, [mediaId]);
         } catch (err) {
           if (err.isDuplicate) {
@@ -74,7 +79,15 @@ export const createProductService = async (data, userId) => {
           }
         }
       }
-      await logChange(connection, newId, userId, "CREATE", "images", null, `${data.images.length} Images`);
+      await logChange(
+        connection,
+        newId,
+        userId,
+        "CREATE",
+        "images",
+        null,
+        `${data.images.length} Images`,
+      );
     }
 
     // Handle Package Components
@@ -83,7 +96,9 @@ export const createProductService = async (data, userId) => {
     }
 
     await connection.commit();
-    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => Logger.error("Signal Error", e, "PRODUCT_SERVICE"));
+    emitSharedTaskSignal("MASTER_DATA", "REFRESH_PRODUCTS").catch((e) =>
+      Logger.error("Signal Error", e, "PRODUCT_SERVICE"),
+    );
     return newId;
   } catch (error) {
     await connection.rollback();
@@ -146,7 +161,13 @@ export const updateProductService = async (id, data, userId) => {
         const img = data.images[i];
         try {
           const finalTitle = resolveProductImageTitle(img, data, i);
-          const mediaId = await mediaService.processMediaFile(img, finalTitle, [], userId, connection);
+          const mediaId = await mediaService.processMediaFile(
+            img,
+            finalTitle,
+            [],
+            userId,
+            connection,
+          );
           await productRepo.linkMedia(connection, id, [mediaId]);
         } catch (err) {
           if (err.isDuplicate) {
@@ -156,7 +177,15 @@ export const updateProductService = async (id, data, userId) => {
           }
         }
       }
-      await logChange(connection, id, userId, "UPDATE", "images", "Append", `${data.images.length} New Images`);
+      await logChange(
+        connection,
+        id,
+        userId,
+        "UPDATE",
+        "images",
+        "Append",
+        `${data.images.length} New Images`,
+      );
     }
 
     // Handle Package Components (Selalu replace logic untuk konsistensi)
@@ -173,12 +202,14 @@ export const updateProductService = async (id, data, userId) => {
         "UPDATE",
         "components",
         "Old Components",
-        `${data.components.length} Items`
+        `${data.components.length} Items`,
       );
     }
 
     await connection.commit();
-    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => Logger.error("Signal Error", e, "PRODUCT_SERVICE"));
+    emitSharedTaskSignal("MASTER_DATA", "REFRESH_PRODUCTS").catch((e) =>
+      Logger.error("Signal Error", e, "PRODUCT_SERVICE"),
+    );
     return true;
   } catch (error) {
     await connection.rollback();
@@ -200,7 +231,9 @@ export const softDeleteProductService = async (id, userId) => {
     await productRepo.updateProductStatus(connection, id, false); // Active = false
     await logChange(connection, id, userId, "DELETE", "status", "Active", "Archived");
     await connection.commit();
-    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => Logger.error("Signal Error", e, "PRODUCT_SERVICE"));
+    emitSharedTaskSignal("MASTER_DATA", "REFRESH_PRODUCTS").catch((e) =>
+      Logger.error("Signal Error", e, "PRODUCT_SERVICE"),
+    );
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -221,7 +254,9 @@ export const restoreProductService = async (id, userId) => {
     await productRepo.updateProductStatus(connection, id, true); // Active = true
     await logChange(connection, id, userId, "RESTORE", "status", "Archived", "Active");
     await connection.commit();
-    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => Logger.error("Signal Error", e, "PRODUCT_SERVICE"));
+    emitSharedTaskSignal("MASTER_DATA", "REFRESH_PRODUCTS").catch((e) =>
+      Logger.error("Signal Error", e, "PRODUCT_SERVICE"),
+    );
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -245,9 +280,15 @@ export const uploadProductImagesService = async (id, images, userId) => {
       try {
         let finalTitle = stripExtension(img.originalname);
         if (isGenericTitle(finalTitle)) {
-           finalTitle = `Gambar Produk - ${i + 1}`;
+          finalTitle = `Gambar Produk - ${i + 1}`;
         }
-        const mediaId = await mediaService.processMediaFile(img, finalTitle, [], userId, connection);
+        const mediaId = await mediaService.processMediaFile(
+          img,
+          finalTitle,
+          [],
+          userId,
+          connection,
+        );
         await productRepo.linkMedia(connection, id, [mediaId]);
       } catch (err) {
         if (err.isDuplicate) {
@@ -259,7 +300,9 @@ export const uploadProductImagesService = async (id, images, userId) => {
     }
     await logChange(connection, id, userId, "UPDATE", "images", "Add", `${images.length} Images`);
     await connection.commit();
-    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => Logger.error("Signal Error", e, "PRODUCT_SERVICE"));
+    emitSharedTaskSignal("MASTER_DATA", "REFRESH_PRODUCTS").catch((e) =>
+      Logger.error("Signal Error", e, "PRODUCT_SERVICE"),
+    );
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -279,9 +322,19 @@ export const linkMediaToProductService = async (productId, mediaIds, userId) => 
   await connection.beginTransaction();
   try {
     await productRepo.linkMedia(connection, productId, mediaIds);
-    await logChange(connection, productId, userId, "UPDATE", "images", "Add Media", `${mediaIds.length} Linked Media`);
+    await logChange(
+      connection,
+      productId,
+      userId,
+      "UPDATE",
+      "images",
+      "Add Media",
+      `${mediaIds.length} Linked Media`,
+    );
     await connection.commit();
-    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => Logger.error("Signal Error", e, "PRODUCT_SERVICE"));
+    emitSharedTaskSignal("MASTER_DATA", "REFRESH_PRODUCTS").catch((e) =>
+      Logger.error("Signal Error", e, "PRODUCT_SERVICE"),
+    );
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -312,9 +365,19 @@ export const deleteProductImageService = async (imageId, userId) => {
     }
 
     await productRepo.deleteImage(connection, imageId);
-    await logChange(connection, image.product_id, userId, "DELETE", "image", image.image_path, "Deleted");
+    await logChange(
+      connection,
+      image.product_id,
+      userId,
+      "DELETE",
+      "image",
+      image.image_path,
+      "Deleted",
+    );
     await connection.commit();
-    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => Logger.error("Signal Error", e, "PRODUCT_SERVICE"));
+    emitSharedTaskSignal("MASTER_DATA", "REFRESH_PRODUCTS").catch((e) =>
+      Logger.error("Signal Error", e, "PRODUCT_SERVICE"),
+    );
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -335,9 +398,19 @@ export const setPrimaryImageService = async (productId, imageId, userId) => {
   try {
     await productRepo.resetPrimaryImage(connection, productId);
     await productRepo.setPrimaryImage(connection, imageId);
-    await logChange(connection, productId, userId, "UPDATE", "primary_image", "Changed", `Image ID ${imageId}`);
+    await logChange(
+      connection,
+      productId,
+      userId,
+      "UPDATE",
+      "primary_image",
+      "Changed",
+      `Image ID ${imageId}`,
+    );
     await connection.commit();
-    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PRODUCTS').catch(e => Logger.error("Signal Error", e, "PRODUCT_SERVICE"));
+    emitSharedTaskSignal("MASTER_DATA", "REFRESH_PRODUCTS").catch((e) =>
+      Logger.error("Signal Error", e, "PRODUCT_SERVICE"),
+    );
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -353,13 +426,35 @@ export const setPrimaryImageService = async (productId, imageId, userId) => {
  * @param {any} filters
  * @returns {Promise<any>}
  */
-export const getHistoricalStockTimelineService = async (productId, page = 1, limit = 100, filters = {}) => {
+export const getHistoricalStockTimelineService = async (
+  productId,
+  page = 1,
+  limit = 100,
+  filters = {},
+) => {
   const connection = await db.getConnection();
   try {
-    const currentStock = await productRepo.getProductTotalStock(connection, productId, filters);
-    const movements = await productRepo.getProductStockMovementsAll(connection, productId, filters);
+    const offset = (page - 1) * limit;
 
-    let currentBalance = currentStock;
+    // Run aggregations concurrently
+    const [currentStock, totalMovementsCount, newerMovementsSum] = await Promise.all([
+      productRepo.getProductTotalStock(connection, productId, filters),
+      productRepo.getProductStockMovementsCount(connection, productId, filters),
+      productRepo.getSumOfNewerStockMovements(connection, productId, offset, filters),
+    ]);
+
+    // Fetch ONLY the paginated movements
+    const movements = await productRepo.getProductStockMovementsPaginated(
+      connection,
+      productId,
+      limit,
+      offset,
+      filters,
+    );
+
+    // Balance at the very beginning of the paginated list (newest movement of this page)
+    let currentBalance = currentStock - newerMovementsSum;
+
     const timeline = movements.map((mov) => {
       const balanceAtThisPoint = currentBalance;
 
@@ -385,7 +480,7 @@ export const getHistoricalStockTimelineService = async (productId, page = 1, lim
         // if both are NOT NULL, it's an internal transfer (netChange = 0 globally)
       }
 
-      // Revert balance for the NEXT older movement
+      // Revert balance for the NEXT older movement (which comes next in the loop because it's DESC)
       currentBalance -= netChange;
 
       return {
@@ -398,20 +493,16 @@ export const getHistoricalStockTimelineService = async (productId, page = 1, lim
         notes: mov.notes,
         user_name: mov.user_name,
         balance_after: balanceAtThisPoint,
-        net_change: netChange
+        net_change: netChange,
       };
     });
 
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedData = timeline.slice(startIndex, endIndex);
-
     return {
-      data: paginatedData,
-      total: timeline.length,
+      data: timeline,
+      total: totalMovementsCount,
       page: parseInt(page),
       limit: parseInt(limit),
-      totalPages: Math.ceil(timeline.length / limit)
+      totalPages: Math.ceil(totalMovementsCount / limit),
     };
   } finally {
     connection.release();
@@ -433,7 +524,7 @@ export const calculatePackageMeta = (product) => {
     return {
       ...product,
       virtual_stock: 0,
-      total_weight: parseFloat(product.weight || 0)
+      total_weight: parseFloat(product.weight || 0),
     };
   }
 
@@ -463,6 +554,6 @@ export const calculatePackageMeta = (product) => {
   return {
     ...product,
     virtual_stock: minStock,
-    total_weight: calculatedWeight > 0 ? calculatedWeight : parseFloat(product.weight || 0)
+    total_weight: calculatedWeight > 0 ? calculatedWeight : parseFloat(product.weight || 0),
   };
 };
