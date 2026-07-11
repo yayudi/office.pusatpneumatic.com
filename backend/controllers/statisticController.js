@@ -179,3 +179,20 @@ export const getPackageAnalysis = catchAsync(async (req, res, next) => {
     data,
   });
 });
+
+export const getLocationAnalysis = catchAsync(async (req, res, next) => {
+  const { building, floor, purpose } = req.query;
+
+  const filters = {
+    buildings: building,
+    floors: floor,
+    purposes: purpose,
+  };
+
+  const data = await statisticService.getLocationAnalysis(filters);
+
+  res.json({
+    success: true,
+    data,
+  });
+});

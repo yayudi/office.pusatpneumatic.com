@@ -540,3 +540,54 @@ export const getPackageComponentAnalysis = async (filters) => {
     if (connection) connection.release();
   }
 };
+
+/**
+ * Get location analysis including location loads and duplicated products
+ * @param {Object} filters { buildings, floors }
+ * @returns {Promise<{locationLoads: Array, duplicateProducts: Array}>}
+ */
+export const getLocationAnalysis = async (filters) => {
+  let connection;
+  try {
+    connection = await db.getConnection();
+
+    const [locationLoads, duplicateRows] = await Promise.all([
+      statisticRepo.getLocationLoads(connection, filters),
+      statisticRepo.getDuplicateLocations(connection, filters),
+    ]);
+
+    // Format location loads
+    const formattedLocationLoads = locationLoads.map((row) => ({
+      location_id: row.location_id,
+      code: row.code,
+      name: row.name,
+      building: row.building,
+      floor: row.floor,
+      purpose: row.purpose,
+      total_products: Number(row.total_products) || 0,
+      total_quantity: Number(row.total_quantity) || 0,
+      total_weight: Number(row.total_weight) || 0,
+    }));
+
+    // Format duplicate products
+    const formattedDuplicateProducts = duplicateRows.map((row) => ({
+      product_id: row.product_id,
+      sku: row.sku,
+      name: row.name,
+      purpose: row.purpose,
+      location_count: Number(row.location_count),
+      locations: row.location_codes, // comma-separated string
+    }));
+
+    return {
+      locationLoads: formattedLocationLoads,
+      duplicateProducts: formattedDuplicateProducts,
+    };
+  } catch (error) {
+    Logger.error("Error in getLocationAnalysis", error, "STATISTIC_SERVICE");
+    throw error;
+  } finally {
+    if (connection) connection.release();
+  }
+};
+

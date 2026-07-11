@@ -35,7 +35,7 @@ export const buildTriStateWhere = (field, filter, queryParams) => {
       let parsedFilter = null;
       try {
         parsedFilter = JSON.parse(filter);
-      } catch (e) {
+      } catch {
         // Not JSON string, treat as normal string
       }
 
@@ -659,3 +659,111 @@ export const getPackageComponentAnalysis = async (connection, filters) => {
   const [rows] = await connection.query(query, queryParams);
   return rows;
 };
+
+/**
+ * Get location loads (total products, total quantity, total weight)
+ * @param {import('mysql2/promise').PoolConnection} connection
+ * @param {Object} filters { buildings, floors }
+ * @returns {Promise<Array>}
+ */
+export const getLocationLoads = async (connection, filters) => {
+  const { buildings, floors, purposes } = filters;
+  const queryParams = [];
+  const whereClauses = ["l.is_active = 1"];
+
+  const bClauses = buildTriStateWhere("l.building", buildings, queryParams);
+  if (bClauses.length > 0) {
+    whereClauses.push(...bClauses);
+  }
+
+  const fClauses = buildTriStateWhere("l.floor", floors, queryParams);
+  if (fClauses.length > 0) {
+    whereClauses.push(...fClauses);
+  }
+
+  const pClauses = buildTriStateWhere("l.purpose", purposes, queryParams);
+  if (pClauses.length > 0) {
+    whereClauses.push(...pClauses);
+  }
+
+  let filterSql = "";
+  if (whereClauses.length > 0) {
+    filterSql = `WHERE ` + whereClauses.join(" AND ");
+  }
+
+  const query = `
+    SELECT 
+      l.id as location_id,
+      l.code,
+      l.name,
+      l.building,
+      l.floor,
+      l.purpose,
+      COUNT(DISTINCT sl.product_id) as total_products,
+      SUM(sl.quantity) as total_quantity,
+      SUM(sl.quantity * COALESCE(p.weight, 0)) as total_weight
+    FROM locations l
+    LEFT JOIN stock_locations sl ON l.id = sl.location_id
+    LEFT JOIN products p ON sl.product_id = p.id
+    ${filterSql}
+    GROUP BY l.id
+    ORDER BY l.building ASC, l.floor ASC, l.code ASC
+  `;
+
+  const [rows] = await connection.query(query, queryParams);
+  return rows;
+};
+
+/**
+ * Get duplicate products in locations separated by purpose.
+ * It finds products that have more than 1 location for the same purpose.
+ * @param {import('mysql2/promise').PoolConnection} connection
+ * @param {Object} filters { buildings, floors }
+ * @returns {Promise<Array>}
+ */
+export const getDuplicateLocations = async (connection, filters) => {
+  const { buildings, floors, purposes } = filters;
+  const queryParams = [];
+  const whereClauses = ["l.is_active = 1", "sl.quantity > 0"];
+
+  const bClauses = buildTriStateWhere("l.building", buildings, queryParams);
+  if (bClauses.length > 0) {
+    whereClauses.push(...bClauses);
+  }
+
+  const fClauses = buildTriStateWhere("l.floor", floors, queryParams);
+  if (fClauses.length > 0) {
+    whereClauses.push(...fClauses);
+  }
+
+  const pClauses = buildTriStateWhere("l.purpose", purposes, queryParams);
+  if (pClauses.length > 0) {
+    whereClauses.push(...pClauses);
+  }
+
+  let filterSql = "";
+  if (whereClauses.length > 0) {
+    filterSql = `WHERE ` + whereClauses.join(" AND ");
+  }
+
+  const query = `
+    SELECT
+      p.id as product_id,
+      p.sku,
+      p.name,
+      l.purpose,
+      COUNT(DISTINCT sl.location_id) as location_count,
+      GROUP_CONCAT(DISTINCT l.code ORDER BY l.code ASC SEPARATOR ', ') as location_codes
+    FROM products p
+    JOIN stock_locations sl ON p.id = sl.product_id
+    JOIN locations l ON sl.location_id = l.id
+    ${filterSql}
+    GROUP BY p.id, l.purpose
+    HAVING location_count > 1
+    ORDER BY location_count DESC, p.sku ASC
+  `;
+
+  const [rows] = await connection.query(query, queryParams);
+  return rows;
+};
+

@@ -1,7 +1,10 @@
 <!-- src/components/stats/OverviewDashboard.vue -->
 <script setup>
 import { computed } from 'vue'
+import { useAuthStore } from '@/stores/auth.js'
 import { formatNumber, formatCurrency } from '@/utils/formatters.js'
+
+const auth = useAuthStore()
 
 const props = defineProps({
   kpiData: {
@@ -21,36 +24,43 @@ const todayDateString = computed(() => {
   })
 })
 
-const quickLinks = [
-  {
-    key: 'stock-movement',
-    title: 'Pergerakan Stok',
-    desc: 'Analisis In/Out & Fast-Moving Product',
-    icon: 'fa-solid fa-arrow-right-arrow-left',
-    colorClass: 'text-primary bg-primary/10 border-primary/20 group-hover:bg-primary group-hover:text-white'
-  },
-  {
-    key: 'inventory-value',
-    title: 'Nilai Inventaris',
-    desc: 'Valuasi Modal & Aset Gudang',
-    icon: 'fa-solid fa-sack-dollar',
-    colorClass: 'text-success bg-success/10 border-success/20 group-hover:bg-success group-hover:text-white'
-  },
-  {
-    key: 'channel-performance',
-    title: 'Performa Toko',
-    desc: 'Omset & Tren Penjualan per Saluran',
-    icon: 'fa-solid fa-store',
-    colorClass: 'text-accent bg-accent/10 border-accent/20 group-hover:bg-accent group-hover:text-white'
-  },
-  {
-    key: 'time-performance',
-    title: 'Performa Waktu',
-    desc: 'Kecepatan Proses Order Fulfillment',
-    icon: 'fa-solid fa-stopwatch',
-    colorClass: 'text-warning bg-warning/10 border-warning/20 group-hover:bg-warning group-hover:text-black'
+const quickLinks = computed(() => {
+  const links = [
+    {
+      key: 'stock-movement',
+      title: 'Pergerakan Stok',
+      desc: 'Analisis In/Out & Fast-Moving Product',
+      icon: 'fa-solid fa-arrow-right-arrow-left',
+      colorClass: 'text-primary bg-primary/10 border-primary/20 group-hover:bg-primary group-hover:text-white'
+    },
+    {
+      key: 'time-performance',
+      title: 'Performa Waktu',
+      desc: 'Kecepatan Proses Order Fulfillment',
+      icon: 'fa-solid fa-stopwatch',
+      colorClass: 'text-warning bg-warning/10 border-warning/20 group-hover:bg-warning group-hover:text-black'
+    }
+  ]
+
+  if (auth.hasPermission('statistic.finance.view')) {
+    links.splice(1, 0, {
+      key: 'inventory-value',
+      title: 'Nilai Inventaris',
+      desc: 'Valuasi Modal & Aset Gudang',
+      icon: 'fa-solid fa-sack-dollar',
+      colorClass: 'text-success bg-success/10 border-success/20 group-hover:bg-success group-hover:text-white'
+    })
+    links.push({
+      key: 'channel-performance',
+      title: 'Performa Toko',
+      desc: 'Omset & Tren Penjualan per Saluran',
+      icon: 'fa-solid fa-store',
+      colorClass: 'text-accent bg-accent/10 border-accent/20 group-hover:bg-accent group-hover:text-white'
+    })
   }
-]
+
+  return links
+})
 </script>
 
 <template>
@@ -120,7 +130,7 @@ const quickLinks = [
       </div>
 
       <!-- KPI 4 -->
-      <div class="group relative overflow-hidden bg-background border border-secondary/20 rounded-2xl p-5 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+      <div v-if="auth.hasPermission('statistic.finance.view')" class="group relative overflow-hidden bg-background border border-secondary/20 rounded-2xl p-5 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
         <div class="absolute -right-6 -top-6 w-24 h-24 bg-accent/10 rounded-full blur-2xl group-hover:bg-accent/20 transition-all"></div>
         <div class="relative z-10 flex flex-col h-full justify-between">
           <div class="flex justify-between items-start mb-3 gap-2">

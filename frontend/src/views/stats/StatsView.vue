@@ -3,13 +3,13 @@
 import { ref, onMounted, computed, watch, defineAsyncComponent } from 'vue'
 import { fetchKpiSummary, requestExportStock, getUserExportJobs } from '@/api/helpers/stats.js'
 import { useMasterDataStore } from '@/stores/masterData'
+import { useAuthStore } from '@/stores/auth.js'
 import { useToast } from '@/composables/useToast.js'
 import SearchInput from '@/components/ui/SearchInput.vue'
 import TriStateSelect from '@/components/ui/TriStateSelect.vue'
 import SegmentedControl from '@/components/ui/SegmentedControl.vue'
 import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
-
 import { useDownloadStore } from '@/stores/downloadStore.js'
 
 // Lazy load heavy chart components based on active tab
@@ -20,7 +20,9 @@ const InventoryValueStats = defineAsyncComponent(() => import('@/components/stat
 const TimePerformanceStats = defineAsyncComponent(() => import('@/components/stats/TimePerformanceStats.vue'))
 const ShopPerformanceStats = defineAsyncComponent(() => import('@/components/stats/ShopPerformanceStats.vue'))
 const PackageAnalysisTable = defineAsyncComponent(() => import('@/components/stats/PackageAnalysisTable.vue'))
+const LocationAnalytics = defineAsyncComponent(() => import('@/views/stats/LocationAnalytics.vue'))
 
+const auth = useAuthStore()
 const masterData = useMasterDataStore()
 const downloadStore = useDownloadStore()
 
@@ -51,53 +53,73 @@ const reportFilters = ref({
 })
 
 const activeReport = ref('overview')
-const reportsMenu = [
-  { key: 'overview', label: 'Overview', group: 'Overview', icon: 'fa-solid fa-chart-pie' },
+const reportsMenu = computed(() => {
+  const menus = [
+    { key: 'overview', label: 'Overview', group: 'Overview', icon: 'fa-solid fa-chart-pie' },
+    {
+      key: 'stock-movement',
+      label: 'Pergerakan Stok',
+      group: 'Laporan Utama',
+      icon: 'fa-solid fa-boxes-stacked'
+    },
+    {
+      key: 'stock-timeline',
+      label: 'Timeline Stok',
+      group: 'Laporan Utama',
+      icon: 'fa-solid fa-clock-rotate-left'
+    },
+    {
+      key: 'time-performance',
+      label: 'Performa Waktu',
+      group: 'Laporan Utama',
+      icon: 'fa-solid fa-chart-line'
+    },
+    {
+      key: 'package-analysis',
+      label: 'Analisa Produk Paket',
+      group: 'Laporan Utama',
+      icon: 'fa-solid fa-boxes-packing'
+    },
+    {
+      key: 'export-stock',
+      label: 'Ekspor Laporan Stok',
+      group: 'Audit & Lainnya',
+      icon: 'fa-solid fa-file-excel'
+    },
+    {
+      key: 'location-analytics',
+      label: 'Analisis Lokasi',
+      group: 'Audit & Lainnya',
+      icon: 'fa-solid fa-map-location-dot'
+    }
+  ]
 
-  {
-    key: 'stock-movement',
-    label: 'Pergerakan Stok',
-    group: 'Laporan Utama',
-    icon: 'fa-solid fa-boxes-stacked'
-  },
-  {
-    key: 'stock-timeline',
-    label: 'Timeline Stok',
-    group: 'Laporan Utama',
-    icon: 'fa-solid fa-clock-rotate-left'
-  },
+  if (auth.hasPermission('statistic.finance.view')) {
+    menus.splice(3, 0, {
+      key: 'inventory-value',
+      label: 'Laporan Nilai Inventaris',
+      group: 'Laporan Utama',
+      icon: 'fa-solid fa-dollar-sign'
+    })
 
-  {
-    key: 'inventory-value',
-    label: 'Laporan Nilai Inventaris',
-    group: 'Laporan Utama',
-    icon: 'fa-solid fa-dollar-sign'
-  },
-  {
-    key: 'time-performance',
-    label: 'Performa Waktu',
-    group: 'Laporan Utama',
-    icon: 'fa-solid fa-chart-line'
-  },
-  {
-    key: 'package-analysis',
-    label: 'Analisa Produk Paket',
-    group: 'Laporan Utama',
-    icon: 'fa-solid fa-boxes-packing'
-  },
-  {
-    key: 'channel-performance',
-    label: 'Penjualan & Performa Toko',
-    group: 'Laporan Utama',
-    icon: 'fa-solid fa-store'
-  },
-  {
-    key: 'export-stock',
-    label: 'Ekspor Laporan Stok',
-    group: 'Audit & Lainnya',
-    icon: 'fa-solid fa-file-excel'
+    menus.splice(6, 0, {
+      key: 'channel-performance',
+      label: 'Penjualan & Performa Toko',
+      group: 'Laporan Utama',
+      icon: 'fa-solid fa-store'
+    })
   }
-]
+
+  return menus
+})
+
+const groupedReportsMenu = computed(() => {
+  return reportsMenu.value.reduce((acc, report) => {
+    if (!acc[report.group]) acc[report.group] = []
+    acc[report.group].push(report)
+    return acc
+  }, {})
+})
 
 async function loadKpiData() {
   isLoading.value = true
@@ -106,7 +128,7 @@ async function loadKpiData() {
     const data = await fetchKpiSummary()
     kpiData.value = data
   } catch (error) {
-    console.error(error) // Auto-added to prevent unused var
+    console.error(error)
     errorMessage.value = error.message || 'Gagal terhubung ke server.'
   } finally {
     isLoading.value = false
@@ -204,19 +226,12 @@ async function handleRequestExport() {
 
   isRequesting.value = true
   try {
-    // Panggil API baru (POST) yang hanya mengirim permintaan
     const response = await requestExportStock(filters)
-
-    // Tampilkan pesan sukses dari API
     toast(response.message || 'Permintaan diterima!', 'success')
-
-    // Muat ulang riwayat untuk melihat status PENDING
     loadHistory()
-
-    // Mulai polling di Global Download Manager
     downloadStore.startPolling()
   } catch (error) {
-    console.error(error) // Auto-added to prevent unused var
+    console.error(error)
   } finally {
     isRequesting.value = false
   }
@@ -229,31 +244,25 @@ function formatJobType(type) {
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ')
 }
-
-// Removed locale formatters as they are now imported from utils
 </script>
 
 <template>
   <div class="flex font-sans text-text">
-    <!-- Mobile Backdrop -->
     <div
       v-if="isSidebarOpen"
       @click="isSidebarOpen = false"
       class="fixed inset-0 bg-black/50 z-20 md:hidden backdrop-blur-sm"
     ></div>
 
-    <!-- Sidebar -->
     <aside
       class="fixed md:sticky top-12 bottom-0 left-0 md:h-[calc(100vh-3rem)] z-50 w-64 bg-background border-r border-secondary/20 transform transition-transform duration-300 ease-in-out flex flex-col shadow-lg md:shadow-none overflow-y-auto"
       :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
     >
-      <!-- Logo / Header -->
       <div class="p-6 border-b border-secondary/20 flex justify-between items-center bg-secondary/5">
         <h2 class="text-xl font-bold text-text flex items-center gap-3">
           <font-awesome-icon icon="fa-solid fa-chart-simple" class="text-primary" />
           <span>Statistik</span>
         </h2>
-        <!-- Close button for mobile -->
         <button
           @click="isSidebarOpen = false"
           class="md:hidden text-text/60 hover:text-danger p-1 rounded-md transition-colors"
@@ -262,10 +271,9 @@ function formatJobType(type) {
         </button>
       </div>
 
-      <!-- Navigation -->
       <nav class="flex-1 overflow-y-auto space-y-1">
         <div
-          v-for="groupName in ['Overview', 'Laporan Utama', 'Audit & Lainnya']"
+          v-for="(reports, groupName) in groupedReportsMenu"
           :key="groupName"
           class="py-4 px-4 pr-6 border-t border-secondary"
         >
@@ -274,7 +282,7 @@ function formatJobType(type) {
           </span>
           <div class="space-y-1">
             <a
-              v-for="item in reportsMenu.filter(m => m.group === groupName)"
+              v-for="item in reports"
               :key="item.key"
               href="#"
               @click.prevent="((activeReport = item.key), (isSidebarOpen = false))"
@@ -293,9 +301,7 @@ function formatJobType(type) {
       </nav>
     </aside>
 
-    <!-- Main Content Wrapper -->
     <div class="flex-1 flex flex-col min-w-0 transition-all duration-300">
-      <!-- Mobile Header -->
       <header
         class="md:hidden bg-background border-t border-secondary/20 flex items-center justify-between sticky top-12 z-10 shadow-sm p-4"
       >
@@ -307,10 +313,8 @@ function formatJobType(type) {
         </button>
         <span class="font-bold text-text truncate">Statistik & Laporan</span>
         <div class="w-8"></div>
-        <!-- Spacer -->
       </header>
 
-      <!-- Page Content -->
       <main class="flex-1 p-4 lg:p-6 overflow-x-hidden w-full custom-scrollbar">
         <div class="max-w-7xl mx-auto">
           <div
@@ -343,6 +347,7 @@ function formatJobType(type) {
                 <TimePerformanceStats v-else-if="activeReport === 'time-performance'" class="animate-fade-in" />
                 <ShopPerformanceStats v-else-if="activeReport === 'channel-performance'" class="animate-fade-in" />
                 <PackageAnalysisTable v-else-if="activeReport === 'package-analysis'" class="animate-fade-in" />
+                <LocationAnalytics v-else-if="activeReport === 'location-analytics'" class="animate-fade-in" />
               </KeepAlive>
 
               <div v-if="activeReport === 'export-stock'" class="animate-fade-in">
@@ -596,7 +601,8 @@ function formatJobType(type) {
                     'time-performance',
                     'export-stock',
                     'channel-performance',
-                    'package-analysis'
+                    'package-analysis',
+                    'location-analysis'
                   ].includes(activeReport)
                 "
                 class="flex flex-col items-center justify-center h-80 text-text/30"

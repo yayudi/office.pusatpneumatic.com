@@ -29,7 +29,13 @@ const routes = [
     path: '/stats',
     name: 'Stats',
     component: () => import('../views/stats/StatsView.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, requiresPermission: 'statistic.stock.view' }
+  },
+  {
+    path: '/stats/locations',
+    name: 'LocationAnalytics',
+    component: () => import('../views/stats/LocationAnalytics.vue'),
+    meta: { requiresAuth: true, requiresPermission: 'statistic.stock.view' }
   },
 
   {

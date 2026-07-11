@@ -308,7 +308,7 @@ export const Mappers = {
       "harga jual",
       "weight",
       "berat",
-      consobot",
+      "bobot",
       "type",
       "tipe",
       "is_package",
@@ -322,14 +322,14 @@ export const Mappers = {
       const sku = getter(["sku", "kode produk", "nomor sku"]);
       if (!sku) return null;
 
-      cons 2. Optional Fields (Ambil jika ada)
+      // 2. Optional Fields (Ambil jika ada)
       const name = getter(["name", "nama", "nama produk", "product name"]);
 
       // Harga
       let rawPrice = getter(["price", "harga", "harga jual"]);
       let price = undefined;
       if (rawPrice) {
-      conslet clean = rawPrice
+        let clean = rawPrice
           .toString()
           .replace(/Rp\.?\s?/gi, "")
           .trim();
@@ -342,7 +342,7 @@ export const Mappers = {
       // Berat
       let rawWeight = getter(["weight", "berat", "bobot"]);
       let weight = undefined;
-      cons (rawWeight) {
+      if (rawWeight) {
         weight = parseFloat(rawWeight.toString().replace(/[^0-9.]/g, ""));
       }
 
