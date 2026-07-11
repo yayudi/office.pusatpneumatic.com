@@ -1,9 +1,10 @@
 <!-- frontend\src\components\stats\PackageAnalysisTable.vue -->
 <script setup>
-import { ref, onMounted, computed, reactive, watch } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import FilterBar from '@/components/ui/FilterBar.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
+import { usePagination } from '@/composables/usePagination.js'
 import { fetchPackageAnalysis } from '@/api/helpers/stats.js'
 import { formatNumber } from '@/utils/formatters.js'
 import { useMasterDataStore } from '@/stores/masterData.js'
@@ -25,12 +26,6 @@ const filterValues = ref({
   stockStatus: { include: [], exclude: [] }
 })
 
-const pagination = reactive({
-  page: 1,
-  limit: 25,
-  total: 0,
-  totalPages: 1
-})
 
 const reportTypeOptions = [
   { value: 'monthly', label: 'Bulan', icon: 'fa-solid fa-calendar' },
@@ -228,24 +223,17 @@ const filteredAnalysisData = computed(() => {
   return result
 })
 
-watch([() => filteredAnalysisData.value.length, () => pagination.limit], () => {
-  pagination.total = filteredAnalysisData.value.length
-  pagination.totalPages = Math.ceil(pagination.total / pagination.limit) || 1
-  if (pagination.page > pagination.totalPages) pagination.page = pagination.totalPages || 1
-}, { immediate: true })
-
-const paginatedData = computed(() => {
-  const start = (pagination.page - 1) * pagination.limit
-  const end = start + pagination.limit
-  return filteredAnalysisData.value.slice(start, end)
+// Pagination is handled automatically by usePagination
+const {
+  paginatedData,
+  meta: pagination,
+  changePage: handleChangePage,
+  changePageSize: handleUpdateLimit
+} = usePagination({
+  totalItems: filteredAnalysisData,
+  storageKey: 'packageAnalysisPageSize',
+  initialLimit: 25
 })
-
-const handleChangePage = (p) => pagination.page = p
-const handleUpdateLimit = (l) => {
-  pagination.limit = l
-  pagination.page = 1
-}
-
 const getStatusBadge = status => {
   if (status === 'SAFE') return 'bg-success/10 text-success border-success/20'
   if (status === 'WARNING') return 'bg-warning/10 text-warning border-warning/20'

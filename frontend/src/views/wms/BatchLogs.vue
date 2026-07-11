@@ -11,6 +11,7 @@ import TriStateSelect from '@/components/ui/TriStateSelect.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import { useMobile } from '@/composables/useMobile.js'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { usePagination } from '@/composables/usePagination.js'
 
 const masterData = useMasterDataStore()
 const { isMobile } = useMobile()
@@ -30,11 +31,19 @@ const locations = ref([])
 const loading = ref(false)
 const hasSearched = ref(false)
 
-const pagination = ref({
-  page: 1,
-  limit: 50,
-  total: 0,
-  totalPages: 1
+const totalLogs = ref(0)
+
+const {
+  currentPage,
+  currentLimit,
+  meta: pagination,
+  changePage: onChangePage,
+  changePageSize: onChangeLimit
+} = usePagination({
+  totalItems: totalLogs,
+  initialLimit: 50,
+  storageKey: 'batchLogsLimit',
+  onPageChange: () => handleSearch()
 })
 
 // Options
@@ -85,10 +94,10 @@ async function handleSearch() {
       user: searchUser.value
     }
 
-    const res = await fetchBatchLogs(startDate.value, endDate.value, filters, pagination.value.page, pagination.value.limit)
+    const res = await fetchBatchLogs(startDate.value, endDate.value, filters, currentPage.value, currentLimit.value)
     logs.value = res.data || []
     if (res.pagination) {
-      pagination.value = { ...pagination.value, ...res.pagination }
+      totalLogs.value = res.pagination.total
     }
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
@@ -98,16 +107,7 @@ async function handleSearch() {
   }
 }
 
-function onChangePage(page) {
-  pagination.value.page = page
-  handleSearch()
-}
-
-function onChangeLimit(limit) {
-  pagination.value.limit = limit
-  pagination.value.page = 1
-  handleSearch()
-}
+// onChangePage and onChangeLimit are provided by usePagination
 
 function handleReset() {
   const today = new Date().toISOString().split('T')[0]
@@ -121,7 +121,7 @@ function handleReset() {
 
   logs.value = []
   hasSearched.value = false
-  pagination.value.page = 1
+  currentPage.value = 1
   
   handleSearch()
 }

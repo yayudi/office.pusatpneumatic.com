@@ -13,6 +13,7 @@ import {
 import StockRequestModal from '@/components/wms/StockRequestModal.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import { useAuthStore } from '@/stores/auth'
+import { usePagination } from '@/composables/usePagination.js'
 
 const authStore = useAuthStore()
 const currentUser = computed(() => authStore.user)
@@ -24,19 +25,26 @@ const isLoading = ref(false)
 const isModalOpen = ref(false)
 const currentFilter = ref('ALL')
 const selectedIds = ref([])
-const paginationState = ref({
-  page: 1,
-  limit: 15,
-  total: 0,
-  totalPages: 1
+const totalRequests = ref(0)
+const {
+  currentPage,
+  currentLimit,
+  meta: paginationState,
+  changePage: handlePageChange,
+  changePageSize: handleLimitChange
+} = usePagination({
+  totalItems: totalRequests,
+  initialLimit: 15,
+  storageKey: 'stockRequestsLimit',
+  onPageChange: () => loadRequests()
 })
 
 async function loadRequests(silent = false) {
   if (!silent) isLoading.value = true
   try {
     const params = {
-      page: paginationState.value.page,
-      limit: paginationState.value.limit
+      page: currentPage.value,
+      limit: currentLimit.value
     }
     if (currentFilter.value !== 'ALL') {
       params.status = currentFilter.value
@@ -44,7 +52,7 @@ async function loadRequests(silent = false) {
     const res = await fetchStockRequests(params)
     requests.value = res.data || []
     if (res.pagination) {
-      paginationState.value = res.pagination
+      totalRequests.value = res.pagination.total
     }
   } catch (error) {
     console.error(error)
@@ -134,16 +142,7 @@ function canSelectRequest(req) {
   return req.status === 'PENDING' && req.requester_id !== currentUser.value?.id
 }
 
-function handlePageChange(newPage) {
-  paginationState.value.page = newPage
-  loadRequests()
-}
-
-function handleLimitChange(newLimit) {
-  paginationState.value.limit = newLimit
-  paginationState.value.page = 1
-  loadRequests()
-}
+// handlePageChange and handleLimitChange are provided by usePagination
 
 async function handleBulkAction(action) {
   if (selectedIds.value.length === 0) return

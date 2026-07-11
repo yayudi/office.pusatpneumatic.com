@@ -19,3 +19,9 @@ globs: **/*.js
    * @param {number} amount
    * @returns {Promise<boolean>}
    */
+
+## 3. MASS REFACTORING (AST CODEMODS)
+- **Tool Recommendation:** For large-scale code refactoring across multiple files, use **jscodeshift** instead of Regex to prevent breaking nested syntaxes.
+- **Usage Context:** Write a transformer script (`.cjs` format, using CommonJS `module.exports`) inside `backend/scripts/codemods/`.
+- **Execution:** Run it directly via npx without modifying package.json unless requested: `npx -y jscodeshift -t <script_path> <target_directory> --parser=babel`.
+- **Warning on `.vue` Files:** Avoid running raw jscodeshift on `.vue` files directly, as it struggles to parse `<template>` and `<script>` blocks. Prefer manual updates or specialized tools (e.g. `vue-jscodeshift`) for Vue components.

@@ -7,8 +7,8 @@ import BaseModal from '@/components/ui/BaseModal.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
-import { computed, watch } from 'vue'
 import { useMobile } from '@/composables/useMobile.js'
+import { usePagination } from '@/composables/usePagination.js'
 
 const { isMobile } = useMobile()
 const { toast } = useToast()
@@ -19,44 +19,16 @@ const isSaving = ref(false)
 const isModalOpen = ref(false)
 const modalMode = ref('add') // 'add' or 'edit'
 
-const currentPage = ref(1)
-const currentLimit = ref(Number(localStorage.getItem('channelPageSize')) || 10)
-
-const pagination = computed(() => {
-  const total = channels.value.length
-  return {
-    page: currentPage.value,
-    limit: currentLimit.value,
-    total,
-    totalPages: Math.ceil(total / currentLimit.value) || 1
-  }
+const {
+  paginatedData: visibleChannels,
+  meta: pagination,
+  changePage,
+  changePageSize
+} = usePagination({
+  totalItems: channels,
+  storageKey: 'channelPageSize',
+  initialLimit: 10
 })
-
-watch(
-  () => channels.value.length,
-  (newTotal) => {
-    const maxPage = Math.ceil(newTotal / currentLimit.value) || 1
-    if (currentPage.value > maxPage) {
-      currentPage.value = 1
-    }
-  }
-)
-
-const visibleChannels = computed(() => {
-  const start = (currentPage.value - 1) * currentLimit.value
-  const end = start + currentLimit.value
-  return channels.value.slice(start, end)
-})
-
-const changePage = (page) => {
-  currentPage.value = page
-}
-
-const changePageSize = (limit) => {
-  currentLimit.value = limit
-  currentPage.value = 1
-  localStorage.setItem('channelPageSize', limit)
-}
 
 const formData = ref({
   id: null,

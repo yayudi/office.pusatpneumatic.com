@@ -11,6 +11,7 @@ import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import ProductHistoryList from '@/components/products/ProductHistoryList.vue'
 import SegmentedControl from '@/components/ui/SegmentedControl.vue'
+import { useMasterDataStore } from '@/stores/masterData.js'
 
 const { isMobile } = useMobile()
 
@@ -28,6 +29,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'refresh'])
 const { toast } = useToast()
 const { uploadFile } = useUpload()
+const masterStore = useMasterDataStore()
 
 const form = ref({
   sku: '',
@@ -48,10 +50,7 @@ const fetchLoading = ref(false)
 const categories = ref([])
 async function fetchCategories() {
   try {
-    const { data } = await axios.get('/categories')
-    if (data.success) {
-      categories.value = data.data
-    }
+    categories.value = await masterStore.getCategories()
   } catch (err) {
     console.error('Failed to fetch categories', err)
   }

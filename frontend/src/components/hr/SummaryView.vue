@@ -1,12 +1,13 @@
 <!-- frontend\src\components\SummaryView.vue -->
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref } from 'vue'
 import { useSummary } from '@/composables/useSummary.js'
 import { formatJamMenit } from '@/api/helpers/time.js'
 import SummaryDetailModal from './SummaryDetailModal.vue'
 import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import { useAuthStore } from '@/stores/auth.js'
+import { usePagination } from '@/composables/usePagination.js'
 
 const props = defineProps({
   users: {
@@ -48,44 +49,16 @@ const authStore = useAuthStore()
 const { summaries } = useSummary(props)
 const selectedSummary = ref(null)
 
-const currentPage = ref(1)
-const currentLimit = ref(Number(localStorage.getItem('summaryPageSize')) || 10)
-
-const pagination = computed(() => {
-  const total = summaries.value.length
-  return {
-    page: currentPage.value,
-    limit: currentLimit.value,
-    total,
-    totalPages: Math.ceil(total / currentLimit.value) || 1
-  }
+const {
+  paginatedData: paginatedSummaries,
+  meta: pagination,
+  changePage,
+  changePageSize
+} = usePagination({
+  totalItems: summaries,
+  storageKey: 'summaryPageSize',
+  initialLimit: 10
 })
-
-watch(
-  () => summaries.value.length,
-  newTotal => {
-    const maxPage = Math.ceil(newTotal / currentLimit.value) || 1
-    if (currentPage.value > maxPage) {
-      currentPage.value = 1
-    }
-  }
-)
-
-const paginatedSummaries = computed(() => {
-  const start = (currentPage.value - 1) * currentLimit.value
-  const end = start + currentLimit.value
-  return summaries.value.slice(start, end)
-})
-
-const changePage = page => {
-  currentPage.value = page
-}
-
-const changePageSize = limit => {
-  currentLimit.value = limit
-  currentPage.value = 1
-  localStorage.setItem('summaryPageSize', limit)
-}
 
 function showDetails(summary) {
   selectedSummary.value = summary

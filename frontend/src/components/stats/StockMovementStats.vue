@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, defineAsyncComponent, reactive, watch } from 'vue'
+import { ref, onMounted, computed, defineAsyncComponent } from 'vue'
 import { startOfMonth, endOfMonth, format } from 'date-fns'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast.js'
@@ -16,6 +16,7 @@ import FilterBar from '@/components/ui/FilterBar.vue'
 import StockTimelineModal from '@/components/stats/StockTimelineModal.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import { formatNumber } from '@/utils/formatters.js'
+import { usePagination } from '@/composables/usePagination.js'
 
 const authStore = useAuthStore()
 const masterData = useMasterDataStore()
@@ -33,30 +34,16 @@ const { displayedData, sortBy, getSortIcon } = useStatsTable(statisticsList, {
   initialSortKey: 'total_sold'
 })
 
-const pagination = reactive({
-  page: 1,
-  limit: 50,
-  total: 0,
-  totalPages: 1
+const {
+  paginatedData,
+  meta: pagination,
+  changePage: handleChangePage,
+  changePageSize: handleUpdateLimit
+} = usePagination({
+  totalItems: displayedData,
+  storageKey: 'stockMovementPageSize',
+  initialLimit: 50
 })
-
-watch([() => displayedData.value.length, () => pagination.limit], () => {
-  pagination.total = displayedData.value.length
-  pagination.totalPages = Math.ceil(pagination.total / pagination.limit) || 1
-  if (pagination.page > pagination.totalPages) pagination.page = pagination.totalPages || 1
-}, { immediate: true })
-
-const paginatedData = computed(() => {
-  const start = (pagination.page - 1) * pagination.limit
-  const end = start + pagination.limit
-  return displayedData.value.slice(start, end)
-})
-
-const handleChangePage = (p) => pagination.page = p
-const handleUpdateLimit = (l) => {
-  pagination.limit = l
-  pagination.page = 1
-}
 
 const filterValues = ref({
   startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),

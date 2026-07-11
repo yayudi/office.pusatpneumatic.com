@@ -3,15 +3,14 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth.js'
 import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
-
-import { formatCurrency } from '@/utils/formatters.js'
 import { fetchProductById } from '@/api/helpers/products.js'
-import { formatNumber } from '@/api/helpers/format'
+import { formatNumber, formatCurrency } from '@/utils/formatters.js'
 import FloatingTooltip from '@/components/ui/FloatingTooltip.vue'
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/vue'
 import { resolveProductImageUrl } from '@/composables/useImageUrl'
 import ProductThumbnail from '@/components/common/ProductThumbnail.vue'
 import { useMobile } from '@/composables/useMobile'
+import { useClipboard } from '@/composables/useClipboard'
 
 const props = defineProps({
   products: { type: Array, required: true },
@@ -42,6 +41,7 @@ const emit = defineEmits([
 
 const auth = useAuthStore()
 const { isMobile } = useMobile()
+const { copyToClipboard } = useClipboard()
 const PPN_RATE = 0.11
 
 // --- SINGLETON STATE ---
@@ -78,10 +78,6 @@ function sortIcon(column) {
   if (props.sortBy !== column) return 'fa-solid fa-sort'
   if (props.sortOrder === 'asc') return 'fa-solid fa-sort-up'
   return 'fa-solid fa-sort-down'
-}
-
-function copyToClipboard(text, fieldName) {
-  emit('copy', { text, fieldName })
 }
 
 function getImageUrl(product) {

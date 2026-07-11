@@ -5,6 +5,9 @@ import { useAuthStore } from '@/stores/auth'
 import { fetchProducts as fetchProductsFromApi } from '@/api/helpers/wms.js'
 import { useMasterDataStore } from '@/stores/masterData'
 import { useFirebaseListener } from '@/composables/useFirebaseListener.js'
+import { useColumnVisibility } from '@/composables/useColumnVisibility.js'
+import { transformProduct } from '@/composables/useWmsTransform.js'
+import { usePagination } from '@/composables/usePagination.js'
 
 const AVAILABLE_COLUMNS = [
   { id: 'sku', label: 'SKU' },
@@ -12,7 +15,7 @@ const AVAILABLE_COLUMNS = [
   { id: 'weight', label: 'Berat' },
   { id: 'price', label: 'Harga' },
   { id: 'location', label: 'Lokasi' },
-  { id: 'stock', label: 'Stok' },
+  { id: 'stock', label: 'Stok' }
 ]
 
 export function useWms() {
@@ -20,13 +23,25 @@ export function useWms() {
   const allLocations = ref([])
   const activeView = ref('all')
   const displayedProducts = ref([])
-  const currentPage = ref(1)
   const totalProducts = ref(0)
+  
+  const {
+    currentPage,
+    currentLimit: pageSize,
+    meta: paginationMeta,
+    changePage: goToPage,
+    changePageSize
+  } = usePagination({
+    totalItems: totalProducts,
+    storageKey: 'wmsPageSize',
+    initialLimit: 30,
+    onPageChange: () => fetchProducts('init')
+  })
+
   const loading = ref(true)
   const isLoadingMore = ref(false)
   const isBackgroundLoading = ref(false)
   const error = ref(null)
-  const pageSize = ref(30)
   const loader = ref(null)
   const searchTerm = ref('')
   const searchBy = ref('name')
@@ -43,21 +58,21 @@ export function useWms() {
   const endDate = ref('')
 
   // Firebase Real-time Event Listener for Stock Updates
-  const { startListening, stopListening } = useFirebaseListener(
-    auth.user?.id || 'guest',
-    ['WMS_DASHBOARD'],
-    (data) => {
-      if (data.action === 'REFRESH_STOCK' && isAutoRefetching.value && currentPage.value === 1) {
-        fetchProducts('silent')
-      }
+  const { startListening, stopListening } = useFirebaseListener(auth.user?.id || 'guest', ['WMS_DASHBOARD'], data => {
+    if (data.action === 'REFRESH_STOCK' && isAutoRefetching.value && currentPage.value === 1) {
+      fetchProducts('silent')
     }
-  )
+  })
 
-  // Column Visibility State
-  const visibleColumns = ref(new Set(['sku', 'weight', 'price', 'location', 'stock']))
+  // Column Visibility State via Generic Composable
+  const { visibleColumns, toggleColumn } = useColumnVisibility('wms-visible-columns', [
+    'sku',
+    'weight',
+    'price',
+    'location',
+    'stock'
+  ])
 
-  // Initialize from LocalStorage
-  const savedColumns = localStorage.getItem('wms-visible-columns')
   const masterData = useMasterDataStore()
 
   // Ambil data lokasi sekali saja saat composable digunakan
@@ -69,113 +84,18 @@ export function useWms() {
     }
   })
 
-  if (savedColumns) {
-    try {
-      visibleColumns.value = new Set(JSON.parse(savedColumns))
-    } catch (e) {
-      console.error('Error parsing saved columns', e)
-    }
-  }
-
-  watch(visibleColumns, (newVal) => {
-    localStorage.setItem('wms-visible-columns', JSON.stringify([...newVal]))
-  }, { deep: true })
-
-  function toggleColumn(columnId) {
-    if (visibleColumns.value.has(columnId)) {
-      visibleColumns.value.delete(columnId)
-    } else {
-      visibleColumns.value.add(columnId)
-    }
-  }
   let observer = null
 
   function toggleAutoRefetch() {
     isAutoRefetching.value = !isAutoRefetching.value
   }
 
-  function matchesFilters(loc) {
-    let buildingMatch = true
-    if (selectedBuilding.value.include.length > 0) {
-      if (loc.building) {
-        buildingMatch = selectedBuilding.value.include.includes(loc.building)
-      } else if (loc.location_code) {
-        buildingMatch = selectedBuilding.value.include.some(b => loc.location_code.startsWith(b))
-      }
-    } else if (selectedBuilding.value.exclude.length > 0) {
-      if (loc.building) {
-        buildingMatch = !selectedBuilding.value.exclude.includes(loc.building)
-      } else if (loc.location_code) {
-        buildingMatch = !selectedBuilding.value.exclude.some(b => loc.location_code.startsWith(b))
-      }
-    }
-
-    let floorMatch = true
-    if (selectedFloor.value.include.length > 0) {
-      if (loc.floor !== undefined && loc.floor !== null) {
-        floorMatch = selectedFloor.value.include.includes(String(loc.floor))
-      }
-    } else if (selectedFloor.value.exclude.length > 0) {
-      if (loc.floor !== undefined && loc.floor !== null) {
-        floorMatch = !selectedFloor.value.exclude.includes(String(loc.floor))
-      }
-    }
-
-    return buildingMatch && floorMatch
-  }
-
-  function transformProduct(apiProduct) {
-    const locations = apiProduct.stock_locations || []
-
-    const filteredLocations = locations.filter(matchesFilters)
-
-    const pajanganLocations = filteredLocations.filter((loc) => loc.purpose === 'DISPLAY')
-    const stockPajangan = pajanganLocations.reduce((sum, loc) => sum + loc.quantity, 0)
-    const lokasiPajangan = pajanganLocations.map((loc) => loc.location_code).join(', ')
-
-    const gudangLocations = filteredLocations.filter((loc) => loc.purpose === 'WAREHOUSE')
-    const stockGudang = gudangLocations.reduce((sum, loc) => sum + loc.quantity, 0)
-    const lokasiGudang = gudangLocations.map((loc) => loc.location_code).join(', ')
-
-    const ltcLocation = filteredLocations.find((loc) => loc.purpose === 'BRANCH')
-    const stockLTC = ltcLocation ? ltcLocation.quantity : 0
-    const lokasiLTC = ltcLocation ? ltcLocation.location_code : 'N/A'
-
-    const filteredTotalStock = filteredLocations.reduce((sum, loc) => sum + loc.quantity, 0)
-    const filteredAllLocationsCode = filteredLocations.map((loc) => loc.location_code).join(', ')
-
-    return {
-      id: apiProduct.id,
-      sku: apiProduct.sku,
-      name: apiProduct.name,
-      price: apiProduct.price,
-      weight: apiProduct.weight,
-      is_package: Boolean(apiProduct.is_package),
-      category_name: apiProduct.category_name || null,
-      thumbnail_path: apiProduct.thumbnail_path,
-      image_path: apiProduct.image_path,
-
-      stockPajangan,
-      lokasiPajangan,
-      pajanganLocations,
-      stockGudang,
-      lokasiGudang,
-      gudangLocations,
-      stockLTC,
-      lokasiLTC,
-      totalStock: filteredTotalStock,
-      allLocationsCode: filteredAllLocationsCode,
-      stock_locations: filteredLocations,
-      components: apiProduct.components || [], // [FIX] Pass components for virtual stock calc
-    }
-  }
-
   async function fetchInitialData() {
     await Promise.all([
       fetchProducts('init'),
-      masterData.getLocations().then((data) => {
+      masterData.getLocations().then(data => {
         allLocations.value = data
-      }),
+      })
     ])
   }
 
@@ -201,18 +121,18 @@ export function useWms() {
         location: activeView.value,
         stockStatus: stockStatusFilter.value,
         is_package: productTypeFilter.value === 'all' ? undefined : productTypeFilter.value === 'package',
-        
+
         buildingInclude: JSON.stringify(selectedBuilding.value.include),
         buildingExclude: JSON.stringify(selectedBuilding.value.exclude),
         floorInclude: JSON.stringify(selectedFloor.value.include),
         floorExclude: JSON.stringify(selectedFloor.value.exclude),
         categoryInclude: JSON.stringify(selectedCategory.value.include),
         categoryExclude: JSON.stringify(selectedCategory.value.exclude),
-        
+
         sortBy: sortBy.value,
         sortOrder: sortOrder.value,
         startDate: startDate.value,
-        endDate: endDate.value,
+        endDate: endDate.value
       }
 
       if (!params.startDate || !params.endDate) {
@@ -228,7 +148,7 @@ export function useWms() {
       const newProducts = response.products || []
       const total = response.total || 0
 
-      let transformed = newProducts.map(transformProduct)
+      let transformed = newProducts.map(p => transformProduct(p, selectedBuilding.value, selectedFloor.value))
 
       const isMasterView =
         activeView.value === 'all' &&
@@ -240,7 +160,7 @@ export function useWms() {
         selectedCategory.value.exclude.length === 0
 
       if (!isMasterView) {
-        transformed = transformed.filter((p) => {
+        transformed = transformed.filter(p => {
           let stockToCheck = 0
           if (activeView.value === 'all') stockToCheck = p.totalStock
           else if (activeView.value === 'gudang') stockToCheck = p.stockGudang
@@ -251,7 +171,7 @@ export function useWms() {
       }
 
       if (!auth.canViewPrices) {
-        transformed.forEach((product) => delete product.price)
+        transformed.forEach(product => delete product.price)
       }
 
       // --- LOGIKA UPDATE STATE ---
@@ -263,47 +183,32 @@ export function useWms() {
         console.groupCollapsed(`Silent @ ${new Date().toLocaleTimeString()}`)
         console.log(`Incoming Items: ${transformed.length}`)
 
-        const incomingMap = new Map(transformed.map((p) => [p.id, p]))
+        const incomingMap = new Map(transformed.map(p => [p.id, p]))
         let patchCount = 0
         let realChangesCount = 0
 
-        displayedProducts.value.forEach((existingProduct) => {
+        displayedProducts.value.forEach(existingProduct => {
           const updatedData = incomingMap.get(existingProduct.id)
           if (updatedData) {
             const isTotalChanged = existingProduct.totalStock !== updatedData.totalStock
             const isGudangChanged = existingProduct.stockGudang !== updatedData.stockGudang
             const isPajanganChanged = existingProduct.stockPajangan !== updatedData.stockPajangan
             const isLTCChanged = existingProduct.stockLTC !== updatedData.stockLTC
-            const isLocationCodeChanged =
-              existingProduct.allLocationsCode !== updatedData.allLocationsCode
+            const isLocationCodeChanged = existingProduct.allLocationsCode !== updatedData.allLocationsCode
 
-            if (
-              isTotalChanged ||
-              isGudangChanged ||
-              isPajanganChanged ||
-              isLTCChanged ||
-              isLocationCodeChanged
-            ) {
+            if (isTotalChanged || isGudangChanged || isPajanganChanged || isLTCChanged || isLocationCodeChanged) {
               console.log(
                 `%c[CHANGE] ${existingProduct.name} (SKU: ${existingProduct.sku})`,
-                'color: orange; font-weight: bold',
+                'color: orange; font-weight: bold'
               )
               if (isTotalChanged)
-                console.log(
-                  `   Total Stock: ${existingProduct.totalStock} -> ${updatedData.totalStock}`,
-                )
+                console.log(`   Total Stock: ${existingProduct.totalStock} -> ${updatedData.totalStock}`)
               if (isGudangChanged)
-                console.log(
-                  `   Gudang: ${existingProduct.stockGudang} -> ${updatedData.stockGudang}`,
-                )
+                console.log(`   Gudang: ${existingProduct.stockGudang} -> ${updatedData.stockGudang}`)
               if (isPajanganChanged)
-                console.log(
-                  `   Pajangan: ${existingProduct.stockPajangan} -> ${updatedData.stockPajangan}`,
-                )
+                console.log(`   Pajangan: ${existingProduct.stockPajangan} -> ${updatedData.stockPajangan}`)
               if (isLocationCodeChanged)
-                console.log(
-                  `   Loc Codes: ${existingProduct.allLocationsCode} -> ${updatedData.allLocationsCode}`,
-                )
+                console.log(`   Loc Codes: ${existingProduct.allLocationsCode} -> ${updatedData.allLocationsCode}`)
 
               realChangesCount++
             }
@@ -313,13 +218,10 @@ export function useWms() {
             existingProduct.stockGudang = updatedData.stockGudang
             existingProduct.stockPajangan = updatedData.stockPajangan
             existingProduct.stockLTC = updatedData.stockLTC
-
             existingProduct.lokasiGudang = updatedData.lokasiGudang
             existingProduct.lokasiPajangan = updatedData.lokasiPajangan
             existingProduct.lokasiLTC = updatedData.lokasiLTC
-
             existingProduct.allLocationsCode = updatedData.allLocationsCode
-
             existingProduct.name = updatedData.name
             existingProduct.sku = updatedData.sku
             existingProduct.price = updatedData.price
@@ -331,10 +233,7 @@ export function useWms() {
         console.log(`Matched Items: ${patchCount}`)
 
         if (realChangesCount > 0) {
-          console.log(
-            `%c[RESULT] Data Updated! ${realChangesCount} items changed.`,
-            'color: green; font-weight: bold',
-          )
+          console.log(`%c[RESULT] Data Updated! ${realChangesCount} items changed.`, 'color: green; font-weight: bold')
         } else {
           console.log(`%c[RESULT] No data changes detected. UI will not update.`, 'color: gray')
         }
@@ -368,7 +267,7 @@ export function useWms() {
     })
   }
 
-  const handleSearchInput = debounce((value) => {
+  const handleSearchInput = debounce(value => {
     searchTerm.value = value
   }, 300)
 
@@ -382,20 +281,9 @@ export function useWms() {
   }
 
   const hasMoreData = computed(() => displayedProducts.value.length < totalProducts.value)
-  const totalPages = computed(() => Math.ceil(totalProducts.value / pageSize.value))
+  const totalPages = computed(() => paginationMeta.value.totalPages)
 
-  function goToPage(page) {
-    if (page >= 1 && page <= totalPages.value) {
-      currentPage.value = page
-      fetchProducts('init')
-    }
-  }
-
-  function changePageSize(newSize) {
-    pageSize.value = newSize
-    currentPage.value = 1
-    fetchProducts('init')
-  }
+  // goToPage and changePageSize are handled by usePagination
 
   onMounted(() => {
     observer = new IntersectionObserver(
@@ -404,7 +292,7 @@ export function useWms() {
           loadMoreProducts()
         }
       },
-      { threshold: 0.5 },
+      { threshold: 0.5 }
     )
   })
 
@@ -415,27 +303,27 @@ export function useWms() {
 
   watch(
     isAutoRefetching,
-    (newValue) => {
+    newValue => {
       if (newValue) {
         startListening()
       } else {
         stopListening()
       }
     },
-    { immediate: true },
+    { immediate: true }
   )
 
   watch(
     () => auth.isAuthenticated,
-    (isAuth) => {
+    isAuth => {
       if (isAuth) {
         if (displayedProducts.value.length === 0) fetchInitialData()
       }
     },
-    { immediate: true },
+    { immediate: true }
   )
 
-  watch(loader, (newLoader) => {
+  watch(loader, newLoader => {
     if (observer && newLoader) observer.observe(newLoader)
   })
 
@@ -453,16 +341,14 @@ export function useWms() {
       sortOrder,
       startDate,
       endDate,
-      viewMode,
+      viewMode
     ],
     () => {
       resetAndRefetch()
-    },
+    }
   )
 
-  const searchPlaceholder = computed(
-    () => `Cari produk berdasarkan ${searchBy.value === 'name' ? 'Nama' : 'SKU'}...`,
-  )
+  const searchPlaceholder = computed(() => `Cari produk berdasarkan ${searchBy.value === 'name' ? 'Nama' : 'SKU'}...`)
 
   return {
     activeView,
@@ -501,6 +387,6 @@ export function useWms() {
     availableColumns: AVAILABLE_COLUMNS,
     toggleColumn,
     resetAndRefetch,
-    fetchProducts,
+    fetchProducts
   }
 }

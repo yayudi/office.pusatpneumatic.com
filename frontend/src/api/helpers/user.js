@@ -9,7 +9,7 @@ export const fetchMyLocations = async () => {
   try {
     const response = await api.get('/user/my-locations') // Path relatif
 
-    // FIX: Pastikan kita selalu mengembalikan array
+    // Pastikan kita selalu mengembalikan array
     if (Array.isArray(response.data)) {
       return response.data
     }

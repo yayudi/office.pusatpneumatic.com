@@ -59,7 +59,7 @@ instance.interceptors.response.use(
     const authStore = useAuthStore() // Pastikan import store sudah benar di sini
     const loadingStore = useLoadingStore()
     const { toast } = await import('@/composables/useToast.js').then(m => m.useToast())
-    
+
     loadingStore.stopLoading()
 
     if (error.response) {
@@ -69,7 +69,7 @@ instance.interceptors.response.use(
       // -> HANYA Logout jika statusnya 401 dan BUKAN request dari login
       if (status === 401 && !error.config.url.includes('/auth/login')) {
         authStore.logout()
-        toast("Sesi Anda telah habis, silakan login kembali.", "error")
+        toast('Sesi Anda telah habis, silakan login kembali.', 'error')
         window.location.href = '/login'
       }
       // Tidak Punya Izin (403)
@@ -81,20 +81,20 @@ instance.interceptors.response.use(
       else if (status >= 400 && status !== 401 && status !== 403) {
         // Abaikan endpoint login karena biasanya login page punya penanganan error spesifik di komponennya
         if (!error.config.url.includes('/auth/login')) {
-           let serverMessage = data?.message || 'Terjadi kesalahan pada server.'
+          let serverMessage = data?.message || 'Terjadi kesalahan pada server.'
 
-           // Format error validasi Zod agar lebih enak dibaca (menghilangkan prefix body. / query.)
-           if (data?.error_code === 'VALIDATION_ERROR' && data?.message) {
-             serverMessage = serverMessage.replace(/(body\.|query\.|params\.)/g, '')
-             data.message = serverMessage // Sinkronkan ke response agar komponen menerima pesan yang sudah bersih
-           }
-           
-           toast(serverMessage, 'error')
+          // Format error validasi Zod agar lebih enak dibaca (menghilangkan prefix body. / query.)
+          if (data?.error_code === 'VALIDATION_ERROR' && data?.message) {
+            serverMessage = serverMessage.replace(/(body\.|query\.|params\.)/g, '')
+            data.message = serverMessage // Sinkronkan ke response agar komponen menerima pesan yang sudah bersih
+          }
+
+          toast(serverMessage, 'error')
         }
       }
     } else {
       // Network Error atau server mati
-      toast("Tidak dapat terhubung ke server (Network Error).", "error")
+      toast('Tidak dapat terhubung ke server (Network Error).', 'error')
     }
 
     return Promise.reject(error)

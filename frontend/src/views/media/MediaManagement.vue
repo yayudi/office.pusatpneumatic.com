@@ -26,6 +26,7 @@ import { formatBytes } from '@/utils/formatBytes.js'
 import { useUpload } from '@/composables/useUpload.js'
 import { formatTags } from '@/utils/formatters.js'
 import { useProductSearch } from '@/composables/useProductSearch.js'
+import { usePagination } from '@/composables/usePagination.js'
 
 const linkStatusOptions = [
   { value: 'all', label: 'Semua', icon: 'fa-solid fa-layer-group' },
@@ -44,11 +45,20 @@ watch(viewMode, newMode => {
 })
 
 const initialPageSize = Number(localStorage.getItem('mediaPageSize')) || 18
-const pagination = ref({ page: 1, limit: initialPageSize, total: 0, totalPages: 1 })
+const totalMedia = ref(0)
+const {
+  currentPage,
+  currentLimit,
+  meta: pagination,
+  changePageSize: doChangePageSize
+} = usePagination({
+  totalItems: totalMedia,
+  initialLimit: initialPageSize,
+  storageKey: 'mediaPageSize'
+})
 
 const changePageSize = newLimit => {
-  pagination.value.limit = newLimit
-  localStorage.setItem('mediaPageSize', newLimit)
+  doChangePageSize(newLimit)
   fetchMedia(1)
 }
 
@@ -211,7 +221,7 @@ const confirmBulkDelete = async () => {
 const fetchMedia = async (page = 1, silent = false) => {
   if (!silent) isLoading.value = true
   try {
-    const params = new URLSearchParams({ page, limit: pagination.value.limit })
+    const params = new URLSearchParams({ page, limit: currentLimit.value })
     if (globalSearchStr.value.trim()) params.append('search', globalSearchStr.value.trim())
     if (linkStatusFilter.value && linkStatusFilter.value !== 'all') {
       params.append('linkStatus', JSON.stringify({ include: [linkStatusFilter.value], exclude: [] }))
@@ -220,7 +230,10 @@ const fetchMedia = async (page = 1, silent = false) => {
     const res = await apiClient.get(`/media?${params.toString()}`)
     if (res.data.success) {
       mediaList.value = res.data.data
-      pagination.value = res.data.pagination
+      if (res.data.pagination) {
+        totalMedia.value = res.data.pagination.total
+        currentPage.value = res.data.pagination.page
+      }
     }
   } catch (error) {
     console.error('Failed to load media:', error)

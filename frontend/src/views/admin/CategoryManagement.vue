@@ -3,7 +3,7 @@
 import { swalConfirm } from '@/composables/useSweetAlert'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import axios from '@/api/axios.js'
@@ -11,9 +11,12 @@ import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import { useMobile } from '@/composables/useMobile.js'
+import { usePagination } from '@/composables/usePagination.js'
+import { useMasterDataStore } from '@/stores/masterData.js'
 
 const { isMobile } = useMobile()
 const { toast } = useToast()
+const masterStore = useMasterDataStore()
 
 const categories = ref([])
 const loading = ref(true)
@@ -22,54 +25,25 @@ const isModalOpen = ref(false)
 const isEditing = ref(false)
 const form = ref({ id: null, name: '' })
 
-const currentPage = ref(1)
-const currentLimit = ref(Number(localStorage.getItem('categoryPageSize')) || 10)
-
-const pagination = computed(() => {
-  const total = categories.value.length
-  return {
-    page: currentPage.value,
-    limit: currentLimit.value,
-    total,
-    totalPages: Math.ceil(total / currentLimit.value) || 1
-  }
+const {
+  currentPage,
+  currentLimit,
+  paginatedData: visibleCategories,
+  meta: pagination,
+  changePage,
+  changePageSize
+} = usePagination({
+  totalItems: categories,
+  storageKey: 'categoryPageSize',
+  initialLimit: 10
 })
-
-watch(
-  () => categories.value.length,
-  (newTotal) => {
-    const maxPage = Math.ceil(newTotal / currentLimit.value) || 1
-    if (currentPage.value > maxPage) {
-      currentPage.value = 1
-    }
-  }
-)
-
-const visibleCategories = computed(() => {
-  const start = (currentPage.value - 1) * currentLimit.value
-  const end = start + currentLimit.value
-  return categories.value.slice(start, end)
-})
-
-const changePage = (page) => {
-  currentPage.value = page
-}
-
-const changePageSize = (limit) => {
-  currentLimit.value = limit
-  currentPage.value = 1
-  localStorage.setItem('categoryPageSize', limit)
-}
 
 async function loadCategories() {
   if (categories.value.length === 0) {
     loading.value = true
   }
   try {
-    const { data } = await axios.get('/categories')
-    if (data.success) {
-      categories.value = data.data
-    }
+    categories.value = await masterStore.getCategories('', true)
   } catch (e) {
     console.error(e)
   } finally {

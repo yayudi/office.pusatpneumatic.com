@@ -1,12 +1,13 @@
 <!-- frontend/src/components/wms/shared/HistoryModal.vue -->
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, watch } from 'vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
 import { fetchStockHistory, fetchAllLocations } from '@/api/helpers/stock.js'
 import { useMobile } from '@/composables/useMobile.js'
 import { onMounted } from 'vue'
+import { usePagination } from '@/composables/usePagination.js'
 
 const { isMobile } = useMobile()
 
@@ -18,10 +19,19 @@ const props = defineProps({
 const emit = defineEmits(['close'])
 
 const history = ref([])
-const pagination = ref({})
+const totalHistory = ref(0)
+const {
+  currentPage,
+  meta: paginationData,
+  changePage
+} = usePagination({
+  totalItems: totalHistory,
+  initialLimit: 10,
+  onPageChange: () => loadHistory(currentPage.value)
+})
+
 const loading = ref(false)
 const error = ref(null)
-const currentPage = ref(1)
 const movementType = ref('all')
 const startDate = ref('')
 const endDate = ref('')
@@ -48,12 +58,7 @@ const movementTypes = [
   { label: 'Retur (Return)', value: 'RETURN' },
 ]
 
-const paginationData = computed(() => ({
-  page: pagination.value.page || 1,
-  limit: pagination.value.limit || 10,
-  total: pagination.value.total || 0,
-  totalPages: Math.ceil((pagination.value.total || 0) / (pagination.value.limit || 10)) || 1,
-}))
+// paginationData is now handled by usePagination
 
 async function loadHistory(page) {
   if (!props.product) return
@@ -70,8 +75,13 @@ async function loadHistory(page) {
       userFilter.value,
     )
     history.value = response.data
-    pagination.value = response.pagination
-    currentPage.value = response.pagination.page
+    if (response.pagination) {
+      totalHistory.value = response.pagination.total
+      // If we manually call loadHistory(1) and get page 1, ensure currentPage matches.
+      // However usePagination's changePage naturally updates it. 
+      // If we update it silently:
+      currentPage.value = response.pagination.page
+    }
   } catch {
     error.value = 'Gagal memuat riwayat stok.'
   } finally {
@@ -253,12 +263,12 @@ watch(
       </table>
     </div>
 
-    <template v-if="pagination.total > pagination.limit" #footer>
+    <template v-if="paginationData.totalPages > 1 || totalHistory > 10" #footer>
       <div class="w-full">
         <BasePagination
           :pagination="paginationData"
           :show-limit-picker="false"
-          @changePage="(p) => loadHistory(p)"
+          @changePage="changePage"
         />
       </div>
     </template>

@@ -1,12 +1,13 @@
 <!-- frontend/src/views/admin/ProductManagement.vue -->
 <script setup>
 import { swalConfirm } from '@/composables/useSweetAlert'
-import { ref, reactive, onMounted, watch, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import axios from '@/api/axios.js'
 import debounce from 'lodash/debounce'
 import { useDownloadStore } from '@/stores/downloadStore.js'
+import { useMasterDataStore } from '@/stores/masterData.js'
 
 // Components
 import BatchEditModal from '@/components/products/BatchEditModal.vue'
@@ -19,8 +20,10 @@ import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 import ProductTable from '@/components/products/ProductTable.vue'
 import ProductImageModal from '@/components/products/ProductImageModal.vue'
 import StickerGeneratorModal from '@/components/utilities/StickerGeneratorModal.vue'
+import { usePagination } from '@/composables/usePagination.js'
 
 const { toast } = useToast()
+const masterStore = useMasterDataStore()
 
 // --- STATE ---
 const products = ref([])
@@ -64,11 +67,17 @@ const selectedIds = ref(new Set())
 const isProcessingBulk = ref(false)
 
 // Pagination State
-const pagination = reactive({
-  page: 1,
-  limit: 20,
-  total: 0,
-  totalPages: 0
+const totalProducts = ref(0)
+const {
+  currentPage,
+  currentLimit,
+  meta: pagination,
+  changePage: handleChangePage,
+  changePageSize: handleUpdateLimit
+} = usePagination({
+  totalItems: totalProducts,
+  storageKey: 'productPageSize',
+  initialLimit: 20
 })
 
 const selectionCount = computed(() => selectedIds.value.size)
@@ -81,8 +90,8 @@ const isExporting = ref(false)
 import { useQuery, keepPreviousData } from '@tanstack/vue-query'
 
 const queryParams = computed(() => ({
-  page: pagination.page,
-  limit: pagination.limit,
+  page: currentPage.value,
+  limit: currentLimit.value,
   search: searchQuery.value,
   searchBy: searchBy.value,
   sortBy: sortBy.value,
@@ -113,12 +122,10 @@ watch(
     if (resData) {
       const items = resData.data || resData.products || []
       products.value = items
-      pagination.total = resData.meta?.total || resData.total || 0
-      pagination.totalPages = resData.meta?.last_page || Math.ceil(pagination.total / pagination.limit) || 1
+      totalProducts.value = resData.meta?.total || resData.total || 0
     } else {
       products.value = []
-      pagination.total = 0
-      pagination.totalPages = 1
+      totalProducts.value = 0
     }
   },
   { immediate: true }
@@ -127,15 +134,7 @@ watch(
 // --- HANDLERS (Dioper ke Child Components) ---
 
 // Pagination & Sorting
-const handleChangePage = async page => {
-  pagination.page = page
-  fetchProducts()
-}
-const handleUpdateLimit = limit => {
-  pagination.limit = limit
-  pagination.page = 1
-  fetchProducts()
-}
+// Triggered implicitly by vue-query watching queryParams
 const handleSort = field => {
   if (sortBy.value === field) sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
   else {
@@ -314,10 +313,8 @@ const handleImageSaved = () => {
 
 const fetchCategories = async () => {
   try {
-    const res = await axios.get('/categories')
-    if (res.data && res.data.success) {
-      categoryOptions.value = res.data.data.map(c => ({ id: c.id, label: c.name }))
-    }
+    const categories = await masterStore.getCategories()
+    categoryOptions.value = categories.map(c => ({ id: c.id, label: c.name }))
   } catch (err) {
     console.error('Gagal memuat kategori', err)
   }

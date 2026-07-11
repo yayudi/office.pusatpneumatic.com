@@ -16,6 +16,7 @@ import PickingListCard from '@/components/picking/PickingListCard.vue'
 import PickingListCardCompact from '@/components/picking/PickingListCardCompact.vue'
 import PickingListRow from '@/components/picking/PickingListRow.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
+import { usePagination } from '@/composables/usePagination.js'
 import MasonryWall from '@yeger/vue-masonry-wall'
 import { useQuery } from '@tanstack/vue-query'
 
@@ -113,38 +114,24 @@ const shopOptions = computed(() => {
 const { groupedTasks } = useTaskGrouping(pendingItems, filterState)
 
 // --- PAGINATION LOGIC ---
-const currentPage = ref(1)
-const itemsPerPage = ref(15)
-
-const paginationState = computed(() => ({
-  page: currentPage.value,
-  limit: itemsPerPage.value,
-  total: groupedTasks.value.length,
-  totalPages: Math.max(1, Math.ceil(groupedTasks.value.length / itemsPerPage.value))
-}))
-
-const displayedItems = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage.value
-  const end = start + itemsPerPage.value
-  return groupedTasks.value.slice(start, end)
+const {
+  paginatedData: displayedItems,
+  meta: paginationState,
+  changePage: handlePageChange,
+  changePageSize: handleLimitChange
+} = usePagination({
+  totalItems: groupedTasks,
+  storageKey: 'pickingTaskPageSize',
+  initialLimit: 15
 })
 
 watch(
   filterState,
   () => {
-    currentPage.value = 1
+    handlePageChange(1)
   },
   { deep: true }
 )
-
-function handlePageChange(newPage) {
-  currentPage.value = newPage
-}
-
-function handleLimitChange(newLimit) {
-  itemsPerPage.value = newLimit
-  currentPage.value = 1
-}
 
 // --- LOGIC: STOCK VALIDATION ---
 const stockUsage = computed(() => {
@@ -377,13 +364,12 @@ function handleSelectAll() {
     })
   })
 
-  // FIX: Re-assign
   selectedItems.value = newSet
   console.log('Select All - Total:', selectedItems.value.size)
 }
 
 function handleUncheckAll() {
-  selectedItems.value = new Set() // FIX: Re-assign empty set
+  selectedItems.value = new Set()
 }
 
 defineExpose({

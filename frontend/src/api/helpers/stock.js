@@ -43,7 +43,6 @@ export const fetchAllLocations = async () => {
   try {
     const response = await axios.get('/locations') // Menggunakan path relatif
 
-    // FIX: Pastikan kita selalu mengembalikan array
     if (Array.isArray(response.data)) {
       return response.data
     }
@@ -71,24 +70,29 @@ export const fetchAllLocations = async () => {
  * @param {string} user - Nama pengguna (opsional).
  * @returns {Promise<object>} - Objek berisi data riwayat dan informasi paginasi.
  */
-export async function fetchStockHistory(productId, page = 1, movementType = 'all', startDate = '', endDate = '', locationId = 'all', user = '') {
+export async function fetchStockHistory(
+  productId,
+  page = 1,
+  movementType = 'all',
+  startDate = '',
+  endDate = '',
+  locationId = 'all',
+  user = ''
+) {
   try {
     const params = { page }
     if (movementType && movementType !== 'all') {
       params.movementType = movementType
     }
-    if (startDate) params.startDate = startDate;
-    if (endDate) params.endDate = endDate;
-    if (locationId && locationId !== 'all') params.locationId = locationId;
-    if (user) params.user = user;
-    
+    if (startDate) params.startDate = startDate
+    if (endDate) params.endDate = endDate
+    if (locationId && locationId !== 'all') params.locationId = locationId
+    if (user) params.user = user
+
     const response = await axios.get(`/stock/history/${productId}`, { params })
     return response.data
   } catch (error) {
-    console.error(
-      `Error saat mengambil riwayat stok untuk produk ${productId}:`,
-      error.response?.data || error.message,
-    )
+    console.error(`Error saat mengambil riwayat stok untuk produk ${productId}:`, error.response?.data || error.message)
     throw error.response?.data || error
   }
 }
@@ -100,7 +104,7 @@ export async function fetchStockHistory(productId, page = 1, movementType = 'all
  */
 export async function fetchBatchLogs(startDate, endDate, filters = {}, page = 1, limit = 50) {
   try {
-    const { productName, movementType, locationId, user: userId } = filters;
+    const { productName, movementType, locationId, user: userId } = filters
     const response = await axios.get('/stock/batch-log', {
       params: {
         startDate,
@@ -111,9 +115,9 @@ export async function fetchBatchLogs(startDate, endDate, filters = {}, page = 1,
         userId, // This acts as username search text
         page,
         limit
-      },
+      }
     })
-    return { data: response.data.data || [], pagination: response.data.pagination };
+    return { data: response.data.data || [], pagination: response.data.pagination }
   } catch (error) {
     console.error(`Error saat mengambil log batch:`, error.response?.data || error.message)
     throw error.response?.data || error
@@ -144,7 +148,7 @@ export async function batchTransferStock(payload) {
  * @param {object} payload - { type, fromLocationId?, toLocationId?, notes?, movements: [...] }
  * @returns {Promise<{success: boolean, message: string}>}
  */
-export const processBatchMovement = async (payload) => {
+export const processBatchMovement = async payload => {
   try {
     // API ini harus bisa menangani payload 'TRANSFER'
     // baik dengan from/to di root, atau from/to di dalam array movements
@@ -161,7 +165,7 @@ export const processBatchMovement = async (payload) => {
  * @param {object} payload - { sku, fromLocationId, toLocationId, quantity, notes }
  * @returns {Promise<{success: boolean, message: string}>}
  */
-export const processSingleTransfer = async (payload) => {
+export const processSingleTransfer = async payload => {
   try {
     const response = await axios.post('/stock/transfer', payload) // Menggunakan path relatif
     return response.data
@@ -177,7 +181,7 @@ export const processSingleTransfer = async (payload) => {
  * @param {File} file - File .csv yang dipilih pengguna
  * @returns {Promise<object>} Objek respons dari API
  */
-export const requestAdjustmentUpload = async (file) => {
+export const requestAdjustmentUpload = async file => {
   const formData = new FormData()
   // 'adjustmentFile' HARUS cocok dengan nama field di upload.single() di backend
   formData.append('adjustmentFile', file)
@@ -185,8 +189,8 @@ export const requestAdjustmentUpload = async (file) => {
   try {
     const response = await axios.post('/stock/request-adjustment-upload', formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+        'Content-Type': 'multipart/form-data'
+      }
     })
     return response.data // Mengembalikan { success: true, message: "...", jobId: ... }
   } catch (error) {

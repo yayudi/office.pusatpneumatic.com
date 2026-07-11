@@ -10,8 +10,8 @@ import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
 import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import TriStateSelect from '@/components/ui/TriStateSelect.vue'
-import { computed } from 'vue'
 import { useMobile } from '@/composables/useMobile.js'
+import { usePagination } from '@/composables/usePagination.js'
 
 const { isMobile } = useMobile()
 
@@ -19,8 +19,18 @@ const logs = ref([])
 const total = ref(0)
 const isLoading = ref(false)
 const search = ref('')
-const page = ref(1)
-const limit = ref(20)
+
+const {
+  currentPage: page,
+  currentLimit: limit,
+  meta: paginationData,
+  changePage: onChangePage,
+  changePageSize: onUpdateLimit
+} = usePagination({
+  totalItems: total,
+  storageKey: 'logsPageSize',
+  initialLimit: 20
+})
 
 // Filters
 const actionFilter = ref({ include: [], exclude: [] })
@@ -83,21 +93,7 @@ const formatChanges = (changesJson) => {
   }
 }
 
-// Computed Pagination
-const paginationData = computed(() => ({
-  page: page.value,
-  limit: limit.value,
-  total: total.value,
-  totalPages: Math.ceil(total.value / limit.value) || 1,
-}))
-
-const onChangePage = (p) => {
-  page.value = p
-}
-const onUpdateLimit = (l) => {
-  limit.value = l
-  page.value = 1
-}
+// Pagination handled by usePagination
 
 // Watchers
 watch([

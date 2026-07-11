@@ -19,7 +19,6 @@ export class BaseParser {
    * @param {string} csvDelimiter - Delimiter CSV (default koma, bisa titik koma)
    */
   constructor(filePath, source, mapper, goldenKeys, csvDelimiter = ",") {
-    // FIX: Resolusi Path yang lebih robust
     if (path.isAbsolute(filePath)) {
       this.filePath = filePath;
     } else {
@@ -52,7 +51,10 @@ export class BaseParser {
       const ext = path.extname(this.filePath).toLowerCase();
 
       if (ext === ".csv") {
-        Logger.debug(`Mode CSV Manual Read (fs). Delimiter: '${this.csvDelimiter}'`, this.parserTag);
+        Logger.debug(
+          `Mode CSV Manual Read (fs). Delimiter: '${this.csvDelimiter}'`,
+          this.parserTag,
+        );
 
         // Baca file manual untuk handle CSV yang berantakan (multiline di dalam quotes)
         const fileContent = fs.readFileSync(this.filePath, "utf8");
@@ -137,10 +139,7 @@ export class BaseParser {
 
       // Mekanisme Self-Healing: Coba sanitasi file jika korup
       if (isRescueable && !this.sanitized) {
-        Logger.warn(
-          `File Error (${error.message}). Mencoba Sanitasi...`,
-          this.parserTag
-        );
+        Logger.warn(`File Error (${error.message}). Mencoba Sanitasi...`, this.parserTag);
         try {
           await sanitizeExcel(this.filePath);
           this.sanitized = true;
@@ -200,10 +199,7 @@ export class BaseParser {
       throw new Error("LOW_HEADER_SCORE");
     }
 
-    Logger.info(
-      `Header: Row ${headerRowIdx} @ Sheet "${bestSheet.name}"`,
-      this.parserTag
-    );
+    Logger.info(`Header: Row ${headerRowIdx} @ Sheet "${bestSheet.name}"`, this.parserTag);
 
     const orders = new Map();
     let processedCount = 0;

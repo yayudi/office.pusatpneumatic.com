@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, defineAsyncComponent, reactive, watch } from 'vue'
+import { ref, onMounted, computed, defineAsyncComponent } from 'vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import BaseTabs from '@/components/ui/BaseTabs.vue'
 import { useTheme } from '@/composables/useTheme.js'
@@ -11,6 +11,7 @@ import { useMasterDataStore } from '@/stores/masterData'
 import StatsChartCard from './shared/StatsChartCard.vue'
 import FilterBar from '@/components/ui/FilterBar.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
+import { usePagination } from '@/composables/usePagination.js'
 
 const masterData = useMasterDataStore()
 // const { toast } = useToast()
@@ -24,30 +25,16 @@ const { displayedData, sortBy, getSortIcon } = useStatsTable(statisticsList, {
   initialSortKey: 'total_value'
 })
 
-const pagination = reactive({
-  page: 1,
-  limit: 50,
-  total: 0,
-  totalPages: 1
+const {
+  paginatedData,
+  meta: pagination,
+  changePage: handleChangePage,
+  changePageSize: handleUpdateLimit
+} = usePagination({
+  totalItems: displayedData,
+  storageKey: 'inventoryValuePageSize',
+  initialLimit: 50
 })
-
-watch([() => displayedData.value.length, () => pagination.limit], () => {
-  pagination.total = displayedData.value.length
-  pagination.totalPages = Math.ceil(pagination.total / pagination.limit) || 1
-  if (pagination.page > pagination.totalPages) pagination.page = pagination.totalPages || 1
-}, { immediate: true })
-
-const paginatedData = computed(() => {
-  const start = (pagination.page - 1) * pagination.limit
-  const end = start + pagination.limit
-  return displayedData.value.slice(start, end)
-})
-
-const handleChangePage = (p) => pagination.page = p
-const handleUpdateLimit = (l) => {
-  pagination.limit = l
-  pagination.page = 1
-}
 
 const fetchStatistics = async () => {
   isDataLoading.value = true

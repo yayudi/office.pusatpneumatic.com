@@ -2,6 +2,7 @@ import { ref, reactive, watch } from 'vue'
 import { watchDebounced } from '@vueuse/core'
 import api from '@/api/axios'
 import { useToast } from '@/composables/useToast'
+import { usePagination } from '@/composables/usePagination'
 
 export function useReturnManager() {
   const { toast } = useToast()
@@ -18,7 +19,20 @@ export function useReturnManager() {
     endDate: '',
     sortOrder: 'desc'
   })
-  const pagination = ref({ page: 1, limit: 10, total: 0, totalPages: 1 })
+  
+  const totalItems = ref(0)
+  const {
+    currentPage,
+    currentLimit,
+    meta: pagination,
+    changePage: doChangePage,
+    changePageSize: doChangeLimit
+  } = usePagination({
+    totalItems,
+    initialLimit: 10,
+    storageKey: 'returnManagerLimit'
+  })
+  
   const locations = ref([])
 
   // State Modal Process (Enhanced)
@@ -53,15 +67,15 @@ export function useReturnManager() {
       const endpoint = activeTab.value === 'pending' ? '/return/pending' : '/return/history'
       const response = await api.get(endpoint, {
         params: {
-          page: pagination.value.page,
-          limit: pagination.value.limit,
+          page: currentPage.value,
+          limit: currentLimit.value,
           search: searchQuery.value,
           ...filterState
         }
       })
       items.value = response.data.data
       if (response.data.pagination) {
-        pagination.value = response.data.pagination
+        totalItems.value = response.data.pagination.total
       }
 
       // Load locations jika belum ada
@@ -77,24 +91,23 @@ export function useReturnManager() {
 
   // Reload data ketika tab atau filter diubah
   watch([activeTab, filterState], () => {
-    pagination.value.page = 1
+    currentPage.value = 1
     fetchData()
   }, { deep: true })
 
   // Pencarian dengan debounce agar tidak spam server
   watchDebounced(searchQuery, () => {
-    pagination.value.page = 1
+    currentPage.value = 1
     fetchData()
   }, { debounce: 300 })
 
   const changePage = (p) => {
-    pagination.value.page = p
+    doChangePage(p)
     fetchData()
   }
 
   const changeLimit = (l) => {
-    pagination.value.limit = l
-    pagination.value.page = 1
+    doChangeLimit(l)
     fetchData()
   }
 

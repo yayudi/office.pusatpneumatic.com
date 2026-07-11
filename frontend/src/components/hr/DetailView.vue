@@ -5,6 +5,7 @@ import { formatJamMenit } from '@/api/helpers/time.js'
 import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import AttendanceEditModal from '@/components/hr/AttendanceEditModal.vue'
+import { usePagination } from '@/composables/usePagination.js'
 
 const props = defineProps({
   user: { type: Object, default: null }, // For single user mode { id, nama, logs[] }
@@ -22,9 +23,6 @@ const emit = defineEmits(['refresh'])
 const isEditModalOpen = ref(false)
 const selectedLog = ref(null) // Defined correctly now
 const tableContainer = ref(null)
-
-const currentPage = ref(1)
-const currentLimit = ref(Number(localStorage.getItem('detailPageSize')) || 30)
 
 function formatRow(log, nama) {
   let ket = ''
@@ -89,25 +87,17 @@ const allFormattedRows = computed(() => {
   return []
 })
 
-const pagination = computed(() => {
-  const total = allFormattedRows.value.length
-  return {
-    page: currentPage.value,
-    limit: currentLimit.value,
-    total,
-    totalPages: Math.ceil(total / currentLimit.value) || 1
-  }
+// Setup universal pagination
+const { 
+  paginatedData: visibleRows, 
+  meta: pagination, 
+  changePage, 
+  changePageSize 
+} = usePagination({
+  totalItems: allFormattedRows,
+  storageKey: 'detailPageSize',
+  initialLimit: 30
 })
-
-watch(
-  () => allFormattedRows.value.length,
-  newTotal => {
-    const maxPage = Math.ceil(newTotal / currentLimit.value) || 1
-    if (currentPage.value > maxPage) {
-      currentPage.value = 1
-    }
-  }
-)
 
 watch(
   () => [props.user, props.users, props.year, props.month, props.startDate, props.endDate],
@@ -115,22 +105,6 @@ watch(
     if (tableContainer.value) tableContainer.value.scrollTop = 0
   }
 )
-
-const visibleRows = computed(() => {
-  const start = (currentPage.value - 1) * currentLimit.value
-  const end = start + currentLimit.value
-  return allFormattedRows.value.slice(start, end)
-})
-
-const changePage = page => {
-  currentPage.value = page
-}
-
-const changePageSize = limit => {
-  currentLimit.value = limit
-  currentPage.value = 1
-  localStorage.setItem('detailPageSize', limit)
-}
 </script>
 <template>
   <div>

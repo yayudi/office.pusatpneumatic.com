@@ -10,6 +10,7 @@ import { useMagicKeys } from '@vueuse/core'
 import { transferStock, adjustStock } from '@/api/helpers/stock.js'
 import { useMasterDataStore } from '@/stores/masterData.js'
 import { useMobile } from '@/composables/useMobile.js'
+import { useClipboard } from '@/composables/useClipboard'
 import WmsProductTable from '@/components/wms/shared/ProductTable.vue'
 import WmsControlPanel from '@/components/wms/shared/WmsControlPanel.vue'
 import WmsAdjustModal from '@/components/wms/shared/AdjustModal.vue'
@@ -60,6 +61,8 @@ const {
 
 const auth = useAuthStore()
 const { toast } = useToast()
+const { copyToClipboard } = useClipboard()
+
 const isHistoryModalOpen = ref(false)
 const isTransferModalOpen = ref(false)
 const isUploadModalOpen = ref(false)
@@ -126,21 +129,6 @@ const floorFilterOptions = [
   { label: '3', value: '3' },
   { label: '4', value: '4' }
 ]
-
-function copyToClipboard({ text, fieldName }) {
-  if (!text) return
-  const textArea = document.createElement('textarea')
-  textArea.value = text
-  document.body.appendChild(textArea)
-  textArea.select()
-  try {
-    document.execCommand('copy')
-    toast(`${fieldName} disalin ke clipboard!`, 'success')
-  } catch {
-    toast('Gagal menyalin teks.', 'error')
-  }
-  document.body.removeChild(textArea)
-}
 
 function openTransferModal(product) {
   selectedProduct.value = product

@@ -1,9 +1,10 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, toRef } from 'vue'
 import ProductRow from './ProductRow.vue'
 import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import { useMobile } from '@/composables/useMobile.js'
+import { useSortIcon } from '@/composables/useSortIcon.js'
 
 const { isMobile } = useMobile()
 
@@ -45,11 +46,7 @@ const changePage = (p) => {
     emit('changePage', p)
 }
 
-// Icon Helper untuk Header
-function getSortIcon(field) {
-  if (props.sortBy !== field) return 'fa-solid fa-sort'
-  return props.sortOrder === 'asc' ? 'fa-solid fa-sort-up' : 'fa-solid fa-sort-down'
-}
+const { getSortIcon } = useSortIcon(toRef(props, 'sortBy'), toRef(props, 'sortOrder'))
 </script>
 
 <template>
