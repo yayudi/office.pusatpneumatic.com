@@ -1,7 +1,7 @@
 <!-- frontend\src\views\hr\AttendanceView.vue -->
 <script setup>
 import { ref, watch, computed, defineAsyncComponent } from 'vue'
-import { startOfMonth, endOfMonth, format } from 'date-fns'
+import { dayjs } from '@/api/helpers/time.js'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast.js'
 import { getAbsensiRange } from '@/api/helpers/attendance.js'
@@ -36,8 +36,8 @@ const isDataLoading = ref(false)
 const { isMobile } = useMobile()
 const mobileLayout = ref(isMobile.value ? 'card' : 'compact') // 'card' | 'compact'
 const filterValues = ref({
-  startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
-  endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+  startDate: dayjs().startOf('month').format('YYYY-MM-DD'),
+  endDate: dayjs().endOf('month').format('YYYY-MM-DD'),
   name: []
 })
 
@@ -54,8 +54,8 @@ const displayedUsers = computed(() => {
   return users.value
 })
 
-const currentYear = computed(() => new Date(filterValues.value.startDate).getFullYear())
-const currentMonth = computed(() => new Date(filterValues.value.startDate).getMonth() + 1)
+const currentYear = computed(() => dayjs(filterValues.value.startDate).year())
+const currentMonth = computed(() => dayjs(filterValues.value.startDate).month() + 1)
 
 // --- FETCH DATA ---
 async function fetchAttendanceData() {
@@ -131,8 +131,8 @@ watch(
 function clearFilters() {
   filterValues.value.name = []
   // Reset date to current month
-  filterValues.value.startDate = format(startOfMonth(new Date()), 'yyyy-MM-dd')
-  filterValues.value.endDate = format(endOfMonth(new Date()), 'yyyy-MM-dd')
+  filterValues.value.startDate = dayjs().startOf('month').format('YYYY-MM-DD')
+  filterValues.value.endDate = dayjs().endOf('month').format('YYYY-MM-DD')
 }
 
 // --- EXPORT ---

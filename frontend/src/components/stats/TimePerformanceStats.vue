@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, defineAsyncComponent } from 'vue'
-import { startOfMonth, endOfMonth, format } from 'date-fns'
+import { dayjs } from '@/api/helpers/time.js'
 import { useTheme } from '@/composables/useTheme.js'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
 import SearchInput from '@/components/ui/SearchInput.vue'
@@ -18,8 +18,8 @@ const filterValues = ref({
   reportType: 'monthly',
   year: new Date().getFullYear(),
   selectedMonth: ('0' + (new Date().getMonth() + 1)).slice(-2),
-  startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
-  endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+  startDate: dayjs().startOf('month').format('YYYY-MM-DD'),
+  endDate: dayjs().endOf('month').format('YYYY-MM-DD'),
   searchQuery: '',
   buildings: []
 })
@@ -82,8 +82,8 @@ const getApiPayload = () => {
     timeResolution = 'monthly'
   } else if (filterValues.value.reportType === 'monthly') {
     const d = new Date(`${filterValues.value.year}-${filterValues.value.selectedMonth}-02`)
-    startDate = format(startOfMonth(d), 'yyyy-MM-dd')
-    endDate = format(endOfMonth(d), 'yyyy-MM-dd')
+    startDate = dayjs(d).startOf('month').format('YYYY-MM-DD')
+    endDate = dayjs(d).endOf('month').format('YYYY-MM-DD')
     timeResolution = 'daily'
   } else {
     startDate = filterValues.value.startDate

@@ -1,9 +1,6 @@
 <template>
   <div class="relative">
-    <button
-      @click="togglePopover"
-      class="relative flex items-center gap-2 text-text/80 hover:text-primary"
-    >
+    <button @click="togglePopover" class="relative flex items-center gap-2 text-text/80 hover:text-primary">
       <font-awesome-icon icon="fa-solid fa-bell" class="text-xl" />
       <span
         v-if="pendingCount > 0"
@@ -16,11 +13,9 @@
     <!-- Popover -->
     <div
       v-if="isOpen"
-      class="absolute right-0 z-50 mt-2 w-80 bg-background rounded-md shadow-lg overflow-hidden border border-secondary"
+      class="absolute right-0 z-[200] mt-2 w-80 bg-background rounded-md shadow-lg overflow-hidden border border-secondary"
     >
-      <div
-        class="px-4 py-3 border-b border-secondary bg-secondary flex justify-between items-center"
-      >
+      <div class="px-4 py-3 border-b border-secondary bg-secondary flex justify-between items-center">
         <h3 class="text-sm font-semibold text-text">Notifikasi</h3>
         <button
           v-if="pendingCount > 0"
@@ -48,23 +43,19 @@
             <div class="flex items-start">
               <div class="flex-shrink-0 mr-3 mt-1">
                 <!-- Icon based on type -->
-                <font-awesome-icon
-                  v-if="notif.type === 'WMS'"
-                  icon="fa-solid fa-box"
-                  class="text-accent"
-                />
-                <font-awesome-icon
-                  v-else-if="notif.type === 'HRIS'"
-                  icon="fa-solid fa-users"
-                  class="text-primary"
-                />
+                <font-awesome-icon v-if="notif.type === 'WMS'" icon="fa-solid fa-box" class="text-accent" />
+                <font-awesome-icon v-else-if="notif.type === 'HRIS'" icon="fa-solid fa-users" class="text-primary" />
                 <font-awesome-icon v-else icon="fa-solid fa-circle-info" class="text-muted" />
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-text truncate">{{ notif.title }}</p>
                 <p class="text-sm text-muted line-clamp-2">{{ notif.message }}</p>
-                <div v-if="notif.claimed_by && notif.claimed_by !== currentUser?.id" class="mt-1 text-[10px] text-warning bg-warning/10 inline-block px-1.5 py-0.5 rounded border border-warning/20">
-                  <font-awesome-icon icon="fa-solid fa-hourglass-half" class="mr-1" /> Sedang dikerjakan oleh {{ notif.claimed_by_name }}
+                <div
+                  v-if="notif.claimed_by && notif.claimed_by !== currentUser?.id"
+                  class="mt-1 text-[10px] text-warning bg-warning/10 inline-block px-1.5 py-0.5 rounded border border-warning/20"
+                >
+                  <font-awesome-icon icon="fa-solid fa-hourglass-half" class="mr-1" /> Sedang dikerjakan oleh
+                  {{ notif.claimed_by_name }}
                 </div>
                 <p class="text-xs text-muted/70 mt-1">{{ formatTime(notif.created_at) }}</p>
               </div>
@@ -134,17 +125,17 @@ const markAllAsDone = async () => {
   }
 }
 
-const markAsDone = async (id) => {
+const markAsDone = async id => {
   try {
     await api.put(`/notifications/${id}/done`)
-    notifications.value = notifications.value.filter((n) => n.id !== id)
+    notifications.value = notifications.value.filter(n => n.id !== id)
     pendingCount.value = notifications.value.length
   } catch (error) {
     console.error('Failed to mark as done:', error)
   }
 }
 
-const handleNotificationClick = async (notif) => {
+const handleNotificationClick = async notif => {
   isOpen.value = false
 
   if (notif.claimed_by && notif.claimed_by !== currentUser.value?.id) {
@@ -163,7 +154,7 @@ const handleNotificationClick = async (notif) => {
   }
 }
 
-const formatTime = (dateString) => {
+const formatTime = dateString => {
   if (!dateString) return ''
   const date = new Date(dateString)
   const now = new Date()
@@ -178,25 +169,22 @@ const formatTime = (dateString) => {
 // Firebase Realtime Listener
 onMounted(() => {
   fetchNotifications()
-  
+
   if (currentUser.value?.id) {
-    listener = useFirebaseListener(
-      currentUser.value.id, 
-      currentUser.value.permissions || [], 
-      (data) => {
-        if (data.action === 'REFRESH_NOTIFICATIONS') {
-          // Silent fetch
-          api.get('/notifications/recent?limit=5')
-            .then(res => {
-              if (res.data.success) {
-                notifications.value = res.data.data
-                pendingCount.value = notifications.value.length
-              }
-            })
-            .catch(err => console.error('Silent fetch failed:', err))
-        }
+    listener = useFirebaseListener(currentUser.value.id, currentUser.value.permissions || [], data => {
+      if (data.action === 'REFRESH_NOTIFICATIONS') {
+        // Silent fetch
+        api
+          .get('/notifications/recent?limit=5')
+          .then(res => {
+            if (res.data.success) {
+              notifications.value = res.data.data
+              pendingCount.value = notifications.value.length
+            }
+          })
+          .catch(err => console.error('Silent fetch failed:', err))
       }
-    )
+    })
     listener.startListening()
   }
 
@@ -209,7 +197,7 @@ onUnmounted(() => {
   document.removeEventListener('click', closeOnOutsideClick)
 })
 
-const closeOnOutsideClick = (e) => {
+const closeOnOutsideClick = e => {
   const el = document.querySelector('.fa-bell')?.closest('.relative')
   if (el && !el.contains(e.target) && isOpen.value) {
     isOpen.value = false

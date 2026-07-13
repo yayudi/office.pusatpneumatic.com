@@ -26,7 +26,6 @@
     "apexcharts": "^5.3.6",
     "axios": "^1.11.0",
     "cropperjs": "^2.1.1",
-    "date-fns": "^4.1.0",
     "dayjs": "^1.11.19",
     "fabric": "^7.4.0",
     "firebase": "^12.15.0",

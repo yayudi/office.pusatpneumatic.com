@@ -4,6 +4,8 @@ import 'dayjs/locale/id'
 
 dayjs.locale('id')
 
+export { dayjs }
+
 /**
  * Parse jam string "HH:MM" jadi menit
  */

@@ -1,9 +1,8 @@
 <!-- frontend/src/components/hr/AttendanceUploadTab.vue -->
 <script setup>
-import { swalConfirm } from '@/composables/useSweetAlert'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
 import { useToast } from '@/composables/useToast.js'
-import { getImportJobs, voidImportJob } from '@/api/helpers/stock.js'
+import { useJobHistory } from '@/composables/useJobHistory.js'
 import { uploadAbsensiFile } from '@/api/helpers/attendance.js'
 import UploadForm from '@/components/ui/UploadForm.vue'
 
@@ -11,46 +10,10 @@ const { toast } = useToast()
 const emit = defineEmits(['view-errors', 'switch-tab'])
 
 // --- STATE HISTORY TABLE ---
-const importJobHistory = ref([])
-const isHistoryLoading = ref(false)
-const isUploading = ref(false)
-let pollingInterval = null
-
-// --- LOGIKA HISTORY ---
-async function startPolling() {
-  if (pollingInterval) clearInterval(pollingInterval)
-  pollingInterval = setInterval(fetchJobHistory, 2000) // Poll setiap 2 detik agar progress bar mulus
-}
-
-function stopPolling() {
-  if (pollingInterval) clearInterval(pollingInterval)
-}
-
-async function fetchJobHistory() {
-  try {
-    const res = await getImportJobs()
-    if (res && res.data) {
-      importJobHistory.value = res.data
-        .filter((j) => j.job_type && j.job_type.startsWith('IMPORT_ATTENDANCE'))
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    }
-  } catch (error) {
-    console.error('Gagal memuat history job:', error)
-  }
-}
-
-async function handleVoidJob(job) {
-  if (!await swalConfirm(`Void antrian file "${job.original_filename}"?`)) return
-  try {
-    await voidImportJob(job.id)
-    toast('Antrian berhasil di-void.', 'success')
-    fetchJobHistory()
-  } catch (error) {
-    console.error(error)
-  }
-}
+const { importJobHistory, isHistoryLoading, fetchJobHistory, handleVoidJob, getProgress } = useJobHistory('IMPORT_ATTENDANCE')
 
 // --- UPLOAD HANDLER ---
+const isUploading = ref(false)
 async function handleUpload(formData) {
   isUploading.value = true
   toast('Mengupload file...', 'info')
@@ -80,25 +43,6 @@ async function handleUpload(formData) {
   }
 }
 
-// Helper Hitung Persentase Progress
-function getProgress(job) {
-  if (!job.total_records || job.total_records === 0) return 0
-  const pct = Math.round((job.processed_records / job.total_records) * 100)
-  return Math.min(pct, 100) // Cap di 100%
-}
-
-// Lifecycle
-onMounted(() => {
-  isHistoryLoading.value = true
-  fetchJobHistory().finally(() => {
-    isHistoryLoading.value = false
-    startPolling()
-  })
-})
-
-onUnmounted(() => {
-  stopPolling()
-})
 </script>
 
 <template>

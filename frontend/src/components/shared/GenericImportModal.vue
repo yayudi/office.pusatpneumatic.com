@@ -181,12 +181,12 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
+import { useUploadStore } from '@/stores/uploadStore.js'
 import { useToast } from '@/composables/useToast.js'
 import { useDownload } from '@/composables/useDownload.js'
 import { useUpload } from '@/composables/useUpload.js'
-import apiClient from '@/api/axios.js'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -205,15 +205,17 @@ const emit = defineEmits(['close', 'success'])
 const { toast } = useToast()
 const { downloadFile } = useDownload()
 const { uploadFile } = useUpload()
+const uploadStore = useUploadStore()
 
 const fileInput = ref(null)
 const selectedFile = ref(null)
 const isUploading = ref(false)
 const errorMessage = ref('')
 
-const isLoadingJobs = ref(false)
-const jobs = ref([])
-let pollInterval = null
+const isLoadingJobs = computed(() => uploadStore.jobs.length === 0 && !uploadStore.isExpanded)
+const jobs = computed(() => {
+  return uploadStore.jobs.filter(j => j.jobType === props.jobType).slice(0, 5)
+})
 
 const downloadTemplate = async () => {
   if (!props.templateUrl) return
@@ -262,17 +264,7 @@ const upload = async () => {
 
 const fetchJobs = async () => {
   if (!props.isOpen || !props.jobType) return
-  try {
-    isLoadingJobs.value = true
-    const res = await apiClient.get('/jobs/import')
-    if (res.data.success) {
-      jobs.value = res.data.data.filter(j => j.jobType === props.jobType).slice(0, 5)
-    }
-  } catch (e) {
-    console.error('Failed to fetch jobs:', e)
-  } finally {
-    isLoadingJobs.value = false
-  }
+  await uploadStore.fetchJobs()
 }
 
 watch(
@@ -281,12 +273,9 @@ watch(
     if (newVal) {
       selectedFile.value = null
       errorMessage.value = ''
-      if (props.jobType) {
+      if (props.jobType && uploadStore.jobs.length === 0) {
         fetchJobs()
-        pollInterval = setInterval(fetchJobs, 5000)
       }
-    } else {
-      if (pollInterval) clearInterval(pollInterval)
     }
   }
 )

@@ -22,7 +22,7 @@ router.get("*", (req, res, next) => {
     return next(new AppError("Forbidden", 403));
   }
 
-  // [FIX] Gunakan fs.stat untuk cek file vs directory — mencegah EISDIR crash
+  // Gunakan fs.stat untuk cek file vs directory — mencegah EISDIR crash
   fs.stat(requestedPath, (err, stats) => {
     if (err || !stats.isFile()) {
       // Path tidak ada atau adalah directory, lanjut ke 404 handler

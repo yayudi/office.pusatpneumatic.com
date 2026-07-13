@@ -8,7 +8,7 @@ import { useTheme } from '@/composables/useTheme'
 import PwaUpdatePrompt from '@/components/ui/PwaUpdatePrompt.vue'
 import PwaInstallBanner from '@/components/ui/PwaInstallBanner.vue'
 import HotkeyBanner from '@/components/ui/HotkeyBanner.vue'
-import GlobalDownloadManager from '@/components/shared/GlobalDownloadManager.vue'
+import JobManager from '@/components/shared/JobManager.vue'
 import { useMobile } from '@/composables/useMobile.js'
 
 const router = useRouter()
@@ -36,7 +36,7 @@ function handleLogout() {
     <HotkeyBanner />
 
     <AppHeader v-if="showHeader" @logout="handleLogout" />
-    <GlobalDownloadManager v-if="showHeader && auth.user?.permissions?.includes('view-reports')" />
+    <JobManager v-if="showHeader" />
     <main class="container mx-auto mt-12" :class="isMobile ? 'p-2' : 'px-4 py-2'">
       <RouterView />
     </main>

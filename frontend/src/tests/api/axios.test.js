@@ -3,14 +3,29 @@ import axios from '@/api/axios'
 import { setActivePinia, createPinia } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
 
-// Mock window.location
+// Mock window.location and matchMedia
 const originalWindowLocation = window.location
 beforeAll(() => {
   delete window.location
   window.location = { href: '' }
+
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation(query => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(), // deprecated
+      removeListener: vi.fn(), // deprecated
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  })
 })
 afterAll(() => {
   window.location = originalWindowLocation
+  delete window.matchMedia
 })
 
 describe('Axios Interceptors', () => {

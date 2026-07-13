@@ -1,7 +1,7 @@
 <!-- frontend\src\components\stats\PackageAnalysisTable.vue -->
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { format, startOfMonth, endOfMonth } from 'date-fns'
+import { dayjs } from '@/api/helpers/time.js'
 import FilterBar from '@/components/ui/FilterBar.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import { usePagination } from '@/composables/usePagination.js'
@@ -18,8 +18,8 @@ const filterValues = ref({
   reportType: 'monthly',
   year: new Date().getFullYear(),
   selectedMonth: ('0' + (new Date().getMonth() + 1)).slice(-2),
-  startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
-  endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+  startDate: dayjs().startOf('month').format('YYYY-MM-DD'),
+  endDate: dayjs().endOf('month').format('YYYY-MM-DD'),
   searchQuery: '',
   packageCategoryId: { include: [], exclude: [] },
   componentCategoryId: { include: [], exclude: [] },
@@ -60,8 +60,8 @@ const getApiPayload = () => {
     endDate = `${filterValues.value.year}-12-31`
   } else if (filterValues.value.reportType === 'monthly') {
     const d = new Date(`${filterValues.value.year}-${filterValues.value.selectedMonth}-02`)
-    startDate = format(startOfMonth(d), 'yyyy-MM-dd')
-    endDate = format(endOfMonth(d), 'yyyy-MM-dd')
+    startDate = dayjs(d).startOf('month').format('YYYY-MM-DD')
+    endDate = dayjs(d).endOf('month').format('YYYY-MM-DD')
   } else {
     startDate = filterValues.value.startDate
     endDate = filterValues.value.endDate
@@ -267,8 +267,8 @@ const getStatusText = status => {
             reportType: 'monthly',
             year: new Date().getFullYear(),
             selectedMonth: ('0' + (new Date().getMonth() + 1)).slice(-2),
-            startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
-            endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+            startDate: dayjs().startOf('month').format('YYYY-MM-DD'),
+            endDate: dayjs().endOf('month').format('YYYY-MM-DD'),
             searchQuery: '',
             packageCategoryId: { include: [], exclude: [] },
             componentCategoryId: { include: [], exclude: [] },

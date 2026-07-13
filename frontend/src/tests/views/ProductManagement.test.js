@@ -50,11 +50,8 @@ describe('ProductManagement.vue', () => {
   })
 
   it('renders and fetches data correctly', async () => {
-    // Mock the API response for categories
+    // Mock the API response for products
     axios.get.mockImplementation(async (url) => {
-      if (url === '/categories') {
-        return { data: { success: true, data: [{ id: 1, name: 'Kategori 1' }] } }
-      }
       if (url === '/products') {
         return {
           data: {
@@ -75,8 +72,12 @@ describe('ProductManagement.vue', () => {
           createTestingPinia({
             createSpy: vi.fn,
             initialState: {
-              downloadStore: {}
-            }
+              downloadStore: {},
+              master: {
+                categories: [{ id: 1, name: 'Kategori 1' }]
+              }
+            },
+            stubActions: false
           }),
           VueQueryPlugin
         ],
@@ -99,7 +100,9 @@ describe('ProductManagement.vue', () => {
     // Tunggu sampai komponen mount dan vue-query mengeksekusi fetch
     await new Promise(r => setTimeout(r, 50)) // simple tick
 
-    expect(axios.get).toHaveBeenCalledWith('/categories')
+    const masterStore = (await import('@/stores/masterData')).useMasterDataStore()
+    masterStore.getCategories = vi.fn().mockResolvedValue([{ id: 1, name: 'Kategori 1' }])
+
     expect(axios.get).toHaveBeenCalledWith('/products', expect.any(Object))
 
     // Cek komponen child dipanggil dengan properti yang benar (karena di-stub, kita cek attr/props)

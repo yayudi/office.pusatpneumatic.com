@@ -1,11 +1,13 @@
 <script setup>
-import { ref, watch, onUnmounted } from 'vue'
-import axios from '@/api/axios.js'
+import { ref, watch, computed } from 'vue'
 import dayjs from 'dayjs'
 
 import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseTabs from '@/components/ui/BaseTabs.vue'
 import ImportJobHistory from '@/components/shared/ImportJobHistory.vue'
+import { useDownloadStore } from '@/stores/downloadStore.js'
+
+const downloadStore = useDownloadStore()
 
 const props = defineProps({
   isOpen: Boolean,
@@ -29,49 +31,25 @@ const fileInput = ref(null)
 const selectedFile = ref(null)
 const isDryRun = ref(false)
 
-// --- Export Jobs Polling Logic ---
-const exportJobs = ref([])
-const loadingExports = ref(false)
-let exportPollInterval = null
-
-const fetchExportJobs = async () => {
-  if (exportJobs.value.length === 0) loadingExports.value = true
-  try {
-    const res = await axios.get('/reports/my-jobs')
-    if (res.data.success) {
-      exportJobs.value = res.data.data.filter(job => job.type === 'PRODUCT_MASTER').slice(0, 5) // Show top 5
-    }
-  } catch (err) {
-    console.error('Failed to fetch export jobs', err)
-  } finally {
-    loadingExports.value = false
-  }
-}
-
-watch(activeTab, newVal => {
-  if (newVal === 'export') {
-    fetchExportJobs()
-    exportPollInterval = setInterval(fetchExportJobs, 5000)
-  } else {
-    if (exportPollInterval) clearInterval(exportPollInterval)
-  }
+// --- Export Jobs Logic ---
+const exportJobs = computed(() => {
+  return downloadStore.jobs.filter(job => job.type === 'PRODUCT_MASTER').slice(0, 5)
 })
+const loadingExports = ref(false)
 
 watch(
   () => props.isOpen,
   newVal => {
-    if (newVal && activeTab.value === 'export') {
-      fetchExportJobs()
-      exportPollInterval = setInterval(fetchExportJobs, 5000)
-    } else {
-      if (exportPollInterval) clearInterval(exportPollInterval)
+    if (newVal) {
+      if (downloadStore.jobs.length === 0) {
+        loadingExports.value = true
+        downloadStore.fetchJobs().finally(() => {
+          loadingExports.value = false
+        })
+      }
     }
   }
 )
-
-onUnmounted(() => {
-  if (exportPollInterval) clearInterval(exportPollInterval)
-})
 
 const formatStatus = status => {
   const map = {

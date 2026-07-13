@@ -1,7 +1,6 @@
 <script setup>
 import { ref, computed, nextTick, watch } from 'vue'
-import { format, subDays, startOfMonth, parseISO } from 'date-fns'
-import { id } from 'date-fns/locale'
+import { dayjs } from '@/api/helpers/time.js'
 import { useMobile } from '@/composables/useMobile'
 
 const props = defineProps({
@@ -23,17 +22,17 @@ const tempEnd = ref('')
 
 const presets = [
   { label: 'Hari Ini', getValue: () => [new Date(), new Date()] },
-  { label: 'Kemarin', getValue: () => [subDays(new Date(), 1), subDays(new Date(), 1)] },
-  { label: '7 Hari Terakhir', getValue: () => [subDays(new Date(), 6), new Date()] },
-  { label: '30 Hari Terakhir', getValue: () => [subDays(new Date(), 29), new Date()] },
-  { label: 'Bulan Ini', getValue: () => [startOfMonth(new Date()), new Date()] },
+  { label: 'Kemarin', getValue: () => [dayjs().subtract(1, 'day').toDate(), dayjs().subtract(1, 'day').toDate()] },
+  { label: '7 Hari Terakhir', getValue: () => [dayjs().subtract(6, 'day').toDate(), new Date()] },
+  { label: '30 Hari Terakhir', getValue: () => [dayjs().subtract(29, 'day').toDate(), new Date()] },
+  { label: 'Bulan Ini', getValue: () => [dayjs().startOf('month').toDate(), new Date()] },
 ]
 
 // Formatting helper
-const formatDateYMD = (date) => format(date, 'yyyy-MM-dd')
+const formatDateYMD = (date) => dayjs(date).format('YYYY-MM-DD')
 const formatDateDisplay = (dateStr) => {
   if (!dateStr) return ''
-  return format(parseISO(dateStr), 'dd MMM yyyy', { locale: id })
+  return dayjs(dateStr).format('DD MMM YYYY')
 }
 
 // Button label display

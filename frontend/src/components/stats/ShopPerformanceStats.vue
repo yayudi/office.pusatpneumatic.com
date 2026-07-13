@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, defineAsyncComponent } from 'vue'
-import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns'
+import { dayjs } from '@/api/helpers/time.js'
 import { useTheme } from '@/composables/useTheme.js'
 import FilterBar from '@/components/ui/FilterBar.vue'
 import { fetchShopPerformance } from '@/api/helpers/stats.js'
@@ -25,8 +25,8 @@ const filterValues = ref({
   reportType: 'monthly',
   year: new Date().getFullYear(),
   selectedMonth: ('0' + (new Date().getMonth() + 1)).slice(-2),
-  startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
-  endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+  startDate: dayjs().startOf('month').format('YYYY-MM-DD'),
+  endDate: dayjs().endOf('month').format('YYYY-MM-DD'),
   source: { include: [], exclude: [] },
   shopName: { include: [], exclude: [] }
 })
@@ -82,12 +82,12 @@ const getApiPayload = () => {
     prevEndDate = `${prevYear}-12-31`
   } else if (filterValues.value.reportType === 'monthly') {
     const d = new Date(`${filterValues.value.year}-${filterValues.value.selectedMonth}-02`)
-    startDate = format(startOfMonth(d), 'yyyy-MM-dd')
-    endDate = format(endOfMonth(d), 'yyyy-MM-dd')
-    // Previous = month before
-    const prev = subMonths(d, 1)
-    prevStartDate = format(startOfMonth(prev), 'yyyy-MM-dd')
-    prevEndDate = format(endOfMonth(prev), 'yyyy-MM-dd')
+    startDate = dayjs(d).startOf('month').format('YYYY-MM-DD')
+    endDate = dayjs(d).endOf('month').format('YYYY-MM-DD')
+
+    const prev = dayjs(d).subtract(1, 'month')
+    prevStartDate = prev.startOf('month').format('YYYY-MM-DD')
+    prevEndDate = prev.endOf('month').format('YYYY-MM-DD')
   } else {
     startDate = filterValues.value.startDate
     endDate = filterValues.value.endDate
@@ -95,8 +95,8 @@ const getApiPayload = () => {
     const startMs = new Date(startDate).getTime()
     const endMs = new Date(endDate).getTime()
     const diffMs = endMs - startMs
-    prevEndDate = format(new Date(startMs - 1), 'yyyy-MM-dd') // day before start
-    prevStartDate = format(new Date(startMs - 1 - diffMs), 'yyyy-MM-dd')
+    prevEndDate = dayjs(startMs - 1).format('YYYY-MM-DD') // day before start
+    prevStartDate = dayjs(startMs - 1 - diffMs).format('YYYY-MM-DD')
   }
   return {
     startDate,
@@ -344,7 +344,7 @@ const periodLabel = computed(() => {
   if (f.reportType === 'annual') return { current: `${f.year}`, previous: `${f.year - 1}` }
   if (f.reportType === 'monthly') {
     const monthName = availableMonths.find(m => m.value === f.selectedMonth)?.label || f.selectedMonth
-    const prevDate = subMonths(new Date(`${f.year}-${f.selectedMonth}-02`), 1)
+    const prevDate = dayjs(`${f.year}-${f.selectedMonth}-02`).subtract(1, 'month').toDate()
     const prevMonthName = availableMonths.find(m => m.value === ('0' + (prevDate.getMonth() + 1)).slice(-2))?.label
     return {
       current: `${monthName} ${f.year}`,
@@ -374,8 +374,8 @@ const periodLabel = computed(() => {
             reportType: 'monthly',
             year: new Date().getFullYear(),
             selectedMonth: ('0' + (new Date().getMonth() + 1)).slice(-2),
-            startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
-            endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+            startDate: dayjs().startOf('month').format('YYYY-MM-DD'),
+            endDate: dayjs().endOf('month').format('YYYY-MM-DD'),
             source: { include: [], exclude: [] },
             shopName: { include: [], exclude: [] }
           }

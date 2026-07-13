@@ -7,7 +7,6 @@ import * as pickingService from "../services/pickingDataService.js";
 import * as jobService from "../services/jobService.js";
 import Logger from "../utils/logger.js";
 
-
 // (Direktori error report sekarang ditangani worker, tapi bisa dibiarkan jika ada logic download legacy)
 
 // ============================================================================
@@ -57,7 +56,7 @@ export const uploadAndValidate = async (req, res, next) => {
     const userId = req.user?.id || 1;
     const source = req.body.source || "Tokopedia";
 
-    // [UPDATE] Deteksi Dry Run
+    // Deteksi Dry Run
     // FormData mengirim boolean sebagai string 'true'
     const isDryRun = req.body.dryRun === "true" || req.body.dryRun === true;
 
@@ -98,10 +97,7 @@ export const uploadAndValidate = async (req, res, next) => {
         options: { purpose: locationPurpose, shopName },
       });
 
-      Logger.info(
-        `Job Created: ID ${jobId} (${modeText}) - ${file.originalname}`,
-        "PICKING_CTRL"
-      );
+      Logger.info(`Job Created: ID ${jobId} (${modeText}) - ${file.originalname}`, "PICKING_CTRL");
       createdJobs.push(jobId);
     }
 
@@ -139,7 +135,6 @@ export const voidPickingList = catchAsync(async (req, res, next) => {
 export const completeItems = catchAsync(async (req, res, next) => {
   const { items } = req.body;
   const userId = req.user?.id || 1;
-
 
   const result = await pickingService.completePickingItemsService(items, userId);
   res.json(result);

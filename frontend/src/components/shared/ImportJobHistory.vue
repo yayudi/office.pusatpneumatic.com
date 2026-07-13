@@ -92,9 +92,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import axios from '@/api/axios.js'
+import { computed, onMounted } from 'vue'
 import dayjs from 'dayjs'
+import { useUploadStore } from '@/stores/uploadStore.js'
 
 const props = defineProps({
   // Array of Job Types to filter. If empty, shows all.
@@ -104,13 +104,16 @@ const props = defineProps({
   },
   autoRefreshInterval: {
     type: Number,
-    default: 5000, // 5 seconds
+    default: 5000, // Kept for backwards compatibility but not used for polling anymore
   },
 })
 
-const jobs = ref([])
-const loading = ref(false)
-let intervalId = null
+const uploadStore = useUploadStore()
+const loading = computed(() => uploadStore.jobs.length === 0 && !uploadStore.isExpanded)
+
+const jobs = computed(() => {
+  return uploadStore.jobs.filter(j => !j.jobType?.startsWith('EXPORT_'))
+})
 
 const filteredJobs = computed(() => {
   if (props.jobTypes.length === 0) return jobs.value
@@ -170,29 +173,13 @@ const getErrorUrl = (job) => {
 }
 
 const fetchHistory = async () => {
-  if (!loading.value && jobs.value.length === 0) loading.value = true
-
-  try {
-    const res = await axios.get('/jobs/import')
-    if (res.data.success) {
-      jobs.value = res.data.data
-    }
-  } catch (err) {
-    console.error('Failed to fetch job history:', err)
-  } finally {
-    loading.value = false
-  }
+  await uploadStore.fetchJobs()
 }
 
 onMounted(() => {
-  fetchHistory()
-  if (props.autoRefreshInterval > 0) {
-    intervalId = setInterval(fetchHistory, props.autoRefreshInterval)
+  if (uploadStore.jobs.length === 0) {
+    uploadStore.fetchJobs()
   }
-})
-
-onUnmounted(() => {
-  if (intervalId) clearInterval(intervalId)
 })
 
 // Expose refresh function to parent

@@ -89,6 +89,7 @@ export const importQueue = async () => {
     const updateJobProgress = async (processed, total) => {
       try {
         await jobRepo.updateProgress(connection, jobId, processed, total);
+        emitSharedTaskSignal('BACKGROUND_JOBS', 'JOB_PROGRESS').catch(() => {});
       } catch {
         // Abaikan error update progress
       }

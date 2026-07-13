@@ -14,16 +14,16 @@ import { VitePWA } from 'vite-plugin-pwa'
  */
 const faviconPlugin = ({ command }) => ({
   name: 'favicon-env',
-  transformIndexHtml: (html) => {
+  transformIndexHtml: html => {
     if (command === 'serve') {
       // Replace any <link rel="icon" ...> with the dev favicon
       return html.replace(
         /(<link[^>]+rel=["'](?:shortcut )?icon["'][^>]*href=["'])[^"']+?(["'][^>]*>)/gi,
-        '$1/favicon-dev.ico$2',
+        '$1/favicon-dev.ico$2'
       )
     }
     return html
-  },
+  }
 })
 
 // https://vite.dev/config/
@@ -32,16 +32,16 @@ export default defineConfig(({ command }) => ({
 
   esbuild: {
     pure: ['console.log', 'console.info', 'console.debug', 'console.warn'],
-    drop: ['debugger'],
+    drop: ['debugger']
   },
 
   plugins: [
     vue({
       template: {
         compilerOptions: {
-          isCustomElement: (tag) => tag.startsWith('cropper-'),
-        },
-      },
+          isCustomElement: tag => tag.startsWith('cropper-')
+        }
+      }
     }),
     vueDevTools(),
     visualizer({ filename: 'bundle-stats.html' }),
@@ -58,7 +58,7 @@ export default defineConfig(({ command }) => ({
         'favicon-32x32.png',
         'apple-touch-icon.png',
         'android-chrome-192x192.png',
-        'android-chrome-512x512.png',
+        'android-chrome-512x512.png'
       ],
       manifest: {
         name: 'DPS Office - WMS & HRIS',
@@ -76,9 +76,9 @@ export default defineConfig(({ command }) => ({
             src: '/android-chrome-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable',
-          },
-        ],
+            purpose: 'any maskable'
+          }
+        ]
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
@@ -89,28 +89,28 @@ export default defineConfig(({ command }) => ({
             options: {
               cacheName: 'api-cache',
               expiration: { maxEntries: 50, maxAgeSeconds: 60 * 5 },
-              networkTimeoutSeconds: 10,
-            },
+              networkTimeoutSeconds: 10
+            }
           },
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/uploads/'),
             handler: 'CacheFirst',
             options: {
               cacheName: 'media-cache',
-              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
-            },
-          },
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 }
+            }
+          }
         ],
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api/],
-      },
-    }),
+        navigateFallbackDenylist: [/^\/api/]
+      }
+    })
   ],
 
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
-    },
+      '@': fileURLToPath(new URL('./src', import.meta.url))
+    }
   },
 
   build: {
@@ -136,16 +136,15 @@ export default defineConfig(({ command }) => ({
             if (id.includes('fabric')) return 'fabric'
             if (id.includes('jszip')) return 'jszip'
             if (id.includes('@cropper')) return 'cropper'
-            if (id.includes('date-fns')) return 'date-fns'
             if (id.includes('qrcode')) return 'qrcode'
             if (id.includes('@tanstack')) return 'tanstack'
             if (id.includes('jsbarcode')) return 'jsbarcode'
             if (id.includes('nprogress')) return 'nprogress'
             return 'vendor'
           }
-        },
-      },
-    },
+        }
+      }
+    }
   },
 
   server: {
@@ -154,13 +153,13 @@ export default defineConfig(({ command }) => ({
       '/api': {
         target: 'http://localhost:3000',
         changeOrigin: true,
-        secure: false,
+        secure: false
       },
       '/uploads': {
         target: 'http://localhost:3000',
         changeOrigin: true,
-        secure: false,
-      },
-    },
-  },
+        secure: false
+      }
+    }
+  }
 }))

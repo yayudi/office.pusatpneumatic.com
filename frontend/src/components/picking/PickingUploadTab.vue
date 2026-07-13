@@ -1,54 +1,17 @@
 <!-- frontend\src\components\picking\PickingUploadTab.vue -->
 <script setup>
-import { swalConfirm } from '@/composables/useSweetAlert'
-import { ref, onMounted, onUnmounted } from 'vue'
 import { useToast } from '@/composables/useToast.js'
-import { getImportJobs, voidImportJob } from '@/api/helpers/stock.js'
+import { useJobHistory } from '@/composables/useJobHistory.js'
 import PickingUploadForm from './PickingUploadForm.vue'
 
 const { toast } = useToast()
 defineEmits(['view-errors', 'switch-tab'])
 
 // --- STATE HISTORY TABLE ---
-const importJobHistory = ref([])
-const isHistoryLoading = ref(false)
-let pollingInterval = null
+const { importJobHistory, isHistoryLoading, fetchJobHistory, handleVoidJob, getProgress } =
+  useJobHistory('IMPORT_SALES_')
 
-// --- LOGIKA HISTORY ---
-async function startPolling() {
-  if (pollingInterval) clearInterval(pollingInterval)
-  pollingInterval = setInterval(fetchJobHistory, 2000) // Poll setiap 2 detik agar progress bar mulus
-}
-
-function stopPolling() {
-  if (pollingInterval) clearInterval(pollingInterval)
-}
-
-async function fetchJobHistory() {
-  try {
-    const res = await getImportJobs()
-    if (res && res.data) {
-      importJobHistory.value = res.data
-        .filter((j) => j.job_type && j.job_type.startsWith('IMPORT_SALES_'))
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    }
-  } catch (error) {
-    console.error('Gagal memuat history job:', error)
-  }
-}
-
-async function handleVoidJob(job) {
-  if (!await swalConfirm(`Void antrian file "${job.original_filename}"?`)) return
-  try {
-    await voidImportJob(job.id)
-    toast('Antrian berhasil di-void.', 'success')
-    fetchJobHistory()
-  } catch (error) {
-    console.error(error)
-  }
-}
-
-// [UPDATE] Handler Langsung Redirect
+// Handler Langsung Redirect
 function handleUploadComplete(data) {
   // Trigger refresh segera setelah upload
   fetchJobHistory()
@@ -60,26 +23,6 @@ function handleUploadComplete(data) {
   // Opsional: Jika ingin langsung pindah tab, uncomment baris bawah
   // emit('switch-tab', 'pickingList')
 }
-
-// Helper Hitung Persentase Progress
-function getProgress(job) {
-  if (!job.total_records || job.total_records === 0) return 0
-  const pct = Math.round((job.processed_records / job.total_records) * 100)
-  return Math.min(pct, 100) // Cap di 100%
-}
-
-// Lifecycle
-onMounted(() => {
-  isHistoryLoading.value = true
-  fetchJobHistory().finally(() => {
-    isHistoryLoading.value = false
-    startPolling()
-  })
-})
-
-onUnmounted(() => {
-  stopPolling()
-})
 </script>
 
 <template>
@@ -98,14 +41,12 @@ onUnmounted(() => {
       </div>
 
       <!-- Info Box (Menggunakan warna Primary/Info dari tema) -->
-      <div
-        class="bg-primary/5 border border-primary/20 rounded-xl p-4 text-xs text-primary leading-relaxed"
-      >
+      <div class="bg-primary/5 border border-primary/20 rounded-xl p-4 text-xs text-primary leading-relaxed">
         <div class="font-bold mb-1 flex items-center gap-2">
           <font-awesome-icon icon="fa-solid fa-circle-info" /> Catatan Sistem Baru:
         </div>
-        File yang diupload akan diproses di background. Anda bisa menutup halaman ini, proses import
-        tidak akan terhenti. Pantau status di tabel riwayat.
+        File yang diupload akan diproses di background. Anda bisa menutup halaman ini, proses import tidak akan
+        terhenti. Pantau status di tabel riwayat.
       </div>
     </div>
 
@@ -113,18 +54,14 @@ onUnmounted(() => {
     <div
       class="xl:col-span-2 bg-secondary/30 border border-secondary/20 rounded-2xl overflow-hidden flex flex-col h-[650px] shadow-sm"
     >
-      <div
-        class="p-5 border-b border-secondary/20 bg-secondary/5 flex justify-between items-center backdrop-blur-sm"
-      >
+      <div class="p-5 border-b border-secondary/20 bg-secondary/5 flex justify-between items-center backdrop-blur-sm">
         <h3 class="font-bold flex items-center gap-2 text-text">
           <font-awesome-icon icon="fa-solid fa-clock-rotate-left" class="text-text/40" />
           Riwayat Proses
         </h3>
         <div class="flex items-center gap-3">
           <span v-if="pollingInterval" class="flex h-2 w-2 relative">
-            <span
-              class="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"
-            ></span>
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
             <span class="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
           </span>
           <font-awesome-icon
@@ -137,9 +74,7 @@ onUnmounted(() => {
 
       <div class="flex-1 overflow-y-auto custom-scrollbar relative">
         <table class="w-full text-left border-collapse">
-          <thead
-            class="bg-secondary/20 text-xs uppercase text-text/50 font-bold sticky top-0 backdrop-blur-md z-10"
-          >
+          <thead class="bg-secondary/20 text-xs uppercase text-text/50 font-bold sticky top-0 backdrop-blur-md z-10">
             <tr>
               <th class="p-4 font-bold tracking-wider w-[140px]">Waktu</th>
               <th class="p-4 font-bold tracking-wider">File / Info</th>
@@ -148,19 +83,12 @@ onUnmounted(() => {
           </thead>
           <tbody class="divide-y divide-secondary/10 text-sm">
             <tr v-if="importJobHistory.length === 0 && !isHistoryLoading">
-              <td
-                colspan="3"
-                class="p-12 text-center text-text/40 italic flex flex-col items-center gap-2"
-              >
+              <td colspan="3" class="p-12 text-center text-text/40 italic flex flex-col items-center gap-2">
                 <font-awesome-icon icon="fa-solid fa-folder-open" class="text-2xl opacity-20" />
                 Belum ada riwayat import.
               </td>
             </tr>
-            <tr
-              v-for="job in importJobHistory"
-              :key="job.id"
-              class="hover:bg-secondary/10 transition-colors group"
-            >
+            <tr v-for="job in importJobHistory" :key="job.id" class="hover:bg-secondary/10 transition-colors group">
               <!-- Waktu -->
               <td class="p-4 whitespace-nowrap text-text/70 font-mono text-[11px] align-top">
                 <div class="font-bold">
@@ -170,7 +98,7 @@ onUnmounted(() => {
                   {{
                     new Date(job.created_at).toLocaleTimeString('id-ID', {
                       hour: '2-digit',
-                      minute: '2-digit',
+                      minute: '2-digit'
                     })
                   }}
                 </div>
@@ -199,8 +127,7 @@ onUnmounted(() => {
                   <div class="flex justify-between text-[10px] font-bold text-text/60 mb-1">
                     <span>Memproses data...</span>
                     <span
-                      >{{ getProgress(job) }}% ({{ job.processed_records || 0 }} /
-                      {{ job.total_records || '?' }})</span
+                      >{{ getProgress(job) }}% ({{ job.processed_records || 0 }} / {{ job.total_records || '?' }})</span
                     >
                   </div>
                   <div class="w-full bg-secondary/20 rounded-full h-1.5 overflow-hidden">

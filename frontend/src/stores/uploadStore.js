@@ -1,37 +1,26 @@
-// frontend/src/stores/downloadStore.js
+// frontend/src/stores/uploadStore.js
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import axios from '@/api/axios.js'
 
-export const useDownloadStore = defineStore('download', () => {
+export const useUploadStore = defineStore('upload', () => {
   const jobs = ref([])
-  const isPolling = ref(false) // Deprecated: Kept for backwards compatibility just in case
-
   const pendingCount = ref(0)
   const isExpanded = ref(false) // For the UI widget
 
   const fetchJobs = async () => {
     try {
-      const res = await axios.get('/reports/my-jobs')
+      const res = await axios.get('/jobs/import')
       if (res.data && res.data.success) {
         jobs.value = res.data.data
-
+        
         // Count active jobs
         const activeJobs = jobs.value.filter(j => j.status === 'PENDING' || j.status === 'PROCESSING')
         pendingCount.value = activeJobs.length
       }
     } catch (error) {
-      console.error('Failed to fetch download jobs:', error)
+      console.error('Failed to fetch upload jobs:', error)
     }
-  }
-
-  const startPolling = () => {
-    isExpanded.value = true // Auto expand when new download starts
-    fetchJobs() // Fetch immediately
-  }
-
-  const stopPolling = () => {
-    // No-op (Polling has been removed in favor of Firebase Listener)
   }
 
   const toggleWidget = () => {
@@ -40,12 +29,9 @@ export const useDownloadStore = defineStore('download', () => {
 
   return {
     jobs,
-    isPolling,
     pendingCount,
     isExpanded,
     fetchJobs,
-    startPolling,
-    stopPolling,
     toggleWidget
   }
 })

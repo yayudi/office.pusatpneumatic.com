@@ -84,6 +84,6 @@ export const transformProduct = (apiProduct, selectedBuilding, selectedFloor) =>
     totalStock: filteredTotalStock,
     allLocationsCode: filteredAllLocationsCode,
     stock_locations: filteredLocations,
-    components: apiProduct.components || [] // [FIX] Pass components for virtual stock calc
+    components: apiProduct.components || [] // Pass components for virtual stock calc
   }
 }

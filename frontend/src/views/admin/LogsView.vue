@@ -4,8 +4,7 @@ import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 
 import { ref, onMounted, watch } from 'vue'
 import axios from '@/api/axios.js'
-import { format } from 'date-fns'
-import { id } from 'date-fns/locale'
+import { dayjs } from '@/api/helpers/time.js'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
 import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
@@ -80,7 +79,7 @@ const fetchLogs = async () => {
 // Helpers
 const formatDate = (dateString) => {
   if (!dateString) return '-'
-  return format(new Date(dateString), 'dd MMM yyyy HH:mm', { locale: id })
+  return dayjs(dateString).format('DD MMM YYYY HH:mm')
 }
 
 const formatChanges = (changesJson) => {

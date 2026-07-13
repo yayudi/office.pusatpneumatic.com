@@ -1,16 +1,17 @@
 <script setup>
-import { ref, watch, onUnmounted } from 'vue'
-import axios from '@/api/axios.js'
+import { ref, watch, computed } from 'vue'
 import dayjs from 'dayjs'
-
 import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseTabs from '@/components/ui/BaseTabs.vue'
 import ImportJobHistory from '@/components/shared/ImportJobHistory.vue'
+import { useDownloadStore } from '@/stores/downloadStore.js'
+
+const downloadStore = useDownloadStore()
 
 const props = defineProps({
   isOpen: Boolean,
   isExporting: Boolean,
-  isImporting: Boolean,
+  isImporting: Boolean
 })
 
 const emit = defineEmits(['close', 'export', 'import'])
@@ -20,7 +21,7 @@ const activeTab = ref('export')
 const tabOptions = [
   { value: 'export', label: '1. Download', icon: 'fa-solid fa-download' },
   { value: 'import', label: '2. Upload', icon: 'fa-solid fa-upload' },
-  { value: 'logs', label: '3. Riwayat & Log', icon: 'fa-solid fa-history' },
+  { value: 'logs', label: '3. Riwayat & Log', icon: 'fa-solid fa-history' }
 ]
 
 const exportFormat = ref('xlsx')
@@ -28,83 +29,59 @@ const fileInput = ref(null)
 const selectedFile = ref(null)
 const isDryRun = ref(false)
 
-// --- Export Jobs Polling Logic ---
-const exportJobs = ref([])
-const loadingExports = ref(false)
-let exportPollInterval = null
-
-const fetchExportJobs = async () => {
-  if (exportJobs.value.length === 0) loadingExports.value = true
-  try {
-    const res = await axios.get('/reports/my-jobs')
-    if (res.data.success) {
-      exportJobs.value = res.data.data.filter((job) => job.type === 'EXPORT_PACKAGES').slice(0, 5) // Show top 5
-    }
-  } catch (err) {
-    console.error('Failed to fetch export jobs', err)
-  } finally {
-    loadingExports.value = false
-  }
-}
-
-watch(activeTab, (newVal) => {
-  if (newVal === 'export') {
-    fetchExportJobs()
-    exportPollInterval = setInterval(fetchExportJobs, 5000)
-  } else {
-    if (exportPollInterval) clearInterval(exportPollInterval)
-  }
+// --- Export Jobs Logic ---
+const exportJobs = computed(() => {
+  return downloadStore.jobs.filter(job => job.type === 'EXPORT_PACKAGES').slice(0, 5)
 })
+const loadingExports = ref(false)
 
 watch(
   () => props.isOpen,
-  (newVal) => {
-    if (newVal && activeTab.value === 'export') {
-      fetchExportJobs()
-      exportPollInterval = setInterval(fetchExportJobs, 5000)
-    } else {
-      if (exportPollInterval) clearInterval(exportPollInterval)
+  newVal => {
+    if (newVal) {
+      if (downloadStore.jobs.length === 0) {
+        loadingExports.value = true
+        downloadStore.fetchJobs().finally(() => {
+          loadingExports.value = false
+        })
+      }
     }
-  },
+  }
 )
 
-onUnmounted(() => {
-  if (exportPollInterval) clearInterval(exportPollInterval)
-})
-
-const formatStatus = (status) => {
+const formatStatus = status => {
   const map = {
     PENDING: 'Menunggu',
     PROCESSING: 'Memproses',
     COMPLETED: 'Selesai',
-    FAILED: 'Gagal',
+    FAILED: 'Gagal'
   }
   return map[status] || status
 }
 
-const getStatusClass = (status) => {
+const getStatusClass = status => {
   const map = {
     PENDING: 'bg-warning/10 text-warning',
     PROCESSING: 'bg-accent/10 text-accent animate-pulse',
     COMPLETED: 'bg-success/10 text-success',
-    FAILED: 'bg-danger/10 text-danger',
+    FAILED: 'bg-danger/10 text-danger'
   }
   return map[status] || 'bg-secondary/10 text-text/60'
 }
 
-const formatDate = (date) => dayjs(date).format('DD MMM YYYY, HH:mm')
+const formatDate = date => dayjs(date).format('DD MMM YYYY, HH:mm')
 
 // Actions
 const handleExport = () => {
   emit('export', { format: exportFormat.value })
 }
 
-const handleFileSelect = (event) => {
+const handleFileSelect = event => {
   const file = event.target.files[0]
   if (file) selectedFile.value = file
 }
 
-const handleDrop = (event) => {
+const handleDrop = event => {
   const file = event.dataTransfer.files[0]
   if (file) selectedFile.value = file
 }
@@ -141,23 +118,18 @@ const close = () => {
         <!-- STEP 1: EXPORT -->
         <div v-if="activeTab === 'export'" class="flex-1 flex flex-col h-full overflow-hidden">
           <p class="text-sm text-text/70 mb-4 shrink-0 font-medium">
-            Download data terbaru untuk diedit. Sistem akan otomatis meratakan (flatten) komponen
-            paket ke dalam kolom.
+            Download data terbaru untuk diedit. Sistem akan otomatis meratakan (flatten) komponen paket ke dalam kolom.
           </p>
 
           <div class="grid grid-cols-2 gap-4 mb-6 shrink-0">
             <label
               class="flex items-center gap-4 p-4 border-2 rounded-2xl cursor-pointer transition-all hover:bg-success/5 hover:border-success/50"
               :class="
-                exportFormat === 'xlsx'
-                  ? 'border-success bg-success/5 shadow-sm'
-                  : 'border-secondary/20 bg-background'
+                exportFormat === 'xlsx' ? 'border-success bg-success/5 shadow-sm' : 'border-secondary/20 bg-background'
               "
             >
               <input type="radio" v-model="exportFormat" value="xlsx" class="hidden" />
-              <div
-                class="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center shrink-0"
-              >
+              <div class="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center shrink-0">
                 <font-awesome-icon icon="fa-solid fa-file-excel" class="text-2xl text-success" />
               </div>
               <div>
@@ -169,15 +141,11 @@ const close = () => {
             <label
               class="flex items-center gap-4 p-4 border-2 rounded-2xl cursor-pointer transition-all hover:bg-primary/5 hover:border-primary/50"
               :class="
-                exportFormat === 'csv'
-                  ? 'border-primary bg-primary/5 shadow-sm'
-                  : 'border-secondary/20 bg-background'
+                exportFormat === 'csv' ? 'border-primary bg-primary/5 shadow-sm' : 'border-secondary/20 bg-background'
               "
             >
               <input type="radio" v-model="exportFormat" value="csv" class="hidden" />
-              <div
-                class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0"
-              >
+              <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                 <font-awesome-icon icon="fa-solid fa-file-csv" class="text-2xl text-primary" />
               </div>
               <div>
@@ -204,13 +172,8 @@ const close = () => {
               <p class="mt-3 text-xs font-medium">Memuat riwayat...</p>
             </div>
 
-            <div
-              v-else-if="exportJobs.length === 0"
-              class="flex-1 flex flex-col items-center justify-center"
-            >
-              <div
-                class="w-16 h-16 bg-secondary/20 rounded-full flex items-center justify-center mb-3"
-              >
+            <div v-else-if="exportJobs.length === 0" class="flex-1 flex flex-col items-center justify-center">
+              <div class="w-16 h-16 bg-secondary/20 rounded-full flex items-center justify-center mb-3">
                 <font-awesome-icon icon="fa-solid fa-folder-open" class="text-2xl text-text/30" />
               </div>
               <p class="text-sm text-text/60 font-medium">Belum ada file ekspor terbaru.</p>
@@ -235,19 +198,14 @@ const close = () => {
                       {{ formatDate(job.created_at) }}
                     </span>
                   </div>
-                  <p
-                    v-if="job.status === 'FAILED'"
-                    class="text-xs text-danger font-bold flex items-center gap-1"
-                  >
+                  <p v-if="job.status === 'FAILED'" class="text-xs text-danger font-bold flex items-center gap-1">
                     <font-awesome-icon icon="fa-solid fa-circle-exclamation" />
                     {{ job.error_message || 'Gagal mengekspor data' }}
                   </p>
                   <p v-else class="text-xs text-text/80 font-bold flex items-center gap-1.5">
                     <font-awesome-icon icon="fa-solid fa-file-lines" class="text-text/40" />
                     Data Master Paket ({{
-                      job.filters
-                        ? (JSON.parse(job.filters).format || 'xlsx').toUpperCase()
-                        : 'XLSX'
+                      job.filters ? (JSON.parse(job.filters).format || 'xlsx').toUpperCase() : 'XLSX'
                     }})
                   </p>
                 </div>
@@ -281,8 +239,7 @@ const close = () => {
               <span>{{ isExporting ? 'Sedang Memproses...' : 'Buat Permintaan Ekspor Baru' }}</span>
             </button>
             <p class="text-xs text-center mt-3.5 text-text/50 font-medium">
-              Sistem akan memproses file di latar belakang. Anda dapat memantau statusnya di kotak
-              riwayat di atas.
+              Sistem akan memproses file di latar belakang. Anda dapat memantau statusnya di kotak riwayat di atas.
             </p>
           </div>
         </div>
@@ -290,8 +247,7 @@ const close = () => {
         <!-- STEP 2: IMPORT -->
         <div v-if="activeTab === 'import'" class="flex-1 flex flex-col h-full overflow-hidden">
           <p class="text-sm text-text/70 mb-4 shrink-0 font-medium">
-            Upload file master paket yang sudah Anda edit. Sistem akan memperbarui komposisi paket
-            secara massal.
+            Upload file master paket yang sudah Anda edit. Sistem akan memperbarui komposisi paket secara massal.
           </p>
 
           <div
@@ -300,13 +256,7 @@ const close = () => {
             @dragover.prevent
             @drop.prevent="handleDrop"
           >
-            <input
-              type="file"
-              ref="fileInput"
-              class="hidden"
-              accept=".csv, .xlsx, .xls"
-              @change="handleFileSelect"
-            />
+            <input type="file" ref="fileInput" class="hidden" accept=".csv, .xlsx, .xls" @change="handleFileSelect" />
 
             <div v-if="selectedFile" class="z-10 flex flex-col items-center">
               <div
@@ -317,9 +267,7 @@ const close = () => {
               <p class="font-bold text-lg text-text max-w-[250px] truncate">
                 {{ selectedFile.name }}
               </p>
-              <p class="text-sm text-text/50 mt-1 font-medium">
-                {{ (selectedFile.size / 1024).toFixed(1) }} KB
-              </p>
+              <p class="text-sm text-text/50 mt-1 font-medium">{{ (selectedFile.size / 1024).toFixed(1) }} KB</p>
               <div
                 class="mt-6 px-5 py-2 bg-background rounded-full text-xs font-bold text-text/70 border border-secondary/20 shadow-sm group-hover:text-primary group-hover:border-primary/30 transition-colors"
               >
@@ -337,9 +285,7 @@ const close = () => {
                 />
               </div>
               <p class="font-bold text-text text-lg mb-1.5">Pilih File atau Drag & Drop</p>
-              <p class="text-sm text-text/50 font-medium">
-                Mendukung file format .xlsx, .xls, dan .csv
-              </p>
+              <p class="text-sm text-text/50 font-medium">Mendukung file format .xlsx, .xls, dan .csv</p>
             </div>
           </div>
 
@@ -353,19 +299,14 @@ const close = () => {
                 :class="isDryRun ? 'bg-warning border-warning' : ''"
               >
                 <input type="checkbox" v-model="isDryRun" class="hidden" />
-                <font-awesome-icon
-                  v-if="isDryRun"
-                  icon="fa-solid fa-check"
-                  class="text-xs text-white"
-                />
+                <font-awesome-icon v-if="isDryRun" icon="fa-solid fa-check" class="text-xs text-white" />
               </div>
             </div>
             <div class="flex-1">
               <h6 class="font-bold text-sm text-text">Test Import (Dry Run)</h6>
               <p class="text-xs text-text/70 mt-1.5 leading-relaxed font-medium">
-                Sistem akan melakukan simulasi upload untuk mengecek validitas komponen dan
-                menampilkan error jika ada, <strong>tanpa menyimpan perubahan apapun</strong> ke
-                database.
+                Sistem akan melakukan simulasi upload untuk mengecek validitas komponen dan menampilkan error jika ada,
+                <strong>tanpa menyimpan perubahan apapun</strong> ke database.
               </p>
             </div>
           </label>

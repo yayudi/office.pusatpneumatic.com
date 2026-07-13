@@ -1,9 +1,9 @@
 <!-- frontend/src/views/admin/ReportsView.vue -->
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import axios from '@/api/axios.js'
+import { ref, computed, onMounted } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { useDownload } from '@/composables/useDownload.js'
+import { useDownloadStore } from '@/stores/downloadStore.js'
 import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 import dayjs from 'dayjs'
@@ -13,21 +13,14 @@ const { isMobile } = useMobile()
 
 const { toast } = useToast()
 const { downloadFile } = useDownload()
+const downloadStore = useDownloadStore()
 
-const jobs = ref([])
+// Kita menggunakan state dari downloadStore.
+// Karena GlobalDownloadManager sudah fetch dan listen secara global,
+// kita tidak perlu melakukan fetch ulang atau set interval/listener di sini.
+const jobs = computed(() => downloadStore.jobs)
+// Kita tidak perlu loading state lokal karena data disuplai oleh store secara reaktif
 const loading = ref(false)
-const intervalId = ref(null)
-
-const fetchJobs = async () => {
-  try {
-    const response = await axios.get('/reports/my-jobs')
-    if (response.data.success) {
-      jobs.value = response.data.data
-    }
-  } catch (err) {
-    console.error('Failed to fetch jobs:', err)
-  }
-}
 
 const handleDownload = async (url, fileName) => {
   try {
@@ -77,17 +70,13 @@ const getJobTypeClass = (type) => {
 }
 
 onMounted(() => {
-  loading.value = true
-  fetchJobs().finally(() => {
-    loading.value = false
-  })
-
-  // Auto refresh setiap 5 detik
-  intervalId.value = setInterval(fetchJobs, 5000)
-})
-
-onUnmounted(() => {
-  if (intervalId.value) clearInterval(intervalId.value)
+  // Hanya fetch jika store masih kosong (misal langsung buka halaman ini pertama kali tanpa refresh GlobalManager)
+  if (downloadStore.jobs.length === 0) {
+    loading.value = true
+    downloadStore.fetchJobs().finally(() => {
+      loading.value = false
+    })
+  }
 })
 </script>
 

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, defineAsyncComponent } from 'vue'
-import { startOfMonth, endOfMonth, format } from 'date-fns'
+import { dayjs } from '@/api/helpers/time.js'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast.js'
 import { useTheme } from '@/composables/useTheme.js'
@@ -46,8 +46,8 @@ const {
 })
 
 const filterValues = ref({
-  startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
-  endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+  startDate: dayjs().startOf('month').format('YYYY-MM-DD'),
+  endDate: dayjs().endOf('month').format('YYYY-MM-DD'),
   searchQuery: '',
   status: { include: [], exclude: [] },
   movement: 'all',
@@ -584,8 +584,8 @@ const chartScatterOptions = computed(() => ({
       @clear="
         () => {
           filterValues = {
-            startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
-            endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+            startDate: dayjs().startOf('month').format('YYYY-MM-DD'),
+            endDate: dayjs().endOf('month').format('YYYY-MM-DD'),
             searchQuery: '',
             status: { include: [], exclude: [] },
             movement: 'all',

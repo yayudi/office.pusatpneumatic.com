@@ -133,7 +133,7 @@ describe("ImportQueue Worker (Basic Flow)", () => {
       1,
       "COMPLETED",
       expect.stringContaining("Selesai"), // Cek sebagian pesan log
-      expect.any(String) // JSON Log
+      expect.any(String), // JSON Log
     );
 
     expect(mockConn.release).toHaveBeenCalled();
@@ -145,7 +145,7 @@ describe("ImportQueue Worker (Basic Flow)", () => {
       job_type: "IMPORT_ATTENDANCE",
       file_path: "attendance.csv",
       user_id: 102,
-      original_filename: "attendance.csv", // [FIX] Ditambahkan agar sesuai ekspektasi service
+      original_filename: "attendance.csv", // Ditambahkan agar sesuai ekspektasi service
       options: '{"opt": "val"}', // JSON String
     };
     mockJobRepo.getAndLockPendingImportJob.mockResolvedValue(jobData);
@@ -166,7 +166,7 @@ describe("ImportQueue Worker (Basic Flow)", () => {
       "attendance.csv", // original filename (Sekarang match string literal)
       expect.any(Function), // updateProgress callback
       false, // dryRun
-      { opt: "val" } // options parsed
+      { opt: "val" }, // options parsed
     );
 
     expect(mockJobRepo.completeImportJob).toHaveBeenCalledWith(
@@ -174,7 +174,7 @@ describe("ImportQueue Worker (Basic Flow)", () => {
       2,
       "COMPLETED",
       "Attendance OK",
-      expect.any(String)
+      expect.any(String),
     );
   });
 });
