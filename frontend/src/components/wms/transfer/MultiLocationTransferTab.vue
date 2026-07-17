@@ -6,9 +6,11 @@ import { fetchProductStockDetails } from '@/api/helpers/products.js'
 import { processBatchMovement } from '@/api/helpers/stock.js'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import { useMobile } from '@/composables/useMobile.js'
+import { useBatchClipboard } from '@/composables/useBatchClipboard'
 import ProductSearchSelector from '@/components/wms/transfer/ProductSearchSelector.vue'
 
 const { isMobile } = useMobile()
+const { copyBatchToClipboard } = useBatchClipboard()
 
 const props = defineProps({
   allLocations: { type: Array, required: true },
@@ -176,16 +178,11 @@ function addItemToBatch() {
 }
 
 async function copyFromSku() {
-  const text = batchList.value
-    .map(item => `${item.sku}\t${item.name}\t${item.fromLocationCode}\t${item.toLocationCode}\t${item.quantity}`)
-    .join('\n')
-
-  try {
-    await navigator.clipboard.writeText(text)
-    toast('Daftar transfer berhasil disalin ke clipboard.', 'success')
-  } catch (err) {
-    console.error('Failed to copy text: ', err)
-  }
+  await copyBatchToClipboard(
+    batchList.value,
+    item => `${item.sku}\t${item.name}\t${item.fromLocationCode}\t${item.toLocationCode}\t${item.quantity}`,
+    'Daftar transfer berhasil disalin ke clipboard.'
+  )
 }
 
 function removeFromBatch(id) {

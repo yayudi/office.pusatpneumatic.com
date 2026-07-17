@@ -6,18 +6,17 @@ import { swalConfirm } from '@/composables/useSweetAlert.js'
 import { useUploadStore } from '@/stores/uploadStore.js'
 
 /**
- * Composable for fetching and polling background job history.
  * @param {string} jobTypePrefix - Prefix to filter job type (e.g., 'IMPORT_ATTENDANCE' or 'IMPORT_SALES_')
  */
 export function useJobHistory(jobTypePrefix) {
   const { toast } = useToast()
   const uploadStore = useUploadStore()
-  
+
   const isHistoryLoading = computed(() => uploadStore.jobs.length === 0 && !uploadStore.isExpanded)
 
   const importJobHistory = computed(() => {
     return uploadStore.jobs
-      .filter((j) => (j.job_type || j.jobType || '').startsWith(jobTypePrefix))
+      .filter(j => (j.job_type || j.jobType || '').startsWith(jobTypePrefix))
       .sort((a, b) => new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt))
   })
 
@@ -27,7 +26,7 @@ export function useJobHistory(jobTypePrefix) {
   }
 
   async function handleVoidJob(job) {
-    if (!await swalConfirm(`Void antrian file "${job.original_filename}"?`)) return
+    if (!(await swalConfirm(`Void antrian file "${job.original_filename}"?`))) return
     try {
       await voidImportJob(job.id)
       toast('Antrian berhasil di-void.', 'success')

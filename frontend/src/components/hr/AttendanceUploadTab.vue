@@ -10,7 +10,8 @@ const { toast } = useToast()
 const emit = defineEmits(['view-errors', 'switch-tab'])
 
 // --- STATE HISTORY TABLE ---
-const { importJobHistory, isHistoryLoading, fetchJobHistory, handleVoidJob, getProgress } = useJobHistory('IMPORT_ATTENDANCE')
+const { importJobHistory, isHistoryLoading, fetchJobHistory, handleVoidJob, getProgress } =
+  useJobHistory('IMPORT_ATTENDANCE')
 
 // --- UPLOAD HANDLER ---
 const isUploading = ref(false)
@@ -26,8 +27,7 @@ async function handleUpload(formData) {
 
       if (response.jobId) {
         toast(response.message || 'File masuk antrian background.', 'success')
-      }
-      else if (response.processed) {
+      } else if (response.processed) {
         toast('Upload berhasil! Menampilkan data terbaru.', 'success')
         // Legacy: jika proses sinkron, bisa switch tab
         emit('switch-tab', 'summary')
@@ -42,7 +42,6 @@ async function handleUpload(formData) {
     isUploading.value = false
   }
 }
-
 </script>
 
 <template>
@@ -67,14 +66,12 @@ async function handleUpload(formData) {
       </div>
 
       <!-- Info Box -->
-      <div
-        class="bg-primary/5 border border-primary/20 rounded-xl p-4 text-xs text-primary leading-relaxed"
-      >
+      <div class="bg-primary/5 border border-primary/20 rounded-xl p-4 text-xs text-primary leading-relaxed">
         <div class="font-bold mb-1 flex items-center gap-2">
           <font-awesome-icon icon="fa-solid fa-circle-info" /> Catatan Sistem:
         </div>
-        File yang diupload akan diproses di background. Anda bisa menutup halaman ini, proses import
-        tidak akan terhenti. Pantau status di tabel riwayat.
+        File yang diupload akan diproses di background. Anda bisa menutup halaman ini, proses import tidak akan
+        terhenti. Pantau status di tabel riwayat.
       </div>
     </div>
 
@@ -82,20 +79,12 @@ async function handleUpload(formData) {
     <div
       class="xl:col-span-2 bg-secondary/30 border border-secondary/20 rounded-2xl overflow-hidden flex flex-col h-[650px] shadow-sm"
     >
-      <div
-        class="p-5 border-b border-secondary/20 bg-secondary/5 flex justify-between items-center backdrop-blur-sm"
-      >
+      <div class="p-5 border-b border-secondary/20 bg-secondary/5 flex justify-between items-center backdrop-blur-sm">
         <h3 class="font-bold flex items-center gap-2 text-text">
           <font-awesome-icon icon="fa-solid fa-clock-rotate-left" class="text-text/40" />
           Riwayat Proses
         </h3>
         <div class="flex items-center gap-3">
-          <span v-if="pollingInterval" class="flex h-2 w-2 relative">
-            <span
-              class="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"
-            ></span>
-            <span class="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
-          </span>
           <font-awesome-icon
             v-if="isHistoryLoading"
             icon="fa-solid fa-circle-notch"
@@ -106,9 +95,7 @@ async function handleUpload(formData) {
 
       <div class="flex-1 overflow-y-auto custom-scrollbar relative">
         <table class="w-full text-left border-collapse">
-          <thead
-            class="bg-secondary/20 text-xs uppercase text-text/50 font-bold sticky top-0 backdrop-blur-md z-10"
-          >
+          <thead class="bg-secondary/20 text-xs uppercase text-text/50 font-bold sticky top-0 backdrop-blur-md z-10">
             <tr>
               <th class="p-4 font-bold tracking-wider w-[140px]">Waktu</th>
               <th class="p-4 font-bold tracking-wider">File / Info</th>
@@ -117,29 +104,22 @@ async function handleUpload(formData) {
           </thead>
           <tbody class="divide-y divide-secondary/10 text-sm">
             <tr v-if="importJobHistory.length === 0 && !isHistoryLoading">
-              <td
-                colspan="3"
-                class="p-12 text-center text-text/40 italic flex flex-col items-center gap-2"
-              >
+              <td colspan="3" class="p-12 text-center text-text/40 italic flex flex-col items-center gap-2">
                 <font-awesome-icon icon="fa-solid fa-folder-open" class="text-2xl opacity-20" />
                 Belum ada riwayat import absensi.
               </td>
             </tr>
-            <tr
-              v-for="job in importJobHistory"
-              :key="job.id"
-              class="hover:bg-secondary/10 transition-colors group"
-            >
+            <tr v-for="job in importJobHistory" :key="job.id" class="hover:bg-secondary/10 transition-colors group">
               <!-- Waktu -->
               <td class="p-4 whitespace-nowrap text-text/70 font-mono text-[11px] align-top">
                 <div class="font-bold">
-                  {{ new Date(job.created_at).toLocaleDateString('id-ID') }}
+                  {{ new Date(job.created_at || job.createdAt).toLocaleDateString('id-ID') }}
                 </div>
                 <div>
                   {{
-                    new Date(job.created_at).toLocaleTimeString('id-ID', {
+                    new Date(job.created_at || job.createdAt).toLocaleTimeString('id-ID', {
                       hour: '2-digit',
-                      minute: '2-digit',
+                      minute: '2-digit'
                     })
                   }}
                 </div>
@@ -156,7 +136,7 @@ async function handleUpload(formData) {
                       <span
                         class="uppercase bg-secondary/20 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider"
                       >
-                        {{ job.job_type.replace('IMPORT_ATTENDANCE_', '') }}
+                        {{ (job.job_type || job.jobType || '').replace('IMPORT_ATTENDANCE_', '') }}
                       </span>
                       <span v-if="job.notes" class="italic opacity-70">- {{ job.notes }}</span>
                     </div>
@@ -168,8 +148,7 @@ async function handleUpload(formData) {
                   <div class="flex justify-between text-[10px] font-bold text-text/60 mb-1">
                     <span>Memproses data...</span>
                     <span
-                      >{{ getProgress(job) }}% ({{ job.processed_records || 0 }} /
-                      {{ job.total_records || '?' }})</span
+                      >{{ getProgress(job) }}% ({{ job.processed_records || 0 }} / {{ job.total_records || '?' }})</span
                     >
                   </div>
                   <div class="w-full bg-secondary/20 rounded-full h-1.5 overflow-hidden">

@@ -3,6 +3,7 @@ import { watchDebounced } from '@vueuse/core'
 import api from '@/api/axios'
 import { useToast } from '@/composables/useToast'
 import { usePagination } from '@/composables/usePagination'
+import { useMasterDataStore } from '@/stores/masterData'
 
 export function useReturnManager() {
   const { toast } = useToast()
@@ -54,8 +55,8 @@ export function useReturnManager() {
   // Fetch Data Lokasi
   const fetchLocations = async () => {
     try {
-      const response = await api.get('/locations')
-      locations.value = response.data.data
+      const masterData = useMasterDataStore()
+      locations.value = await masterData.getLocations()
     } catch (err) {
       console.error(err)
     }

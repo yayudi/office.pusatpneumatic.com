@@ -214,14 +214,15 @@ export const batchTransfer = async (req, res, next) => {
 };
 
 export const getBatchLogs = catchAsync(async (req, res, next) => {
-  const { startDate, endDate, productName, movementType, locationId, userId, page, limit } = req.query;
+  const { startDate, endDate, productName, movementType, sourceLocation, destinationLocation, userId, page, limit } = req.query;
 
   const result = await stockService.getBatchLogsService({
     startDate,
     endDate,
     productName,
     movementType,
-    locationId,
+    sourceLocation,
+    destinationLocation,
     userId,
     page,
     limit

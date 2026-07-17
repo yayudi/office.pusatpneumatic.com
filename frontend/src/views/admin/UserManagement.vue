@@ -277,7 +277,9 @@ onMounted(fetchData)
               <td class="px-6 py-4"><BaseSkeleton shape="text" className="w-3/4 h-4" /></td>
               <td class="px-6 py-4"><BaseSkeleton shape="rect" className="w-16 h-6 rounded-md" /></td>
               <td class="px-6 py-4"><BaseSkeleton shape="text" className="w-1/2 h-4" /></td>
-              <td class="px-6 py-4 text-center"><BaseSkeleton shape="rect" className="w-20 h-6 mx-auto rounded-md" /></td>
+              <td class="px-6 py-4 text-center">
+                <BaseSkeleton shape="rect" className="w-20 h-6 mx-auto rounded-md" />
+              </td>
             </tr>
           </template>
 

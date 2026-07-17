@@ -1,6 +1,7 @@
 <script setup>
-import { ref, onUnmounted, watch, nextTick } from 'vue'
-import { useEventListener, useResizeObserver } from '@vueuse/core'
+import { ref, onUnmounted, watch } from 'vue'
+import { onClickOutside } from '@vueuse/core'
+import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/vue'
 import 'cropperjs' // This auto-registers the web components (e.g. <cropper-canvas>)
 import BaseModal from '@/components/ui/BaseModal.vue'
 
@@ -19,8 +20,23 @@ const isProcessing = ref(false)
 const aspectRatio = ref(1)
 const isRatioDropdownOpen = ref(false)
 const dropdownBtnRef = ref(null)
-const dropdownStyle = ref({})
+const dropdownRef = ref(null)
 const isModalReady = ref(false)
+
+const { floatingStyles } = useFloating(dropdownBtnRef, dropdownRef, {
+  placement: 'top-start',
+  middleware: [offset(8), flip(), shift({ padding: 10 })],
+  whileElementsMounted: autoUpdate
+})
+
+onClickOutside(
+  dropdownRef,
+  (event) => {
+    if (dropdownBtnRef.value && dropdownBtnRef.value.contains(event.target)) return
+    closeRatioDropdown()
+  },
+  { ignore: [dropdownBtnRef] }
+)
 
 watch(
   () => props.show,
@@ -71,21 +87,8 @@ const setAspectRatio = (ratio) => {
   closeRatioDropdown()
 }
 
-const toggleRatioDropdown = async () => {
+const toggleRatioDropdown = () => {
   isRatioDropdownOpen.value = !isRatioDropdownOpen.value
-  if (isRatioDropdownOpen.value) {
-    await nextTick()
-    if (dropdownBtnRef.value) {
-      const rect = dropdownBtnRef.value.getBoundingClientRect()
-      // Calculate position above the button
-      dropdownStyle.value = {
-        position: 'fixed',
-        bottom: `${window.innerHeight - rect.top + 8}px`,
-        left: `${rect.left}px`,
-        zIndex: 99999,
-      }
-    }
-  }
 }
 
 const closeRatioDropdown = () => {
@@ -134,11 +137,6 @@ const save = async () => {
 const closeModal = () => {
   emit('close')
 }
-
-useEventListener(document, 'scroll', closeRatioDropdown, true)
-useResizeObserver(document.body, () => {
-  if (isRatioDropdownOpen.value) closeRatioDropdown()
-})
 </script>
 
 <template>
@@ -240,15 +238,11 @@ useResizeObserver(document.body, () => {
             </button>
 
             <Teleport to="body">
-              <div
-                v-if="isRatioDropdownOpen"
-                class="fixed inset-0 z-[99998]"
-                @click="closeRatioDropdown"
-              ></div>
               <ul
                 v-if="isRatioDropdownOpen"
-                :style="dropdownStyle"
-                class="menu p-2 shadow-2xl bg-background rounded-xl w-44 border border-secondary shadow-black/50"
+                ref="dropdownRef"
+                :style="floatingStyles"
+                class="menu p-2 shadow-2xl bg-background rounded-xl w-44 border border-secondary shadow-black/50 z-[99999] absolute"
               >
                 <li>
                   <a

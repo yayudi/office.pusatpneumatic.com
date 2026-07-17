@@ -229,7 +229,7 @@ async function handleRequestExport() {
     const response = await requestExportStock(filters)
     toast(response.message || 'Permintaan diterima!', 'success')
     loadHistory()
-    downloadStore.startPolling()
+    downloadStore.notifyNewJob()
   } catch (error) {
     console.error(error)
   } finally {
@@ -430,14 +430,6 @@ function formatJobType(type) {
                   <div class="lg:col-span-2">
                     <div class="flex justify-between items-center mb-4">
                       <h4 class="text-sm font-bold text-text/70 uppercase tracking-wide">Riwayat Generate</h4>
-                      <button
-                        @click="loadHistory"
-                        :disabled="isHistoryLoading"
-                        class="text-xs text-primary font-bold hover:text-primary/80 disabled:opacity-50 flex items-center gap-1.5 transition-colors"
-                      >
-                        <font-awesome-icon icon="fa-solid fa-rotate" :class="{ 'animate-spin': isHistoryLoading }" />
-                        Refresh
-                      </button>
                     </div>
 
                     <div
@@ -519,10 +511,10 @@ function formatJobType(type) {
                             >
                               <div class="flex flex-col">
                                 <span class="font-bold text-sm">{{
-                                  new Date(job.created_at).toLocaleDateString('id-ID')
+                                  new Date(job.created_at || job.createdAt).toLocaleDateString('id-ID')
                                 }}</span>
                                 <span class="text-text/40 text-[10px]">{{
-                                  new Date(job.created_at).toLocaleTimeString('id-ID')
+                                  new Date(job.created_at || job.createdAt).toLocaleTimeString('id-ID')
                                 }}</span>
                               </div>
                             </td>

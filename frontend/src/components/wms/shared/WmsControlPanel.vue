@@ -1,7 +1,8 @@
 <!-- frontend/src/components/wms/shared/WmsControlPanel.vue -->
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useResizeObserver, useEventListener } from '@vueuse/core'
+import { ref, onMounted } from 'vue'
+import { onClickOutside } from '@vueuse/core'
+import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/vue'
 import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import TriStateSelect from '@/components/ui/TriStateSelect.vue'
@@ -82,75 +83,36 @@ const isColumnMenuOpen = ref(false)
 
 function toggleColumnMenu() {
   isColumnMenuOpen.value = !isColumnMenuOpen.value
-  if (isColumnMenuOpen.value) {
-    updateDropdownPosition()
-  }
 }
 
 function handleToggleColumn(colId) {
   emit('toggle-column', colId)
 }
 
-// Close menu when clicking outside
-function closeColumnMenu(e) {
-  if (isColumnMenuOpen.value && !e.target.closest('.column-selector-group')) {
-    isColumnMenuOpen.value = false
-  }
-}
-
 onMounted(() => {
-  document.addEventListener('click', closeColumnMenu)
-
   // Auto focus search input
   if (searchInput.value) {
     searchInput.value.focus()
   }
 })
 
-onUnmounted(() => {
-  document.removeEventListener('click', closeColumnMenu)
-})
-
-// Validation for position
-const dropdownPosition = ref({ top: '0px', left: '0px', minWidth: '125px' })
 const buttonRef = ref(null)
+const dropdownRef = ref(null)
 
-function updateDropdownPosition() {
-  if (isColumnMenuOpen.value && buttonRef.value) {
-    const rect = buttonRef.value.getBoundingClientRect()
-    const menuWidth = 220
-    let leftPos = rect.right - menuWidth
-
-    // Prevent going off-screen on the left
-    if (leftPos < 10) {
-      leftPos = rect.left // Align left edge instead if it goes off-screen
-    }
-
-    // Prevent going off-screen on the right
-    if (leftPos + menuWidth > window.innerWidth - 10) {
-      leftPos = window.innerWidth - menuWidth - 10
-    }
-
-    dropdownPosition.value = {
-      top: `${rect.bottom + 8}px`,
-      left: `${leftPos}px`,
-      minWidth: `${menuWidth}px`
-    }
-  }
-}
-
-// VueUse Observability to replace window.addEventListener('resize')
-useResizeObserver(document.body, () => {
-  if (isColumnMenuOpen.value) updateDropdownPosition()
+const { floatingStyles } = useFloating(buttonRef, dropdownRef, {
+  placement: 'bottom-end',
+  middleware: [offset(8), flip(), shift({ padding: 10 })],
+  whileElementsMounted: autoUpdate
 })
 
-useEventListener(
-  document,
-  'scroll',
-  () => {
-    if (isColumnMenuOpen.value) updateDropdownPosition()
+onClickOutside(
+  dropdownRef,
+  event => {
+    // Prevent closing if clicking the button itself
+    if (buttonRef.value && buttonRef.value.contains(event.target)) return
+    isColumnMenuOpen.value = false
   },
-  true
+  { ignore: [buttonRef] }
 )
 </script>
 
@@ -339,12 +301,9 @@ useEventListener(
         <Teleport to="body">
           <div
             v-if="isColumnMenuOpen"
-            class="fixed z-[9999] bg-background border border-secondary/20 rounded-lg shadow-xl p-2 animate-fade-in-down column-selector-group"
-            :style="{
-              top: dropdownPosition.top,
-              left: dropdownPosition.left,
-              minWidth: dropdownPosition.minWidth
-            }"
+            ref="dropdownRef"
+            class="fixed z-[9999] bg-background border border-secondary/20 rounded-lg shadow-xl p-2 animate-fade-in-down column-selector-group w-[220px]"
+            :style="floatingStyles"
           >
             <div v-if="!isMobile" class="flex flex-col gap-1 mb-4">
               <span class="text-[10px] font-bold text-text/50 uppercase tracking-wide px-1 mb-1"> Mode Tampilan </span>

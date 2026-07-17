@@ -185,7 +185,6 @@ watch(
             // Set existing image if any (backend should return full URL or path)
             if (data.data.image_path) {
               imagePreview.value = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/uploads/products/${data.data.image_path}`
-              // Or just /uploads/products/ if served relatively
             }
           }
         } catch (err) {

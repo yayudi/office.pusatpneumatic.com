@@ -5,7 +5,6 @@ import axios from '@/api/axios.js'
 
 export const useDownloadStore = defineStore('download', () => {
   const jobs = ref([])
-  const isPolling = ref(false) // Deprecated: Kept for backwards compatibility just in case
 
   const pendingCount = ref(0)
   const isExpanded = ref(false) // For the UI widget
@@ -25,13 +24,9 @@ export const useDownloadStore = defineStore('download', () => {
     }
   }
 
-  const startPolling = () => {
+  const notifyNewJob = () => {
     isExpanded.value = true // Auto expand when new download starts
     fetchJobs() // Fetch immediately
-  }
-
-  const stopPolling = () => {
-    // No-op (Polling has been removed in favor of Firebase Listener)
   }
 
   const toggleWidget = () => {
@@ -40,12 +35,10 @@ export const useDownloadStore = defineStore('download', () => {
 
   return {
     jobs,
-    isPolling,
     pendingCount,
     isExpanded,
     fetchJobs,
-    startPolling,
-    stopPolling,
+    notifyNewJob,
     toggleWidget
   }
 })

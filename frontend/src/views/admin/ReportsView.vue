@@ -88,13 +88,6 @@ onMounted(() => {
       description="Unduh hasil export data dan laporan yang telah Anda request."
       icon="fa-solid fa-file-arrow-down"
     >
-      <template #actions>
-        <button @click="fetchJobs"
-          class="px-4 py-2 bg-secondary hover:bg-secondary/80 text-text rounded-lg font-medium transition-colors flex items-center gap-2">
-          <font-awesome-icon icon="fa-solid fa-rotate-right" :spin="loading" />
-          Refresh
-        </button>
-      </template>
     </WmsActionHeader>
 
     <!-- Job List -->

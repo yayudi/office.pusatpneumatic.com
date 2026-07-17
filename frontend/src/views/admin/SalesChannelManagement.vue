@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useFirebaseSync } from '@/composables/useFirebaseSync'
 import { useToast } from '@/composables/useToast.js'
 import api from '@/api/axios.js'
 import { swalConfirm } from '@/composables/useSweetAlert'
@@ -12,6 +13,7 @@ import { usePagination } from '@/composables/usePagination.js'
 
 const { isMobile } = useMobile()
 const { toast } = useToast()
+
 const channels = ref([])
 const isLoading = ref(false)
 const isSaving = ref(false)
@@ -46,8 +48,10 @@ onMounted(() => {
   fetchChannels()
 })
 
-const fetchChannels = async () => {
-  isLoading.value = true
+useFirebaseSync('MASTER_DATA', 'REFRESH_CHANNELS', () => fetchChannels(true))
+
+const fetchChannels = async (silent = false) => {
+  if (!silent) isLoading.value = true
   try {
     const res = await api.get('/sales-channels')
     channels.value = res.data?.data || []

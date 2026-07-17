@@ -1,7 +1,6 @@
 <script setup>
-import { ref, computed, nextTick, watch } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { dayjs } from '@/api/helpers/time.js'
-import { useMobile } from '@/composables/useMobile'
 
 const props = defineProps({
   startDate: { type: String, default: null },
@@ -13,8 +12,16 @@ const emit = defineEmits(['update:startDate', 'update:endDate', 'change'])
 
 const isOpen = ref(false)
 const containerRef = ref(null)
-const popoverStyle = ref({})
-const { isMobile } = useMobile()
+const dropdownRef = ref(null)
+
+import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/vue'
+import { onClickOutside } from '@vueuse/core'
+
+const { floatingStyles, update } = useFloating(containerRef, dropdownRef, {
+  placement: props.align === 'right' ? 'bottom-end' : 'bottom-start',
+  middleware: [offset(8), flip(), shift({ padding: 16 })],
+  whileElementsMounted: autoUpdate
+})
 
 // Local state for the picker
 const tempStart = ref('')
@@ -47,53 +54,7 @@ const displayLabel = computed(() => {
   return `${formatDateDisplay(props.startDate)} - ${formatDateDisplay(props.endDate)}`
 })
 
-const updatePosition = () => {
-  if (!containerRef.value) return
-  const rect = containerRef.value.getBoundingClientRect()
-
-  const style = {
-    top: `${rect.bottom + 8}px`,
-  }
-
-  // Get popover width if rendered, otherwise use safe estimate
-  let popoverWidth = 460
-  const popoverEl = document.querySelector('.date-range-popover')
-  if (popoverEl) {
-    popoverWidth = popoverEl.getBoundingClientRect().width
-  }
-
-  // Collision logic
-  let useRight = props.align === 'right'
-
-  if (!useRight && rect.left + popoverWidth > window.innerWidth - 16) {
-    // If left-aligned but overflows right edge
-    useRight = true
-  }
-
-  if (useRight && rect.right - popoverWidth < 16) {
-    // If right-aligned but overflows left edge
-    useRight = false
-  }
-
-  // Apply final position with safe margins
-  if (useRight) {
-    let rightPos = window.innerWidth - rect.right
-    // Prevent cut off on the right
-    if (rightPos < 16) rightPos = 16
-
-    style.right = `${rightPos}px`
-    style.left = 'auto'
-  } else {
-    let leftPos = rect.left
-    // Prevent cut off on the left
-    if (leftPos < 16) leftPos = 16
-
-    style.left = `${leftPos}px`
-    style.right = 'auto'
-  }
-
-  popoverStyle.value = style
-}
+// Removed manual updatePosition
 
 const toggleDropdown = async () => {
   if (!isOpen.value) {
@@ -101,7 +62,7 @@ const toggleDropdown = async () => {
     tempEnd.value = props.endDate || ''
     isOpen.value = true
     await nextTick()
-    updatePosition()
+    update()
   } else {
     isOpen.value = false
   }
@@ -130,34 +91,14 @@ const closeDropdown = () => {
   isOpen.value = false
 }
 
-const handleClickOutside = (event) => {
-  if (!isOpen.value) return
-  if (containerRef.value && containerRef.value.contains(event.target)) return
-  if (event.target.closest('.date-range-popover')) return
-  isOpen.value = false
-}
-
-const handleScroll = () => {
-  if (!isOpen.value) return
-  if (!isMobile.value) isOpen.value = false
-  else updatePosition()
-}
-
-// VueUse: Automatically cleaned up on unmount
-import { useResizeObserver, useEventListener } from '@vueuse/core'
-
-useEventListener(document, 'click', handleClickOutside)
-useEventListener(document, 'scroll', handleScroll, true)
-
-useResizeObserver(document.body, () => {
-  if (isOpen.value) updatePosition()
-})
-
-watch(isOpen, (val) => {
-  if (val) {
-    nextTick(updatePosition)
-  }
-})
+onClickOutside(
+  dropdownRef,
+  (event) => {
+    if (containerRef.value && containerRef.value.contains(event.target)) return
+    isOpen.value = false
+  },
+  { ignore: [containerRef] }
+)
 </script>
 
 <template>
@@ -184,8 +125,9 @@ watch(isOpen, (val) => {
     <Teleport to="body">
       <div
         v-if="isOpen"
+        ref="dropdownRef"
         class="date-range-popover fixed z-[5000] w-auto min-w-[320px] max-w-[calc(100vw-32px)] md:max-w-[600px] bg-background border border-secondary/20 shadow-xl rounded-xl overflow-hidden flex flex-col md:flex-row ml-[-5vw] md:m-0"
-        :style="popoverStyle"
+        :style="floatingStyles"
       >
         <!-- Sidebar / Presets -->
         <div

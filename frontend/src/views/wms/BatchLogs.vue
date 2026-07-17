@@ -6,7 +6,6 @@ import { useMasterDataStore } from '@/stores/masterData'
 import { useToast } from '@/composables/useToast.js'
 import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
-import BaseSelect from '@/components/ui/BaseSelect.vue'
 import TriStateSelect from '@/components/ui/TriStateSelect.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import { useMobile } from '@/composables/useMobile.js'
@@ -22,7 +21,8 @@ const startDate = ref('')
 const endDate = ref('')
 const searchProduct = ref('')
 const searchType = ref({ include: [], exclude: [] })
-const searchLocation = ref('')
+const searchSourceLocation = ref({ include: [], exclude: [] })
+const searchDestinationLocation = ref({ include: [], exclude: [] })
 const searchUser = ref('')
 
 // Data & UI
@@ -90,7 +90,8 @@ async function handleSearch() {
     const filters = {
       productName: searchProduct.value,
       movementType: JSON.stringify(searchType.value),
-      locationId: searchLocation.value,
+      sourceLocation: JSON.stringify(searchSourceLocation.value),
+      destinationLocation: JSON.stringify(searchDestinationLocation.value),
       user: searchUser.value
     }
 
@@ -101,7 +102,7 @@ async function handleSearch() {
     }
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
-    toast('Gagal memuat data log.', error.message)
+    toast(`Gagal memuat data log: ${error.message || 'Terjadi kesalahan'}`, 'error')
   } finally {
     loading.value = false
   }
@@ -116,13 +117,14 @@ function handleReset() {
 
   searchProduct.value = ''
   searchType.value = { include: [], exclude: [] }
-  searchLocation.value = ''
+  searchSourceLocation.value = { include: [], exclude: [] }
+  searchDestinationLocation.value = { include: [], exclude: [] }
   searchUser.value = ''
 
   logs.value = []
   hasSearched.value = false
   currentPage.value = 1
-  
+
   handleSearch()
 }
 </script>
@@ -132,9 +134,9 @@ function handleReset() {
     <!-- Filter Section -->
     <BaseFilterPanel class="mb-6">
       <template #filters>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:flex xl:flex-row lg:justify-between items-end gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:flex xl:flex-row lg:justify-between items-end gap-1">
           <!-- Product Name -->
-          <div class="space-y-1.5">
+          <div class="space-y-1.5 w-full lg:w-[30%]">
             <label class="text-xs font-bold text-text/60 uppercase tracking-wide">Produk / SKU</label>
             <div class="relative group">
               <font-awesome-icon
@@ -146,7 +148,12 @@ function handleReset() {
                 type="text"
                 placeholder="Cari nama/kode..."
                 class="w-full h-[42px] pl-9 pr-3 bg-background border border-secondary rounded-lg text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all placeholder:text-text/30"
-                @keyup.enter="() => { pagination.page = 1; handleSearch(); }"
+                @keyup.enter="
+                  () => {
+                    pagination.page = 1
+                    handleSearch()
+                  }
+                "
               />
             </div>
           </div>
@@ -163,20 +170,27 @@ function handleReset() {
             />
           </div>
 
-          <!-- Location -->
-          <div class="space-y-1.5">
-            <label class="text-xs font-bold text-text/60 uppercase tracking-wide">Lokasi</label>
-            <BaseSelect
-              v-model="searchLocation"
+          <!-- Source Location -->
+          <div class="space-y-1.5 w-full lg:w-[150px]">
+            <label class="text-xs font-bold text-text/60 uppercase tracking-wide">Lokasi Sumber</label>
+            <TriStateSelect
+              v-model="searchSourceLocation"
               :options="locationOptions"
               label="label"
-              track-by="id"
-              placeholder="Semua Lokasi"
-              :searchable="true"
-              :multiple="true"
-              emit-value
-              clearable
-              clear-value=""
+              track="id"
+              placeholder="Semua Sumber"
+            />
+          </div>
+
+          <!-- Destination Location -->
+          <div class="space-y-1.5 w-full lg:w-[150px]">
+            <label class="text-xs font-bold text-text/60 uppercase tracking-wide">Destinasi</label>
+            <TriStateSelect
+              v-model="searchDestinationLocation"
+              :options="locationOptions"
+              label="label"
+              track="id"
+              placeholder="Semua Destinasi"
             />
           </div>
 
@@ -193,7 +207,12 @@ function handleReset() {
                 type="text"
                 placeholder="Cari user..."
                 class="w-full h-[42px] pl-9 pr-3 bg-background border border-secondary rounded-lg text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all placeholder:text-text/30"
-                @keyup.enter="() => { pagination.page = 1; handleSearch(); }"
+                @keyup.enter="
+                  () => {
+                    pagination.page = 1
+                    handleSearch()
+                  }
+                "
               />
             </div>
           </div>
@@ -205,7 +224,7 @@ function handleReset() {
           </div>
 
           <!-- Actions -->
-          <div class="flex gap-3">
+          <div class="flex gap-1">
             <button
               @click="handleReset"
               class="h-[42px] px-4 bg-secondary/10 text-text/70 ring-1 ring-danger/20 hover:text-danger hover:bg-danger/10 rounded-lg text-sm font-bold transition-all flex-1 xl:flex-none"
@@ -213,7 +232,12 @@ function handleReset() {
               <font-awesome-icon icon="fa-solid fa-rotate-right" />
             </button>
             <button
-              @click="() => { pagination.page = 1; handleSearch(); }"
+              @click="
+                () => {
+                  pagination.page = 1
+                  handleSearch()
+                }
+              "
               :disabled="loading"
               class="h-[42px] px-6 bg-primary text-secondary rounded-lg text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100 transition-all flex items-center justify-center gap-2 flex-[2] xl:flex-1"
             >
@@ -277,10 +301,10 @@ function handleReset() {
                 <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Waktu</span>
                 <div class="flex flex-col" :class="isMobile ? 'items-end' : ''">
                   <div class="font-medium">
-                    {{ new Date(log.created_at).toLocaleDateString('id-ID') }}
+                    {{ new Date(log.created_at || log.createdAt).toLocaleDateString('id-ID') }}
                   </div>
                   <div class="text-[10px] opacity-60">
-                    {{ new Date(log.created_at).toLocaleTimeString('id-ID') }}
+                    {{ new Date(log.created_at || log.createdAt).toLocaleTimeString('id-ID') }}
                   </div>
                 </div>
               </td>
@@ -330,27 +354,61 @@ function handleReset() {
                 :class="
                   isMobile
                     ? 'flex justify-between items-center py-2 border-b border-secondary/10 text-text/80'
-                    : 'p-3 align-top text-text/80'
+                    : 'p-3 align-top text-text/80 min-w-[150px]'
                 "
               >
                 <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Route</span>
-                <div :class="isMobile ? 'text-right' : ''">
+                <div :class="isMobile ? 'flex flex-col items-end gap-1.5' : 'flex flex-col gap-1.5'">
+                  <!-- Jika ada keduanya dan berbeda (Transfer) -->
                   <div
-                    v-if="log.from_location"
-                    class="flex items-center gap-1 text-[10px]"
+                    v-if="log.from_location && log.to_location && log.from_location !== log.to_location"
+                    class="flex items-center gap-1.5 flex-wrap"
                     :class="isMobile ? 'justify-end' : ''"
                   >
-                    <span class="text-text/50">Dari:</span>
-                    <span class="font-mono font-bold">{{ log.from_location }}</span>
+                    <span
+                      class="px-1.5 py-0.5 rounded border border-secondary/20 bg-secondary/10 text-text/80 font-mono text-[10px] shadow-sm flex items-center gap-1"
+                    >
+                      <font-awesome-icon icon="fa-solid fa-upload" class="text-[9px] opacity-50" />
+                      {{ log.from_location }}
+                    </span>
+                    <font-awesome-icon icon="fa-solid fa-arrow-right" class="text-text/30 text-[10px]" />
+                    <span
+                      class="px-1.5 py-0.5 rounded border border-primary/20 bg-primary/10 text-primary font-mono font-bold text-[10px] shadow-sm flex items-center gap-1"
+                    >
+                      <font-awesome-icon icon="fa-solid fa-download" class="text-[9px] opacity-70" />
+                      {{ log.to_location }}
+                    </span>
                   </div>
+
+                  <!-- Jika hanya From Location (Outbound/Picking/Adjustment min) -->
                   <div
-                    v-if="log.to_location"
-                    class="flex items-center gap-1 text-[10px]"
+                    v-else-if="log.from_location && (!log.to_location || log.from_location === log.to_location)"
+                    class="flex items-center gap-1.5"
                     :class="isMobile ? 'justify-end' : ''"
                   >
-                    <span class="text-text/50">Ke:</span>
-                    <span class="font-mono font-bold">{{ log.to_location }}</span>
+                    <span
+                      class="px-1.5 py-0.5 rounded border border-warning/30 bg-warning/10 text-warning-dark font-mono text-[10px] shadow-sm flex items-center gap-1"
+                    >
+                      <font-awesome-icon icon="fa-solid fa-arrow-up-right-from-square" class="text-[10px]" />
+                      {{ log.from_location }}
+                    </span>
                   </div>
+
+                  <!-- Jika hanya To Location (Inbound/Return/Adjustment plus) -->
+                  <div
+                    v-else-if="log.to_location && !log.from_location"
+                    class="flex items-center gap-1.5"
+                    :class="isMobile ? 'justify-end' : ''"
+                  >
+                    <span
+                      class="px-1.5 py-0.5 rounded border border-success/30 bg-success/10 text-success-dark font-mono font-bold text-[10px] shadow-sm flex items-center gap-1"
+                    >
+                      <font-awesome-icon icon="fa-solid fa-arrow-right-to-bracket" class="text-[10px]" />
+                      {{ log.to_location }}
+                    </span>
+                  </div>
+
+                  <div v-else class="text-text/30 text-[10px] italic">N/A</div>
                 </div>
               </td>
               <td

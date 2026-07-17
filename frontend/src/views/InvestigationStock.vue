@@ -350,7 +350,8 @@
               class="w-full md:w-1/2 px-3 py-2 bg-background border border-secondary/30 text-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
             />
             <p class="text-xs text-text/50 mt-1">
-              Hanya tampilkan jika jarak antara transaksi pertama & terakhir kurang dari angka ini. Kosongkan untuk melihat semua.
+              Hanya tampilkan jika jarak antara transaksi pertama & terakhir kurang dari angka ini. Kosongkan untuk
+              melihat semua.
             </p>
           </div>
 
@@ -389,7 +390,7 @@
         <div class="p-5 border-b border-secondary/20 flex justify-between items-center bg-primary/10">
           <h2 class="text-lg font-semibold text-text">Hasil Investigasi</h2>
           <span class="text-sm text-text/70">
-            Ditemukan: <strong class="text-accent">{{ meta.totalGroups || 0 }}</strong> grup duplikat
+            Ditemukan: <strong class="text-accent">{{ totalGroups || 0 }}</strong> grup duplikat
           </span>
         </div>
 
@@ -679,7 +680,7 @@ import { useToast } from '@/composables/useToast.js'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import TriStateSelect from '@/components/ui/TriStateSelect.vue'
 import SegmentedControl from '@/components/ui/SegmentedControl.vue'
-import { fetchAllLocations } from '@/api/helpers/locations.js'
+import { useMasterDataStore } from '@/stores/masterData'
 import { useInvestigationFilters } from '@/composables/useInvestigationFilters'
 import { useInvestigationLogic } from '@/composables/useInvestigationLogic'
 
@@ -691,6 +692,7 @@ const {
   paginationMeta,
   results,
   loading,
+  totalGroups,
   openGroups,
   openTrx,
   resetFilters,
@@ -784,7 +786,8 @@ const exportToCSV = () => {
 
 onMounted(async () => {
   try {
-    const locs = await fetchAllLocations()
+    const masterData = useMasterDataStore()
+    const locs = await masterData.getLocations()
     // ensure locs is an array
     if (Array.isArray(locs)) {
       locationOptions.value = locs

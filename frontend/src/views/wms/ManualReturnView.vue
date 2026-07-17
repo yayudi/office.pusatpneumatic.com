@@ -9,6 +9,7 @@ import { swalAlert } from '@/composables/useSweetAlert'
 import api from '@/api/axios'
 import ProductSearchSelector from '@/components/wms/transfer/ProductSearchSelector.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import { useMasterDataStore } from '@/stores/masterData'
 
 const conditionOptions = [
   { id: 'GOOD', label: 'Bagus' },
@@ -28,8 +29,8 @@ const form = ref({
 
 async function fetchHelpers() {
   try {
-    const locRes = await api.get('/locations')
-    locations.value = locRes.data.data || locRes.data
+    const masterData = useMasterDataStore()
+    locations.value = await masterData.getLocations()
   } catch (e) {
     console.error('Gagal load helpers', e)
   }

@@ -25,7 +25,7 @@ const {
   fetchNextPage,
   hasNextPage,
   isFetchingNextPage
-} = useProductSearch({ 
+} = useProductSearch({
   locationId: toRef(props, 'locationId'),
   inStockOnly: toRef(props, 'inStockOnly')
 })
@@ -49,11 +49,7 @@ const inputRef = ref(null)
 const triggerRef = ref(null)
 const dropdownRef = ref(null)
 const dropdownListRef = ref(null)
-const { selectedIndex, handleNavigation } = useListNavigation(
-  dropdownListRef,
-  searchResults,
-  (item) => selectItem(item)
-)
+const { selectedIndex, handleNavigation } = useListNavigation(dropdownListRef, searchResults, item => selectItem(item))
 
 const { floatingStyles } = useFloating(triggerRef, dropdownRef, {
   placement: 'bottom-start',
@@ -92,34 +88,34 @@ watch(
   { immediate: true }
 )
 
-
-
-// ... (logic above remains) ...
-
-watch(isLoading, (newVal) => {
+watch(isLoading, newVal => {
   if (newVal && searchQuery.value.length >= 2) {
     showDropdown.value = true
   }
 })
 
-watch(searchResults, (newVal) => {
-  if (newVal.length > 0 && searchQuery.value.length >= 2) {
-    showDropdown.value = true
-    
-    if (props.enableScanner && searchQuery.value) {
-      const match = newVal.find(p => p.sku.toLowerCase() === searchQuery.value.toLowerCase())
-      if (match) {
-        console.log('[Scanner Auto] Exact match found:', match.sku)
-        emit('scanner-match', match)
-        searchQuery.value = ''
-        showDropdown.value = false
+watch(
+  searchResults,
+  newVal => {
+    if (newVal.length > 0 && searchQuery.value.length >= 2) {
+      showDropdown.value = true
+
+      if (props.enableScanner && searchQuery.value) {
+        const match = newVal.find(p => p.sku.toLowerCase() === searchQuery.value.toLowerCase())
+        if (match) {
+          console.log('[Scanner Auto] Exact match found:', match.sku)
+          emit('scanner-match', match)
+          searchQuery.value = ''
+          showDropdown.value = false
+        }
       }
     }
-  }
-}, { deep: true })
+  },
+  { deep: true }
+)
 async function handleInput() {
   const query = searchQuery.value
-  
+
   if (props.modelValue) {
     const currentName = props.modelValue[props.displayField] || props.modelValue.name
     if (query !== currentName) {
@@ -133,7 +129,7 @@ async function handleInput() {
     showDropdown.value = false
     return
   }
-  
+
   // The composable will debounce this automatically
   performSearch(query)
 }
@@ -151,7 +147,7 @@ function selectItem(item) {
   showDropdown.value = false
 }
 
-const handleKeydown = (event) => {
+const handleKeydown = event => {
   if (props.enableScanner && (event.key === 'Enter' || event.key === 'Tab')) {
     event.preventDefault()
   }
@@ -259,8 +255,10 @@ defineExpose({ focusInput })
               :class="selectedIndex === index ? 'bg-secondary/10' : 'hover:bg-secondary/10'"
             >
               <div class="flex-1 min-w-0">
-                <div class="font-bold text-sm truncate text-left transition-colors"
-                     :class="selectedIndex === index ? 'text-primary' : 'text-text group-hover:text-primary'">
+                <div
+                  class="font-bold text-sm truncate text-left transition-colors"
+                  :class="selectedIndex === index ? 'text-primary' : 'text-text group-hover:text-primary'"
+                >
                   {{ item.name }}
                 </div>
                 <div class="text-[10px] text-text/50 font-mono text-left">SKU: {{ item.sku }}</div>
@@ -281,9 +279,12 @@ defineExpose({ focusInput })
             >
               Tidak ada hasil.
             </li>
-            
+
             <li v-if="hasNextPage" ref="bottomSentinelRef" class="h-2 w-full"></li>
-            <li v-if="isFetchingNextPage" class="px-3 py-2 text-center text-text/50 text-xs flex justify-center items-center gap-2">
+            <li
+              v-if="isFetchingNextPage"
+              class="px-3 py-2 text-center text-text/50 text-xs flex justify-center items-center gap-2"
+            >
               <font-awesome-icon icon="fa-solid fa-circle-notch" spin class="text-primary" />
               <span>Memuat...</span>
             </li>

@@ -4,6 +4,7 @@ import { swalConfirm } from '@/composables/useSweetAlert'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 
 import { ref, onMounted, watch } from 'vue'
+import { useFirebaseSync } from '@/composables/useFirebaseSync'
 import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import axios from '@/api/axios.js'
@@ -38,8 +39,8 @@ const {
   initialLimit: 10
 })
 
-async function loadCategories() {
-  if (categories.value.length === 0) {
+async function loadCategories(silent = false) {
+  if (!silent && categories.value.length === 0) {
     loading.value = true
   }
   try {
@@ -51,7 +52,8 @@ async function loadCategories() {
   }
 }
 
-onMounted(loadCategories)
+onMounted(() => loadCategories())
+useFirebaseSync('MASTER_DATA', 'REFRESH_CATEGORIES', () => loadCategories(true))
 
 function openCreateModal() {
   isEditing.value = false

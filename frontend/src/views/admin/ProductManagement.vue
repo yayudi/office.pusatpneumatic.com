@@ -2,6 +2,7 @@
 <script setup>
 import { swalConfirm } from '@/composables/useSweetAlert'
 import { ref, computed, watch, onMounted } from 'vue'
+import { useFirebaseSync } from '@/composables/useFirebaseSync'
 import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import axios from '@/api/axios.js'
@@ -280,7 +281,7 @@ const handleExport = async ({ format, includeImages }) => {
 
     if (response.data.success) {
       toast('Permintaan export produk diterima.', 'success')
-      downloadStore.startPolling()
+      downloadStore.notifyNewJob()
     }
   } catch (err) {
     console.error(err)
@@ -325,6 +326,8 @@ onMounted(() => {
   fetchCategories()
   fetchProducts()
 })
+
+useFirebaseSync('MASTER_DATA', 'REFRESH_PRODUCTS', () => fetchProducts())
 
 // --- LOCAL HOTKEYS ---
 const { Alt_N, Alt_A, Alt_R, Slash } = useMagicKeys()

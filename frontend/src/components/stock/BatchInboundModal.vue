@@ -317,6 +317,7 @@ import { processBatchMovement } from '@/api/helpers/stock.js'
 import ImportJobHistory from '@/components/shared/ImportJobHistory.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import ProductFormModal from '@/components/wms/shared/ProductFormModal.vue'
+import { useMasterDataStore } from '@/stores/masterData'
 
 // Dynamic worker import for client side PDF parsing
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url'
@@ -403,8 +404,8 @@ const loadInboundContext = async () => {
     const prodRes = await axios.get('/products/admin-list')
     activeProducts.value = prodRes.data.data || []
 
-    const locRes = await axios.get('/locations')
-    locations.value = locRes.data.data || []
+    const masterData = useMasterDataStore()
+    locations.value = await masterData.getLocations()
   } catch (err) {
     console.error('Failed to load system context:', err)
   }

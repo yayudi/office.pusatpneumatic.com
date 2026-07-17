@@ -1,17 +1,9 @@
 <!-- frontend/src/components/shared/ImportJobHistory.vue -->
 <template>
   <div class="h-full flex flex-col">
-    <!-- Header / Refresh -->
+    <!-- Header -->
     <div class="flex justify-between items-center mb-4">
       <h4 class="font-semibold text-text text-sm">Riwayat Upload Terakhir</h4>
-      <button
-        @click="fetchHistory"
-        class="text-xs text-primary hover:underline flex items-center gap-1 mr-8"
-        :disabled="loading"
-      >
-        <font-awesome-icon icon="fa-solid fa-sync" :spin="loading" />
-        <span>Refresh</span>
-      </button>
     </div>
 
     <!-- Loading State -->
@@ -101,11 +93,7 @@ const props = defineProps({
   jobTypes: {
     type: Array,
     default: () => [],
-  },
-  autoRefreshInterval: {
-    type: Number,
-    default: 5000, // Kept for backwards compatibility but not used for polling anymore
-  },
+  }
 })
 
 const uploadStore = useUploadStore()
@@ -172,16 +160,9 @@ const getErrorUrl = (job) => {
   }
 }
 
-const fetchHistory = async () => {
-  await uploadStore.fetchJobs()
-}
-
 onMounted(() => {
   if (uploadStore.jobs.length === 0) {
     uploadStore.fetchJobs()
   }
 })
-
-// Expose refresh function to parent
-defineExpose({ refresh: fetchHistory })
 </script>

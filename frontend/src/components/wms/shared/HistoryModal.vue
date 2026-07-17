@@ -3,17 +3,18 @@
 import { ref, watch } from 'vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
-import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
-import { fetchStockHistory, fetchAllLocations } from '@/api/helpers/stock.js'
+import { fetchStockHistory } from '@/api/helpers/stock.js'
+import { useMasterDataStore } from '@/stores/masterData'
 import { useMobile } from '@/composables/useMobile.js'
 import { onMounted } from 'vue'
 import { usePagination } from '@/composables/usePagination.js'
+import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
 
 const { isMobile } = useMobile()
 
 const props = defineProps({
   show: Boolean,
-  product: Object,
+  product: Object
 })
 
 const emit = defineEmits(['close'])
@@ -41,7 +42,8 @@ const locations = ref([])
 
 onMounted(async () => {
   try {
-    locations.value = await fetchAllLocations()
+    const masterData = useMasterDataStore()
+    locations.value = await masterData.getLocations()
   } catch (err) {
     console.error('Gagal memuat lokasi:', err)
   }
@@ -55,7 +57,7 @@ const movementTypes = [
   { label: 'Penyesuaian (Adjustment)', value: 'ADJUSTMENT' },
   { label: 'Opname', value: 'OPNAME' },
   { label: 'Penjualan (Sales)', value: 'SALES' },
-  { label: 'Retur (Return)', value: 'RETURN' },
+  { label: 'Retur (Return)', value: 'RETURN' }
 ]
 
 // paginationData is now handled by usePagination
@@ -72,14 +74,11 @@ async function loadHistory(page) {
       startDate.value,
       endDate.value,
       locationId.value,
-      userFilter.value,
+      userFilter.value
     )
     history.value = response.data
     if (response.pagination) {
       totalHistory.value = response.pagination.total
-      // If we manually call loadHistory(1) and get page 1, ensure currentPage matches.
-      // However usePagination's changePage naturally updates it. 
-      // If we update it silently:
       currentPage.value = response.pagination.page
     }
   } catch {
@@ -103,21 +102,16 @@ watch([movementType, startDate, endDate, locationId], () => {
 
 watch(
   () => props.show,
-  (newValue) => {
+  newValue => {
     if (newValue) {
       loadHistory(1)
     }
-  },
+  }
 )
 </script>
 
 <template>
-  <BaseModal
-    :show="show"
-    @close="emit('close')"
-    :title="`Riwayat Stok: ${product?.name}`"
-    maxWidth="max-w-4xl"
-  >
+  <BaseModal :show="show" @close="emit('close')" :title="`Riwayat Stok: ${product?.name}`" maxWidth="max-w-4xl">
     <div
       class="px-4 py-3 grid gap-2 items-center border-b border-secondary/20 bg-background/50"
       :class="isMobile ? 'grid-cols-2' : 'grid-cols-4'"
@@ -155,14 +149,9 @@ watch(
     <div class="max-h-[70vh] overflow-y-auto">
       <div v-if="loading" class="text-center p-8">Memuat riwayat...</div>
       <div v-else-if="error" class="text-center p-8 text-accent">{{ error }}</div>
-      <div v-else-if="history.length === 0" class="text-center p-8 text-text/60">
-        Tidak ada riwayat pergerakan.
-      </div>
+      <div v-else-if="history.length === 0" class="text-center p-8 text-text/60">Tidak ada riwayat pergerakan.</div>
       <table v-else class="text-sm" :class="isMobile ? 'w-full block' : 'min-w-full'">
-        <thead
-          class="bg-secondary/10 text-xs uppercase text-text/70"
-          :class="isMobile ? 'hidden' : ''"
-        >
+        <thead class="bg-secondary/10 text-xs uppercase text-text/70" :class="isMobile ? 'hidden' : ''">
           <tr>
             <th class="p-2 text-left">Tanggal</th>
             <th class="p-2 text-left">Tipe</th>
@@ -191,18 +180,10 @@ watch(
                   : 'p-2 whitespace-nowrap'
               "
             >
-              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
-                >Tanggal</span
-              >
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Tanggal</span>
               <span>{{ new Date(item.created_at).toLocaleString('id-ID') }}</span>
             </td>
-            <td
-              :class="
-                isMobile
-                  ? 'flex justify-between items-center py-1.5 border-b border-secondary/10'
-                  : 'p-2'
-              "
-            >
+            <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2'">
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Tipe</span>
               <span>{{ item.movement_type }}</span>
             </td>
@@ -213,16 +194,12 @@ watch(
                   : 'p-2 text-center font-bold'
               "
             >
-              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
-                >Jumlah</span
-              >
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Jumlah</span>
               <span class="font-bold">{{ item.quantity }}</span>
             </td>
             <td
               :class="
-                isMobile
-                  ? 'flex justify-between items-center py-1.5 border-b border-secondary/10'
-                  : 'p-2 font-mono'
+                isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'
               "
             >
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Dari</span>
@@ -230,32 +207,18 @@ watch(
             </td>
             <td
               :class="
-                isMobile
-                  ? 'flex justify-between items-center py-1.5 border-b border-secondary/10'
-                  : 'p-2 font-mono'
+                isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2 font-mono'
               "
             >
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Ke</span>
               <span class="font-mono">{{ item.to_location || '-' }}</span>
             </td>
-            <td
-              :class="
-                isMobile
-                  ? 'flex justify-between items-center py-1.5 border-b border-secondary/10'
-                  : 'p-2'
-              "
-            >
+            <td :class="isMobile ? 'flex justify-between items-center py-1.5 border-b border-secondary/10' : 'p-2'">
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Oleh</span>
               <span>{{ item.user }}</span>
             </td>
-            <td
-              :class="
-                isMobile ? 'flex justify-between items-center py-1.5' : 'p-2 text-xs text-text/80'
-              "
-            >
-              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
-                >Catatan</span
-              >
+            <td :class="isMobile ? 'flex justify-between items-center py-1.5' : 'p-2 text-xs text-text/80'">
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Catatan</span>
               <span class="text-xs text-text/80">{{ item.notes }}</span>
             </td>
           </tr>
@@ -265,11 +228,7 @@ watch(
 
     <template v-if="paginationData.totalPages > 1 || totalHistory > 10" #footer>
       <div class="w-full">
-        <BasePagination
-          :pagination="paginationData"
-          :show-limit-picker="false"
-          @changePage="changePage"
-        />
+        <BasePagination :pagination="paginationData" :show-limit-picker="false" @changePage="changePage" />
       </div>
     </template>
   </BaseModal>

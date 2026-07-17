@@ -7,12 +7,26 @@ export function useHistoryGrouping(itemsRef, filterStateRef) {
     const filter = filterStateRef.value
     let filtered = rawItems
 
-    if (filter.source !== 'ALL') {
-      filtered = filtered.filter((i) => i.source === filter.source)
+    const hasTriState = (fieldObj) => fieldObj && (fieldObj.include?.length > 0 || fieldObj.exclude?.length > 0)
+
+    if (hasTriState(filter.source)) {
+      filtered = filtered.filter((i) => {
+        const val = i.source || 'Unknown'
+        if (filter.source.exclude.includes(val)) return false
+        if (filter.source.include.length > 0 && !filter.source.include.includes(val)) return false
+        return true
+      })
     }
-    if (filter.locationPurpose && filter.locationPurpose !== 'ALL') {
-      filtered = filtered.filter((i) => (i.location_purpose || 'DISPLAY') === filter.locationPurpose)
+
+    if (hasTriState(filter.locationPurpose)) {
+      filtered = filtered.filter((i) => {
+        const val = i.location_purpose || 'DISPLAY'
+        if (filter.locationPurpose.exclude.includes(val)) return false
+        if (filter.locationPurpose.include.length > 0 && !filter.locationPurpose.include.includes(val)) return false
+        return true
+      })
     }
+
     if (filter.search) {
       const q = filter.search.toLowerCase()
       filtered = filtered.filter(
@@ -25,8 +39,13 @@ export function useHistoryGrouping(itemsRef, filterStateRef) {
       )
     }
 
-    if (filter.shopName && filter.shopName !== 'ALL') {
-      filtered = filtered.filter((i) => i.shop_name === filter.shopName)
+    if (hasTriState(filter.shopName)) {
+      filtered = filtered.filter((i) => {
+        const val = i.shop_name || 'Unknown'
+        if (filter.shopName.exclude.includes(val)) return false
+        if (filter.shopName.include.length > 0 && !filter.shopName.include.includes(val)) return false
+        return true
+      })
     }
     if (filter.startDate || filter.endDate) {
       const start = filter.startDate

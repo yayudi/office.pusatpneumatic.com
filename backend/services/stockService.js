@@ -162,7 +162,9 @@ export const transferStockService = async ({
       Logger.error("Failed to prepare notification", e, "STOCK_SERVICE");
     }
 
-    emitSharedTaskSignal("WMS_DASHBOARD", "REFRESH_STOCK").catch(e => Logger.error("Signal Error", e, "STOCK_SERVICE"));
+    emitSharedTaskSignal("WMS_DASHBOARD", "REFRESH_STOCK").catch((e) =>
+      Logger.error("Signal Error", e, "STOCK_SERVICE"),
+    );
 
     return { success: true, message: "Transfer berhasil." };
   } catch (error) {
@@ -220,7 +222,9 @@ export const adjustStockService = async ({ productId, locationId, quantity, user
 
     await connection.commit();
 
-    emitSharedTaskSignal("WMS_DASHBOARD", "REFRESH_STOCK").catch(e => Logger.error("Signal Error", e, "STOCK_SERVICE"));
+    emitSharedTaskSignal("WMS_DASHBOARD", "REFRESH_STOCK").catch((e) =>
+      Logger.error("Signal Error", e, "STOCK_SERVICE"),
+    );
 
     return { success: true, message: "Penyesuaian stok berhasil." };
   } catch (error) {
@@ -393,7 +397,9 @@ export const processBatchMovementsService = async ({
       }
     }
 
-    emitSharedTaskSignal("WMS_DASHBOARD", "REFRESH_STOCK").catch(e => Logger.error("Signal Error", e, "STOCK_SERVICE"));
+    emitSharedTaskSignal("WMS_DASHBOARD", "REFRESH_STOCK").catch((e) =>
+      Logger.error("Signal Error", e, "STOCK_SERVICE"),
+    );
 
     return { success: true, count: resolvedItems.length };
   } catch (error) {
@@ -481,7 +487,9 @@ export const processBatchOpnameService = async ({ movements, userId, userRoleId 
 
     await connection.commit();
 
-    emitSharedTaskSignal("WMS_DASHBOARD", "REFRESH_STOCK").catch(e => Logger.error("Signal Error", e, "STOCK_SERVICE"));
+    emitSharedTaskSignal("WMS_DASHBOARD", "REFRESH_STOCK").catch((e) =>
+      Logger.error("Signal Error", e, "STOCK_SERVICE"),
+    );
 
     // Return processedCount (how many actual updates happened)
     return { success: true, count: processedCount };
@@ -742,39 +750,6 @@ const buildTriStateWhere = (column, filterValue, queryParams) => {
   return clauses;
 };
 
-const buildTriStateWhereLocations = (filterValue, queryParams) => {
-  const clauses = [];
-  let parsed = filterValue;
-  if (typeof filterValue === "string" && filterValue.startsWith("{")) {
-    try {
-      parsed = JSON.parse(filterValue);
-    } catch {
-      /* ignore */
-    }
-  }
-
-  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-    if (parsed.include && parsed.include.length > 0) {
-      clauses.push(`(sm.from_location_id IN (?) OR sm.to_location_id IN (?))`);
-      queryParams.push(parsed.include, parsed.include);
-    }
-    if (parsed.exclude && parsed.exclude.length > 0) {
-      // Must NOT be in both
-      clauses.push(`(sm.from_location_id NOT IN (?) AND sm.to_location_id NOT IN (?))`);
-      queryParams.push(parsed.exclude, parsed.exclude);
-    }
-  } else if (parsed && parsed !== "All" && parsed !== "all") {
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      clauses.push(`(sm.from_location_id IN (?) OR sm.to_location_id IN (?))`);
-      queryParams.push(parsed, parsed);
-    } else if (typeof parsed === "string") {
-      clauses.push(`(sm.from_location_id = ? OR sm.to_location_id = ?)`);
-      queryParams.push(parsed, parsed);
-    }
-  }
-  return clauses;
-};
-
 /**
  * @param {Object} options
  * @returns {Promise<any>}
@@ -784,7 +759,8 @@ export const getBatchLogsService = async ({
   endDate,
   productName,
   movementType,
-  locationId,
+  sourceLocation,
+  destinationLocation,
   userId,
   page = 1,
   limit = 50,
@@ -834,9 +810,14 @@ export const getBatchLogsService = async ({
       conditions.push(`(${typeClauses.join(" AND ")})`);
     }
 
-    const locClauses = buildTriStateWhereLocations(locationId, params);
-    if (locClauses.length > 0) {
-      conditions.push(`(${locClauses.join(" AND ")})`);
+    const sourceClauses = buildTriStateWhere("sm.from_location_id", sourceLocation, params);
+    if (sourceClauses.length > 0) {
+      conditions.push(`(${sourceClauses.join(" AND ")})`);
+    }
+
+    const destinationClauses = buildTriStateWhere("sm.to_location_id", destinationLocation, params);
+    if (destinationClauses.length > 0) {
+      conditions.push(`(${destinationClauses.join(" AND ")})`);
     }
 
     if (userId) {
@@ -900,8 +881,12 @@ export const validateReturnService = async ({ pickingListItemId, returnToLocatio
     );
 
     await connection.commit();
-    emitSharedTaskSignal("WMS_DASHBOARD", "REFRESH_STOCK").catch((e) => Logger.error("Signal Error", e, "STOCK_SERVICE"));
-    emitSharedTaskSignal("PICKING_LIST", "REFRESH_PICKING").catch((e) => Logger.error("Signal Error", e, "STOCK_SERVICE"));
+    emitSharedTaskSignal("WMS_DASHBOARD", "REFRESH_STOCK").catch((e) =>
+      Logger.error("Signal Error", e, "STOCK_SERVICE"),
+    );
+    emitSharedTaskSignal("PICKING_LIST", "REFRESH_PICKING").catch((e) =>
+      Logger.error("Signal Error", e, "STOCK_SERVICE"),
+    );
     return { success: true, message: `Item (ID: ${pickingListItemId}) berhasil divalidasi.` };
   } catch (error) {
     await connection.rollback();

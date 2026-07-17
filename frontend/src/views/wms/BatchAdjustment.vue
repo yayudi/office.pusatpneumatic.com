@@ -145,8 +145,6 @@ async function handleAddProduct({ product, quantity }) {
     return
   }
 
-  // Edge Case: Produk tidak tercatat di lokasi ini (stok sistem = 0)
-  // Bisa terjadi karena barang nyasar atau ghost stock. Beri konfirmasi.
   if (product.current_stock === 0 && adjustmentLocation.value) {
     const isConfirmed = await swalConfirm(
       'Produk Tidak Tercatat di Lokasi Ini',
@@ -373,14 +371,6 @@ watch(Alt_S, pressed => {
       <div class="mt-8">
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-sm font-bold text-text/70 uppercase tracking-wide">Riwayat Impor</h3>
-          <button
-            @click="loadImportHistory"
-            :disabled="isImportHistoryLoading"
-            class="text-xs text-primary font-bold hover:text-primary/80 disabled:opacity-50 flex items-center gap-1.5 transition-colors"
-          >
-            <font-awesome-icon icon="fa-solid fa-rotate" :class="{ 'animate-spin': isImportHistoryLoading }" />
-            Refresh
-          </button>
         </div>
         <div class="overflow-hidden border border-secondary/20 rounded-xl shadow-sm">
           <table class="divide-y divide-secondary/10" :class="isMobile ? 'w-full block' : 'min-w-full'">
@@ -428,10 +418,10 @@ watch(Alt_S, pressed => {
                   <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Tanggal</span>
                   <div class="flex flex-col" :class="isMobile ? 'items-end' : ''">
                     <div class="font-medium">
-                      {{ new Date(job.created_at).toLocaleDateString('id-ID') }}
+                      {{ new Date(job.created_at || job.createdAt).toLocaleDateString('id-ID') }}
                     </div>
                     <div class="text-text/40">
-                      {{ new Date(job.created_at).toLocaleTimeString('id-ID') }}
+                      {{ new Date(job.created_at || job.createdAt).toLocaleTimeString('id-ID') }}
                     </div>
                   </div>
                 </td>

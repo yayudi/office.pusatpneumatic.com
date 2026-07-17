@@ -1,16 +1,16 @@
 <!-- frontend/src/views/admin/ShiftSchedule.vue -->
 <script setup>
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
-
 import { ref, computed, onMounted, watch } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { fetchShifts } from '@/api/helpers/admin.js'
 import { useMasterDataStore } from '@/stores/masterData'
 import BatchScheduleImportModal from '@/components/shifts/BatchScheduleImportModal.vue'
 import { fetchSchedules, createSchedule, deleteSchedule } from '@/api/helpers/schedule.js'
-import { useEventListener, useResizeObserver } from '@vueuse/core'
+import { useEventListener, useResizeObserver, onClickOutside } from '@vueuse/core'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import { useMobile } from '@/composables/useMobile.js'
+import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/vue'
 
 const { isMobile } = useMobile()
 const masterData = useMasterDataStore()
@@ -42,6 +42,24 @@ const popover = ref({
   currentShiftId: null
 })
 const isProcessing = ref(false)
+
+const referenceRef = ref(null)
+const floatingRef = ref(null)
+const { floatingStyles } = useFloating(referenceRef, floatingRef, {
+  placement: 'bottom',
+  middleware: [offset(5), flip(), shift({ padding: 10 })],
+  whileElementsMounted: autoUpdate
+})
+
+onClickOutside(
+  floatingRef,
+  event => {
+    // Ignore if clicking a calendar day (handled by openPopover logic)
+    if (event.target.closest('.group')) return
+    closePopover()
+  },
+  { ignore: [referenceRef] }
+)
 
 const { toast } = useToast()
 
@@ -137,17 +155,10 @@ const openPopover = (event, dayObj) => {
     return
   }
 
-  const rect = event.currentTarget.getBoundingClientRect()
-
-  let top = rect.bottom + window.scrollY + 5
-  let left = rect.left + window.scrollX - 100 + rect.width / 2
-  if (left < 10) left = 10
-  if (left + 220 > window.innerWidth) left = window.innerWidth - 230
+  referenceRef.value = event.currentTarget
 
   popover.value = {
     visible: true,
-    top,
-    left,
     dateStr: dayObj.dateStr,
     dateObj: dayObj,
     currentShiftId: dayObj.schedule?.shift_id || null
@@ -211,13 +222,14 @@ useResizeObserver(document.body, () => {
 </script>
 
 <template>
-  <!-- Overlay for Popover -->
+  <!-- Overlay for Popover (Optional since onClickOutside is used, but keeping it for manual transparent backdrop if needed) -->
   <div v-if="popover.visible" class="fixed inset-0 z-40 bg-transparent" @click="closePopover"></div>
 
   <!-- Popover -->
   <div
     v-if="popover.visible"
-    :style="{ top: popover.top + 'px', left: popover.left + 'px' }"
+    ref="floatingRef"
+    :style="floatingStyles"
     class="fixed z-50 w-64 bg-background shadow-xl rounded-xl border border-secondary flex flex-col overflow-hidden animate-fade-in-up origin-top"
   >
     <div

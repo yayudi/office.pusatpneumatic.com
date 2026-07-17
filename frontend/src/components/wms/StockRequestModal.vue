@@ -3,7 +3,7 @@
 import { ref, watch, onMounted } from 'vue'
 import { useToast } from '@/composables/useToast'
 import { fetchMyLocations } from '@/api/helpers/user'
-import { fetchAllLocations } from '@/api/helpers/locations'
+import { useMasterDataStore } from '@/stores/masterData'
 import { createStockRequest } from '@/api/helpers/stockRequest'
 import ProductSearchAddForm from '@/components/wms/transfer/ProductSearchAddForm.vue'
 import BatchItemList from '@/components/wms/transfer/BatchItemList.vue'
@@ -23,7 +23,6 @@ const { toast } = useToast()
 const isLoading = ref(false)
 const myLocations = ref([])
 const allLocations = ref([])
-
 const fromLocationId = ref(null)
 const toLocationId = ref(null)
 const notes = ref('')
@@ -32,7 +31,8 @@ const batchList = ref([])
 
 onMounted(async () => {
   try {
-    const [myLocs, allLocs] = await Promise.all([fetchMyLocations(), fetchAllLocations()])
+    const masterData = useMasterDataStore()
+    const [myLocs, allLocs] = await Promise.all([fetchMyLocations(), masterData.getLocations()])
     myLocations.value = myLocs
     allLocations.value = allLocs
   } catch (error) {
@@ -219,7 +219,7 @@ function closeModal() {
               >
                 <option :value="null" disabled>Pilih Lokasi</option>
                 <!-- Untuk opname, operator bebas pilih semua lokasi -->
-                <option v-for="loc in (type === 'TRANSFER' ? myLocations : allLocations)" :key="loc.id" :value="loc.id">
+                <option v-for="loc in type === 'TRANSFER' ? myLocations : allLocations" :key="loc.id" :value="loc.id">
                   {{ loc.code }} - {{ loc.name }}
                 </option>
               </select>
@@ -244,7 +244,7 @@ function closeModal() {
           <ProductSearchAddForm
             :active-tab="type"
             :search-location-id="type === 'TRANSFER' ? fromLocationId : toLocationId"
-            :disabled="type === 'TRANSFER' ? (!fromLocationId || isLoading) : (!toLocationId || isLoading)"
+            :disabled="type === 'TRANSFER' ? !fromLocationId || isLoading : !toLocationId || isLoading"
             @add-product="handleAddProduct"
           />
 

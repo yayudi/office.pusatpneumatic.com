@@ -170,7 +170,11 @@ export const voidPickingListService = async (pickingListId, userId) => {
     const [res] = await pickingRepo.voidHeader(connection, pickingListId);
 
     if (res.affectedRows === 0) {
-      throw new Error("Picking List tidak ditemukan atau sudah dibatalkan.");
+      throw new AppError(
+        "Picking List tidak ditemukan atau sudah dibatalkan.",
+        400,
+        "INVALID_STATUS",
+      );
     }
 
     await pickingRepo.voidItemsByListId(connection, pickingListId);

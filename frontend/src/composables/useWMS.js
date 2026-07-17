@@ -4,7 +4,7 @@ import debounce from 'lodash/debounce'
 import { useAuthStore } from '@/stores/auth'
 import { fetchProducts as fetchProductsFromApi } from '@/api/helpers/wms.js'
 import { useMasterDataStore } from '@/stores/masterData'
-import { useFirebaseListener } from '@/composables/useFirebaseListener.js'
+import { useFirebaseSync } from '@/composables/useFirebaseSync.js'
 import { useColumnVisibility } from '@/composables/useColumnVisibility.js'
 import { transformProduct } from '@/composables/useWmsTransform.js'
 import { usePagination } from '@/composables/usePagination.js'
@@ -58,11 +58,15 @@ export function useWms() {
   const endDate = ref('')
 
   // Firebase Real-time Event Listener for Stock Updates
-  const { startListening, stopListening } = useFirebaseListener(auth.user?.id || 'guest', ['WMS_DASHBOARD'], data => {
-    if (data.action === 'REFRESH_STOCK' && isAutoRefetching.value && currentPage.value === 1) {
-      fetchProducts('silent')
+  useFirebaseSync(
+    ['WMS_DASHBOARD'],
+    'REFRESH_STOCK',
+    () => {
+      if (isAutoRefetching.value && currentPage.value === 1) {
+        fetchProducts('silent')
+      }
     }
-  })
+  )
 
   // Column Visibility State via Generic Composable
   const { visibleColumns, toggleColumn } = useColumnVisibility('wms-visible-columns', [
@@ -297,21 +301,8 @@ export function useWms() {
   })
 
   onUnmounted(() => {
-    stopListening()
     if (observer) observer.disconnect()
   })
-
-  watch(
-    isAutoRefetching,
-    newValue => {
-      if (newValue) {
-        startListening()
-      } else {
-        stopListening()
-      }
-    },
-    { immediate: true }
-  )
 
   watch(
     () => auth.isAuthenticated,

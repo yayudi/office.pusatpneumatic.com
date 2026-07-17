@@ -60,10 +60,6 @@ function handleUploadComplete(data) {
           Riwayat Proses
         </h3>
         <div class="flex items-center gap-3">
-          <span v-if="pollingInterval" class="flex h-2 w-2 relative">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
-          </span>
           <font-awesome-icon
             v-if="isHistoryLoading"
             icon="fa-solid fa-circle-notch"
@@ -92,11 +88,11 @@ function handleUploadComplete(data) {
               <!-- Waktu -->
               <td class="p-4 whitespace-nowrap text-text/70 font-mono text-[11px] align-top">
                 <div class="font-bold">
-                  {{ new Date(job.created_at).toLocaleDateString('id-ID') }}
+                  {{ new Date(job.created_at || job.createdAt).toLocaleDateString('id-ID') }}
                 </div>
                 <div>
                   {{
-                    new Date(job.created_at).toLocaleTimeString('id-ID', {
+                    new Date(job.created_at || job.createdAt).toLocaleTimeString('id-ID', {
                       hour: '2-digit',
                       minute: '2-digit'
                     })
@@ -115,7 +111,7 @@ function handleUploadComplete(data) {
                       <span
                         class="uppercase bg-secondary/20 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider"
                       >
-                        {{ job.job_type.replace('IMPORT_SALES_', '') }}
+                        {{ (job.job_type || job.jobType || '').replace('IMPORT_SALES_', '') }}
                       </span>
                       <span v-if="job.notes" class="italic opacity-70">- {{ job.notes }}</span>
                     </div>

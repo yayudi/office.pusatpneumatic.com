@@ -1,23 +1,21 @@
 <!-- frontend\src\views\WMSBatchMovement.vue -->
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, defineAsyncComponent } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import { fetchMyLocations } from '@/api/helpers/user.js'
 import { useMasterDataStore } from '@/stores/masterData'
 import { swalConfirm } from '@/composables/useSweetAlert'
-
-const masterData = useMasterDataStore()
+import { useBatchClipboard } from '@/composables/useBatchClipboard'
 import { processBatchMovement } from '@/api/helpers/stock.js'
-
-// Impor komponen anak
 import BatchMovementHeader from '@/components/wms/transfer/BatchMovementHeader.vue'
 import ProductSearchAddForm from '@/components/wms/transfer/ProductSearchAddForm.vue'
 import BatchItemList from '@/components/wms/transfer/BatchItemList.vue'
 import MultiLocationTransferTab from '@/components/wms/transfer/MultiLocationTransferTab.vue'
 import BatchInboundModal from '@/components/stock/BatchInboundModal.vue'
-import { defineAsyncComponent } from 'vue'
 
+const masterData = useMasterDataStore()
+const { copyBatchToClipboard } = useBatchClipboard()
 const StickerGeneratorModal = defineAsyncComponent(() => import('@/components/utilities/StickerGeneratorModal.vue'))
 
 const { toast } = useToast()
@@ -34,7 +32,7 @@ const detailedTransferTabRef = ref(null)
 
 const { Alt_S } = useMagicKeys()
 
-watch(Alt_S, (pressed) => {
+watch(Alt_S, pressed => {
   if (pressed) {
     if (isBatchInboundModalOpen.value || isStickerModalOpen.value) return
 
@@ -62,7 +60,9 @@ onMounted(async () => {
     const [myLocs, allLocs] = await Promise.all([fetchMyLocations(), masterData.getLocations(true)])
     myLocations.value = myLocs
     allLocations.value = allLocs
-  } catch (e) { console.error(e) } finally {
+  } catch (e) {
+    console.error(e)
+  } finally {
     isLoading.value = false
   }
 })
@@ -184,16 +184,12 @@ function handleAddProduct({ product, quantity }) {
 }
 
 async function copyFromSku() {
-  const text = batchList.value
-    .map(item => `${item.sku}\t${item.name}\t${fromLocation.value.code}\t${toLocation.value.code}\t${item.quantity}`)
-    .join('\n')
-
-  try {
-    await navigator.clipboard.writeText(text)
-    toast('Daftar transfer berhasil disalin ke clipboard.', 'success')
-  } catch (err) {
-    console.error('Failed to copy text: ', err)
-  }
+  await copyBatchToClipboard(
+    batchList.value,
+    item =>
+      `${item.sku}\t${item.name}\t${fromLocation.value?.code || ''}\t${toLocation.value?.code || ''}\t${item.quantity}`,
+    'Daftar transfer berhasil disalin ke clipboard.'
+  )
 }
 
 function removeFromBatch(sku) {
@@ -305,7 +301,11 @@ async function submitBatch() {
         >
           <font-awesome-icon v-if="isLoading" icon="fa-solid fa-spinner" class="animate-spin" />
           <span>{{ isLoading ? 'Memproses...' : 'Submit Batch' }}</span>
-          <kbd v-if="!isLoading" class="hidden md:inline-block ml-1 px-1.5 py-0.5 text-[10px] bg-secondary/20 text-secondary border border-secondary/30 rounded font-mono shadow-sm group-hover:bg-secondary/30 transition-colors">Alt+S</kbd>
+          <kbd
+            v-if="!isLoading"
+            class="hidden md:inline-block ml-1 px-1.5 py-0.5 text-[10px] bg-secondary/20 text-secondary border border-secondary/30 rounded font-mono shadow-sm group-hover:bg-secondary/30 transition-colors"
+            >Alt+S</kbd
+          >
         </button>
       </div>
     </template>

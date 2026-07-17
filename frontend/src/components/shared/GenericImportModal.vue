@@ -71,12 +71,6 @@
       <div v-if="jobType" class="pt-4 border-t border-secondary/20">
         <h4 class="font-bold text-text mb-3 flex items-center justify-between">
           <span>Riwayat Proses</span>
-          <font-awesome-icon
-            icon="fa-solid fa-sync"
-            class="text-primary cursor-pointer hover:rotate-180 transition-transform"
-            :class="{'animate-spin': isLoadingJobs}"
-            @click="fetchJobs"
-          />
         </h4>
 
         <div v-if="isLoadingJobs && jobs.length === 0" class="flex justify-center py-4">

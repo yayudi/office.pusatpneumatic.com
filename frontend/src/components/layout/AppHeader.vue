@@ -77,7 +77,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <header class="bg-background py-1 md:py-2 px-6 fixed top-0 z-[100] border-b border-secondary/20 shadow-md min-w-full">
+  <header class="bg-background py-1 md:py-2 px-6 fixed top-0 z-[500] border-b border-secondary/20 shadow-md min-w-full">
     <nav
       class="container mx-auto flex justify-between items-center"
       title="Navigation Menu"

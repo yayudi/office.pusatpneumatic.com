@@ -104,18 +104,23 @@ export async function fetchStockHistory(
  */
 export async function fetchBatchLogs(startDate, endDate, filters = {}, page = 1, limit = 50) {
   try {
-    const { productName, movementType, locationId, user: userId } = filters
+    const { productName, movementType, sourceLocation, destinationLocation, user: userId } = filters
+    const params = {
+      startDate,
+      endDate,
+      page,
+      limit
+    }
+    
+    // Hanya kirim jika nilainya truthy (bukan null, undefined, atau string kosong)
+    if (productName) params.productName = productName;
+    if (movementType) params.movementType = movementType;
+    if (sourceLocation) params.sourceLocation = sourceLocation;
+    if (destinationLocation) params.destinationLocation = destinationLocation;
+    if (userId) params.userId = userId;
+
     const response = await axios.get('/stock/batch-log', {
-      params: {
-        startDate,
-        endDate,
-        productName,
-        movementType,
-        locationId,
-        userId, // This acts as username search text
-        page,
-        limit
-      }
+      params
     })
     return { data: response.data.data || [], pagination: response.data.pagination }
   } catch (error) {

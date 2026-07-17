@@ -4,6 +4,7 @@ import { swalConfirm } from '@/composables/useSweetAlert'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 
 import { ref, onMounted, watch } from 'vue'
+import { useFirebaseSync } from '@/composables/useFirebaseSync'
 import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import { createLocation, updateLocation, deleteLocation } from '@/api/helpers/locations.js'
@@ -48,8 +49,8 @@ const selectedLocation = ref({
   purpose: 'WAREHOUSE'
 })
 
-async function loadLocations() {
-  loading.value = true
+async function loadLocations(silent = false) {
+  if (!silent) loading.value = true
   try {
     allLocations.value = await masterData.getLocations(true)
   } catch (e) {
@@ -59,7 +60,11 @@ async function loadLocations() {
   }
 }
 
-onMounted(loadLocations)
+onMounted(() => {
+  loadLocations()
+})
+
+useFirebaseSync('MASTER_DATA', 'REFRESH_LOCATIONS', () => loadLocations(true))
 
 function openCreateModal() {
   isEditing.value = false

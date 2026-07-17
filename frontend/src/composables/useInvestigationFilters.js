@@ -73,7 +73,7 @@ export function useInvestigationFilters() {
     filters.value.maxTimeGap = ''
     filters.value.sortBy = 'LATEST'
     filters.value.sortDirection = 'DESC'
-    
+
     results.value = []
     openGroups.value = []
     openTrx.value = []

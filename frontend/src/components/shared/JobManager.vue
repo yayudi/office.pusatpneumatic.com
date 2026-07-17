@@ -3,13 +3,11 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useDownloadStore } from '@/stores/downloadStore.js'
 import { useUploadStore } from '@/stores/uploadStore.js'
-import { useAuthStore } from '@/stores/auth.js'
-import { useFirebaseListener } from '@/composables/useFirebaseListener.js'
+import { useFirebaseSync } from '@/composables/useFirebaseSync.js'
 import dayjs from 'dayjs'
 
 const downloadStore = useDownloadStore()
 const uploadStore = useUploadStore()
-const authStore = useAuthStore()
 
 const activeTab = ref('download') // 'download' | 'upload'
 
@@ -45,16 +43,26 @@ watch(
 )
 
 // Unified Firebase Listener
-useFirebaseListener(authStore.user?.id || 'guest', ['BACKGROUND_JOBS'], signal => {
-  // Download signals
-  if (signal.action === 'EXPORT_COMPLETED' || signal.action === 'EXPORT_FAILED' || signal.action === 'EXPORT_STARTED') {
-    downloadStore.fetchJobs()
+useFirebaseSync(
+  ['BACKGROUND_JOBS'],
+  [
+    'EXPORT_COMPLETED',
+    'EXPORT_FAILED',
+    'EXPORT_STARTED',
+    'JOB_PROGRESS',
+    'IMPORT_COMPLETED'
+  ],
+  signal => {
+    // Download signals
+    if (signal.action === 'EXPORT_COMPLETED' || signal.action === 'EXPORT_FAILED' || signal.action === 'EXPORT_STARTED') {
+      downloadStore.fetchJobs()
+    }
+    // Upload signals
+    if (signal.action === 'JOB_PROGRESS' || signal.action === 'IMPORT_COMPLETED') {
+      uploadStore.fetchJobs()
+    }
   }
-  // Upload signals
-  if (signal.action === 'JOB_PROGRESS' || signal.action === 'IMPORT_COMPLETED') {
-    uploadStore.fetchJobs()
-  }
-})
+)
 
 onMounted(() => {
   downloadStore.fetchJobs()
