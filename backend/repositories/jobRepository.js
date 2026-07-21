@@ -47,11 +47,50 @@ export const update = async (connection, jobId, { status, summary, errorLog }) =
  * @param {number} limit
  * @returns {Promise<any>}
  */
-export const findByUser = async (connection, userId, limit = 20) => {
-  const [rows] = await connection.query(
-    `SELECT * FROM import_jobs WHERE user_id = ? ORDER BY created_at DESC LIMIT ?`,
-    [userId, limit]
-  );
+export const findByUser = async (connection, userId, limit = 20, jobTypes = null) => {
+  let query = `
+     SELECT ij.*, u.username as uploader_name 
+     FROM import_jobs ij
+     LEFT JOIN users u ON ij.user_id = u.id
+     WHERE ij.user_id = ? 
+  `;
+  const params = [userId];
+
+  if (jobTypes && Array.isArray(jobTypes) && jobTypes.length > 0) {
+    query += ` AND ij.job_type IN (?) `;
+    params.push(jobTypes);
+  }
+
+  query += ` ORDER BY ij.created_at DESC LIMIT ?`;
+  params.push(limit);
+
+  const [rows] = await connection.query(query, params);
+  return rows;
+};
+
+/**
+ * @param {import('mysql2/promise').Connection} connection
+ * @param {number} limit
+ * @param {string[]|null} jobTypes
+ * @returns {Promise<any>}
+ */
+export const findAll = async (connection, limit = 50, jobTypes = null) => {
+  let query = `
+     SELECT ij.*, u.username as uploader_name 
+     FROM import_jobs ij
+     LEFT JOIN users u ON ij.user_id = u.id
+  `;
+  const params = [];
+
+  if (jobTypes && Array.isArray(jobTypes) && jobTypes.length > 0) {
+    query += ` WHERE ij.job_type IN (?) `;
+    params.push(jobTypes);
+  }
+
+  query += ` ORDER BY ij.created_at DESC LIMIT ?`;
+  params.push(limit);
+
+  const [rows] = await connection.query(query, params);
   return rows;
 };
 

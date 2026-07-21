@@ -8,6 +8,7 @@ import { processBatchMovement, requestAdjustmentUpload, getImportJobs } from '@/
 import { swalAlert, swalConfirm } from '@/composables/useSweetAlert.js'
 import { useDownload } from '@/composables/useDownload.js'
 import { useMobile } from '@/composables/useMobile.js'
+import { useFirebaseSync } from '@/composables/useFirebaseSync.js'
 
 import BatchAdjustmentHeader from '@/components/wms/transfer/BatchAdjustmentHeader.vue'
 import ProductSearchAddForm from '@/components/wms/transfer/ProductSearchAddForm.vue'
@@ -45,8 +46,8 @@ onMounted(async () => {
 })
 
 // --- Handler untuk Impor ---
-async function loadImportHistory() {
-  isImportHistoryLoading.value = true
+async function loadImportHistory(silent = false) {
+  if (!silent) isImportHistoryLoading.value = true
   try {
     const response = await getImportJobs()
     if (response.success) {
@@ -55,9 +56,14 @@ async function loadImportHistory() {
   } catch {
     toast('Gagal memuat riwayat impor', 'error')
   } finally {
-    isImportHistoryLoading.value = false
+    if (!silent) isImportHistoryLoading.value = false
   }
 }
+
+// Firebase Real-time Event Listener for Import Jobs
+useFirebaseSync('BACKGROUND_JOBS', ['IMPORT_COMPLETED', 'IMPORT_FAILED'], () => {
+  loadImportHistory(true)
+})
 
 function handleFileSelect(event) {
   const file = event.target.files[0]
@@ -378,13 +384,15 @@ watch(Alt_S, pressed => {
               <tr>
                 <th class="px-4 py-3 text-left text-xs font-bold text-text/60 uppercase">Tanggal</th>
                 <th class="px-4 py-3 text-left text-xs font-bold text-text/60 uppercase">File</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-text/60 uppercase">Catatan</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-text/60 uppercase">Pengunggah</th>
                 <th class="px-4 py-3 text-left text-xs font-bold text-text/60 uppercase">Status</th>
                 <th class="px-4 py-3 text-left text-xs font-bold text-text/60 uppercase">Log</th>
               </tr>
             </thead>
             <tbody class="bg-background" :class="isMobile ? 'block' : 'divide-y divide-secondary/10'">
               <tr v-if="importJobHistory.length === 0 && !isImportHistoryLoading">
-                <td colspan="4" class="px-4 py-8 text-sm text-text/40 text-center italic">
+                <td colspan="6" class="px-4 py-8 text-sm text-text/40 text-center italic">
                   <font-awesome-icon
                     icon="fa-solid fa-clock-rotate-left"
                     class="mb-2 text-xl opacity-20 block mx-auto"
@@ -393,7 +401,7 @@ watch(Alt_S, pressed => {
                 </td>
               </tr>
               <tr v-if="isImportHistoryLoading">
-                <td colspan="4" class="px-4 py-8 text-center text-text/40">
+                <td colspan="6" class="px-4 py-8 text-center text-text/40">
                   <font-awesome-icon icon="fa-solid fa-spinner" class="animate-spin mr-2" />
                   Memuat data...
                 </td>
@@ -439,6 +447,26 @@ watch(Alt_S, pressed => {
                   :class="
                     isMobile
                       ? 'flex justify-between items-center py-2 border-b border-secondary/10'
+                      : 'px-4 py-3 text-xs text-text'
+                  "
+                >
+                  <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Catatan</span>
+                  <span class="text-xs">{{ job.notes || '-' }}</span>
+                </td>
+                <td
+                  :class="
+                    isMobile
+                      ? 'flex justify-between items-center py-2 border-b border-secondary/10'
+                      : 'px-4 py-3 text-xs text-text font-medium'
+                  "
+                >
+                  <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Pengunggah</span>
+                  <span class="text-xs capitalize">{{ job.uploader_name || '-' }}</span>
+                </td>
+                <td
+                  :class="
+                    isMobile
+                      ? 'flex justify-between items-center py-2 border-b border-secondary/10'
                       : 'px-4 py-3 text-xs'
                   "
                 >
@@ -456,8 +484,14 @@ watch(Alt_S, pressed => {
                     <font-awesome-icon icon="fa-solid fa-xmark" /> Gagal
                   </span>
                   <span
-                    v-else
+                    v-else-if="job.status === 'COMPLETED_WITH_ERRORS'"
                     class="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold bg-warning/10 text-warning border border-warning/20"
+                  >
+                    <font-awesome-icon icon="fa-solid fa-triangle-exclamation" /> Selesai (Ada Error)
+                  </span>
+                  <span
+                    v-else
+                    class="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold bg-secondary/10 text-secondary border border-secondary/20"
                   >
                     <font-awesome-icon icon="fa-solid fa-spinner" spin /> {{ job.status }}
                   </span>

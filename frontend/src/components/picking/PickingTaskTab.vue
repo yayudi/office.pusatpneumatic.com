@@ -181,6 +181,10 @@ const isSubmitting = ref(false)
 
 async function handleCompleteSelectedItems() {
   if (selectedItems.value.size === 0) return
+  if (selectedItems.value.size > 2000) {
+    toast('Maksimal memproses 2000 item sekaligus untuk mencegah server timeout.', 'warning')
+    return
+  }
 
   isSubmitting.value = true
   const idsToComplete = Array.from(selectedItems.value)
@@ -239,6 +243,10 @@ async function handleCompleteSelectedItems() {
 
 async function handleVoidSelectedItems() {
   if (selectedItems.value.size === 0) return
+  if (selectedItems.value.size > 2000) {
+    toast('Maksimal memproses 2000 item sekaligus untuk mencegah server timeout.', 'warning')
+    return
+  }
 
   // Dapatkan daftar picking_list_id unik dari item yang terpilih
   const uniqueInvoices = new Set()
@@ -306,6 +314,10 @@ async function handleRetryBackorder(pickingListId) {
 const isRetryingBatch = ref(false)
 async function handleRetryBatch() {
   if (selectionStats.value.invoiceIds.length === 0) return
+  if (selectedItems.value.size > 2000) {
+    toast('Maksimal memproses 2000 item sekaligus untuk mencegah server timeout.', 'warning')
+    return
+  }
   isRetryingBatch.value = true
   try {
     const res = await retryBackordersBatch(selectionStats.value.invoiceIds)

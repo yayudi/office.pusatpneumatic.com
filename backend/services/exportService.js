@@ -7,6 +7,7 @@ import { pipeline } from "stream/promises";
 import * as locationRepo from "../repositories/locationRepository.js";
 import * as reportRepo from "../repositories/reportRepository.js";
 import * as productRepo from "../repositories/productRepository.js";
+import { buildTriStateWhere } from "./stockService.js";
 import Logger from "../utils/logger.js";
 
 // Helper Styling
@@ -422,6 +423,172 @@ export const generateProductExportStreaming = async (filters, filePath) => {
       } catch {
         //
       }
+    }
+    throw error;
+  } finally {
+    if (connection) connection.release();
+  }
+};
+
+export const generateBatchLogExportStreaming = async (filters, filePath) => {
+  const isCsv = filters.format === "csv";
+  Logger.info(`Mulai generate BATCH LOG (${isCsv ? "CSV" : "XLSX"}) ke: ${filePath}`, "EXPORT_SERVICE");
+  let connection;
+  const stream = fs.createWriteStream(filePath);
+  let writer = null;
+
+  try {
+    connection = await db.getConnection();
+
+    const { startDate, endDate, productName, movementType, sourceLocation, destinationLocation, userId, notes } = filters;
+    
+    const baseWhere = `sm.created_at BETWEEN ? AND ?`;
+    const params = [startDate, `${endDate} 23:59:59`];
+    const conditions = [baseWhere];
+
+    if (productName) {
+      conditions.push(`(p.name LIKE ? OR p.sku LIKE ?)`);
+      params.push(`%${productName}%`, `%${productName}%`);
+    }
+
+    const typeClauses = buildTriStateWhere("sm.movement_type", movementType, params);
+    if (typeClauses.length > 0) {
+      conditions.push(`(${typeClauses.join(" AND ")})`);
+    }
+
+    const sourceClauses = buildTriStateWhere("sm.from_location_id", sourceLocation, params);
+    if (sourceClauses.length > 0) {
+      conditions.push(`(${sourceClauses.join(" AND ")})`);
+    }
+
+    const destinationClauses = buildTriStateWhere("sm.to_location_id", destinationLocation, params);
+    if (destinationClauses.length > 0) {
+      conditions.push(`(${destinationClauses.join(" AND ")})`);
+    }
+
+    if (userId) {
+      conditions.push(`u.username LIKE ?`);
+      params.push(`%${userId}%`);
+    }
+
+    if (notes) {
+      conditions.push(`sm.notes LIKE ?`);
+      params.push(`%${notes}%`);
+    }
+
+    const whereClause = conditions.join(" AND ");
+
+    const dataQuery = `
+      SELECT sm.id,
+        p.sku,
+        p.name as product_name,
+        sm.quantity,
+        sm.movement_type,
+        sm.notes,
+        sm.created_at,
+        u.username as user,
+        from_loc.code as from_location,
+        to_loc.code as to_location
+      FROM stock_movements sm
+      JOIN products p ON sm.product_id = p.id
+      JOIN users u ON sm.user_id = u.id
+      LEFT JOIN locations from_loc ON sm.from_location_id = from_loc.id
+      LEFT JOIN locations to_loc ON sm.to_location_id = to_loc.id
+      WHERE ${whereClause}
+      ORDER BY sm.created_at DESC
+    `;
+
+    const queryStream = connection.connection.query(dataQuery, params).stream();
+
+    // --- CSV LOGIC ---
+    if (isCsv) {
+      Logger.info("Starting CSV Pipeline for BATCH_LOG...", "EXPORT_SERVICE");
+      const transformRow = (row) => ({
+        "Waktu": row.created_at ? new Date(row.created_at).toISOString().replace("T", " ").substring(0, 19) : "-",
+        "SKU": row.sku,
+        "Produk": row.product_name,
+        "Tipe Pergerakan": row.movement_type,
+        "Qty": row.quantity,
+        "Dari Lokasi": row.from_location || "-",
+        "Ke Lokasi": row.to_location || "-",
+        "Notes": row.notes || "-",
+        "User": row.user
+      });
+
+      await pipeline(
+        queryStream,
+        fastCsv.format({ headers: true, delimiter: ";" }).transform(transformRow),
+        stream,
+      );
+
+      Logger.info("CSV Pipeline Completed.", "EXPORT_SERVICE");
+      return;
+    }
+
+    // --- XLSX LOGIC ---
+    writer = new ExcelJS.stream.xlsx.WorkbookWriter({
+      stream: stream,
+      useStyles: true,
+      useSharedStrings: true,
+    });
+
+    const sheet = writer.addWorksheet("Batch Log", {
+      views: [{ state: "frozen", xSplit: 0, ySplit: 1 }],
+    });
+
+    sheet.columns = [
+      { header: "Waktu", key: "Waktu", width: 20 },
+      { header: "SKU", key: "SKU", width: 20 },
+      { header: "Produk", key: "Produk", width: 40 },
+      { header: "Tipe Pergerakan", key: "Tipe", width: 20 },
+      { header: "Qty", key: "Qty", width: 10 },
+      { header: "Dari Lokasi", key: "Dari", width: 15 },
+      { header: "Ke Lokasi", key: "Ke", width: 15 },
+      { header: "Notes", key: "Notes", width: 50 },
+      { header: "User", key: "User", width: 15 }
+    ];
+
+    styleHeader(sheet, 1, 9);
+
+    await new Promise((resolve, reject) => {
+      queryStream.on("data", (row) => {
+        sheet.addRow({
+          Waktu: row.created_at ? new Date(row.created_at).toISOString().replace("T", " ").substring(0, 19) : "-",
+          SKU: row.sku,
+          Produk: row.product_name,
+          Tipe: row.movement_type,
+          Qty: row.quantity,
+          Dari: row.from_location || "-",
+          Ke: row.to_location || "-",
+          Notes: row.notes || "-",
+          User: row.user
+        }).commit();
+      });
+
+      queryStream.on("end", async () => {
+        try {
+          sheet.commit();
+          await writer.commit();
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      });
+      queryStream.on("error", reject);
+    });
+
+    Logger.info("Waiting for stream finish/close...", "EXPORT_SERVICE");
+    await new Promise((resolve, reject) => {
+      if (stream.writableEnded || stream.destroyed) return resolve();
+      stream.on("finish", resolve);
+      stream.on("close", resolve);
+      stream.on("error", reject);
+    });
+
+    Logger.info("Selesai generate BATCH LOG.", "EXPORT_SERVICE");
+  } catch (error) {
+    if (writer) {
+      try { stream.end(); } catch (err) { Logger.error("Failed closing stream", err, "EXPORT_SERVICE"); }
     }
     throw error;
   } finally {

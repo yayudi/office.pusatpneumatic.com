@@ -708,7 +708,7 @@ export const getStockHistoryService = async (
   }
 };
 
-const buildTriStateWhere = (column, filterValue, queryParams) => {
+export const buildTriStateWhere = (column, filterValue, queryParams) => {
   const clauses = [];
   let parsed = filterValue;
   if (typeof filterValue === "string" && filterValue.startsWith("{")) {
@@ -762,6 +762,7 @@ export const getBatchLogsService = async ({
   sourceLocation,
   destinationLocation,
   userId,
+  notes,
   page = 1,
   limit = 50,
 }) => {
@@ -823,6 +824,11 @@ export const getBatchLogsService = async ({
     if (userId) {
       conditions.push(`u.username LIKE ?`);
       params.push(`%${userId}%`);
+    }
+
+    if (notes) {
+      conditions.push(`sm.notes LIKE ?`);
+      params.push(`%${notes}%`);
     }
 
     const whereClause = conditions.join(" AND ");
@@ -891,6 +897,20 @@ export const validateReturnService = async ({ pickingListItemId, returnToLocatio
   } catch (error) {
     await connection.rollback();
     throw error;
+  } finally {
+    connection.release();
+  }
+};
+
+/**
+ * Mengambil daftar movement type dinamis
+ * @returns {Promise<Array>}
+ */
+export const getMovementTypesService = async () => {
+  const connection = await db.getConnection();
+  try {
+    const types = await stockRepo.getMovementTypes(connection);
+    return types;
   } finally {
     connection.release();
   }

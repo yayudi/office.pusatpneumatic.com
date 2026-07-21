@@ -104,7 +104,7 @@ export async function fetchStockHistory(
  */
 export async function fetchBatchLogs(startDate, endDate, filters = {}, page = 1, limit = 50) {
   try {
-    const { productName, movementType, sourceLocation, destinationLocation, user: userId } = filters
+    const { productName, movementType, sourceLocation, destinationLocation, user: userId, notes } = filters
     const params = {
       startDate,
       endDate,
@@ -118,6 +118,7 @@ export async function fetchBatchLogs(startDate, endDate, filters = {}, page = 1,
     if (sourceLocation) params.sourceLocation = sourceLocation;
     if (destinationLocation) params.destinationLocation = destinationLocation;
     if (userId) params.userId = userId;
+    if (notes) params.notes = notes;
 
     const response = await axios.get('/stock/batch-log', {
       params
@@ -126,6 +127,36 @@ export async function fetchBatchLogs(startDate, endDate, filters = {}, page = 1,
   } catch (error) {
     console.error(`Error saat mengambil log batch:`, error.response?.data || error.message)
     throw error.response?.data || error
+  }
+}
+
+/**
+ * Meminta export batch log (Background Job).
+ * @param {string} startDate
+ * @param {string} endDate
+ * @param {object} filters
+ * @returns {Promise<object>}
+ */
+export async function requestBatchLogExport(startDate, endDate, filters = {}) {
+  try {
+    const payload = {
+      startDate,
+      endDate,
+      ...filters
+    };
+    
+    // Hapus null/undefined fields
+    Object.keys(payload).forEach(key => {
+      if (payload[key] == null || payload[key] === '') {
+        delete payload[key];
+      }
+    });
+
+    const response = await axios.post('/stock/batch-log/export', payload);
+    return response.data;
+  } catch (error) {
+    console.error(`Error saat request export batch log:`, error.response?.data || error.message);
+    throw error.response?.data || error;
   }
 }
 
@@ -186,10 +217,13 @@ export const processSingleTransfer = async payload => {
  * @param {File} file - File .csv yang dipilih pengguna
  * @returns {Promise<object>} Objek respons dari API
  */
-export const requestAdjustmentUpload = async file => {
+export const requestAdjustmentUpload = async (file, notes) => {
   const formData = new FormData()
   // 'adjustmentFile' HARUS cocok dengan nama field di upload.single() di backend
   formData.append('adjustmentFile', file)
+  if (notes) {
+    formData.append('notes', notes)
+  }
 
   try {
     const response = await axios.post('/stock/request-adjustment-upload', formData, {
@@ -242,5 +276,19 @@ export async function validateStockReturn(payload) {
   } catch (error) {
     console.error('Error validating return:', error)
     throw error.response?.data || error
+  }
+}
+
+/**
+ * Mengambil daftar unik movement type
+ * @returns {Promise<Array>} Array of string movement types
+ */
+export const fetchMovementTypes = async () => {
+  try {
+    const response = await axios.get('/stock/movement-types')
+    return response.data.data || []
+  } catch (error) {
+    console.error('Error saat mengambil movement types:', error.response?.data || error.message)
+    return []
   }
 }

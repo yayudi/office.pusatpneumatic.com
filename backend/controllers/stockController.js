@@ -2,6 +2,8 @@ import catchAsync from "../utils/catchAsync.js";
 // backend/controllers/stockController.js
 import * as stockService from "../services/stockService.js";
 import * as jobService from "../services/jobService.js";
+import * as jobRepo from "../repositories/jobRepository.js";
+import db from "../config/db.js";
 import Logger from "../utils/logger.js";
 
 import AppError from "../utils/AppError.js";
@@ -37,7 +39,7 @@ export const uploadAdjustment = catchAsync(async (req, res, next) => {
     type: jobType,
     originalname: req.file.originalname,
     serverFilePath: req.file.path,
-    notes: isDryRun ? "Simulasi Stock Opname" : "Stock Opname",
+    notes: req.body.notes || (isDryRun ? "Simulasi Stock Opname" : "Stock Opname"),
   });
 
   res.json({
@@ -142,7 +144,7 @@ export const requestAdjustmentUpload = async (req, res, next) => {
 };
 
 export const getImportJobs = catchAsync(async (req, res, next) => {
-  const jobs = await jobService.getUserJobsService(req.user.id);
+  const jobs = await jobService.getUserJobsService(req.user.id, req.user.role, ['ADJUST_STOCK', 'ADJUST_STOCK_DRY_RUN']);
   res.json({ success: true, data: jobs });
 });
 
@@ -214,7 +216,7 @@ export const batchTransfer = async (req, res, next) => {
 };
 
 export const getBatchLogs = catchAsync(async (req, res, next) => {
-  const { startDate, endDate, productName, movementType, sourceLocation, destinationLocation, userId, page, limit } = req.query;
+  const { startDate, endDate, productName, movementType, sourceLocation, destinationLocation, userId, notes, page, limit } = req.query;
 
   const result = await stockService.getBatchLogsService({
     startDate,
@@ -224,10 +226,40 @@ export const getBatchLogs = catchAsync(async (req, res, next) => {
     sourceLocation,
     destinationLocation,
     userId,
+    notes,
     page,
     limit
   });
   res.json({ success: true, data: result.data, pagination: result.pagination });
+});
+
+export const requestBatchLogExport = catchAsync(async (req, res, next) => {
+  const userId = req.user.id;
+  const { startDate, endDate, productName, movementType, sourceLocation, destinationLocation, notes, format } = req.body;
+
+  const filters = {
+    startDate,
+    endDate,
+    productName,
+    movementType,
+    sourceLocation,
+    destinationLocation,
+    notes,
+    format: format || "xlsx",
+    exportType: "BATCH_LOG_EXPORT",
+  };
+
+  const jobId = await jobRepo.createExportJob(db, {
+    userId,
+    filters,
+    jobType: "BATCH_LOG_EXPORT",
+  });
+
+  res.status(202).json({
+    success: true,
+    message: "Permintaan ekspor batch log diterima. File sedang diproses.",
+    jobId,
+  });
 });
 
 export const validateReturn = catchAsync(async (req, res, next) => {
@@ -239,4 +271,9 @@ export const validateReturn = catchAsync(async (req, res, next) => {
     userId: req.user.id,
   });
   res.json(result);
+});
+
+export const getMovementTypes = catchAsync(async (req, res, next) => {
+  const types = await stockService.getMovementTypesService();
+  res.json({ success: true, data: types });
 });

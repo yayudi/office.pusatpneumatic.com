@@ -16,3 +16,15 @@ export const createLog = async (
     [productId, quantity, fromLocationId, toLocationId, type, userId, notes, new Date()]
   );
 };
+
+/**
+ * Mengambil daftar unik movement_type
+ * @param {Object} connection - Koneksi database
+ * @returns {Promise<Array>} Array of movement types
+ */
+export const getMovementTypes = async (connection) => {
+  const [rows] = await connection.query(
+    `SELECT DISTINCT movement_type FROM stock_movements WHERE movement_type IS NOT NULL ORDER BY movement_type ASC`
+  );
+  return rows.map((r) => r.movement_type);
+};

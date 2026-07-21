@@ -114,6 +114,19 @@ router.get("/history/:productId", stockController.getStockHistory);
  */
 router.get("/batch-log", validate(batchLogsSchema, 'query'), stockController.getBatchLogs);
 
+/**
+ * POST /api/stock/batch-log/export
+ * Ekspor batch log (Background Job)
+ */
+import { batchLogExportSchema } from "../validators/stockValidator.js";
+router.post("/batch-log/export", validate(batchLogExportSchema), stockController.requestBatchLogExport);
+
+/**
+ * GET /api/stock/movement-types
+ * Mendapatkan daftar unik tipe pergerakan stok
+ */
+router.get("/movement-types", stockController.getMovementTypes);
+
 // ============================================================================
 // IMPORT / EXPORT (Stock Opname)
 // ============================================================================

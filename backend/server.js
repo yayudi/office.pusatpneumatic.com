@@ -5,7 +5,6 @@ import "dotenv/config";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import db from "./config/db.js";
 import Logger from "./utils/logger.js";
 import jwt from "jsonwebtoken";
 
@@ -54,7 +53,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions)); // Handle Preflight (OPTIONS) requests
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 
 // ==================================================================
 // Middleware Logger untuk Download
@@ -81,7 +80,7 @@ app.use("/uploads", (req, res, next) => {
       try {
         const decoded = jwt.verify(req.query.token, process.env.JWT_SECRET);
         requestUser = decoded.username;
-      } catch (err) {
+      } catch {
         requestUser = "Invalid/Expired Token";
       }
     }

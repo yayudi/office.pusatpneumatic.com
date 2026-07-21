@@ -62,7 +62,9 @@ export const processQueue = async () => {
             ? `Statistik_Stok_${dateStr}_(Job-${jobId})${ext}`
             : exportType === "INVENTORY_VALUE"
               ? `Nilai_Inventaris_${dateStr}_(Job-${jobId})${ext}`
-              : `Laporan_Stok_${dateStr}_(Job-${jobId})${ext}`;
+              : exportType === "BATCH_LOG_EXPORT"
+                ? `Batch_Log_${dateStr}_(Job-${jobId})${ext}`
+                : `Laporan_Stok_${dateStr}_(Job-${jobId})${ext}`;
 
     const filePath = path.join(EXPORT_DIR_PATH, fileName);
 
@@ -74,6 +76,10 @@ export const processQueue = async () => {
       await packageExportService.generatePackageExport(filters, filePath);
     } else if (exportType === "STATISTICS_STOCK_MOVEMENT") {
       await statisticExportService.generateStatisticExport(filters, filePath);
+    } else if (exportType === "BATCH_LOG_EXPORT") {
+      await import("../../services/exportService.js").then((m) =>
+        m.generateBatchLogExportStreaming(filters, filePath)
+      );
     } else {
       await generateStockReportStreaming(filters, filePath);
     }

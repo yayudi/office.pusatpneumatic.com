@@ -714,7 +714,7 @@ export const getProductStockMovementsPaginated = async (
   }
 
   query += ` ORDER BY sm.created_at DESC LIMIT ? OFFSET ?`;
-  params.push(limit, offset);
+  params.push(Number(limit), Number(offset));
   const [rows] = await connection.query(query, params);
   return rows;
 };

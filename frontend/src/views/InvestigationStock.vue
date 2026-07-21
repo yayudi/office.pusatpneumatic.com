@@ -42,22 +42,7 @@
             <label class="block text-sm font-medium text-text/80 mb-1">Tipe Pergerakan</label>
             <TriStateSelect
               v-model="filters.movementType"
-              :options="[
-                { id: 'SALE', label: 'SALE' },
-                { id: 'PURCHASE', label: 'PURCHASE' },
-                { id: 'ADJUST_OPNAME', label: 'ADJUST_OPNAME' },
-                { id: 'TRANSFER', label: 'TRANSFER' },
-                { id: 'ADJUSTMENT', label: 'ADJUSTMENT' },
-                { id: 'INBOUND', label: 'INBOUND' },
-                { id: 'SALE_RETURN', label: 'SALE_RETURN' },
-                { id: 'ADJUST_UPLOAD', label: 'ADJUST_UPLOAD' },
-                { id: 'RETURN', label: 'RETURN' },
-                { id: 'MANUAL_RETURN', label: 'MANUAL_RETURN' },
-                { id: 'RETURN_INBOUND', label: 'RETURN_INBOUND' },
-                { id: 'OPNAME', label: 'OPNAME' },
-                { id: 'CANCEL_RESTOCK', label: 'CANCEL_RESTOCK' },
-                { id: 'REVERSAL', label: 'REVERSAL' }
-              ]"
+              :options="movementTypeOptions"
               placeholder="Pilih Tipe..."
               label="label"
               track-by="id"
@@ -683,9 +668,11 @@ import SegmentedControl from '@/components/ui/SegmentedControl.vue'
 import { useMasterDataStore } from '@/stores/masterData'
 import { useInvestigationFilters } from '@/composables/useInvestigationFilters'
 import { useInvestigationLogic } from '@/composables/useInvestigationLogic'
+import { fetchMovementTypes } from '@/api/helpers/stock.js'
 
 const { toast } = useToast()
 const locationOptions = ref([])
+const movementTypeOptions = ref([])
 
 const {
   filters,
@@ -794,6 +781,13 @@ onMounted(async () => {
     }
   } catch (error) {
     console.error('Failed to fetch locations', error)
+  }
+
+  try {
+    const types = await fetchMovementTypes()
+    movementTypeOptions.value = types.map(t => ({ id: t, label: t }))
+  } catch (e) {
+    console.error('Gagal load tipe pergerakan', e)
   }
 
   // Set default dates to last 30 days

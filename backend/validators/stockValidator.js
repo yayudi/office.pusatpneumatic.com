@@ -48,13 +48,26 @@ export const validateReturnSchema = z.object({
 });
 
 export const batchLogsSchema = z.object({
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal tidak valid (YYYY-MM-DD)"),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal tidak valid (YYYY-MM-DD)"),
   productName: z.string().optional(),
   movementType: z.string().optional(),
   sourceLocation: z.string().optional(),
   destinationLocation: z.string().optional(),
   userId: z.union([z.string(), z.number()]).optional(),
+  notes: z.string().optional(),
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).default(50)
+});
+
+export const batchLogExportSchema = z.object({
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal tidak valid (YYYY-MM-DD)"),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal tidak valid (YYYY-MM-DD)"),
+  productName: z.string().optional(),
+  movementType: z.string().optional(),
+  sourceLocation: z.string().optional(),
+  destinationLocation: z.string().optional(),
+  userId: z.union([z.string(), z.number()]).optional(),
+  notes: z.string().optional(),
+  format: z.enum(["xlsx", "csv"]).default("xlsx"),
 });

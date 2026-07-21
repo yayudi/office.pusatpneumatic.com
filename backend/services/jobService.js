@@ -41,10 +41,13 @@ export const updateJobStatusService = async (jobId, status, summary, errorLogObj
 /**
  * Ambil History Job User
  */
-export const getUserJobsService = async (userId) => {
+export const getUserJobsService = async (userId, role, jobTypes = null) => {
   const connection = await db.getConnection();
   try {
-    return await jobRepo.findByUser(connection, userId);
+    if (role === "admin" || role === "wms") {
+      return await jobRepo.findAll(connection, 50, jobTypes);
+    }
+    return await jobRepo.findByUser(connection, userId, 20, jobTypes);
   } finally {
     connection.release();
   }

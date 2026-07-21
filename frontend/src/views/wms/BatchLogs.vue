@@ -1,8 +1,9 @@
 <!-- frontend\src\views\WMSBatchLogView.vue -->
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { fetchBatchLogs } from '@/api/helpers/stock.js'
+import { fetchBatchLogs, fetchMovementTypes, requestBatchLogExport } from '@/api/helpers/stock.js'
 import { useMasterDataStore } from '@/stores/masterData'
+import { useDownloadStore } from '@/stores/downloadStore.js'
 import { useToast } from '@/composables/useToast.js'
 import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import DateRangeFilter from '@/components/ui/DateRangeFilter.vue'
@@ -13,6 +14,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { usePagination } from '@/composables/usePagination.js'
 
 const masterData = useMasterDataStore()
+const downloadStore = useDownloadStore()
 const { isMobile } = useMobile()
 const { toast } = useToast()
 
@@ -24,11 +26,13 @@ const searchType = ref({ include: [], exclude: [] })
 const searchSourceLocation = ref({ include: [], exclude: [] })
 const searchDestinationLocation = ref({ include: [], exclude: [] })
 const searchUser = ref('')
+const searchNotes = ref('')
 
 // Data & UI
 const logs = ref([])
 const locations = ref([])
 const loading = ref(false)
+const exportLoading = ref(false)
 const hasSearched = ref(false)
 
 const totalLogs = ref(0)
@@ -47,16 +51,7 @@ const {
 })
 
 // Options
-const movementTypeOptions = [
-  { id: 'TRANSFER', label: 'TRANSFER' },
-  { id: 'INBOUND', label: 'INBOUND' },
-  { id: 'RETURN', label: 'RETURN' },
-  { id: 'ADJUSTMENT', label: 'ADJUSTMENT' },
-  { id: 'OPNAME', label: 'OPNAME' },
-  { id: 'PICKING', label: 'PICKING' },
-  { id: 'SALE', label: 'SALE' },
-  { id: 'REVERSAL', label: 'REVERSAL' }
-]
+const movementTypeOptions = ref([])
 
 const locationOptions = computed(() => locations.value.map(loc => ({ id: loc.id, label: loc.code })))
 
@@ -71,6 +66,14 @@ onMounted(async () => {
     locations.value = await masterData.getLocations()
   } catch (e) {
     console.error('Gagal load lokasi', e)
+  }
+
+  // Load Dynamic Movement Types
+  try {
+    const types = await fetchMovementTypes()
+    movementTypeOptions.value = types.map(t => ({ id: t, label: t }))
+  } catch (e) {
+    console.error('Gagal load tipe pergerakan', e)
   }
 
   // Auto load hari ini
@@ -92,7 +95,8 @@ async function handleSearch() {
       movementType: JSON.stringify(searchType.value),
       sourceLocation: JSON.stringify(searchSourceLocation.value),
       destinationLocation: JSON.stringify(searchDestinationLocation.value),
-      user: searchUser.value
+      user: searchUser.value,
+      notes: searchNotes.value
     }
 
     const res = await fetchBatchLogs(startDate.value, endDate.value, filters, currentPage.value, currentLimit.value)
@@ -120,12 +124,42 @@ function handleReset() {
   searchSourceLocation.value = { include: [], exclude: [] }
   searchDestinationLocation.value = { include: [], exclude: [] }
   searchUser.value = ''
+  searchNotes.value = ''
 
   logs.value = []
   hasSearched.value = false
   currentPage.value = 1
 
   handleSearch()
+}
+
+async function handleExport() {
+  if (!startDate.value || !endDate.value) {
+    toast('Silakan pilih tanggal mulai dan selesai.', 'warning')
+    return
+  }
+  
+  exportLoading.value = true
+  try {
+    const filters = {
+      productName: searchProduct.value,
+      movementType: JSON.stringify(searchType.value),
+      sourceLocation: JSON.stringify(searchSourceLocation.value),
+      destinationLocation: JSON.stringify(searchDestinationLocation.value),
+      user: searchUser.value,
+      notes: searchNotes.value,
+      format: 'xlsx'
+    }
+
+    await requestBatchLogExport(startDate.value, endDate.value, filters)
+    downloadStore.notifyNewJob()
+    toast('Permintaan ekspor berhasil! Proses berjalan di latar belakang.', 'success')
+  } catch (error) {
+    console.error(error)
+    toast(`Gagal meminta ekspor: ${error.message || 'Terjadi kesalahan'}`, 'error')
+  } finally {
+    exportLoading.value = false
+  }
 }
 </script>
 
@@ -217,6 +251,29 @@ function handleReset() {
             </div>
           </div>
 
+          <!-- Notes -->
+          <div class="space-y-1.5 w-full lg:w-[25%]">
+            <label class="text-xs font-bold text-text/60 uppercase tracking-wide">Notes</label>
+            <div class="relative group">
+              <font-awesome-icon
+                icon="fa-solid fa-note-sticky"
+                class="absolute left-3 top-1/2 -translate-y-1/2 text-text/40 group-focus-within:text-primary transition-colors text-sm"
+              />
+              <input
+                v-model="searchNotes"
+                type="text"
+                placeholder="Cari catatan..."
+                class="w-full h-[42px] pl-9 pr-3 bg-background border border-secondary rounded-lg text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all placeholder:text-text/30"
+                @keyup.enter="
+                  () => {
+                    pagination.page = 1
+                    handleSearch()
+                  }
+                "
+              />
+            </div>
+          </div>
+
           <!-- Date Filter -->
           <div class="space-y-1.5">
             <label class="text-xs font-bold text-text/60 uppercase tracking-wide">Rentang Waktu</label>
@@ -224,7 +281,16 @@ function handleReset() {
           </div>
 
           <!-- Actions -->
-          <div class="flex gap-1">
+          <div class="flex gap-1 mt-4 lg:mt-0">
+            <button
+              @click="handleExport"
+              :disabled="exportLoading"
+              title="Export ke Excel"
+              class="h-[42px] px-4 bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200 hover:text-emerald-700 hover:bg-emerald-100 rounded-lg text-sm font-bold transition-all disabled:opacity-50 disabled:hover:scale-100 flex-1 xl:flex-none"
+            >
+              <font-awesome-icon v-if="exportLoading" icon="fa-solid fa-spinner" spin />
+              <font-awesome-icon v-else icon="fa-solid fa-file-excel" />
+            </button>
             <button
               @click="handleReset"
               class="h-[42px] px-4 bg-secondary/10 text-text/70 ring-1 ring-danger/20 hover:text-danger hover:bg-danger/10 rounded-lg text-sm font-bold transition-all flex-1 xl:flex-none"
@@ -265,7 +331,7 @@ function handleReset() {
           <p class="text-text/50 text-sm">Coba sesuaikan filter pencarian.</p>
         </div>
 
-        <table v-else class="text-xs" :class="isMobile ? 'w-full block' : 'min-w-full'">
+        <table v-else class="custom-scrollbar text-xs" :class="isMobile ? 'w-full block' : 'min-w-full'">
           <thead
             class="bg-secondary uppercase text-text/70 backdrop-blur-sm z-10"
             :class="isMobile ? 'hidden' : 'sticky top-0'"
