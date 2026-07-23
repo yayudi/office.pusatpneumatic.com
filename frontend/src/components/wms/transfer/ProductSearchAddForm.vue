@@ -95,20 +95,23 @@ async function handleCameraDetect(code) {
 </script>
 
 <template>
-  <div class="flex flex-col sm:flex-row items-center gap-2 w-full">
-    <!-- Tombol Kamera (Mobile Scanner) -->
-    <button
-      type="button"
-      @click="isCameraModalOpen = true"
-      class="shrink-0 flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border bg-secondary/10 border-secondary/20 text-text/50 hover:bg-secondary/30 h-[34px] sm:h-[42px]"
-      title="Pindai dengan Kamera"
-    >
-      <font-awesome-icon icon="fa-solid fa-camera" />
-      <span class="sm:hidden">Kamera</span>
-    </button>
+  <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-2 w-full">
+    <!-- Baris 1 (Mobile): Kamera & Manual -->
+    <div class="flex items-center gap-2 w-full sm:w-auto shrink-0">
+      <!-- Tombol Kamera (Mobile Scanner) -->
+      <button
+        type="button"
+        @click="isCameraModalOpen = true"
+        class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border bg-secondary/10 border-secondary/20 text-text/50 hover:bg-secondary/30 h-[38px] sm:h-[42px]"
+        title="Pindai dengan Kamera"
+      >
+        <font-awesome-icon icon="fa-solid fa-camera" />
+        <span>Kamera</span>
+      </button>
 
-    <!-- Scanner Mode Toggle -->
-    <ScannerToggle v-model="enableScanner" class="h-[34px] sm:h-[42px]" />
+      <!-- Scanner Mode Toggle -->
+      <ScannerToggle v-model="enableScanner" class="flex-1 sm:flex-none justify-center h-[38px] sm:h-[42px]" />
+    </div>
 
     <!-- Selector Pencarian -->
     <div class="flex-grow w-full">
@@ -128,7 +131,7 @@ async function handleCameraDetect(code) {
       <!-- Info Stok Aktual -->
       <div
         v-if="(activeTab === 'TRANSFER' || activeTab === 'ADJUSTMENT') && selectedProduct"
-        class="h-[42px] flex flex-col justify-center items-center px-3 bg-secondary/20 border border-secondary/20 shadow-sm rounded-lg min-w-[70px]"
+        class="h-[42px] flex flex-col justify-center items-center px-3 bg-secondary/20 border border-secondary/20 shadow-sm rounded-lg min-w-[70px] shrink-0"
       >
         <span class="text-[10px] text-text/70 uppercase font-bold leading-none mb-1">Stok</span>
         <span
@@ -143,7 +146,7 @@ async function handleCameraDetect(code) {
       </div>
 
       <!-- Input Jumlah -->
-      <div class="w-24 relative">
+      <div class="w-1/3 sm:w-24 relative shrink-0">
         <input
           v-model.number="quantityToAdd"
           type="number"
@@ -157,11 +160,11 @@ async function handleCameraDetect(code) {
       <!-- Tombol Tambah -->
       <button
         @click="onAddClick"
-        class="h-[42px] px-4 bg-primary text-secondary rounded-lg font-bold shadow-sm disabled:opacity-50 flex items-center gap-2 transition-all hover:bg-primary/90 active:scale-[0.98]"
+        class="flex-1 sm:flex-none h-[42px] px-4 bg-primary text-secondary rounded-lg font-bold shadow-sm disabled:opacity-50 flex items-center justify-center gap-2 transition-all hover:bg-primary/90 active:scale-[0.98]"
         :disabled="disabled || !selectedProduct"
       >
         <font-awesome-icon icon="fa-solid fa-plus" />
-        <span class="hidden sm:inline">Tambah</span>
+        <span>Tambah</span>
       </button>
     </div>
   </div>

@@ -42,11 +42,11 @@ function validateQuantity(item) {
 </script>
 
 <template>
-  <div class="border-t border-secondary/20 pt-6">
-    <h3 class="text-lg font-semibold text-text mb-4">Daftar Item ({{ items.length }})</h3>
+  <div class="border-t border-secondary/20 pt-4">
+    <h3 class="text-lg font-semibold text-text mb-3">Daftar Item ({{ items.length }})</h3>
     <div
       v-if="items.length === 0"
-      class="text-center text-text/60 py-8 border-2 border-dashed border-secondary/20 rounded-lg"
+      class="text-center text-text/60 py-5 border-2 border-dashed border-secondary/20 rounded-lg"
     >
       Belum ada item yang ditambahkan.
     </div>

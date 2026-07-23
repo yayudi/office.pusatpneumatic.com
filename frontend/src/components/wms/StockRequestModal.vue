@@ -181,9 +181,9 @@ function closeModal() {
       </div>
 
       <!-- Body -->
-      <div class="p-6 overflow-y-auto space-y-6 custom-scrollbar">
+      <div class="p-4 md:p-5 overflow-y-auto space-y-4 md:space-y-5 custom-scrollbar">
         <!-- Lokasi & Notes -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-secondary/5 p-4 rounded-xl border border-secondary/20">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-secondary/5 p-4 rounded-xl border border-secondary/20">
           <div class="space-y-4">
             <div>
               <label class="block text-xs font-bold text-text/60 uppercase mb-1.5">Tipe Permintaan</label>
@@ -230,15 +230,15 @@ function closeModal() {
             <label class="block text-xs font-bold text-text/60 uppercase mb-1.5">Catatan / Alasan</label>
             <textarea
               v-model="notes"
-              rows="4"
+              rows="3"
               class="w-full p-3 bg-background border border-secondary/30 rounded-lg text-sm text-text focus:ring-1 focus:ring-primary outline-none resize-none placeholder:text-text/30"
               placeholder="Contoh: Stok untuk event akhir pekan..."
             ></textarea>
           </div>
         </div>
 
-        <div class="border-t border-secondary/20 pt-6">
-          <h4 class="text-sm font-bold text-text/80 uppercase mb-4">Daftar Produk</h4>
+        <div class="border-t border-secondary/20 pt-4">
+          <h4 class="text-sm font-bold text-text/80 uppercase mb-3">Daftar Produk</h4>
 
           <!-- Pakai komponen yg sama dgn Batch Adjustment -->
           <ProductSearchAddForm
@@ -248,7 +248,7 @@ function closeModal() {
             @add-product="handleAddProduct"
           />
 
-          <BatchItemList class="mt-4" :items="batchList" :active-tab="type" @remove-item="removeFromBatch" />
+          <BatchItemList class="mt-3" :items="batchList" :active-tab="type" @remove-item="removeFromBatch" />
         </div>
       </div>
 

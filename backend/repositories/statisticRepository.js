@@ -701,7 +701,8 @@ export const getLocationLoads = async (connection, filters) => {
       l.purpose,
       COUNT(DISTINCT sl.product_id) as total_products,
       SUM(sl.quantity) as total_quantity,
-      SUM(sl.quantity * COALESCE(p.weight, 0)) as total_weight
+      SUM(sl.quantity * COALESCE(p.weight, 0)) as total_weight,
+      SUM(sl.quantity * (COALESCE(p.length, 0) * COALESCE(p.width, 0) * COALESCE(p.height, 0))) / 1000000 as total_cbm
     FROM locations l
     LEFT JOIN stock_locations sl ON l.id = sl.location_id
     LEFT JOIN products p ON sl.product_id = p.id

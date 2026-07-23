@@ -567,6 +567,7 @@ export const getLocationAnalysis = async (filters) => {
       total_products: Number(row.total_products) || 0,
       total_quantity: Number(row.total_quantity) || 0,
       total_weight: Number(row.total_weight) || 0,
+      total_cbm: Number(row.total_cbm) || 0,
     }));
 
     // Format duplicate products

@@ -21,6 +21,7 @@ const TimePerformanceStats = defineAsyncComponent(() => import('@/components/sta
 const ShopPerformanceStats = defineAsyncComponent(() => import('@/components/stats/ShopPerformanceStats.vue'))
 const PackageAnalysisTable = defineAsyncComponent(() => import('@/components/stats/PackageAnalysisTable.vue'))
 const LocationAnalytics = defineAsyncComponent(() => import('@/views/stats/LocationAnalytics.vue'))
+const LocationCapacityStats = defineAsyncComponent(() => import('@/views/stats/LocationCapacityStats.vue'))
 
 const auth = useAuthStore()
 const masterData = useMasterDataStore()
@@ -88,7 +89,13 @@ const reportsMenu = computed(() => {
     },
     {
       key: 'location-analytics',
-      label: 'Analisis Lokasi',
+      label: 'Analisis Duplikasi Barang',
+      group: 'Audit & Lainnya',
+      icon: 'fa-solid fa-copy'
+    },
+    {
+      key: 'location-capacity',
+      label: 'Statistik Kapasitas Lokasi',
       group: 'Audit & Lainnya',
       icon: 'fa-solid fa-map-location-dot'
     }
@@ -348,6 +355,7 @@ function formatJobType(type) {
                 <ShopPerformanceStats v-else-if="activeReport === 'channel-performance'" class="animate-fade-in" />
                 <PackageAnalysisTable v-else-if="activeReport === 'package-analysis'" class="animate-fade-in" />
                 <LocationAnalytics v-else-if="activeReport === 'location-analytics'" class="animate-fade-in" />
+                <LocationCapacityStats v-else-if="activeReport === 'location-capacity'" class="animate-fade-in" />
               </KeepAlive>
 
               <div v-if="activeReport === 'export-stock'" class="animate-fade-in">
@@ -594,7 +602,8 @@ function formatJobType(type) {
                     'export-stock',
                     'channel-performance',
                     'package-analysis',
-                    'location-analysis'
+                    'location-analytics',
+                    'location-capacity'
                   ].includes(activeReport)
                 "
                 class="flex flex-col items-center justify-center h-80 text-text/30"

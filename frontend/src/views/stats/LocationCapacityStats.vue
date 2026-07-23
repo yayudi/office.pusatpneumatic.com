@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
     <div class="flex items-center justify-between">
-      <h2 class="text-2xl font-bold leading-7 text-text sm:truncate sm:text-3xl sm:tracking-tight">Analisis Duplikasi Barang</h2>
+      <h2 class="text-2xl font-bold leading-7 text-text sm:truncate sm:text-3xl sm:tracking-tight">Statistik Kapasitas Lokasi</h2>
       <div class="flex space-x-3">
         <button
           @click="fetchData"
@@ -64,39 +64,49 @@
         <dd class="mt-1 text-3xl font-semibold tracking-tight text-text">{{ locationLoads.length }}</dd>
       </div>
       <div class="overflow-hidden rounded-lg bg-background px-4 py-5 shadow-sm border border-secondary/20 sm:p-6">
-        <dt class="truncate text-sm font-medium text-text/60">Rata-rata Produk per Lokasi</dt>
-        <dd class="mt-1 text-3xl font-semibold tracking-tight text-text">{{ avgProductsPerLocation }}</dd>
+        <dt class="truncate text-sm font-medium text-text/60">Total Beban Berat</dt>
+        <dd class="mt-1 text-3xl font-semibold tracking-tight text-text">
+          {{ formatNumber(totalWeight / 1000) }} <span class="text-lg font-normal text-text/50">kg</span>
+        </dd>
       </div>
       <div class="overflow-hidden rounded-lg bg-background px-4 py-5 shadow-sm border border-secondary/20 sm:p-6">
-        <dt class="truncate text-sm font-medium text-text/60">Produk Terduplikasi</dt>
-        <dd class="mt-1 text-3xl font-semibold tracking-tight text-text">{{ duplicateProducts.length }}</dd>
+        <dt class="truncate text-sm font-medium text-text/60">Total Kubikasi</dt>
+        <dd class="mt-1 text-3xl font-semibold tracking-tight text-text">
+          {{ formatNumber(totalCBM, 2) }} <span class="text-lg font-normal text-text/50">m³</span>
+        </dd>
       </div>
       <div class="overflow-hidden rounded-lg bg-background px-4 py-5 shadow-sm border border-secondary/20 sm:p-6">
-        <dt class="truncate text-sm font-medium text-text/60">Total Kuantitas Stok</dt>
-        <dd class="mt-1 text-3xl font-semibold tracking-tight text-text">{{ formatNumber(totalQuantity) }}</dd>
+        <dt class="truncate text-sm font-medium text-text/60">Rata-rata Berat per Lokasi</dt>
+        <dd class="mt-1 text-3xl font-semibold tracking-tight text-text">
+          {{ formatNumber(avgWeightPerLocation, 2) }} <span class="text-lg font-normal text-text/50">kg</span>
+        </dd>
       </div>
     </div>
 
-    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 gap-6">
       <!-- Data Table: Beban Lokasi -->
       <div class="bg-background rounded-lg shadow-sm border border-secondary/20 overflow-hidden flex flex-col">
-        <div class="px-4 py-5 sm:px-6 border-b border-secondary/20">
-          <h3 class="text-base font-semibold leading-6 text-text">Beban Tiap Lokasi</h3>
-          <p class="mt-1 text-sm text-text/60">Informasi jumlah produk dan kuantitas di setiap lokasi.</p>
+        <div class="px-4 py-5 sm:px-6 border-b border-secondary/20 flex flex-col sm:flex-row sm:justify-between sm:items-center">
+          <div>
+            <h3 class="text-base font-semibold leading-6 text-text">Detail Beban Kapasitas Lokasi</h3>
+            <p class="mt-1 text-sm text-text/60">Informasi berat (kg) dan kubikasi (CBM) di setiap lokasi.</p>
+          </div>
         </div>
-        <div class="overflow-x-auto flex-1 max-h-[600px]">
+        <div class="overflow-x-auto flex-1 max-h-[800px]">
           <table class="min-w-full divide-y divide-secondary/20">
             <thead class="bg-secondary/5 sticky top-0 z-10">
               <tr>
-                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-text sm:pl-6">Kode</th>
+                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-text sm:pl-6">Kode Lokasi</th>
                 <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-text">Gedung / Lantai</th>
                 <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-text">Purpose</th>
                 <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-text">Jml Produk</th>
                 <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-text">Kuantitas</th>
+                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-text">Berat (kg)</th>
+                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-text">Kubikasi (m³)</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-secondary/20 bg-background">
-              <tr v-for="loc in locationLoads" :key="loc.location_id">
+              <tr v-for="loc in locationLoads" :key="loc.location_id" class="hover:bg-secondary/5">
                 <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-text sm:pl-6">{{ loc.code }}</td>
                 <td class="whitespace-nowrap px-3 py-4 text-sm text-text/60">
                   {{ loc.building }} <span v-if="loc.floor">- Lt {{ loc.floor }}</span>
@@ -113,62 +123,15 @@
                 <td class="whitespace-nowrap px-3 py-4 text-sm text-text/60 text-right">
                   {{ formatNumber(loc.total_quantity) }}
                 </td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm font-medium text-text text-right">
+                  {{ formatNumber(loc.total_weight / 1000, 2) }}
+                </td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm font-medium text-text text-right">
+                  {{ formatNumber(loc.total_cbm, 4) }}
+                </td>
               </tr>
               <tr v-if="locationLoads.length === 0">
-                <td colspan="5" class="px-3 py-4 text-sm text-text/50 text-center">Tidak ada data lokasi</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Data Table: Duplikasi Lokasi -->
-      <div class="bg-background rounded-lg shadow-sm border border-secondary/20 overflow-hidden flex flex-col">
-        <div class="px-4 py-5 sm:px-6 border-b border-secondary/20">
-          <h3 class="text-base font-semibold leading-6 text-text">Produk Terduplikasi (Berdasarkan Purpose)</h3>
-          <p class="mt-1 text-sm text-text/60">
-            Produk yang disimpan di lebih dari satu lokasi dengan purpose yang sama.
-          </p>
-        </div>
-        <div class="overflow-x-auto flex-1 max-h-[600px]">
-          <table class="min-w-full divide-y divide-secondary/20">
-            <thead class="bg-secondary/5 sticky top-0 z-10">
-              <tr>
-                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-text sm:pl-6">Produk</th>
-                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-text">Purpose</th>
-                <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-text">Jml Lokasi</th>
-                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-text">Daftar Lokasi</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-secondary/20 bg-background">
-              <tr v-for="item in duplicateProducts" :key="item.product_id + item.purpose">
-                <td class="py-4 pl-4 pr-3 text-sm sm:pl-6">
-                  <div class="font-medium text-text">{{ item.sku }}</div>
-                  <div class="text-text/60 truncate max-w-[200px]" :title="item.name">{{ item.name }}</div>
-                </td>
-                <td class="whitespace-nowrap px-3 py-4 text-sm text-text/60">
-                  <span
-                    class="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20"
-                    >{{ item.purpose || 'N/A' }}</span
-                  >
-                </td>
-                <td class="whitespace-nowrap px-3 py-4 text-sm text-text text-center font-semibold">
-                  {{ item.location_count }}
-                </td>
-                <td class="px-3 py-4 text-sm text-text/60 max-w-[250px] leading-relaxed">
-                  <span
-                    v-for="loc in item.locations.split(', ')"
-                    :key="loc"
-                    class="inline-block mr-1 mb-1 rounded bg-secondary/10 px-1.5 py-0.5 text-xs text-text/70 border border-secondary/20"
-                  >
-                    {{ loc }}
-                  </span>
-                </td>
-              </tr>
-              <tr v-if="duplicateProducts.length === 0">
-                <td colspan="4" class="px-3 py-4 text-sm text-text/50 text-center">
-                  Tidak ada produk yang terduplikasi
-                </td>
+                <td colspan="7" class="px-3 py-8 text-sm text-text/50 text-center">Tidak ada data kapasitas lokasi yang ditemukan</td>
               </tr>
             </tbody>
           </table>
@@ -188,7 +151,6 @@ import { formatNumber } from '@/utils/formatters.js'
 const { toast } = useToast()
 const loading = ref(false)
 const locationLoads = ref([])
-const duplicateProducts = ref([])
 const uniquePurposes = ref([])
 const uniqueBuildingsByPurpose = ref({})
 const uniqueFloorsByBuilding = ref({})
@@ -197,6 +159,20 @@ const filters = ref({
   purpose: { include: [], exclude: [] },
   building: { include: [], exclude: [] },
   floor: { include: [], exclude: [] }
+})
+
+// Metrics
+const totalWeight = computed(() => {
+  return locationLoads.value.reduce((sum, loc) => sum + (loc.total_weight || 0), 0)
+})
+
+const totalCBM = computed(() => {
+  return locationLoads.value.reduce((sum, loc) => sum + (loc.total_cbm || 0), 0)
+})
+
+const avgWeightPerLocation = computed(() => {
+  if (locationLoads.value.length === 0) return 0
+  return (totalWeight.value / 1000) / locationLoads.value.length
 })
 
 const fetchData = async () => {
@@ -216,7 +192,6 @@ const fetchData = async () => {
     const response = await api.get('/statistics/location-analysis', { params })
     if (response.data.success) {
       locationLoads.value = response.data.data.locationLoads || []
-      duplicateProducts.value = response.data.data.duplicateProducts || []
 
       // Update filter options only on initial load
       if (!initialLoaded.value) {
@@ -246,73 +221,58 @@ const fetchData = async () => {
       }
     }
   } catch (error) {
-    console.error('Failed to fetch location analysis:', error)
-    toast(error.response?.data?.message || 'Gagal memuat data analisis lokasi', 'error')
+    console.error('Failed to fetch location capacity analysis:', error)
+    toast(error.response?.data?.message || 'Gagal memuat data statistik lokasi', 'error')
   } finally {
     loading.value = false
   }
 }
 
-watch(
-  () => filters.value.purpose,
-  () => {
-    filters.value.building = { include: [], exclude: [] }
-    filters.value.floor = { include: [], exclude: [] }
-  },
-  { deep: true }
-)
+const purposeOptions = computed(() => {
+  return uniquePurposes.value.map(p => ({ value: p, label: p }))
+})
 
-watch(
-  () => filters.value.building,
-  () => {
-    filters.value.floor = { include: [], exclude: [] }
-  },
-  { deep: true }
-)
-
-const availableBuildings = computed(() => {
-  const activePurposes = filters.value.purpose.include
-  if (!activePurposes.length) {
-    const all = new Set()
-    Object.values(uniqueBuildingsByPurpose.value).forEach(buildings => {
-      buildings.forEach(b => all.add(b))
+const buildingOptions = computed(() => {
+  const inc = filters.value.purpose.include
+  if (inc.length > 0) {
+    const blds = new Set()
+    inc.forEach(p => {
+      if (uniqueBuildingsByPurpose.value[p]) {
+        uniqueBuildingsByPurpose.value[p].forEach(b => blds.add(b))
+      }
     })
-    return Array.from(all).sort()
+    return Array.from(blds).sort().map(b => ({ value: b, label: b }))
   }
-
-  const validBuildings = new Set()
-  activePurposes.forEach(p => {
-    const bds = uniqueBuildingsByPurpose.value[p] || []
-    bds.forEach(b => validBuildings.add(b))
-  })
-  return Array.from(validBuildings).sort()
+  
+  const allBlds = new Set()
+  Object.values(uniqueBuildingsByPurpose.value).forEach(list => list.forEach(b => allBlds.add(b)))
+  return Array.from(allBlds).sort().map(b => ({ value: b, label: b }))
 })
 
-const availableFloors = computed(() => {
-  const activeBuildings = filters.value.building.include
-  if (!activeBuildings.length) return []
-  const validFloors = new Set()
-  activeBuildings.forEach(b => {
-    const fls = uniqueFloorsByBuilding.value[b] || []
-    fls.forEach(f => validFloors.add(f))
-  })
-  return Array.from(validFloors).sort()
+const floorOptions = computed(() => {
+  const inc = filters.value.building.include
+  if (inc.length > 0) {
+    const flrs = new Set()
+    inc.forEach(b => {
+      if (uniqueFloorsByBuilding.value[b]) {
+        uniqueFloorsByBuilding.value[b].forEach(f => flrs.add(f))
+      }
+    })
+    return Array.from(flrs).sort().map(f => ({ value: f, label: f }))
+  }
+  
+  const allFlrs = new Set()
+  Object.values(uniqueFloorsByBuilding.value).forEach(list => list.forEach(f => allFlrs.add(f)))
+  return Array.from(allFlrs).sort().map(f => ({ value: f, label: f }))
 })
 
-const purposeOptions = computed(() => uniquePurposes.value.map(p => ({ label: p, value: p })))
-const buildingOptions = computed(() => availableBuildings.value.map(b => ({ label: b, value: b })))
-const floorOptions = computed(() => availableFloors.value.map(f => ({ label: `Lantai ${f}`, value: f })))
+watch(() => filters.value.purpose, () => {
+  filters.value.building = { include: [], exclude: [] }
+}, { deep: true })
 
-const avgProductsPerLocation = computed(() => {
-  if (locationLoads.value.length === 0) return 0
-  const total = locationLoads.value.reduce((sum, loc) => sum + loc.total_products, 0)
-  return (total / locationLoads.value.length).toFixed(1)
-})
-
-const totalQuantity = computed(() => {
-  return locationLoads.value.reduce((sum, loc) => sum + loc.total_quantity, 0)
-})
-
+watch(() => filters.value.building, () => {
+  filters.value.floor = { include: [], exclude: [] }
+}, { deep: true })
 
 onMounted(() => {
   fetchData()
