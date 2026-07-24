@@ -6,7 +6,7 @@ import Logger from "../utils/logger.js";
  * stdTTL (Standard Time To Live): Waktu hidup default untuk setiap entri cache dalam detik.
  * checkperiod: Seberapa sering cache akan memeriksa dan menghapus entri yang sudah kedaluwarsa.
  */
-const cache = new NodeCache({ stdTTL: 120, checkperiod: 150 });
+const cache = new NodeCache({ stdTTL: 86400, checkperiod: 120 });
 
 Logger.info("Modul Cache berhasil dimuat.", "CACHE");
 

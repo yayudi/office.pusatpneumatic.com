@@ -525,20 +525,25 @@ export const calculatePackageMeta = (product) => {
       ...product,
       virtual_stock: 0,
       total_weight: parseFloat(product.weight || 0),
+      total_cbm: (parseFloat(product.length || 0) * parseFloat(product.width || 0) * parseFloat(product.height || 0)) / 1000000,
     };
   }
 
   let minStock = Infinity;
   let calculatedWeight = 0;
+  let calculatedCbm = 0;
   let hasStockComponent = false;
 
   for (const comp of product.components) {
     const compWeight = parseFloat(comp.weight || 0);
+    const compCbm = (parseFloat(comp.length || 0) * parseFloat(comp.width || 0) * parseFloat(comp.height || 0)) / 1000000;
     const compQty = parseFloat(comp.quantity_per_package || comp.quantity || 0);
     const compStock = parseFloat(comp.stock_available || comp.total_stock || 0);
 
     // Hitung Berat (Weight * Qty)
     calculatedWeight += compWeight * compQty;
+    // Hitung CBM (CBM * Qty)
+    calculatedCbm += compCbm * compQty;
 
     // Hitung Virtual Stock (Bottle Neck Logic)
     if (compQty > 0) {
@@ -555,5 +560,6 @@ export const calculatePackageMeta = (product) => {
     ...product,
     virtual_stock: minStock,
     total_weight: calculatedWeight > 0 ? calculatedWeight : parseFloat(product.weight || 0),
+    total_cbm: calculatedCbm > 0 ? calculatedCbm : ((parseFloat(product.length || 0) * parseFloat(product.width || 0) * parseFloat(product.height || 0)) / 1000000),
   };
 };

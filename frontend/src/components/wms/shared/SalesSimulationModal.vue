@@ -51,6 +51,10 @@ const totalWeightDisplay = computed(() => {
   return totalWeightRaw.value / unit.divisor
 })
 
+const totalCbmRaw = computed(() => {
+  return items.value.reduce((sum, item) => sum + item.total_cbm * item.quantity, 0)
+})
+
 const calculateSubtotal = (item) => {
   const base = item.price * item.quantity
   let discountAmount = 0
@@ -100,6 +104,7 @@ const addItem = (product) => {
       quantity: 1,
       price: product.price || 0,
       weight: product.weight || 0,
+      total_cbm: product.total_cbm || 0,
       discount: { type: 'percent', value: 0 },
     })
   }
@@ -124,6 +129,10 @@ const resetSimulation = () => {
 const formatWeight = (val) => {
   const unit = WEIGHT_UNITS.find((u) => u.value === weightUnit.value)
   return (val / unit.divisor).toLocaleString('id-ID', { maximumFractionDigits: 2 })
+}
+
+const formatCbm = (val) => {
+  return val.toLocaleString('id-ID', { maximumFractionDigits: 4 })
 }
 
 const close = () => {
@@ -232,6 +241,7 @@ const close = () => {
               <th class="px-1 py-3 text-center w-20">Qty</th>
               <th class="px-1 py-3 text-center w-40">Diskon</th>
               <th class="px-1 py-3 text-right w-28">Berat</th>
+              <th class="px-1 py-3 text-right w-28">Volume</th>
               <th class="px-1 py-3 text-right w-32">Total</th>
               <th class="px-1 py-3 text-center w-10"></th>
             </tr>
@@ -315,6 +325,18 @@ const close = () => {
                 :class="
                   isMobile
                     ? 'flex justify-between items-center py-2 border-b border-secondary/10'
+                    : 'px-1 py-3 text-right text-text/70'
+                "
+              >
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
+                  >Volume</span
+                >
+                <span>{{ formatCbm(item.total_cbm * item.quantity) }} CBM</span>
+              </td>
+              <td
+                :class="
+                  isMobile
+                    ? 'flex justify-between items-center py-2 border-b border-secondary/10'
                     : 'px-1 py-3 text-right font-medium'
                 "
               >
@@ -343,10 +365,12 @@ const close = () => {
           </tbody>
           <tfoot class="bg-secondary/10 font-bold border-t border-secondary/20">
             <tr>
-              <td colspan="4" class="px-4 py-3 text-right text-text/70">Total:</td>
-              <td class="px-4 py-3 text-right text-primary">
-                {{ totalWeightDisplay.toLocaleString('id-ID', { maximumFractionDigits: 2 }) }}
-                {{ weightUnit }}
+              <td colspan="3" class="px-4 py-3 text-right text-text/70">Total:</td>
+              <td class="px-4 py-3 text-right text-primary flex flex-col gap-1 items-end whitespace-nowrap">
+                <span>{{ totalWeightDisplay.toLocaleString('id-ID', { maximumFractionDigits: 2 }) }} {{ weightUnit }}</span>
+              </td>
+              <td class="px-4 py-3 text-right text-primary whitespace-nowrap">
+                {{ formatCbm(totalCbmRaw) }} CBM
               </td>
               <td class="px-4 py-3 text-right text-primary text-lg">
                 <div class="flex flex-col items-end leading-tight">

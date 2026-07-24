@@ -28,11 +28,23 @@ export function useStickerHistory(getFabricCanvas, syncLayers) {
       if (json.objects) {
         json.objects.forEach((rawObj, index) => {
           const obj = objects[index]
-          if (obj && obj.isDynamicBarcode) {
-            rawObj.isDynamicBarcode = obj.isDynamicBarcode
-            rawObj.barcodeType = obj.barcodeType
-            rawObj.barcodeValue = obj.barcodeValue
-            rawObj.barcodeDisplayValue = obj.barcodeDisplayValue
+          if (obj) {
+            rawObj.id = obj.id
+            rawObj.selectable = obj.selectable
+            rawObj.evented = obj.evented
+            rawObj.hasControls = obj.hasControls
+            rawObj.lockMovementX = obj.lockMovementX
+            rawObj.lockMovementY = obj.lockMovementY
+            rawObj.lockRotation = obj.lockRotation
+            rawObj.lockScalingX = obj.lockScalingX
+            rawObj.lockScalingY = obj.lockScalingY
+
+            if (obj.isDynamicBarcode) {
+              rawObj.isDynamicBarcode = obj.isDynamicBarcode
+              rawObj.barcodeType = obj.barcodeType
+              rawObj.barcodeValue = obj.barcodeValue
+              rawObj.barcodeDisplayValue = obj.barcodeDisplayValue
+            }
           }
         })
       }
@@ -78,9 +90,29 @@ export function useStickerHistory(getFabricCanvas, syncLayers) {
     canvas.loadFromJSON(parsed).then(() => {
       const objects = canvas.getObjects()
       if (parsed && parsed.objects) {
+        console.log('loadHistoryState: raw objects from JSON:', parsed.objects)
         parsed.objects.forEach((rawObj, index) => {
-          if (rawObj.isDynamicBarcode && objects[index]) {
-            objects[index].set({
+          const obj = objects[index]
+          if (!obj) {
+            console.warn('loadHistoryState: Object missing at index', index)
+            return
+          }
+
+          console.log(`loadHistoryState: Restoring object index ${index}, rawObj.id = ${rawObj.id}`)
+
+          // Restore custom properties that Fabric might ignore during loadFromJSON
+          if (rawObj.id) obj.id = rawObj.id
+          if (rawObj.selectable !== undefined) obj.selectable = rawObj.selectable
+          if (rawObj.evented !== undefined) obj.evented = rawObj.evented
+          if (rawObj.hasControls !== undefined) obj.hasControls = rawObj.hasControls
+          if (rawObj.lockMovementX !== undefined) obj.lockMovementX = rawObj.lockMovementX
+          if (rawObj.lockMovementY !== undefined) obj.lockMovementY = rawObj.lockMovementY
+          if (rawObj.lockRotation !== undefined) obj.lockRotation = rawObj.lockRotation
+          if (rawObj.lockScalingX !== undefined) obj.lockScalingX = rawObj.lockScalingX
+          if (rawObj.lockScalingY !== undefined) obj.lockScalingY = rawObj.lockScalingY
+
+          if (rawObj.isDynamicBarcode) {
+            obj.set({
               isDynamicBarcode: rawObj.isDynamicBarcode,
               barcodeType: rawObj.barcodeType,
               barcodeValue: rawObj.barcodeValue,

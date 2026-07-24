@@ -44,3 +44,51 @@ export const emitSharedTaskSignal = async (permission, action = 'REFRESH_NOTIFIC
   const safePermission = permission.replace(/[.#$[\]]/g, '_');
   return await emitSignal(`signals/permissions/${safePermission}`, { action });
 };
+
+/**
+ * Mendengarkan perubahan data master dari instance lain via Firebase.
+ * Ini mencegah stale data jika aplikasi dijalankan di multi-instance.
+ */
+export const initFirebaseCacheListener = () => {
+  if (!isInitialized || !firebaseDb) return;
+  
+  import('../config/cache.js').then(({ default: cache }) => {
+    const ref = firebaseDb.ref('signals/permissions/MASTER_DATA');
+    
+    ref.on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (!data || !data.action) return;
+      
+      Logger.info(`Menerima sinyal Firebase untuk invalidasi cache: ${data.action}`, "CACHE_SYNC");
+      
+      switch (data.action) {
+        case 'REFRESH_CATEGORIES':
+          cache.del("MASTER_CATEGORIES");
+          break;
+        case 'REFRESH_LOCATIONS':
+          cache.del("MASTER_LOCATIONS");
+          break;
+        case 'REFRESH_ROLES':
+          cache.del("MASTER_ROLES");
+          cache.del("MASTER_PERMISSIONS");
+          break;
+        case 'REFRESH_SHIFTS':
+          cache.del("MASTER_SHIFTS");
+          break;
+        case 'REFRESH_CHANNELS':
+          cache.del(["MASTER_SALES_CHANNELS_ACTIVE", "MASTER_SALES_CHANNELS_ALL"]);
+          break;
+        case 'REFRESH_PAPER_SIZES':
+          cache.del("MASTER_PAPER_SIZES");
+          break;
+        case 'REFRESH_STICKER_TEMPLATES':
+          cache.del("MASTER_STICKER_TEMPLATES");
+          break;
+        case 'REFRESH_USERS':
+          cache.del("MASTER_USERS_ACTIVE");
+          break;
+      }
+    });
+    Logger.info("Firebase Cache Invalidation Listener telah berjalan.", "CACHE_SYNC");
+  }).catch(e => Logger.error("Gagal memuat cache module untuk listener", e, "CACHE_SYNC"));
+};

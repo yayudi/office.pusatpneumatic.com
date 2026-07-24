@@ -5,14 +5,20 @@ import bcrypt from "bcryptjs";
 import * as adminRepo from "../repositories/adminRepository.js";
 import { createLog } from "../repositories/systemLogRepository.js";
 import { emitSharedTaskSignal } from "./firebaseSignalService.js";
+import cache from "../config/cache.js";
 
 /**
  * Mengambil semua user aktif.
  * @returns {Promise<Array>}
  */
 export const getAllUsers = async () => {
+  const cacheKey = "MASTER_USERS_ACTIVE";
+  if (cache.has(cacheKey)) return cache.get(cacheKey);
+
   const [connection] = [db]; // Pool langsung, non-transactional read
-  return adminRepo.findAllActiveUsers(connection);
+  const data = await adminRepo.findAllActiveUsers(connection);
+  cache.set(cacheKey, data);
+  return data;
 };
 
 /**
@@ -84,6 +90,8 @@ export const createUser = async ({
     });
 
     await connection.commit();
+    cache.del("MASTER_USERS_ACTIVE");
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_USERS').catch(e => Logger.error("Signal Error", e, "ADMIN_SERVICE"));
     return newUser;
   } catch (error) {
     await connection.rollback();
@@ -185,6 +193,8 @@ export const updateUser = async ({ adminId, targetId, data, ip, userAgent }) => 
     }
 
     await connection.commit();
+    cache.del("MASTER_USERS_ACTIVE");
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_USERS').catch(e => Logger.error("Signal Error", e, "ADMIN_SERVICE"));
 
     // Jika terjadi perubahan role atau password, paksa user logout via Firebase
     if (changesRecord.role_id || changesRecord.password) {
@@ -233,6 +243,8 @@ export const deleteUser = async ({ adminId, targetId, ip, userAgent }) => {
     });
 
     await connection.commit();
+    cache.del("MASTER_USERS_ACTIVE");
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_USERS').catch(e => Logger.error("Signal Error", e, "ADMIN_SERVICE"));
     emitSharedTaskSignal('AUTH_SECURITY', `FORCE_LOGOUT_${targetId}`).catch(e => Logger.error("Signal Error", e, "ADMIN_SERVICE"));
   } catch (error) {
     await connection.rollback();

@@ -1,16 +1,24 @@
 import * as repo from "../repositories/stickerTemplateRepository.js";
+import { emitSharedTaskSignal } from "./firebaseSignalService.js";
+import cache from "../config/cache.js";
+import Logger from "../utils/logger.js";
 
 /**
  * Mendapatkan semua template
  * @returns {Promise<Array>}
  */
 export const fetchAllTemplates = async () => {
+  const cacheKey = "MASTER_STICKER_TEMPLATES";
+  if (cache.has(cacheKey)) return cache.get(cacheKey);
+
   const templates = await repo.getAllTemplates();
   // Parse config_json string back to object
-  return templates.map(t => ({
+  const data = templates.map(t => ({
     ...t,
     config_json: t.config_json ? JSON.parse(t.config_json) : null
   }));
+  cache.set(cacheKey, data);
+  return data;
 };
 
 /**
@@ -30,7 +38,12 @@ export const createTemplate = async (data) => {
     config_json: typeof data.config_json === 'string' ? data.config_json : JSON.stringify(data.config_json)
   };
 
-  return await repo.createTemplate(payload);
+  const newId = await repo.createTemplate(payload);
+  
+  cache.del("MASTER_STICKER_TEMPLATES");
+  emitSharedTaskSignal('MASTER_DATA', 'REFRESH_STICKER_TEMPLATES').catch(e => Logger.error("Signal Error", e, "STICKER_TEMPLATE_SERVICE"));
+  
+  return newId;
 };
 
 /**
@@ -40,7 +53,12 @@ export const createTemplate = async (data) => {
  */
 export const removeTemplate = async (id) => {
   if (!id || isNaN(id)) throw new Error("ID tidak valid");
-  return await repo.deleteTemplate(id);
+  const success = await repo.deleteTemplate(id);
+  
+  cache.del("MASTER_STICKER_TEMPLATES");
+  emitSharedTaskSignal('MASTER_DATA', 'REFRESH_STICKER_TEMPLATES').catch(e => Logger.error("Signal Error", e, "STICKER_TEMPLATE_SERVICE"));
+  
+  return success;
 };
 
 /**
@@ -62,5 +80,10 @@ export const editTemplate = async (id, data) => {
     config_json: typeof data.config_json === 'string' ? data.config_json : JSON.stringify(data.config_json)
   };
 
-  return await repo.updateTemplate(id, payload);
+  const success = await repo.updateTemplate(id, payload);
+  
+  cache.del("MASTER_STICKER_TEMPLATES");
+  emitSharedTaskSignal('MASTER_DATA', 'REFRESH_STICKER_TEMPLATES').catch(e => Logger.error("Signal Error", e, "STICKER_TEMPLATE_SERVICE"));
+  
+  return success;
 };

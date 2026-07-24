@@ -178,6 +178,9 @@ watch(
               category_id: data.data.category_id || null,
               price: data.data.price || 0,
               weight: data.data.weight || 0,
+              length: data.data.length || 0,
+              width: data.data.width || 0,
+              height: data.data.height || 0,
               is_package: Boolean(data.data.is_package)
             }
             // Mapping komponen jika ada
@@ -195,7 +198,7 @@ watch(
         }
       } else {
         // MODE CREATE: Kosongkan form
-        form.value = { sku: '', name: '', category_id: null, price: 0, weight: 0, is_package: false }
+        form.value = { sku: '', name: '', category_id: null, price: 0, weight: 0, length: 0, width: 0, height: 0, is_package: false }
         components.value = []
         selectedImage.value = null
         imagePreview.value = null
@@ -491,18 +494,59 @@ watch(Alt_S, pressed => {
           </BaseSelect>
         </div>
 
-        <!-- Berat Input -->
-        <div>
-          <label class="block text-xs font-bold text-text/60 mb-1">Berat (Gram)</label>
-          <div class="relative">
-            <input
-              v-model.number="form.weight"
-              type="number"
-              min="0"
-              class="w-full pl-3 pr-8 py-2 bg-secondary/10 border border-secondary/30 rounded-lg font-mono focus:outline-none focus:border-primary text-text transition-all"
-              placeholder="0"
-            />
-            <span class="absolute right-3 top-2 text-text/40 text-xs font-bold">gr</span>
+        <!-- Dimensi & Berat Input Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <!-- Berat -->
+          <div>
+            <label class="block text-xs font-bold text-text/60 mb-1">Berat (gr)</label>
+            <div class="relative">
+              <input
+                v-model.number="form.weight"
+                type="number"
+                min="0"
+                class="w-full pl-3 pr-6 py-2 bg-secondary/10 border border-secondary/30 rounded-lg font-mono focus:outline-none focus:border-primary text-text transition-all"
+                placeholder="0"
+              />
+            </div>
+          </div>
+          <!-- Panjang -->
+          <div>
+            <label class="block text-xs font-bold text-text/60 mb-1">Panjang (cm)</label>
+            <div class="relative">
+              <input
+                v-model.number="form.length"
+                type="number"
+                min="0"
+                class="w-full pl-3 pr-6 py-2 bg-secondary/10 border border-secondary/30 rounded-lg font-mono focus:outline-none focus:border-primary text-text transition-all"
+                placeholder="0"
+              />
+            </div>
+          </div>
+          <!-- Lebar -->
+          <div>
+            <label class="block text-xs font-bold text-text/60 mb-1">Lebar (cm)</label>
+            <div class="relative">
+              <input
+                v-model.number="form.width"
+                type="number"
+                min="0"
+                class="w-full pl-3 pr-6 py-2 bg-secondary/10 border border-secondary/30 rounded-lg font-mono focus:outline-none focus:border-primary text-text transition-all"
+                placeholder="0"
+              />
+            </div>
+          </div>
+          <!-- Tinggi -->
+          <div>
+            <label class="block text-xs font-bold text-text/60 mb-1">Tinggi (cm)</label>
+            <div class="relative">
+              <input
+                v-model.number="form.height"
+                type="number"
+                min="0"
+                class="w-full pl-3 pr-6 py-2 bg-secondary/10 border border-secondary/30 rounded-lg font-mono focus:outline-none focus:border-primary text-text transition-all"
+                placeholder="0"
+              />
+            </div>
           </div>
         </div>
 

@@ -7,13 +7,10 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import Logger from "./utils/logger.js";
 import jwt from "jsonwebtoken";
-
 import apiRouter from "./router/index.js";
 import assetsRouter from "./router/assetsRouter.js";
 import AppError from "./utils/AppError.js";
-
 import errorHandler from "./middleware/errorHandler.js";
-
 import helmet from "helmet";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -135,9 +132,14 @@ app.use((req, res, next) => {
 // Global Error Handler
 app.use(errorHandler);
 
+import { initFirebaseCacheListener } from "./services/firebaseSignalService.js";
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   Logger.info(`Server backend berjalan di http://localhost:${PORT}`, "SERVER");
   Logger.info(`Serving static uploads from: ${path.join(__dirname, "uploads")}`, "SERVER");
   Logger.info("CORS Policy: Permissive (All Origins Allowed)", "SERVER");
+
+  // Inisialisasi Firebase Cache Listener untuk multi-instance sync
+  initFirebaseCacheListener();
 });

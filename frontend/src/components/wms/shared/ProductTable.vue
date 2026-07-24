@@ -280,6 +280,14 @@ onUnmounted(() => {
             </div>
           </th>
           <th
+            v-if="visibleColumns.has('dimension')"
+            class="px-6 py-3 text-right md:border-r md:border-secondary/50"
+          >
+            <div class="flex items-center justify-end gap-2">
+              Dimensi (L x W x H)
+            </div>
+          </th>
+          <th
             v-if="auth.canViewPrices && visibleColumns.has('price')"
             class="px-6 py-3 text-right md:border-r md:border-secondary/50 cursor-pointer hover:text-primary transition-colors"
             @click="handleSort('price')"
@@ -428,6 +436,16 @@ onUnmounted(() => {
           >
             <span class="md:hidden text-[10px] font-bold text-text/50 uppercase tracking-wide">Berat</span>
             <span>{{ formatNumber(getDisplayWeight(product)) }} gr</span>
+          </td>
+
+          <!-- DIMENSION -->
+          <td
+            v-if="visibleColumns.has('dimension')"
+            class="md:table-cell flex justify-between items-center px-4 py-2 md:px-3 md:py-2 text-right whitespace-nowrap text-xs text-text/70 font-mono border-b border-secondary/10 md:border-secondary/80"
+            :class="{ 'hidden md:flex': mobileLayout === 'compact' }"
+          >
+            <span class="md:hidden text-[10px] font-bold text-text/50 uppercase tracking-wide">Dimensi</span>
+            <span>{{ product.length || 0 }} x {{ product.width || 0 }} x {{ product.height || 0 }} cm</span>
           </td>
 
           <!-- PRICE -->

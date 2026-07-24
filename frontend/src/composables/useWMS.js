@@ -13,6 +13,7 @@ const AVAILABLE_COLUMNS = [
   { id: 'sku', label: 'SKU' },
   { id: 'category', label: 'Kategori' },
   { id: 'weight', label: 'Berat' },
+  { id: 'dimension', label: 'Dimensi' },
   { id: 'price', label: 'Harga' },
   { id: 'location', label: 'Lokasi' },
   { id: 'stock', label: 'Stok' }
@@ -72,6 +73,7 @@ export function useWms() {
   const { visibleColumns, toggleColumn } = useColumnVisibility('wms-visible-columns', [
     'sku',
     'weight',
+    'dimension',
     'price',
     'location',
     'stock'

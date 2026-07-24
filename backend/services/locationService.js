@@ -4,6 +4,7 @@ import Logger from "../utils/logger.js";
 import * as locationRepository from "../repositories/locationRepository.js";
 import AppError from "../utils/AppError.js";
 import { emitSharedTaskSignal } from "./firebaseSignalService.js";
+import cache from "../config/cache.js";
 
 /**
  * Menambahkan lokasi baru
@@ -36,6 +37,7 @@ export const addLocation = async (data) => {
     // await auditRepository.logAction(connection, 'CREATE', 'locations', newLocationId, data);
 
     await connection.commit();
+    cache.del("MASTER_LOCATIONS");
     emitSharedTaskSignal('MASTER_DATA', 'REFRESH_LOCATIONS').catch(e => Logger.error("Signal Error", e, "LOCATION_SERVICE"));
     return newLocationId;
   } catch (error) {
@@ -50,7 +52,12 @@ export const addLocation = async (data) => {
  * @returns {Promise<any>}
  */
 export const getAllLocations = async () => {
-  return await locationRepository.getAllLocations(db);
+  const cacheKey = "MASTER_LOCATIONS";
+  if (cache.has(cacheKey)) return cache.get(cacheKey);
+
+  const data = await locationRepository.getAllLocations(db);
+  cache.set(cacheKey, data);
+  return data;
 };
 
 /**
@@ -77,6 +84,7 @@ export const updateLocation = async (id, data) => {
     if (!isUpdated) {
       throw new AppError("Location not found.", 404, "NOT_FOUND");
     }
+    cache.del("MASTER_LOCATIONS");
     emitSharedTaskSignal('MASTER_DATA', 'REFRESH_LOCATIONS').catch(e => Logger.error("Signal Error", e, "LOCATION_SERVICE"));
   } catch (error) {
     if (error.code === "ER_DUP_ENTRY") {
@@ -96,6 +104,7 @@ export const deleteLocation = async (id) => {
     if (!isDeleted) {
       throw new AppError("Location not found.", 404, "NOT_FOUND");
     }
+    cache.del("MASTER_LOCATIONS");
     emitSharedTaskSignal('MASTER_DATA', 'REFRESH_LOCATIONS').catch(e => Logger.error("Signal Error", e, "LOCATION_SERVICE"));
   } catch (error) {
     if (error.code === "ER_ROW_IS_REFERENCED_2") {

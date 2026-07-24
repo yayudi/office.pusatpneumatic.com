@@ -2,15 +2,21 @@ import db from "../config/db.js";
 import Logger from "../utils/logger.js";
 import * as categoryRepo from "../repositories/categoryRepository.js";
 import { emitSharedTaskSignal } from "./firebaseSignalService.js";
+import cache from "../config/cache.js";
 
 /**
  * Mengambil semua kategori aktif
  * @returns {Promise<Array>}
  */
 export const getAllCategories = async () => {
+  const cacheKey = "MASTER_CATEGORIES";
+  if (cache.has(cacheKey)) return cache.get(cacheKey);
+
   const connection = await db.getConnection();
   try {
-    return await categoryRepo.findAllCategories(connection);
+    const data = await categoryRepo.findAllCategories(connection);
+    cache.set(cacheKey, data);
+    return data;
   } finally {
     connection.release();
   }
@@ -28,6 +34,7 @@ export const createCategory = async (name) => {
     const trimmedName = name.trim();
     const id = await categoryRepo.createCategory(connection, trimmedName);
     await connection.commit();
+    cache.del("MASTER_CATEGORIES");
     emitSharedTaskSignal('MASTER_DATA', 'REFRESH_CATEGORIES').catch(e => Logger.error("Signal Error", e, "CATEGORY_SERVICE"));
     return { id, name: trimmedName };
   } catch (error) {
@@ -60,6 +67,7 @@ export const updateCategory = async (id, name) => {
       throw err;
     }
     await connection.commit();
+    cache.del("MASTER_CATEGORIES");
     emitSharedTaskSignal('MASTER_DATA', 'REFRESH_CATEGORIES').catch(e => Logger.error("Signal Error", e, "CATEGORY_SERVICE"));
   } catch (error) {
     await connection.rollback();
@@ -84,6 +92,7 @@ export const deleteCategory = async (id) => {
       throw err;
     }
     await connection.commit();
+    cache.del("MASTER_CATEGORIES");
     emitSharedTaskSignal('MASTER_DATA', 'REFRESH_CATEGORIES').catch(e => Logger.error("Signal Error", e, "CATEGORY_SERVICE"));
   } catch (error) {
     await connection.rollback();

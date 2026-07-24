@@ -309,6 +309,13 @@ export const Mappers = {
       "weight",
       "berat",
       "bobot",
+      "bobot",
+      "length",
+      "panjang",
+      "width",
+      "lebar",
+      "height",
+      "tinggi",
       "type",
       "tipe",
       "is_package",
@@ -326,7 +333,7 @@ export const Mappers = {
       const name = getter(["name", "nama", "nama produk", "product name"]);
 
       // Harga
-      let rawPrice = getter(["price", "harga", "harga jual"]);
+      const rawPrice = getter(["price", "harga", "harga jual"]);
       let price = undefined;
       if (rawPrice) {
         let clean = rawPrice
@@ -340,14 +347,35 @@ export const Mappers = {
       }
 
       // Berat
-      let rawWeight = getter(["weight", "berat", "bobot"]);
+      const rawWeight = getter(["weight", "berat", "bobot"]);
       let weight = undefined;
       if (rawWeight) {
         weight = parseFloat(rawWeight.toString().replace(/[^0-9.]/g, ""));
       }
 
+      // Panjang
+      const rawLength = getter(["length", "panjang"]);
+      let length = undefined;
+      if (rawLength) {
+        length = parseFloat(rawLength.toString().replace(/[^0-9.]/g, ""));
+      }
+
+      // Lebar
+      const rawWidth = getter(["width", "lebar"]);
+      let width = undefined;
+      if (rawWidth) {
+        width = parseFloat(rawWidth.toString().replace(/[^0-9.]/g, ""));
+      }
+
+      // Tinggi
+      const rawHeight = getter(["height", "tinggi"]);
+      let height = undefined;
+      if (rawHeight) {
+        height = parseFloat(rawHeight.toString().replace(/[^0-9.]/g, ""));
+      }
+
       // Tipe Paket (1/0, Yes/No, True/False)
-      let rawType = getter(["type", "tipe", "is_package", "paket"]);
+      const rawType = getter(["type", "tipe", "is_package", "paket"]);
       let is_package = undefined;
       if (rawType) {
         const lower = rawType.toString().toLowerCase();
@@ -360,7 +388,7 @@ export const Mappers = {
       }
 
       // Status Aktif
-      let rawStatus = getter(["status", "is_active", "aktif"]);
+      const rawStatus = getter(["status", "is_active", "aktif"]);
       let is_active = undefined;
       if (rawStatus) {
         const lower = rawStatus.toString().toLowerCase();
@@ -373,9 +401,11 @@ export const Mappers = {
         name,
         price,
         weight,
+        length,
+        width,
+        height,
         is_package,
         is_active,
-
         invoiceId: `UPD-${sku}`,
         status: "NEW",
       };

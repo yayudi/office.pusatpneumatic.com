@@ -1,4 +1,7 @@
 import * as paperSizeRepository from '../repositories/paperSizeRepository.js';
+import { emitSharedTaskSignal } from "./firebaseSignalService.js";
+import cache from "../config/cache.js";
+import Logger from "../utils/logger.js";
 
 /**
  * Format paper size data dari database (snake_case -> camelCase)
@@ -43,8 +46,13 @@ const formatInput = (data) => ({
  * @returns {Promise<Array>}
  */
 export const getAllPaperSizes = async () => {
+  const cacheKey = "MASTER_PAPER_SIZES";
+  if (cache.has(cacheKey)) return cache.get(cacheKey);
+
   const rows = await paperSizeRepository.getAllPaperSizes();
-  return rows.map(formatData);
+  const data = rows.map(formatData);
+  cache.set(cacheKey, data);
+  return data;
 };
 
 /**
@@ -66,6 +74,10 @@ export const getPaperSizeById = async (id) => {
 export const createPaperSize = async (data) => {
   const formattedInput = formatInput(data);
   const newId = await paperSizeRepository.createPaperSize(formattedInput);
+  
+  cache.del("MASTER_PAPER_SIZES");
+  emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PAPER_SIZES').catch(e => Logger.error("Signal Error", e, "PAPER_SIZE_SERVICE"));
+  
   return await getPaperSizeById(newId);
 };
 
@@ -79,6 +91,10 @@ export const updatePaperSize = async (id, data) => {
   const formattedInput = formatInput(data);
   const success = await paperSizeRepository.updatePaperSize(id, formattedInput);
   if (!success) throw new Error('Gagal memperbarui ukuran kertas atau data tidak ditemukan');
+  
+  cache.del("MASTER_PAPER_SIZES");
+  emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PAPER_SIZES').catch(e => Logger.error("Signal Error", e, "PAPER_SIZE_SERVICE"));
+  
   return await getPaperSizeById(id);
 };
 
@@ -90,5 +106,9 @@ export const updatePaperSize = async (id, data) => {
 export const deletePaperSize = async (id) => {
   const success = await paperSizeRepository.deletePaperSize(id);
   if (!success) throw new Error('Gagal menghapus ukuran kertas atau data tidak ditemukan');
+  
+  cache.del("MASTER_PAPER_SIZES");
+  emitSharedTaskSignal('MASTER_DATA', 'REFRESH_PAPER_SIZES').catch(e => Logger.error("Signal Error", e, "PAPER_SIZE_SERVICE"));
+  
   return true;
 };

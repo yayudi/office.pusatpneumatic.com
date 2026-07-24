@@ -144,6 +144,28 @@ export function useStickerSnapping(getFabricCanvas, isExporting) {
 
     fabricCanvas.on('object:moving', e => handleSnapping(e, false))
     fabricCanvas.on('object:scaling', e => handleSnapping(e, true))
+    
+    // Rotation snapping
+    fabricCanvas.on('object:rotating', e => {
+      const target = e.target
+      if (!target) return
+      
+      const snapAngle = 15 // Snap every 15 degrees
+      const threshold = 5
+      
+      let angle = target.angle
+      if (angle < 0) angle += 360
+      
+      const remainder = angle % snapAngle
+      
+      if (remainder < threshold) {
+        target.set('angle', angle - remainder)
+      } else if (remainder > snapAngle - threshold) {
+        target.set('angle', angle + (snapAngle - remainder))
+      }
+      
+      target.setCoords()
+    })
 
     fabricCanvas.on('mouse:up', () => {
       if (snapLines.length > 0) {

@@ -11,6 +11,9 @@ export const productSchema = z.object({
   category_id: z.coerce.number().optional().nullable(),
   price: z.coerce.number().optional().default(0),
   weight: z.coerce.number().optional().default(0),
+  length: z.coerce.number().optional().default(0),
+  width: z.coerce.number().optional().default(0),
+  height: z.coerce.number().optional().default(0),
   is_package: z.preprocess((val) => val === "true" || val === true, z.boolean().optional()),
   is_active: z.preprocess((val) => val === "true" || val === true, z.boolean().optional()),
   components: z.preprocess((val) => {

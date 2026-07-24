@@ -94,6 +94,18 @@ export const processProductImport = async (
               csvItem.weight !== undefined && csvItem.weight !== ""
                 ? csvItem.weight
                 : dbProduct.weight,
+            length:
+              csvItem.length !== undefined && csvItem.length !== ""
+                ? csvItem.length
+                : dbProduct.length,
+            width:
+              csvItem.width !== undefined && csvItem.width !== ""
+                ? csvItem.width
+                : dbProduct.width,
+            height:
+              csvItem.height !== undefined && csvItem.height !== ""
+                ? csvItem.height
+                : dbProduct.height,
             is_package: 0,
             is_active:
               csvItem.is_active !== undefined && csvItem.is_active !== ""

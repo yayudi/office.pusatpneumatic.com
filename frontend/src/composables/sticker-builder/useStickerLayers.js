@@ -9,14 +9,17 @@ export function useStickerLayers(getFabricCanvas, getActiveObject, saveHistory) 
     const canvas = getFabricCanvas()
     if (!canvas) return
     const allObjects = canvas.getObjects()
-    const filteredObjects = allObjects.filter(obj => obj.id !== 'paper-bg')
     const currentActive = getActiveObject()
 
-    canvasLayers.value = filteredObjects
+    canvasLayers.value = allObjects
       .map((obj, idx) => {
         let iconType = obj.type
         let text = 'Layer ' + idx
-        if (obj.type === 'i-text' || obj.type === 'text' || obj.type === 'textbox') {
+        
+        if (obj.id === 'paper-bg') {
+          text = 'Latar Kertas'
+          iconType = 'rect'
+        } else if (obj.type === 'i-text' || obj.type === 'text' || obj.type === 'textbox') {
           text = obj.text.substring(0, 15) || 'Teks Kosong'
           iconType = 'text'
         } else if (obj.type === 'image') {
@@ -31,7 +34,10 @@ export function useStickerLayers(getFabricCanvas, getActiveObject, saveHistory) 
 
         if (!obj.id) obj.id = 'layer_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9)
 
-        const isLocked = !obj.selectable && !obj.evented && !obj.hasControls
+        let isLocked = !obj.selectable && !obj.evented && !obj.hasControls
+        if (obj.id === 'paper-bg') {
+          isLocked = true
+        }
 
         return {
           id: obj.id,
@@ -39,7 +45,7 @@ export function useStickerLayers(getFabricCanvas, getActiveObject, saveHistory) 
           type: iconType,
           text: text,
           isActive: currentActive === obj,
-          isTop: idx === filteredObjects.length - 1,
+          isTop: idx === allObjects.length - 1,
           isBottom: idx === 0,
           isLocked
         }
@@ -51,6 +57,10 @@ export function useStickerLayers(getFabricCanvas, getActiveObject, saveHistory) 
 
   // Drag & Drop
   const onDragStart = (e, idx) => {
+    if (canvasLayers.value[idx].id === 'paper-bg') {
+      e.preventDefault()
+      return
+    }
     draggedLayerIndex.value = idx
     e.dataTransfer.effectAllowed = 'move'
   }
@@ -69,14 +79,25 @@ export function useStickerLayers(getFabricCanvas, getActiveObject, saveHistory) 
     }
 
     const newLayers = [...canvasLayers.value]
+    const paperIdx = newLayers.findIndex(l => l.id === 'paper-bg')
+    
     const draggedLayer = newLayers[dragIdx]
     newLayers.splice(dragIdx, 1)
     newLayers.splice(dropIdx, 0, draggedLayer)
 
+    // Force paper-bg back to bottom if it accidentally moved
+    if (paperIdx !== -1) {
+      const currentPaperIdx = newLayers.findIndex(l => l.id === 'paper-bg')
+      if (currentPaperIdx !== newLayers.length - 1) {
+        const paper = newLayers.splice(currentPaperIdx, 1)[0]
+        newLayers.push(paper)
+      }
+    }
+
     const totalLayers = newLayers.length
     for (let i = 0; i < totalLayers; i++) {
       const layer = newLayers[i]
-      canvas.moveObjectTo(layer.obj, totalLayers - i)
+      canvas.moveObjectTo(layer.obj, totalLayers - 1 - i)
     }
 
     canvas.requestRenderAll()
@@ -99,14 +120,14 @@ export function useStickerLayers(getFabricCanvas, getActiveObject, saveHistory) 
   }
   const bringLayerForward = layer => {
     const canvas = getFabricCanvas()
-    if (!canvas) return
+    if (!canvas || layer.id === 'paper-bg') return
     canvas.bringObjectForward(layer.obj)
     canvas.requestRenderAll()
     syncLayers()
   }
   const sendLayerBackwards = layer => {
     const canvas = getFabricCanvas()
-    if (!canvas || layer.isBottom) return
+    if (!canvas || layer.isBottom || layer.id === 'paper-bg') return
     canvas.sendObjectBackwards(layer.obj)
     const paper = canvas.getObjects().find(o => o.id === 'paper-bg')
     if (paper) canvas.moveObjectTo(paper, 0)
@@ -123,7 +144,7 @@ export function useStickerLayers(getFabricCanvas, getActiveObject, saveHistory) 
   }
   const toggleLockLayer = layer => {
     const canvas = getFabricCanvas()
-    if (!canvas) return
+    if (!canvas || layer.id === 'paper-bg') return
     const obj = layer.obj
     const newLockStatus = !layer.isLocked
 

@@ -3,19 +3,32 @@ import db from "../config/db.js";
 import AppError from "../utils/AppError.js";
 import * as roleRepo from "../repositories/roleRepository.js";
 import { createLog } from "../repositories/systemLogRepository.js";
+import { emitSharedTaskSignal } from "./firebaseSignalService.js";
+import cache from "../config/cache.js";
+import Logger from "../utils/logger.js";
 
 /**
  * @returns {Promise<any>}
  */
 export const getRolesService = async () => {
-  return await roleRepo.getRoles(db);
+  const cacheKey = "MASTER_ROLES";
+  if (cache.has(cacheKey)) return cache.get(cacheKey);
+
+  const data = await roleRepo.getRoles(db);
+  cache.set(cacheKey, data);
+  return data;
 };
 
 /**
  * @returns {Promise<any>}
  */
 export const getPermissionsService = async () => {
-  return await roleRepo.getPermissions(db);
+  const cacheKey = "MASTER_PERMISSIONS";
+  if (cache.has(cacheKey)) return cache.get(cacheKey);
+
+  const data = await roleRepo.getPermissions(db);
+  cache.set(cacheKey, data);
+  return data;
 };
 
 /**
@@ -54,6 +67,8 @@ export const updateRolePermissionsService = async (roleId, permissionIds, userId
     });
 
     await connection.commit();
+    cache.del("MASTER_ROLES");
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_ROLES').catch(e => Logger.error("Signal Error", e, "ROLE_SERVICE"));
   } catch (error) {
     if (connection) await connection.rollback();
     if (error.code === "ER_NO_REFERENCED_ROW_2") {
@@ -87,6 +102,8 @@ export const createRoleService = async (name, description, userId, ip, userAgent
       userAgent,
     });
 
+    cache.del("MASTER_ROLES");
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_ROLES').catch(e => Logger.error("Signal Error", e, "ROLE_SERVICE"));
     return roleId;
   } catch (error) {
     if (error.code === "ER_DUP_ENTRY") {
@@ -119,6 +136,9 @@ export const updateRoleService = async (roleId, name, description, userId, ip, u
       ip,
       userAgent,
     });
+    
+    cache.del("MASTER_ROLES");
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_ROLES').catch(e => Logger.error("Signal Error", e, "ROLE_SERVICE"));
   } catch (error) {
     if (error.code === "ER_DUP_ENTRY") {
       throw new AppError("Nama peran sudah digunakan.", 409);
@@ -148,6 +168,9 @@ export const deleteRoleService = async (roleId, userId, ip, userAgent) => {
       ip,
       userAgent,
     });
+    
+    cache.del("MASTER_ROLES");
+    emitSharedTaskSignal('MASTER_DATA', 'REFRESH_ROLES').catch(e => Logger.error("Signal Error", e, "ROLE_SERVICE"));
   } catch (error) {
     if (error.code === "ER_ROW_IS_REFERENCED_2") {
       throw new AppError("Gagal menghapus: Peran ini masih digunakan oleh satu atau lebih pengguna.", 400);
