@@ -27,6 +27,7 @@ import { uploadMediaToR2 } from '@/utils/mediaUploader.js'
 import { formatTags } from '@/utils/formatters.js'
 import { useProductSearch } from '@/composables/useProductSearch.js'
 import { usePagination } from '@/composables/usePagination.js'
+import { useFirebaseSync } from '@/composables/useFirebaseSync.js'
 
 const linkStatusOptions = [
   { value: 'all', label: 'Semua', icon: 'fa-solid fa-layer-group' },
@@ -43,6 +44,8 @@ watch(viewMode, newMode => {
   localStorage.setItem('mediaViewMode', newMode)
 })
 
+
+
 const initialPageSize = Number(localStorage.getItem('mediaPageSize')) || 18
 const totalMedia = ref(0)
 const {
@@ -55,6 +58,9 @@ const {
   initialLimit: initialPageSize,
   storageKey: 'mediaPageSize'
 })
+
+// Firebase Real-time Sync untuk Media
+useFirebaseSync('MASTER_DATA', 'REFRESH_MEDIA', () => fetchMedia(currentPage.value, true))
 
 const changePageSize = newLimit => {
   doChangePageSize(newLimit)

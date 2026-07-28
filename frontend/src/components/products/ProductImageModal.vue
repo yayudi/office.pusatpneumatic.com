@@ -12,14 +12,15 @@ import { resolveUrl } from '@/composables/useImageUrl'
 import MediaCard from '@/components/common/MediaCard.vue'
 import MediaActionBar from '@/components/common/MediaActionBar.vue'
 import MediaLightbox from '@/components/common/MediaLightbox.vue'
-const ImageCropperModal = defineAsyncComponent(() => import('@/views/media/ImageCropperModal.vue'))
 import { autoCropCenter } from '@/utils/imageCropper.js'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import { isGenericTitle, stripExtension } from '@/utils/mediaUtils'
+import { useFirebaseSync } from '@/composables/useFirebaseSync.js'
+const ImageCropperModal = defineAsyncComponent(() => import('@/views/media/ImageCropperModal.vue'))
 
 const props = defineProps({
   show: Boolean,
-  productData: Object,
+  productData: Object
 })
 
 const emit = defineEmits(['close', 'refresh'])
@@ -36,11 +37,11 @@ const lightboxIndex = ref(0)
 
 /** Map existingImages to the shape MediaLightbox expects */
 const lightboxImages = computed(() =>
-  existingImages.value.map((img) => ({
+  existingImages.value.map(img => ({
     main_path: img.image_path,
     thumbnail_path: img.thumbnail_path || img.image_path,
-    title: img.title || 'Gambar Produk',
-  })),
+    title: img.title || 'Gambar Produk'
+  }))
 )
 
 const canUpload = computed(() => authStore.hasPermission('product.image.upload'))
@@ -63,7 +64,14 @@ async function fetchImages() {
   }
 }
 
-const handlePaste = async (event) => {
+// Auto-refresh gambar di modal jika ada pengguna lain yang menambah/menghapus gambar atau media
+useFirebaseSync('MASTER_DATA', ['REFRESH_PRODUCTS', 'REFRESH_MEDIA'], () => {
+  if (props.show) {
+    fetchImages()
+  }
+})
+
+const handlePaste = async event => {
   if (!props.show) return
   if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return
 
@@ -79,7 +87,7 @@ const handlePaste = async (event) => {
   }
 
   if (validFiles.length > 0) {
-    validFiles.forEach((file) => {
+    validFiles.forEach(file => {
       file.preview = URL.createObjectURL(file)
       selectedImages.value.push(file)
     })
@@ -96,33 +104,31 @@ onUnmounted(() => {
 
 watch(
   () => props.show,
-  (val) => {
+  val => {
     if (val) {
       loading.value = false
       selectedImages.value = []
       existingImages.value = []
       fetchImages()
     }
-  },
+  }
 )
 
 const fileTitles = ref([])
 const uploadTagsStr = ref('')
 
-
-
 async function handleImageUpload(event) {
   const files = Array.from(event.target.files)
   if (files.length === 0) return
 
-  const validFiles = files.filter((f) => f.type.match('image.*'))
+  const validFiles = files.filter(f => f.type.match('image.*'))
   if (validFiles.length < files.length) {
     toast('Beberapa file bukan gambar dan diabaikan.', 'warning')
   }
 
   if (validFiles.length === 0) return
 
-  validFiles.forEach((file) => {
+  validFiles.forEach(file => {
     file.preview = URL.createObjectURL(file)
     selectedImages.value.push(file)
     fileTitles.value.push(stripExtension(file.name))
@@ -143,7 +149,7 @@ const autoCropAll = async () => {
   autoCropAllProcessing.value = true
   try {
     const newFiles = await autoCropCenter(selectedImages.value)
-    newFiles.forEach((f) => (f.preview = URL.createObjectURL(f)))
+    newFiles.forEach(f => (f.preview = URL.createObjectURL(f)))
     selectedImages.value = newFiles
   } catch (error) {
     console.error('Auto crop failed:', error)
@@ -156,48 +162,41 @@ const isCropperOpen = ref(false)
 const currentEditIndex = ref(-1)
 const currentEditFile = ref(null)
 
-const openCropper = (index) => {
+const openCropper = index => {
   currentEditIndex.value = index
   currentEditFile.value = selectedImages.value[index]
   isCropperOpen.value = true
 }
 
-const handleCroppedSave = (newFile) => {
+const handleCroppedSave = newFile => {
   if (currentEditIndex.value !== -1) {
     newFile.preview = URL.createObjectURL(newFile)
     selectedImages.value[currentEditIndex.value] = newFile
   }
 }
 
-
-
 async function saveNewImages() {
   if (selectedImages.value.length === 0) return
 
   // Validasi judul generik
-  const invalidIndex = fileTitles.value.findIndex((t) => isGenericTitle(t))
+  const invalidIndex = fileTitles.value.findIndex(t => isGenericTitle(t))
   if (invalidIndex !== -1) {
-    toast(
-      `Silakan ubah nama file "${fileTitles.value[invalidIndex]}" menjadi lebih deskriptif.`,
-      'warning',
-    )
+    toast(`Silakan ubah nama file "${fileTitles.value[invalidIndex]}" menjadi lebih deskriptif.`, 'warning')
     return
   }
 
   loading.value = true
-  let tags = [];
+  let tags = []
   if (uploadTagsStr.value.trim()) {
-    tags = uploadTagsStr.value.trim().split(',').map(t => t.trim()).filter(Boolean);
+    tags = uploadTagsStr.value
+      .trim()
+      .split(',')
+      .map(t => t.trim())
+      .filter(Boolean)
   }
 
   try {
-    const data = await uploadMediaToR2(
-      apiClient,
-      selectedImages.value,
-      fileTitles.value,
-      tags,
-      [props.productData.id]
-    );
+    const data = await uploadMediaToR2(apiClient, selectedImages.value, fileTitles.value, tags, [props.productData.id])
 
     if (data.success) {
       toast(`${selectedImages.value.length} gambar berhasil diunggah.`, 'success')
@@ -226,7 +225,7 @@ async function saveNewImages() {
 }
 
 async function deleteImage(imageId) {
-  if (!await swalConfirm('Hapus gambar ini permanen?')) return
+  if (!(await swalConfirm('Hapus gambar ini permanen?'))) return
 
   loading.value = true
   try {
@@ -268,9 +267,7 @@ const getImageUrl = resolveUrl
     <template #title>
       <div class="-mt-1">
         <h3 class="font-bold text-lg text-text">Galeri Produk</h3>
-        <p class="text-xs text-text/60 font-mono font-normal mt-1">
-          {{ productData.sku }} - {{ productData.name }}
-        </p>
+        <p class="text-xs text-text/60 font-mono font-normal mt-1">{{ productData.sku }} - {{ productData.name }}</p>
       </div>
     </template>
 
@@ -362,8 +359,7 @@ const getImageUrl = resolveUrl
                 <font-awesome-icon icon="fa-solid fa-cloud-arrow-up" class="text-3xl mb-2" />
                 <p class="text-sm font-bold">Klik untuk pilih gambar</p>
                 <p class="text-xs opacity-70">
-                  Bisa pilih banyak sekaligus atau tekan <strong>CTRL+V</strong> untuk paste (Max
-                  5MB)
+                  Bisa pilih banyak sekaligus atau tekan <strong>CTRL+V</strong> untuk paste (Max 5MB)
                 </p>
               </div>
               <!-- Input Multiple -->
@@ -403,12 +399,8 @@ const getImageUrl = resolveUrl
                       </div>
                     </div>
                     <div class="flex flex-col flex-1 min-w-0">
-                      <span class="text-xs font-bold text-text truncate" :title="file.name">{{
-                        file.name
-                      }}</span>
-                      <span class="text-[10px] text-text/50"
-                        >{{ (file.size / 1024).toFixed(1) }} KB</span
-                      >
+                      <span class="text-xs font-bold text-text truncate" :title="file.name">{{ file.name }}</span>
+                      <span class="text-[10px] text-text/50">{{ (file.size / 1024).toFixed(1) }} KB</span>
                     </div>
                   </div>
 
@@ -460,11 +452,7 @@ const getImageUrl = resolveUrl
                   :disabled="loading"
                   class="px-6 py-2 bg-primary hover:bg-primary-dark text-secondary font-bold rounded-lg shadow-lg flex items-center gap-2 transition-all active:scale-95"
                 >
-                  <font-awesome-icon
-                    v-if="loading"
-                    icon="fa-solid fa-spinner"
-                    class="animate-spin"
-                  />
+                  <font-awesome-icon v-if="loading" icon="fa-solid fa-spinner" class="animate-spin" />
                   <span v-else>Simpan ({{ selectedImages.length }})</span>
                 </button>
               </div>

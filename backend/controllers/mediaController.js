@@ -6,6 +6,7 @@ import db from "../config/db.js";
 import Logger from "../utils/logger.js";
 import { storageService } from "../services/storageService.js";
 import * as productRepo from "../repositories/productRepository.js";
+import { emitSharedTaskSignal } from "../services/firebaseSignalService.js";
 
 import AppError from "../utils/AppError.js";
 
@@ -139,8 +140,14 @@ export const deleteMedia = async (req, res, next) => {
     await pushToQueue(asset.main_path);
     await pushToQueue(asset.thumbnail_path);
 
-    res.json({ success: true, message: "Aset berhasil dihapus" });
+
+    
+    // Broadcast signal agar list media refresh otomatis di client lain
+    emitSharedTaskSignal("MASTER_DATA", "REFRESH_MEDIA");
+
+    res.json({ success: true, message: "Media berhasil dihapus" });
   } catch (error) {
+    if (connection) await connection.rollback();
     if (error.code === "ER_ROW_IS_REFERENCED_2") {
       return next(new AppError("Tidak bisa dihapus karena sedang dipakai oleh produk", 409));
     }
@@ -166,6 +173,9 @@ export const updateMediaTagsController = async (req, res, next) => {
     if (!asset) return next(new AppError("Aset tidak ditemukan", 404));
 
     await mediaRepo.updateMediaTags(connection, id, tags);
+    
+    emitSharedTaskSignal("MASTER_DATA", "REFRESH_MEDIA");
+    
     res.json({ success: true, message: "Tags berhasil diperbarui" });
   } catch (error) {
     next(error);
@@ -190,6 +200,9 @@ export const updateMediaTitleController = async (req, res, next) => {
     if (!asset) return next(new AppError("Aset tidak ditemukan", 404));
 
     await mediaRepo.updateMediaTitle(connection, id, title.trim());
+    
+    emitSharedTaskSignal("MASTER_DATA", "REFRESH_MEDIA");
+    
     res.json({ success: true, message: "Judul berhasil diperbarui" });
   } catch (error) {
     next(error);
@@ -323,6 +336,10 @@ export const confirmUpload = async (req, res, next) => {
     }
 
     await connection.commit();
+    
+    // Trigger update ke client lain
+    emitSharedTaskSignal("MASTER_DATA", "REFRESH_MEDIA");
+
     res.json({
       success: true,
       message: `${uploadedAssets.length} media berhasil disimpan`,
