@@ -3,9 +3,9 @@
 import { ref, watch, onMounted } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
-import { useUpload } from '@/composables/useUpload.js'
 import { useMobile } from '@/composables/useMobile.js'
 import axios from '@/api/axios.js'
+import { uploadMediaToR2 } from '@/utils/mediaUploader.js'
 import debounce from 'lodash/debounce'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
@@ -28,7 +28,6 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'refresh'])
 const { toast } = useToast()
-const { uploadFile } = useUpload()
 const masterStore = useMasterDataStore()
 
 const form = ref({
@@ -305,30 +304,40 @@ async function handleSubmit() {
       components: form.value.is_package ? components.value : []
     }
 
-    // Switch ke FormData jika ada gambar
-    let response
+    // 1. Upload Gambar ke R2 jika ada
+    let mediaIds = []
     if (selectedImage.value) {
-      const uploadPayload = { ...payload }
-      uploadPayload.components = JSON.stringify(uploadPayload.components)
+      // Judul file menggunakan nama produk atau SKU
+      const imageTitle = form.value.name || form.value.sku || 'Gambar Produk'
+      
+      const uploadRes = await uploadMediaToR2(
+        axios,
+        [selectedImage.value],
+        [imageTitle],
+        [], // tags kosong
+        []  // productIds kosong (akan dilink saat create/update produk)
+      )
 
-      if (props.mode === 'create') {
-        response = await uploadFile('/products', selectedImage.value, 'images', uploadPayload, 'post')
+      if (uploadRes && uploadRes.success && uploadRes.data && uploadRes.data.length > 0) {
+        mediaIds = uploadRes.data.map(item => item.id)
       } else {
-        response = await uploadFile(
-          `/products/${props.productData.id}`,
-          selectedImage.value,
-          'images',
-          uploadPayload,
-          'put'
-        )
+        toast('Gagal mengunggah gambar ke penyimpanan Cloud.', 'error')
+        loading.value = false
+        return
       }
+    }
+
+    // 2. Submit Data Produk (JSON murni)
+    const finalPayload = {
+      ...payload,
+      mediaIds
+    }
+
+    let response
+    if (props.mode === 'create') {
+      response = await axios.post('/products', finalPayload)
     } else {
-      // JSON Biasa
-      if (props.mode === 'create') {
-        response = await axios.post('/products', payload)
-      } else {
-        response = await axios.put(`/products/${props.productData.id}`, payload)
-      }
+      response = await axios.put(`/products/${props.productData.id}`, finalPayload)
     }
 
     if (response.data.success) {

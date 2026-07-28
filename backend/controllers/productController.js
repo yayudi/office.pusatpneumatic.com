@@ -145,7 +145,7 @@ export const getProductStockTimeline = catchAsync(async (req, res, next) => {
 // POST /
 // Membuat produk baru
 export const createProduct = async (req, res, next) => {
-  const { sku, name, category_id, price, weight, is_package } = req.body;
+  const { sku, name, category_id, price, weight, is_package, mediaIds } = req.body;
   let components = req.body.components;
 
   // Handle Components JSON parsing from FormData
@@ -157,12 +157,17 @@ export const createProduct = async (req, res, next) => {
     }
   }
 
+  // Parse mediaIds if it comes as stringified array
+  let parsedMediaIds = mediaIds || [];
+  if (typeof parsedMediaIds === "string") {
+    try { parsedMediaIds = JSON.parse(parsedMediaIds); } catch { parsedMediaIds = []; }
+  }
+
   const userId = req.user.id;
-  const images = req.files || []; // Array of files
 
   try {
     const productId = await productService.createProductService(
-      { sku, name, category_id, price, weight, is_package, components, images },
+      { sku, name, category_id, price, weight, is_package, components, mediaIds: parsedMediaIds },
       userId,
     );
 
@@ -181,7 +186,7 @@ export const createProduct = async (req, res, next) => {
 // Memperbarui produk
 export const updateProduct = async (req, res, next) => {
   const { id } = req.params;
-  const { sku, name, category_id, price, weight, is_package, is_active } = req.body;
+  const { sku, name, category_id, price, weight, is_package, is_active, mediaIds } = req.body;
 
   let components = req.body.components;
   if (typeof components === "string") {
@@ -192,8 +197,12 @@ export const updateProduct = async (req, res, next) => {
     }
   }
 
+  let parsedMediaIds = mediaIds || [];
+  if (typeof parsedMediaIds === "string") {
+    try { parsedMediaIds = JSON.parse(parsedMediaIds); } catch { parsedMediaIds = []; }
+  }
+
   const userId = req.user.id;
-  const images = req.files || [];
 
   // Handle Restore Action (Specific Case)
   if (is_active === true && !name) {
@@ -206,11 +215,10 @@ export const updateProduct = async (req, res, next) => {
     }
   }
 
-  // Regular Update
   try {
     await productService.updateProductService(
       id,
-      { sku, name, category_id, price, weight, is_package, components, images },
+      { sku, name, category_id, price, weight, is_package, components, mediaIds: parsedMediaIds },
       userId
     );
 
@@ -258,29 +266,7 @@ export const linkMediaToProduct = async (req, res, next) => {
   }
 };
 
-// POST /:id/images
-export const uploadMoreImages = async (req, res, next) => {
-  const { id } = req.params;
-  const userId = req.user.id;
-  const images = req.files;
-
-  // Handle Raw Uploads (Old Flow / Backward Compat)
-  if (!images || images.length === 0) {
-    return next(new AppError("Tidak ada gambar yang diunggah.", 400));
-  }
-
-  try {
-    // This expects insertImages to be defined (Currently missing in repo but keeping logic intact if it exists elsewhere)
-    await productService.uploadProductImagesService(id, images, userId);
-    cache.flushAll(); // Reset cache
-    res.json({
-      success: true,
-      message: `${images.length} gambar berhasil ditambahkan.`,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+// Removed uploadMoreImages; linkMediaToProduct should be used instead.
 
 // DELETE /:id/images/:imageId
 export const deleteProductImage = async (req, res, next) => {

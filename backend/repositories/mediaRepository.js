@@ -157,6 +157,17 @@ export const getMediaAssetByHash = async (connection, hash) => {
 };
 
 /**
+ * Menambahkan file ke antrean hapus R2
+ * @param {object} connection
+ * @param {string} r2Key
+ * @returns {Promise<void>}
+ */
+export const insertTrashQueue = async (connection, r2Key) => {
+  if (!r2Key) return;
+  await connection.query('INSERT INTO r2_trash_queue (r2_key) VALUES (?)', [r2Key]);
+};
+
+/**
  * Menghapus Media Asset dari DB
  * @param {object} connection
  * @param {number} mediaId

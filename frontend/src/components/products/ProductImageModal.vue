@@ -5,6 +5,8 @@ import { ref, computed, watch, onMounted, onUnmounted, defineAsyncComponent } fr
 import { useToast } from '@/composables/useToast.js'
 import { useAuthStore } from '@/stores/auth.js'
 import axios from '@/api/axios.js'
+import { uploadMediaToR2 } from '@/utils/mediaUploader.js'
+import apiClient from '@/api/axios'
 import { fetchProductById } from '@/api/helpers/products.js'
 import { resolveUrl } from '@/composables/useImageUrl'
 import MediaCard from '@/components/common/MediaCard.vue'
@@ -183,24 +185,22 @@ async function saveNewImages() {
   }
 
   loading.value = true
-  const formData = new FormData()
-  selectedImages.value.forEach((file) => {
-    formData.append('images', file, file.name)
-  })
-
-  formData.append('titles', JSON.stringify(fileTitles.value))
+  let tags = [];
   if (uploadTagsStr.value.trim()) {
-    formData.append('tags', uploadTagsStr.value.trim())
+    tags = uploadTagsStr.value.trim().split(',').map(t => t.trim()).filter(Boolean);
   }
-  formData.append('products', JSON.stringify([props.productData.id]))
 
   try {
-    const { data } = await axios.post(`/media/upload`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    const data = await uploadMediaToR2(
+      apiClient,
+      selectedImages.value,
+      fileTitles.value,
+      tags,
+      [props.productData.id]
+    );
 
     if (data.success) {
-      toast(`${selectedImages.value.length} gambar masuk antrean pemrosesan.`, 'success')
+      toast(`${selectedImages.value.length} gambar berhasil diunggah.`, 'success')
       selectedImages.value = []
       fileTitles.value = []
       uploadTagsStr.value = ''
@@ -299,7 +299,7 @@ const getImageUrl = resolveUrl
             <MediaCard
               v-for="(img, index) in existingImages"
               :key="img.id"
-              :image-url="getImageUrl(img.image_path)"
+              :image-url="getImageUrl(img.thumbnail_path || img.image_path)"
               :image-id="img.id"
               :display-name="img.title || 'Gambar Produk'"
               @click="((isLightboxOpen = true), (lightboxIndex = index))"

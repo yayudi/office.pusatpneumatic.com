@@ -25,6 +25,7 @@
     "@yeger/vue-masonry-wall": "^5.1.4",
     "apexcharts": "^5.3.6",
     "axios": "^1.11.0",
+    "browser-image-compression": "^2.0.2",
     "cropperjs": "^2.1.1",
     "dayjs": "^1.11.19",
     "fabric": "^7.4.0",

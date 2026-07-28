@@ -18,6 +18,13 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // ==================================================================
+// Validasi Kredensial R2 (Fail-Fast)
+// ==================================================================
+if (!process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY || !process.env.R2_ENDPOINT || !process.env.R2_BUCKET_NAME) {
+  Logger.error("FATAL ERROR: Kredensial Cloudflare R2 belum diset di .env", null, "SERVER");
+  // process.exit(1); // Jangan exit agar nodemon tidak crash loop, cukup log error
+}
+// ==================================================================
 // Keamanan API (Helmet)
 // ==================================================================
 app.use(

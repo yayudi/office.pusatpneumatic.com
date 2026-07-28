@@ -31,29 +31,7 @@ const storage = createDiskStorage(uploadDir, "price-update");
 const upload = multer({ storage: storage });
 
 // CONFIG: Multer untuk Product Images
-const productUploadDir = "uploads/products/";
-if (!fs.existsSync(productUploadDir)) {
-  try {
-    fs.mkdirSync(productUploadDir, { recursive: true });
-    Logger.info(`Folder created: ${productUploadDir}`, "PRODUCT_ROUTER");
-  } catch (err) {
-    Logger.error(`Failed to create folder ${productUploadDir}`, err, "PRODUCT_ROUTER");
-  }
-}
-
-const productStorage = createDiskStorage(productUploadDir, "prod");
-
-const productUpload = multer({
-  storage: productStorage,
-  limits: { fileSize: 2 * 1024 * 1024 }, // Limit 2MB (Backend protection)
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith("image/")) {
-      cb(null, true);
-    } else {
-      cb(new Error("Hanya file gambar yang diperbolehkan!"), false);
-    }
-  },
-});
+// Removed local image upload via Multer
 
 // ============================================================================
 // SPECIFIC ROUTES (MUST BE DEFINED FIRST)
@@ -161,7 +139,6 @@ router.get("/:id/stock-timeline", productController.getProductStockTimeline);
 router.post(
   "/",
   canAccess("product.image.upload"),
-  productUpload.array("images", 5),
   validate(productSchema),
   productController.createProduct,
 );
@@ -173,7 +150,6 @@ router.post(
 router.put(
   "/:id",
   canAccess("product.image.upload"),
-  productUpload.array("images", 5),
   validate(productSchema),
   productController.updateProduct,
 );
@@ -199,16 +175,7 @@ router.post(
   productController.linkMediaToProduct,
 );
 
-/**
- * POST /api/products/:id/images
- * Upload/Ganti gambar produk. Permission: 'product.image.upload'
- */
-router.post(
-  "/:id/images",
-  canAccess("product.image.upload"),
-  productUpload.any(), // DEBUG: Allow any field to inspect what is being sent
-  productController.uploadMoreImages,
-);
+// Removed POST /:id/images since uploadMoreImages is removed. Link media directly via /:id/link-media instead.
 
 /**
  * PUT /api/products/:id/images/:imageId/primary

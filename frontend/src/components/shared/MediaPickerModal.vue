@@ -3,6 +3,8 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { useAuthStore } from '@/stores/auth.js'
 import axios from '@/api/axios.js'
+import { uploadMediaToR2 } from '@/utils/mediaUploader.js'
+import apiClient from '@/api/axios'
 import { resolveUrl } from '@/composables/useImageUrl'
 import MediaCard from '@/components/common/MediaCard.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
@@ -143,32 +145,22 @@ async function saveNewImages() {
   }
 
   loading.value = true
-  const formData = new FormData()
-  selectedImages.value.forEach(file => {
-    formData.append('images', file, file.name)
-  })
-
-  formData.append('titles', JSON.stringify(fileTitles.value))
-
-  // Apply default tags from props + any user might want (hardcoded here to props)
-  if (props.defaultTags.length > 0) {
-    formData.append('tags', JSON.stringify(props.defaultTags))
-  }
-
   try {
-    const { data } = await axios.post(`/media/upload`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    })
+    const data = await uploadMediaToR2(
+      apiClient,
+      selectedImages.value,
+      fileTitles.value,
+      props.defaultTags.length > 0 ? props.defaultTags : [],
+      []
+    );
 
     if (data.success) {
-      toast(`${selectedImages.value.length} gambar masuk antrean pemrosesan.`, 'success')
+      toast(`${selectedImages.value.length} gambar berhasil diunggah.`, 'success')
       selectedImages.value = []
       fileTitles.value = []
 
-      // Give worker a moment to process the upload
-      setTimeout(async () => {
-        await fetchImages()
-      }, 1500)
+      // Refresh list immediately (no need for worker delay)
+      await fetchImages()
     }
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var

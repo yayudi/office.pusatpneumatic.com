@@ -30,6 +30,7 @@ import notificationRoutes from "./notificationRouter.js";
 import stickerTemplateRoutes from "./stickerTemplateRouter.js";
 import investigationRoutes from "./investigationRouter.js";
 import paperSizeRoutes from "./paperSizeRouter.js";
+import uploadRoutes from "./uploadRouter.js";
 // import cronRouter from "./cronRouter.js";
 
 import AppError from "../utils/AppError.js";
@@ -74,6 +75,7 @@ apiRouter.use("/notifications", authenticateToken, notificationRoutes);
 apiRouter.use("/sticker-templates", authenticateToken, stickerTemplateRoutes);
 apiRouter.use("/paper-sizes", paperSizeRoutes); // Authentication handled in router
 apiRouter.use("/investigation", authenticateToken, investigationRoutes);
+apiRouter.use("/uploads", authenticateToken, uploadRoutes);
 // apiRouter.use("/cron", authenticateToken, cronRouter);
 
 // Rute tes "canary"

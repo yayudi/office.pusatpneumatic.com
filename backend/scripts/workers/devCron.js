@@ -5,7 +5,6 @@ import Logger from '../../utils/logger.js'
 // Import jobs
 import { processQueue as exportQueue } from './exportQueue.js'
 import { importQueue } from './importQueue.js'
-import { runMediaWorker } from './mediaWorker.js'
 import { runAutoRecovery } from './autoRecoveryWorker.js'
 
 const EXPORT_INTERVAL = 10000 // 10s
@@ -16,7 +15,6 @@ const AUTO_RECOVERY_INTERVAL = 300000 // 5 menit
 // Locks / Flags
 let isExporting = false
 let isImporting = false
-let isProcessingMedia = false
 let isRecovering = false
 
 Logger.info('Unified Development Worker Started!', 'DEV_CRON')
@@ -46,18 +44,6 @@ const runImport = async () => {
   }
 }
 
-const runMedia = async () => {
-  if (isProcessingMedia) return
-  isProcessingMedia = true
-  try {
-    await runMediaWorker()
-  } catch (err) {
-    Logger.error('Media Worker Error', err, 'DEV_CRON')
-  } finally {
-    isProcessingMedia = false
-  }
-}
-
 const runRecovery = async () => {
   if (isRecovering) return
   
@@ -80,13 +66,6 @@ const runRecovery = async () => {
 // -----------------------------------------------------
 // INIT & TIMERS DENGAN STAGGER/DELAY MITIGASI EVENT LOOP
 // -----------------------------------------------------
-
-// 1. Media Worker (Ringan/Cepat tp bisa CPU Bound)
-setTimeout(() => {
-  Logger.info('Memulai Interval Media Worker (tiap 5s)...', 'DEV_CRON')
-  runMedia() // Initial run
-  setInterval(runMedia, MEDIA_INTERVAL)
-}, 1000)
 
 // 2. Export Worker (Offset 3 detik dari boot/media)
 setTimeout(() => {

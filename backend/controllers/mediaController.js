@@ -1,11 +1,10 @@
-import catchAsync from "../utils/catchAsync.js";
 // backend/controllers/mediaController.js
-import path from "path";
-import fs from "fs/promises";
+import catchAsync from "../utils/catchAsync.js";
 import * as mediaRepo from "../repositories/mediaRepository.js";
 import * as mediaService from "../services/mediaService.js";
 import db from "../config/db.js";
 import Logger from "../utils/logger.js";
+import { storageService } from "../services/storageService.js";
 import * as productRepo from "../repositories/productRepository.js";
 
 import AppError from "../utils/AppError.js";
@@ -109,137 +108,8 @@ export const getMediaStatus = async (req, res, next) => {
 };
 
 /**
- * POST /api/media/upload
- * Menerima file, simpan ke temp, insert PENDING ke media_assets
- */
-export const uploadMedia = async (req, res, next) => {
-  if (!req.files || req.files.length === 0) {
-    return next(new AppError("Tidak ada file yang diunggah", 400));
-  }
-
-  const userId = req.user.id;
-
-  let tags = [];
-  if (req.body.tags) {
-    if (typeof req.body.tags === "string") {
-      try {
-        tags = JSON.parse(req.body.tags);
-      } catch {
-        // Fallback untuk raw string koma (FormData browser)
-        tags = req.body.tags
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean);
-      }
-    } else if (Array.isArray(req.body.tags)) {
-      tags = req.body.tags;
-    }
-    if (!Array.isArray(tags)) tags = [tags];
-  }
-
-  let connection;
-
-  // Parse custom titles (JSON array dari frontend, posisi sejajar dengan req.files)
-  let titles = [];
-  if (req.body.titles) {
-    try {
-      titles = JSON.parse(req.body.titles);
-    } catch {
-      titles = [];
-    }
-  }
-
-  try {
-    connection = await db.getConnection();
-    await connection.beginTransaction();
-
-    const uploadedAssets = [];
-
-    for (let i = 0; i < req.files.length; i++) {
-      const file = req.files[i];
-      if (!file.filename) {
-        throw new Error(
-          "File tidak memiliki filename. Pastikan multerConfig 'uploadDisk' berjalan normal.",
-        );
-      }
-
-      const fileTitle = (titles[i] && titles[i].trim()) || file.originalname;
-
-      // EXIF stripping and hashing are handled in mediaService
-
-      // Use service to process and store the file, handling EXIF stripping, hashing, and duplicate detection
-      const mediaId = await mediaService.processMediaFile(
-        file,
-        fileTitle,
-        tags,
-        userId,
-        connection,
-      );
-
-      // Tautkan otomatis ke Produk jika ada (fitur Bulk Upload Link)
-      if (req.body.products) {
-        let productIds = [];
-        if (typeof req.body.products === "string") {
-          try {
-            const parsed = JSON.parse(req.body.products);
-            productIds = Array.isArray(parsed) ? parsed : [parsed];
-          } catch {
-            productIds = req.body.products
-              .split(",")
-              .map((id) => id.trim())
-              .filter(Boolean);
-          }
-        } else if (Array.isArray(req.body.products)) {
-          productIds = req.body.products;
-        } else if (req.body.products) {
-          productIds = [req.body.products];
-        }
-
-        for (const pId of productIds) {
-          await productRepo.linkMedia(connection, pId, [mediaId]);
-        }
-      }
-
-      uploadedAssets.push({
-        id: mediaId,
-        originalName: file.originalname,
-        status: "PENDING",
-      });
-    }
-
-    await connection.commit();
-    res.json({
-      success: true,
-      message: `${uploadedAssets.length} file berhasil diantrekan`,
-      data: uploadedAssets,
-    });
-  } catch (error) {
-    if (connection) await connection.rollback();
-    // Cleanup temporary files on failure
-    if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        const filePath = file.path || path.resolve("uploads/temp", file.filename);
-        await fs.unlink(filePath).catch(() => {});
-      }
-    }
-
-    if (error.isDuplicate) {
-      return res.status(409).json({
-        success: false,
-        message: `File ${error.filename} sudah pernah diunggah sebelumnya.`,
-        error_code: "DUPLICATE_MEDIA",
-      });
-    }
-
-    return next(new AppError(error.message || "Gagal mengunggah media", 500));
-  } finally {
-    if (connection) connection.release();
-  }
-};
-
-/**
  * DELETE /api/media/:id
- * Menghapus file fisik dan record DB, dilindungi FK constraint
+ * Menghapus record DB, dilindungi FK constraint, lalu asinkron hapus R2 via worker
  */
 export const deleteMedia = async (req, res, next) => {
   const { id } = req.params;
@@ -256,24 +126,18 @@ export const deleteMedia = async (req, res, next) => {
     // Attempt delete (RESTRICT FK will throw if used)
     await mediaRepo.deleteMediaAsset(connection, id);
 
-    // If successful, delete the physical files
-    const deleteFile = async (subPath) => {
+    // If successful, push paths to trash queue for async deletion by worker
+    const pushToQueue = async (subPath) => {
       if (!subPath) return;
-      const fullPath = path.resolve("uploads", subPath);
       try {
-        await fs.unlink(fullPath);
+        await mediaRepo.insertTrashQueue(connection, subPath);
       } catch (err) {
-        Logger.warn(`Could not delete file ${fullPath}`, "MEDIA_CTRL", err);
+        Logger.error(`Could not push to trash queue ${subPath}`, err, "MEDIA_CTRL");
       }
     };
 
-    await deleteFile(asset.main_path);
-    await deleteFile(asset.thumbnail_path);
-
-    // If it was still in temp
-    if (asset.status === "PENDING" && asset.main_path?.startsWith("temp/")) {
-      await deleteFile(asset.main_path); // already hit by main_path
-    }
+    await pushToQueue(asset.main_path);
+    await pushToQueue(asset.thumbnail_path);
 
     res.json({ success: true, message: "Aset berhasil dihapus" });
   } catch (error) {
@@ -396,3 +260,85 @@ export const downloadBulkLinkTemplate = catchAsync(async (req, res, next) => {
   await workbook.xlsx.write(res);
   res.end();
 });
+
+/**
+ * GET /api/media/presigned-url
+ * Mendapatkan presigned URL untuk upload langsung ke R2
+ */
+export const getPresignedUrls = async (req, res, next) => {
+  const { files } = req.body; // Array of { name, type }
+  if (!files || !Array.isArray(files) || files.length === 0) {
+    return next(new AppError("List file tidak valid", 400));
+  }
+
+  try {
+    const urls = [];
+    for (const f of files) {
+      // 2 presigned URLs per image (main and thumb)
+      const main = await storageService.generatePresignedUploadUrl(f.name, f.type, "main");
+      const thumb = await storageService.generatePresignedUploadUrl(
+        `thumb_${f.name}`,
+        f.type,
+        "thumb",
+      );
+      urls.push({ originalName: f.name, main, thumb });
+    }
+
+    res.json({ success: true, data: urls });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/media/confirm
+ * Mengkonfirmasi file yang sudah diupload ke R2 dan menyimpan metadata
+ */
+export const confirmUpload = async (req, res, next) => {
+  const { assets, products } = req.body;
+  if (!assets || !Array.isArray(assets) || assets.length === 0) {
+    return next(new AppError("Metadata aset tidak valid", 400));
+  }
+
+  const userId = req.user.id;
+  let connection;
+
+  try {
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    const uploadedAssets = [];
+
+    for (const asset of assets) {
+      const mediaId = await mediaService.saveMediaMetadata(asset, userId, connection);
+
+      if (products) {
+        const productIds = Array.isArray(products) ? products : [products];
+        for (const pId of productIds) {
+          await productRepo.linkMedia(connection, pId, [mediaId]);
+        }
+      }
+
+      uploadedAssets.push({ id: mediaId, originalName: asset.title, status: "COMPLETED" });
+    }
+
+    await connection.commit();
+    res.json({
+      success: true,
+      message: `${uploadedAssets.length} media berhasil disimpan`,
+      data: uploadedAssets,
+    });
+  } catch (error) {
+    if (connection) await connection.rollback();
+    if (error.isDuplicate) {
+      return res.status(409).json({
+        success: false,
+        message: `File sudah pernah diunggah sebelumnya.`,
+        error_code: "DUPLICATE_MEDIA",
+      });
+    }
+    return next(new AppError(error.message || "Gagal menyimpan metadata media", 500));
+  } finally {
+    if (connection) connection.release();
+  }
+};

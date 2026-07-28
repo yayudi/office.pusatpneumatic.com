@@ -3,22 +3,10 @@ import path from "path";
 import fs from "fs/promises";
 import db from "../config/db.js";
 import Logger from "../utils/logger.js";
-import * as mediaService from "./mediaService.js";
 import * as productRepo from "../repositories/productRepository.js";
 import { emitSharedTaskSignal } from "./firebaseSignalService.js";
 
-import { stripExtension, isGenericTitle } from "../utils/mediaUtils.js";
-
-const resolveProductImageTitle = (file, data, index) => {
-  let title = stripExtension(file.originalname);
-  if (isGenericTitle(title)) {
-    const skuPart = data.sku ? `[${data.sku}] ` : "";
-    const namePart = data.name || "Produk";
-    title = `${skuPart}${namePart}`;
-    if (index > 0) title += ` - ${index + 1}`;
-  }
-  return title;
-};
+// resolveProductImageTitle removed since image processing is handled by mediaController now
 
 // Helper Internal: Mencatat Log Audit hanya jika ada perubahan
 export const logChange = async (connection, productId, userId, action, field, oldVal, newVal) => {
@@ -58,27 +46,8 @@ export const createProductService = async (data, userId) => {
     // Log Creation
     await logChange(connection, newId, userId, "CREATE", "all", null, data.sku);
 
-    if (data.images && data.images.length > 0) {
-      for (let i = 0; i < data.images.length; i++) {
-        const img = data.images[i];
-        try {
-          const finalTitle = resolveProductImageTitle(img, data, i);
-          const mediaId = await mediaService.processMediaFile(
-            img,
-            finalTitle,
-            [],
-            userId,
-            connection,
-          );
-          await productRepo.linkMedia(connection, newId, [mediaId]);
-        } catch (err) {
-          if (err.isDuplicate) {
-            await productRepo.linkMedia(connection, newId, [err.duplicateOf]);
-          } else {
-            throw err;
-          }
-        }
-      }
+    if (data.mediaIds && data.mediaIds.length > 0) {
+      await productRepo.linkMedia(connection, newId, data.mediaIds);
       await logChange(
         connection,
         newId,
@@ -86,7 +55,7 @@ export const createProductService = async (data, userId) => {
         "CREATE",
         "images",
         null,
-        `${data.images.length} Images`,
+        `${data.mediaIds.length} Images Linked`,
       );
     }
 
@@ -156,27 +125,8 @@ export const updateProductService = async (id, data, userId) => {
       await logChange(connection, id, userId, "UPDATE", field.key, oldVal, newVal);
     }
 
-    if (data.images && data.images.length > 0) {
-      for (let i = 0; i < data.images.length; i++) {
-        const img = data.images[i];
-        try {
-          const finalTitle = resolveProductImageTitle(img, data, i);
-          const mediaId = await mediaService.processMediaFile(
-            img,
-            finalTitle,
-            [],
-            userId,
-            connection,
-          );
-          await productRepo.linkMedia(connection, id, [mediaId]);
-        } catch (err) {
-          if (err.isDuplicate) {
-            await productRepo.linkMedia(connection, id, [err.duplicateOf]);
-          } else {
-            throw err;
-          }
-        }
-      }
+    if (data.mediaIds && data.mediaIds.length > 0) {
+      await productRepo.linkMedia(connection, id, data.mediaIds);
       await logChange(
         connection,
         id,
@@ -184,7 +134,7 @@ export const updateProductService = async (id, data, userId) => {
         "UPDATE",
         "images",
         "Append",
-        `${data.images.length} New Images`,
+        `${data.mediaIds.length} New Images Linked`,
       );
     }
 
@@ -265,51 +215,7 @@ export const restoreProductService = async (id, userId) => {
   }
 };
 
-/**
- * @param {number|string} id
- * @param {any} images
- * @param {number|string} userId
- * @returns {Promise<any>}
- */
-export const uploadProductImagesService = async (id, images, userId) => {
-  const connection = await db.getConnection();
-  await connection.beginTransaction();
-  try {
-    for (let i = 0; i < images.length; i++) {
-      const img = images[i];
-      try {
-        let finalTitle = stripExtension(img.originalname);
-        if (isGenericTitle(finalTitle)) {
-          finalTitle = `Gambar Produk - ${i + 1}`;
-        }
-        const mediaId = await mediaService.processMediaFile(
-          img,
-          finalTitle,
-          [],
-          userId,
-          connection,
-        );
-        await productRepo.linkMedia(connection, id, [mediaId]);
-      } catch (err) {
-        if (err.isDuplicate) {
-          await productRepo.linkMedia(connection, id, [err.duplicateOf]);
-        } else {
-          throw err;
-        }
-      }
-    }
-    await logChange(connection, id, userId, "UPDATE", "images", "Add", `${images.length} Images`);
-    await connection.commit();
-    emitSharedTaskSignal("MASTER_DATA", "REFRESH_PRODUCTS").catch((e) =>
-      Logger.error("Signal Error", e, "PRODUCT_SERVICE"),
-    );
-  } catch (error) {
-    await connection.rollback();
-    throw error;
-  } finally {
-    connection.release();
-  }
-};
+// Removed uploadProductImagesService as linking is handled via mediaIds
 
 /**
  * @param {number|string} productId

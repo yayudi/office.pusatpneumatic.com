@@ -23,7 +23,7 @@ import MediaActionBar from '@/components/common/MediaActionBar.vue'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 import { useMobile } from '@/composables/useMobile.js'
 import { formatBytes } from '@/utils/formatBytes.js'
-import { useUpload } from '@/composables/useUpload.js'
+import { uploadMediaToR2 } from '@/utils/mediaUploader.js'
 import { formatTags } from '@/utils/formatters.js'
 import { useProductSearch } from '@/composables/useProductSearch.js'
 import { usePagination } from '@/composables/usePagination.js'
@@ -37,7 +37,6 @@ const linkStatusOptions = [
 const { isMobile } = useMobile()
 const { toast } = useToast()
 const { downloadImage } = useImageActions()
-const { uploadFiles } = useUpload()
 const mediaList = ref([])
 const viewMode = ref(localStorage.getItem('mediaViewMode') || 'grid')
 watch(viewMode, newMode => {
@@ -389,26 +388,26 @@ const executeBulkUpload = async () => {
       const chunk = selectedFiles.value.slice(i, i + chunkSize)
       uploadProgress.value = `Mengunggah ${i + chunk.length} dari ${selectedFiles.value.length} aset...`
 
-      const formData = new FormData()
-      chunk.forEach(f => formData.append('images', f))
-
       const chunkTitles = fileTitles.value.slice(i, i + chunkSize)
-      const additionalData = {
-        titles: JSON.stringify(chunkTitles)
-      }
-
+      let tags = []
       if (bulkTagsStr.value.trim()) {
-        additionalData.tags = bulkTagsStr.value.trim()
+        tags = bulkTagsStr.value
+          .trim()
+          .split(',')
+          .map(t => t.trim())
+          .filter(Boolean)
       }
-
+      let products = []
       if (bulkSelectedProducts.value.length > 0) {
-        additionalData.products = bulkSelectedProducts.value.map(p => p.id).join(',')
+        products = bulkSelectedProducts.value.map(p => p.id)
       }
 
-      const result = await uploadFiles('/media/upload', chunk, 'images', additionalData)
+      const result = await uploadMediaToR2(apiClient, chunk, chunkTitles, tags, products, progress => {
+        uploadProgress.value = `Memproses & Mengunggah ${i + chunk.length} dari ${selectedFiles.value.length} aset... (${progress}%)`
+      })
 
-      if (!result.data.success) {
-        throw result.data
+      if (!result.success) {
+        throw result
       }
     }
   } catch (err) {
