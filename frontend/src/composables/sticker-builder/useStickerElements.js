@@ -186,6 +186,23 @@ export function useStickerElements(getFabricCanvas, syncLayers) {
     syncLayers()
   }
 
+  const addTriangle = () => {
+    const canvas = getFabricCanvas()
+    if (!canvas) return
+    const triangle = new fabric.Triangle({
+      left: 50,
+      top: 50,
+      width: 40,
+      height: 40,
+      fill: '#000000',
+      strokeUniform: true
+    })
+    canvas.add(triangle)
+    canvas.setActiveObject(triangle)
+    canvas.requestRenderAll()
+    syncLayers()
+  }
+
   const addLine = () => {
     const canvas = getFabricCanvas()
     if (!canvas) return
@@ -400,6 +417,7 @@ export function useStickerElements(getFabricCanvas, syncLayers) {
     addBarcode,
     addRectangle,
     addCircle,
+    addTriangle,
     addLine,
     deleteSelected,
     duplicateSelected,

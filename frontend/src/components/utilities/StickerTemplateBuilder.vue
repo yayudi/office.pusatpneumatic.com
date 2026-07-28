@@ -4,7 +4,6 @@ import { ref, onMounted } from 'vue'
 import api from '@/api/axios'
 import MediaPickerModal from '@/components/shared/MediaPickerModal.vue'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-
 import { useStickerFabric } from '@/composables/sticker-builder/useStickerFabric'
 import { useStickerSelection } from '@/composables/sticker-builder/useStickerSelection'
 import { useStickerHistory } from '@/composables/sticker-builder/useStickerHistory'
@@ -60,7 +59,6 @@ const {
   activeObjFill,
   activeObjStroke,
   activeObjStrokeWidth,
-  activeObjOpacity,
   handleSelection,
   updateProperty,
   updateTransformProperty,
@@ -86,12 +84,27 @@ const {
   onDrop,
   onDragEnd,
   selectLayer,
-  bringLayerForward,
-  sendLayerBackwards,
-  removeLayer,
-  toggleLockLayer
+  toggleLockLayer,
+  toggleVisibilityLayer,
+  updateLayerName
 } = useStickerLayers(getFabricCanvas, () => activeObject.value, doSaveHistory)
 doSyncLayers = syncLayers
+
+const editingLayerId = ref(null)
+const editingLayerName = ref('')
+
+const startEditingLayer = layer => {
+  if (layer.id === 'paper-bg') return
+  editingLayerId.value = layer.id
+  editingLayerName.value = layer.text
+}
+
+const saveLayerName = layer => {
+  if (editingLayerId.value === layer.id) {
+    updateLayerName(layer, editingLayerName.value)
+    editingLayerId.value = null
+  }
+}
 
 const {
   canvasWrapper,
@@ -122,6 +135,7 @@ const {
   addBarcode,
   addRectangle,
   addCircle,
+  addTriangle,
   addLine,
   deleteSelected,
   duplicateSelected,
@@ -278,9 +292,9 @@ const saveTemplate = async () => {
           </div>
 
           <!-- Toolbar & Canvas Area -->
-          <div class="flex flex-col lg:flex-row flex-1 bg-background">
+          <div class="flex flex-col lg:flex-row flex-1 bg-background min-h-0">
             <!-- Toolbar Kiri -->
-            <div class="w-full lg:w-72 border-r border-primary/10 flex flex-col bg-secondary/30 h-full">
+            <div class="w-full lg:w-[20%] border-r border-primary/10 flex flex-col bg-secondary/30 h-full">
               <!-- PROPERTY INSPECTOR -->
               <div
                 class="p-4 flex-1 bg-background/50 max-h-[calc(100vh-150px)] custom-scrollbar overflow-y-auto"
@@ -396,21 +410,21 @@ const saveTemplate = async () => {
                       class="py-2 rounded-lg border bg-background border-secondary text-text/70 hover:border-primary hover:text-primary transition-all flex items-center justify-center"
                       title="Rata Kiri"
                     >
-                      <font-awesome-icon icon="fa-solid fa-align-left" />
+                      <font-awesome-icon icon="fa-solid fa-arrow-left" />
                     </button>
                     <button
                       @click="alignObjects('center')"
                       class="py-2 rounded-lg border bg-background border-secondary text-text/70 hover:border-primary hover:text-primary transition-all flex items-center justify-center"
                       title="Rata Tengah Horisontal"
                     >
-                      <font-awesome-icon icon="fa-solid fa-align-center" />
+                      <font-awesome-icon icon="fa-solid fa-arrows-left-right" />
                     </button>
                     <button
                       @click="alignObjects('right')"
                       class="py-2 rounded-lg border bg-background border-secondary text-text/70 hover:border-primary hover:text-primary transition-all flex items-center justify-center"
                       title="Rata Kanan"
                     >
-                      <font-awesome-icon icon="fa-solid fa-align-right" />
+                      <font-awesome-icon icon="fa-solid fa-arrow-right" />
                     </button>
                     <button
                       @click="alignObjects('top')"
@@ -638,38 +652,9 @@ const saveTemplate = async () => {
                       class="w-full accent-primary"
                     />
                   </div>
-
-                  <!-- Opacity -->
-                  <div>
-                    <label class="text-xs font-bold text-text/70 mb-1 flex justify-between">
-                      <span>Transparansi</span>
-                      <span class="text-primary">{{ Math.round(activeObjOpacity * 100) }}%</span>
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.05"
-                      v-model.number="activeObjOpacity"
-                      @input="updateProperty('opacity', activeObjOpacity)"
-                      class="w-full accent-primary"
-                    />
-                  </div>
                 </div>
 
                 <!-- Image Properties (placeholder jika diperlukan ke depannya) -->
-                <div v-if="activeObject.type === 'image'" class="text-sm text-text/60 italic mt-4">
-                  Transparansi (Opacity):
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    v-model.number="activeObjOpacity"
-                    @input="updateProperty('opacity', activeObjOpacity)"
-                    class="w-full accent-primary mt-2"
-                  />
-                </div>
               </div>
 
               <div
@@ -787,6 +772,13 @@ const saveTemplate = async () => {
                   <font-awesome-icon icon="fa-solid fa-circle" class="text-lg text-text/50 group-hover:text-primary" />
                 </button>
                 <button
+                  @click="addTriangle"
+                  class="p-3 bg-background border border-secondary rounded-xl hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all shadow-sm group w-12 h-12 flex items-center justify-center"
+                  title="Segitiga"
+                >
+                  <font-awesome-icon icon="fa-solid fa-caret-up" class="text-[26px] mb-[-4px] text-text/50 group-hover:text-primary" />
+                </button>
+                <button
                   @click="addLine"
                   class="p-3 bg-background border border-secondary rounded-xl hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all shadow-sm group w-12 h-12 flex items-center justify-center"
                   title="Garis"
@@ -803,38 +795,6 @@ const saveTemplate = async () => {
                 >
                   <font-awesome-icon icon="fa-solid fa-qrcode" class="text-lg text-text/50 group-hover:text-primary" />
                 </button>
-
-                <div class="w-px h-8 bg-primary/20 mx-1 self-center"></div>
-
-                <!-- Group / Ungroup Buttons -->
-                <button
-                  @click="groupSelected"
-                  :disabled="!activeObject || activeObject.type !== 'activeselection'"
-                  class="p-3 bg-background border border-secondary rounded-xl transition-all shadow-sm group w-12 h-12 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                  :class="activeObject && activeObject.type === 'activeselection' ? 'hover:border-primary/40 hover:text-primary hover:bg-primary/5' : ''"
-                  title="Group (Ctrl+G)"
-                >
-                  <font-awesome-icon
-                    icon="fa-solid fa-object-group"
-                    class="text-lg"
-                    :class="activeObject && activeObject.type === 'activeselection' ? 'text-text/50 group-hover:text-primary' : 'text-text/30'"
-                  />
-                </button>
-                <button
-                  @click="ungroupSelected"
-                  :disabled="!activeObject || activeObject.type !== 'group'"
-                  class="p-3 bg-background border border-secondary rounded-xl transition-all shadow-sm group w-12 h-12 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                  :class="activeObject && activeObject.type === 'group' ? 'hover:border-primary/40 hover:text-primary hover:bg-primary/5' : ''"
-                  title="Ungroup (Ctrl+Shift+G)"
-                >
-                  <font-awesome-icon
-                    icon="fa-solid fa-object-ungroup"
-                    class="text-lg"
-                    :class="activeObject && activeObject.type === 'group' ? 'text-text/50 group-hover:text-primary' : 'text-text/30'"
-                  />
-                </button>
-
-                <div class="w-px h-8 bg-primary/20 mx-1 self-center"></div>
 
                 <!-- Undo / Redo Buttons -->
                 <button
@@ -873,14 +833,16 @@ const saveTemplate = async () => {
             </div>
 
             <!-- Toolbar Kanan (Layers List) -->
-            <div class="w-full lg:w-72 border-l border-primary/10 flex flex-col bg-secondary/30 h-full">
-              <div class="p-4 border-b border-primary/10 sticky top-0 bg-secondary/90 backdrop-blur-sm z-10">
+            <div class="w-full lg:w-[20%] border-l border-primary/10 flex flex-col bg-secondary/30 h-full min-h-0">
+              <div
+                class="p-4 border-b border-primary/10 sticky top-0 bg-secondary/90 backdrop-blur-sm z-10 flex items-center justify-between"
+              >
                 <h4 class="text-xs font-bold text-text/50 uppercase tracking-widest flex items-center gap-2">
                   <font-awesome-icon icon="fa-solid fa-layer-group" /> Daftar Layer
                 </h4>
               </div>
 
-              <div class="flex-1 min-h-0 p-2 flex flex-col gap-1 overflow-y-auto">
+              <div class="flex-1 min-h-0 p-2 flex flex-col gap-1 overflow-y-auto custom-scrollbar">
                 <div v-if="canvasLayers.length === 0" class="text-center text-text/40 text-xs py-8">
                   Belum ada elemen
                 </div>
@@ -892,8 +854,8 @@ const saveTemplate = async () => {
                   @dragover="e => onDragOver(e, index)"
                   @drop="e => onDrop(e, index)"
                   @dragend="onDragEnd"
-                  @click="selectLayer(layer)"
-                  class="flex items-center justify-between p-2 rounded-lg border cursor-pointer transition-all"
+                  @click="e => selectLayer(layer, e)"
+                  class="flex items-center justify-between p-1.5 rounded border cursor-pointer transition-all"
                   :class="[
                     layer.isActive
                       ? 'bg-primary/10 border-primary shadow-sm'
@@ -903,73 +865,92 @@ const saveTemplate = async () => {
                   ]"
                 >
                   <!-- Layer Info -->
-                  <div class="flex items-center gap-3 overflow-hidden">
+                  <div class="flex items-center gap-2 overflow-hidden flex-1">
+                    <button
+                      @click.stop="toggleVisibilityLayer(layer)"
+                      class="w-5 h-5 shrink-0 rounded flex items-center justify-center transition-colors"
+                      :class="
+                        !layer.isVisible
+                          ? 'text-text/30 bg-secondary hover:text-text/50'
+                          : 'text-primary/70 hover:text-primary'
+                      "
+                      :title="layer.isVisible ? 'Sembunyikan' : 'Tampilkan'"
+                    >
+                      <font-awesome-icon
+                        :icon="layer.isVisible ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash'"
+                        class="text-[10px]"
+                      />
+                    </button>
                     <div
-                      class="flex items-center gap-2 cursor-grab hover:text-primary text-text/30"
+                      class="flex items-center gap-1 cursor-grab hover:text-primary text-text/30 shrink-0"
                       title="Geser (Drag)"
                     >
                       <font-awesome-icon icon="fa-solid fa-grip-vertical" class="text-[10px]" />
-                      <span class="text-[10px] font-mono font-bold w-3 text-center">{{ index + 1 }}</span>
                     </div>
                     <div
-                      class="w-6 h-6 rounded bg-secondary/50 flex items-center justify-center shrink-0"
+                      class="w-5 h-5 rounded bg-secondary/50 flex items-center justify-center shrink-0"
                       :class="layer.isActive ? 'text-primary' : 'text-text/50'"
                     >
                       <font-awesome-icon
                         v-if="layer.type === 'i-text' || layer.type === 'text'"
                         icon="fa-solid fa-font"
-                        class="text-xs"
+                        class="text-[10px]"
                       />
-                      <font-awesome-icon v-else-if="layer.type === 'rect'" icon="fa-solid fa-square" class="text-xs" />
+                      <font-awesome-icon
+                        v-else-if="layer.type === 'rect'"
+                        icon="fa-solid fa-square"
+                        class="text-[10px]"
+                      />
                       <font-awesome-icon
                         v-else-if="layer.type === 'circle'"
                         icon="fa-solid fa-circle"
-                        class="text-xs"
+                        class="text-[10px]"
                       />
-                      <font-awesome-icon v-else-if="layer.type === 'line'" icon="fa-solid fa-minus" class="text-xs" />
-                      <font-awesome-icon v-else-if="layer.type === 'image'" icon="fa-solid fa-image" class="text-xs" />
-                      <font-awesome-icon v-else icon="fa-solid fa-cube" class="text-xs" />
+                      <font-awesome-icon
+                        v-else-if="layer.type === 'line'"
+                        icon="fa-solid fa-minus"
+                        class="text-[10px]"
+                      />
+                      <font-awesome-icon
+                        v-else-if="layer.type === 'triangle'"
+                        icon="fa-solid fa-caret-up"
+                        class="text-[12px] mb-[-2px]"
+                      />
+                      <font-awesome-icon
+                        v-else-if="layer.type === 'image'"
+                        icon="fa-solid fa-image"
+                        class="text-[10px]"
+                      />
+                      <font-awesome-icon v-else icon="fa-solid fa-cube" class="text-[10px]" />
                     </div>
+
+                    <input
+                      v-if="editingLayerId === layer.id"
+                      v-model="editingLayerName"
+                      @blur="saveLayerName(layer)"
+                      @keyup.enter="saveLayerName(layer)"
+                      @click.stop
+                      ref="editingInput"
+                      class="w-full text-[11px] font-semibold bg-background border border-primary px-1 py-0.5 rounded outline-none text-text flex-1"
+                      placeholder="Nama Layer"
+                      autofocus
+                    />
                     <span
-                      class="text-xs font-semibold truncate"
+                      v-else
+                      @dblclick.stop="startEditingLayer(layer)"
+                      class="text-[11px] font-semibold truncate select-none flex-1"
                       :class="layer.isActive ? 'text-primary' : 'text-text/80'"
+                      title="Klik Ganda untuk Ubah Nama"
                     >
                       {{ layer.text }}
                     </span>
                   </div>
 
                   <!-- Layer Actions -->
-                  <div class="flex items-center gap-1 shrink-0">
-                    <button
-                      @click.stop="bringLayerForward(layer)"
-                      :disabled="layer.isTop"
-                      class="w-6 h-6 rounded flex items-center justify-center transition-colors"
-                      :class="
-                        layer.isTop
-                          ? 'text-secondary/20 cursor-not-allowed'
-                          : 'text-text/50 hover:bg-secondary hover:text-primary'
-                      "
-                      title="Naikkan Layer"
-                    >
-                      <font-awesome-icon icon="fa-solid fa-chevron-up" class="text-[10px]" />
-                    </button>
-                    <button
-                      @click.stop="sendLayerBackwards(layer)"
-                      :disabled="layer.isBottom"
-                      class="w-6 h-6 rounded flex items-center justify-center transition-colors"
-                      :class="
-                        layer.isBottom
-                          ? 'text-secondary/20 cursor-not-allowed'
-                          : 'text-text/50 hover:bg-secondary hover:text-primary'
-                      "
-                      title="Turunkan Layer"
-                    >
-                      <font-awesome-icon icon="fa-solid fa-chevron-down" class="text-[10px]" />
-                    </button>
-                    <div class="w-px h-4 bg-secondary mx-0.5"></div>
+                  <div class="flex items-center gap-1 shrink-0 ml-2">
                     <button
                       @click.stop="toggleLockLayer(layer)"
-                      class="w-6 h-6 rounded flex items-center justify-center transition-colors"
+                      class="w-5 h-5 rounded flex items-center justify-center transition-colors"
                       :class="
                         layer.isLocked
                           ? 'text-primary bg-primary/10 hover:bg-primary/20'
@@ -982,14 +963,83 @@ const saveTemplate = async () => {
                         class="text-[10px]"
                       />
                     </button>
-                    <button
-                      @click.stop="removeLayer(layer)"
-                      class="w-6 h-6 rounded flex items-center justify-center text-text/30 hover:bg-danger/10 hover:text-danger transition-colors"
-                      title="Hapus Layer"
-                    >
-                      <font-awesome-icon icon="fa-solid fa-xmark" class="text-[10px]" />
-                    </button>
                   </div>
+                </div>
+              </div>
+
+              <!-- Layer Actions (Bottom Bar) -->
+              <div class="flex items-center justify-between p-2 bg-background border-t border-primary/10">
+                <div class="flex gap-2 flex-1">
+                  <!-- Blending Mode (disabled if no active object) -->
+                  <select
+                    v-if="activeObject"
+                    v-model="activeObject.globalCompositeOperation"
+                    @change="updateProperty('globalCompositeOperation', $event.target.value)"
+                    class="bg-secondary/30 text-[10px] text-text rounded px-1 py-1 w-20 outline-none border border-transparent focus:border-primary/50"
+                  >
+                    <option value="source-over">Normal</option>
+                    <option value="multiply">Multiply</option>
+                    <option value="screen">Screen</option>
+                    <option value="overlay">Overlay</option>
+                    <option value="darken">Darken</option>
+                    <option value="lighten">Lighten</option>
+                  </select>
+                  <select
+                    v-else
+                    disabled
+                    class="bg-secondary/10 text-[10px] text-text/30 rounded px-1 py-1 w-20 outline-none border border-transparent"
+                  >
+                    <option>Normal</option>
+                  </select>
+
+                  <!-- Opacity -->
+                  <div class="flex items-center gap-1 flex-1 px-1">
+                    <span class="text-[9px] font-bold text-text/50 uppercase">Op</span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      :disabled="!activeObject"
+                      :value="activeObject ? activeObject.opacity : 1"
+                      @input="activeObject ? updateProperty('opacity', parseFloat($event.target.value)) : null"
+                      class="w-full h-1 bg-secondary rounded-lg appearance-none cursor-pointer"
+                    />
+                  </div>
+                </div>
+                <div class="flex items-center gap-1 border-l border-primary/10 pl-2 ml-1 shrink-0">
+                  <button
+                    @click="groupSelected"
+                    :disabled="!activeObject || activeObject.type !== 'activeselection'"
+                    class="w-6 h-6 rounded flex items-center justify-center text-text/50 hover:bg-primary/10 hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    title="Grup Objek (Ctrl+G)"
+                  >
+                    <font-awesome-icon icon="fa-solid fa-object-group" class="text-[10px]" />
+                  </button>
+                  <button
+                    @click="ungroupSelected"
+                    :disabled="!activeObject || activeObject.type !== 'group'"
+                    class="w-6 h-6 rounded flex items-center justify-center text-text/50 hover:bg-primary/10 hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    title="Pisahkan Grup (Ctrl+Shift+G)"
+                  >
+                    <font-awesome-icon icon="fa-solid fa-object-ungroup" class="text-[10px]" />
+                  </button>
+                  <button
+                    @click="duplicateSelected"
+                    :disabled="!activeObject"
+                    class="w-6 h-6 rounded flex items-center justify-center text-text/50 hover:bg-primary/10 hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    title="Duplikat Layer Terpilih"
+                  >
+                    <font-awesome-icon icon="fa-solid fa-copy" class="text-[10px]" />
+                  </button>
+                  <button
+                    @click="deleteSelected"
+                    :disabled="!activeObject"
+                    class="w-6 h-6 rounded flex items-center justify-center text-text/50 hover:bg-danger/10 hover:text-danger disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    title="Hapus Layer Terpilih"
+                  >
+                    <font-awesome-icon icon="fa-solid fa-trash" class="text-[10px]" />
+                  </button>
                 </div>
               </div>
 

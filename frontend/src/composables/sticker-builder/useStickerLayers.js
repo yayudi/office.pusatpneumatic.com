@@ -1,4 +1,5 @@
 import { shallowRef, ref } from 'vue'
+import * as fabric from 'fabric'
 
 export function useStickerLayers(getFabricCanvas, getActiveObject, saveHistory) {
   const canvasLayers = shallowRef([])
@@ -11,26 +12,40 @@ export function useStickerLayers(getFabricCanvas, getActiveObject, saveHistory) 
     const allObjects = canvas.getObjects()
     const currentActive = getActiveObject()
 
+    let activeObjectsArray = []
+    if (currentActive) {
+      if (currentActive.type === 'activeselection') {
+        activeObjectsArray = currentActive.getObjects()
+      } else {
+        activeObjectsArray = [currentActive]
+      }
+    }
+
     canvasLayers.value = allObjects
       .map((obj, idx) => {
         let iconType = obj.type
-        let text = 'Layer ' + idx
+        let text = obj.name || ('Layer ' + idx)
         
         if (obj.id === 'paper-bg') {
           text = 'Latar Kertas'
           iconType = 'rect'
-        } else if (obj.type === 'i-text' || obj.type === 'text' || obj.type === 'textbox') {
-          text = obj.text.substring(0, 15) || 'Teks Kosong'
-          iconType = 'text'
-        } else if (obj.type === 'image') {
-          text = 'Gambar'
-        } else if (obj.type === 'rect') {
-          text = 'Kotak'
-        } else if (obj.type === 'circle') {
-          text = 'Lingkaran'
-        } else if (obj.type === 'line') {
-          text = 'Garis'
+        } else if (!obj.name) {
+          if (obj.type === 'i-text' || obj.type === 'text' || obj.type === 'textbox') {
+            text = obj.text.substring(0, 15) || 'Teks Kosong'
+          } else if (obj.type === 'image') {
+            text = 'Gambar'
+          } else if (obj.type === 'rect') {
+            text = 'Kotak'
+          } else if (obj.type === 'circle') {
+            text = 'Lingkaran'
+          } else if (obj.type === 'triangle') {
+            text = 'Segitiga'
+          } else if (obj.type === 'line') {
+            text = 'Garis'
+          }
         }
+
+        if (obj.type === 'i-text' || obj.type === 'text' || obj.type === 'textbox') iconType = 'text'
 
         if (!obj.id) obj.id = 'layer_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9)
 
@@ -44,10 +59,11 @@ export function useStickerLayers(getFabricCanvas, getActiveObject, saveHistory) 
           obj: obj,
           type: iconType,
           text: text,
-          isActive: currentActive === obj,
+          isActive: activeObjectsArray.includes(obj),
           isTop: idx === allObjects.length - 1,
           isBottom: idx === 0,
-          isLocked
+          isLocked,
+          isVisible: obj.visible !== false
         }
       })
       .reverse()
@@ -112,10 +128,67 @@ export function useStickerLayers(getFabricCanvas, getActiveObject, saveHistory) 
   }
 
   // Interactions
-  const selectLayer = layer => {
+  const selectLayer = (layer, e) => {
     const canvas = getFabricCanvas()
-    if (!canvas) return
-    canvas.setActiveObject(layer.obj)
+    if (!canvas || layer.id === 'paper-bg') return
+    if (layer.obj.visible === false) return
+
+    const isCtrl = e && (e.ctrlKey || e.metaKey)
+    const isShift = e && e.shiftKey
+
+    let currentSelection = canvas.getActiveObjects()
+
+    if (isCtrl) {
+      if (currentSelection.includes(layer.obj)) {
+        // Remove from selection
+        const newSelection = currentSelection.filter(o => o !== layer.obj)
+        canvas.discardActiveObject()
+        if (newSelection.length === 1) {
+          canvas.setActiveObject(newSelection[0])
+        } else if (newSelection.length > 1) {
+          const sel = new fabric.ActiveSelection(newSelection, { canvas })
+          canvas.setActiveObject(sel)
+        }
+      } else {
+        // Add to selection
+        const newSelection = [...currentSelection, layer.obj]
+        canvas.discardActiveObject()
+        if (newSelection.length === 1) {
+          canvas.setActiveObject(newSelection[0])
+        } else if (newSelection.length > 1) {
+          const sel = new fabric.ActiveSelection(newSelection, { canvas })
+          canvas.setActiveObject(sel)
+        }
+      }
+    } else if (isShift) {
+      // Shift logic
+      if (currentSelection.length === 0) {
+        canvas.setActiveObject(layer.obj)
+      } else {
+        const allLayers = canvasLayers.value.filter(l => l.id !== 'paper-bg' && l.obj.visible !== false)
+        const firstSelectedIndex = allLayers.findIndex(l => l.isActive)
+        const targetIndex = allLayers.findIndex(l => l.id === layer.id)
+        
+        if (firstSelectedIndex !== -1 && targetIndex !== -1) {
+          const start = Math.min(firstSelectedIndex, targetIndex)
+          const end = Math.max(firstSelectedIndex, targetIndex)
+          const newSelection = allLayers.slice(start, end + 1).map(l => l.obj)
+          
+          canvas.discardActiveObject()
+          if (newSelection.length === 1) {
+            canvas.setActiveObject(newSelection[0])
+          } else if (newSelection.length > 1) {
+            const sel = new fabric.ActiveSelection(newSelection, { canvas })
+            canvas.setActiveObject(sel)
+          }
+        } else {
+           canvas.setActiveObject(layer.obj)
+        }
+      }
+    } else {
+      canvas.setActiveObject(layer.obj)
+    }
+
     canvas.requestRenderAll()
   }
   const bringLayerForward = layer => {
@@ -136,7 +209,7 @@ export function useStickerLayers(getFabricCanvas, getActiveObject, saveHistory) 
   }
   const removeLayer = layer => {
     const canvas = getFabricCanvas()
-    if (!canvas) return
+    if (!canvas || layer.id === 'paper-bg') return
     canvas.remove(layer.obj)
     canvas.discardActiveObject()
     canvas.requestRenderAll()
@@ -162,6 +235,28 @@ export function useStickerLayers(getFabricCanvas, getActiveObject, saveHistory) 
     canvas.requestRenderAll()
     syncLayers()
   }
+  const toggleVisibilityLayer = layer => {
+    const canvas = getFabricCanvas()
+    if (!canvas || layer.id === 'paper-bg') return
+    const obj = layer.obj
+    obj.visible = !obj.visible
+    if (obj.visible === false) {
+      // Discard selection if hiding the currently active object
+      const activeObj = canvas.getActiveObject()
+      if (activeObj === obj) {
+        canvas.discardActiveObject()
+      }
+    }
+    canvas.requestRenderAll()
+    syncLayers()
+  }
+
+  const updateLayerName = (layer, newName) => {
+    const canvas = getFabricCanvas()
+    if (!canvas || layer.id === 'paper-bg') return
+    layer.obj.name = newName
+    syncLayers()
+  }
 
   return {
     canvasLayers,
@@ -176,6 +271,8 @@ export function useStickerLayers(getFabricCanvas, getActiveObject, saveHistory) 
     bringLayerForward,
     sendLayerBackwards,
     removeLayer,
-    toggleLockLayer
+    toggleLockLayer,
+    toggleVisibilityLayer,
+    updateLayerName
   }
 }
