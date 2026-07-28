@@ -2,7 +2,6 @@
 <script setup>
 import { swalConfirm } from '@/composables/useSweetAlert'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
-
 import { ref, onMounted, watch } from 'vue'
 import { useFirebaseSync } from '@/composables/useFirebaseSync'
 import { useMagicKeys } from '@vueuse/core'
@@ -151,128 +150,138 @@ watch(Alt_S, pressed => {
     <div
       class="bg-background shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(100vh-150px)] table-container"
     >
-    <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : 'min-w-[600px]'">
-      <thead
-        class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5"
-        :class="isMobile ? 'hidden' : 'sticky top-0 z-30'"
-      >
-        <tr class="text-xs text-text/80 uppercase">
-          <th
-            class="px-6 py-3 sticky left-0 z-30 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]"
-          >
-            Kode
-          </th>
-          <th class="px-6 py-3 border-b border-secondary/10">Gedung</th>
-          <th class="px-6 py-3 border-b border-secondary/10">Lantai</th>
-          <th class="px-6 py-3 border-b border-secondary/10">Nama/Deskripsi</th>
-          <th class="px-6 py-3 border-b border-secondary/10">Purpose</th>
-          <th
-            class="px-6 py-3 text-center sticky right-0 z-30 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]"
-          >
-            Aksi
-          </th>
-        </tr>
-      </thead>
-      <TransitionGroup
-        tag="tbody"
-        name="list"
-        class="relative"
-        :class="isMobile ? 'block' : 'divide-y divide-secondary/5'"
-      >
-        <template v-if="loading">
-          <tr v-for="n in 5" :key="`skeleton-${n}`" class="border-b border-secondary/20 animate-pulse">
-            <td class="px-6 py-4"><BaseSkeleton shape="text" className="w-12 h-4 mx-auto" /></td>
-            <td class="px-6 py-4"><BaseSkeleton shape="text" className="w-1/2 h-4" /></td>
-            <td class="px-6 py-4"><BaseSkeleton shape="text" className="w-1/4 h-4" /></td>
-            <td class="px-6 py-4"><BaseSkeleton shape="text" className="w-3/4 h-4" /></td>
-            <td class="px-6 py-4"><BaseSkeleton shape="rect" className="w-16 h-6 rounded-md" /></td>
-            <td class="px-6 py-4 text-center"><BaseSkeleton shape="rect" className="w-16 h-6 mx-auto rounded-md" /></td>
-          </tr>
-        </template>
-
-        <tr v-else-if="allLocations.length === 0" key="empty">
-          <td colspan="6" class="py-12 text-center text-text/50 italic">Tidak ada data lokasi.</td>
-        </tr>
-
-        <tr
-          v-else
-          v-for="loc in visibleLocations"
-          :key="loc.id"
-          class="transition-colors group relative"
-          :class="
-            isMobile
-              ? 'block mb-4 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4'
-              : 'border-b border-secondary/20 hover:bg-secondary/5'
-          "
+      <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : 'min-w-[600px]'">
+        <thead
+          class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5"
+          :class="isMobile ? 'hidden' : 'sticky top-0 z-30'"
         >
-          <td
-            class="font-mono font-semibold bg-background group-hover:bg-secondary/5 transition-colors"
-            :class="
-              isMobile
-                ? 'flex justify-between items-center py-2 border-b border-secondary/10'
-                : 'px-6 py-4 sticky left-0 z-20 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]'
-            "
-          >
-            <span v-if="isMobile" class="text-text/60 text-xs uppercase font-sans">Kode</span>
-            <span>{{ loc.code }}</span>
-          </td>
-          <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
-            <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Gedung</span>
-            <span>{{ loc.building }}</span>
-          </td>
-          <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
-            <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Lantai</span>
-            <span>{{ loc.floor || '-' }}</span>
-          </td>
-          <td
-            class="text-text/80"
-            :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'"
-          >
-            <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Nama</span>
-            <span>{{ loc.name || '-' }}</span>
-          </td>
-          <td
-            class="font-mono text-xs"
-            :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'"
-          >
-            <span v-if="isMobile" class="text-text/60 text-xs uppercase font-sans font-semibold">Purpose</span>
-            <span>{{ loc.purpose || '-' }}</span>
-          </td>
-          <td
-            class="bg-background group-hover:bg-secondary/5 transition-colors"
-            :class="
-              isMobile
-                ? 'flex justify-end items-center pt-4'
-                : 'px-6 py-4 text-center sticky right-0 z-20 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]'
-            "
-          >
-            <div
-              class="flex items-center justify-center gap-2 transition-all duration-200"
-              :class="isMobile ? 'opacity-100' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100'"
+          <tr class="text-xs text-text/80 uppercase">
+            <th
+              class="px-6 py-3 sticky left-0 z-30 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]"
             >
-              <button
-                @click="openEditModal(loc)"
-                class="flex items-center justify-center rounded-lg hover:bg-primary/10 transition-colors"
-                :class="isMobile ? 'px-3 py-1.5 bg-primary/10 text-primary font-semibold text-xs gap-2' : 'w-8 h-8 text-text/40 hover:text-primary'"
-                title="Edit Lokasi"
+              Kode
+            </th>
+            <th class="px-6 py-3 border-b border-secondary/10">Gedung</th>
+            <th class="px-6 py-3 border-b border-secondary/10">Lantai</th>
+            <th class="px-6 py-3 border-b border-secondary/10">Nama/Deskripsi</th>
+            <th class="px-6 py-3 border-b border-secondary/10">Purpose</th>
+            <th
+              class="px-6 py-3 text-center sticky right-0 z-30 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]"
+            >
+              Aksi
+            </th>
+          </tr>
+        </thead>
+        <TransitionGroup
+          tag="tbody"
+          name="list"
+          class="relative"
+          :class="isMobile ? 'block' : 'divide-y divide-secondary/5'"
+        >
+          <template v-if="loading">
+            <tr v-for="n in 5" :key="`skeleton-${n}`" class="border-b border-secondary/20 animate-pulse">
+              <td class="px-6 py-4"><BaseSkeleton shape="text" className="w-12 h-4 mx-auto" /></td>
+              <td class="px-6 py-4"><BaseSkeleton shape="text" className="w-1/2 h-4" /></td>
+              <td class="px-6 py-4"><BaseSkeleton shape="text" className="w-1/4 h-4" /></td>
+              <td class="px-6 py-4"><BaseSkeleton shape="text" className="w-3/4 h-4" /></td>
+              <td class="px-6 py-4"><BaseSkeleton shape="rect" className="w-16 h-6 rounded-md" /></td>
+              <td class="px-6 py-4 text-center">
+                <BaseSkeleton shape="rect" className="w-16 h-6 mx-auto rounded-md" />
+              </td>
+            </tr>
+          </template>
+
+          <tr v-else-if="allLocations.length === 0" key="empty">
+            <td colspan="6" class="py-12 text-center text-text/50 italic">Tidak ada data lokasi.</td>
+          </tr>
+
+          <tr
+            v-else
+            v-for="loc in visibleLocations"
+            :key="loc.id"
+            class="transition-colors group relative"
+            :class="
+              isMobile
+                ? 'block mb-4 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4'
+                : 'border-b border-secondary/20 hover:bg-secondary/5'
+            "
+          >
+            <td
+              class="font-mono font-semibold bg-background group-hover:bg-secondary/5 transition-colors"
+              :class="
+                isMobile
+                  ? 'flex justify-between items-center py-2 border-b border-secondary/10'
+                  : 'px-6 py-4 sticky left-0 z-20 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]'
+              "
+            >
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-sans">Kode</span>
+              <span>{{ loc.code }}</span>
+            </td>
+            <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Gedung</span>
+              <span>{{ loc.building }}</span>
+            </td>
+            <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Lantai</span>
+              <span>{{ loc.floor || '-' }}</span>
+            </td>
+            <td
+              class="text-text/80"
+              :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'"
+            >
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Nama</span>
+              <span>{{ loc.name || '-' }}</span>
+            </td>
+            <td
+              class="font-mono text-xs"
+              :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'"
+            >
+              <span v-if="isMobile" class="text-text/60 text-xs uppercase font-sans font-semibold">Purpose</span>
+              <span>{{ loc.purpose || '-' }}</span>
+            </td>
+            <td
+              class="bg-background group-hover:bg-secondary/5 transition-colors"
+              :class="
+                isMobile
+                  ? 'flex justify-end items-center pt-4'
+                  : 'px-6 py-4 text-center sticky right-0 z-20 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]'
+              "
+            >
+              <div
+                class="flex items-center justify-center gap-2 transition-all duration-200"
+                :class="isMobile ? 'opacity-100' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100'"
               >
-                <font-awesome-icon icon="fa-solid fa-pen-to-square" />
-                <span v-if="isMobile">Edit</span>
-              </button>
-              <button
-                @click="handleDelete(loc.id)"
-                class="flex items-center justify-center rounded-lg hover:bg-danger/10 transition-colors"
-                :class="isMobile ? 'px-3 py-1.5 bg-danger/10 text-danger font-semibold text-xs gap-2' : 'w-8 h-8 text-text/40 hover:text-danger'"
-                title="Hapus Lokasi"
-              >
-                <font-awesome-icon icon="fa-solid fa-trash" />
-                <span v-if="isMobile">Hapus</span>
-              </button>
-            </div>
-          </td>
-        </tr>
-      </TransitionGroup>
-    </table>
+                <button
+                  @click="openEditModal(loc)"
+                  class="flex items-center justify-center rounded-lg hover:bg-primary/10 transition-colors"
+                  :class="
+                    isMobile
+                      ? 'px-3 py-1.5 bg-primary/10 text-primary font-semibold text-xs gap-2'
+                      : 'w-8 h-8 text-text/40 hover:text-primary'
+                  "
+                  title="Edit Lokasi"
+                >
+                  <font-awesome-icon icon="fa-solid fa-pen-to-square" />
+                  <span v-if="isMobile">Edit</span>
+                </button>
+                <button
+                  @click="handleDelete(loc.id)"
+                  class="flex items-center justify-center rounded-lg hover:bg-danger/10 transition-colors"
+                  :class="
+                    isMobile
+                      ? 'px-3 py-1.5 bg-danger/10 text-danger font-semibold text-xs gap-2'
+                      : 'w-8 h-8 text-text/40 hover:text-danger'
+                  "
+                  title="Hapus Lokasi"
+                >
+                  <font-awesome-icon icon="fa-solid fa-trash" />
+                  <span v-if="isMobile">Hapus</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </TransitionGroup>
+      </table>
     </div>
 
     <!-- Pagination -->

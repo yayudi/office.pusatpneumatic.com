@@ -1,7 +1,6 @@
 <script setup>
 import { swalConfirm } from '@/composables/useSweetAlert'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
-
 import { ref, onMounted, computed, watch } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
@@ -13,7 +12,7 @@ import {
   createRole,
   updateRole,
   deleteRole
-} from '@/api/helpers/roles.js' // Pastikan ini mengarah ke file helper yang benar
+} from '@/api/helpers/roles.js'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import { useMobile } from '@/composables/useMobile.js'
 
@@ -24,17 +23,13 @@ const allRoles = ref([])
 const allPermissions = ref([])
 const selectedRole = ref(null)
 const selectedPermissionIds = ref([])
-const originalPermissionIds = ref([]) // Untuk 'dirty state'
+const originalPermissionIds = ref([])
 const isLoadingRoles = ref(true)
 const isLoadingPermissions = ref(false)
 const isSaving = ref(false)
-
-// State untuk Modal (CRUD Peran)
 const isRoleModalOpen = ref(false)
 const isEditingRole = ref(false)
 const roleForm = ref({ id: null, name: '', description: '' })
-
-// --- COMPUTED ---
 
 /**
  * Mengelompokkan izin (permissions) berdasarkan properti 'group'.

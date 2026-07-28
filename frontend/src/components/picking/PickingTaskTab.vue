@@ -4,6 +4,7 @@ import { ref, computed, watch } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { useAuthStore } from '@/stores/auth.js'
 import { useTaskGrouping } from '@/composables/useTaskGrouping.js'
+import { useFirebaseSync } from '@/composables/useFirebaseSync.js'
 import {
   getPendingPickingItems,
   completePickingItems,
@@ -40,6 +41,9 @@ const {
 })
 
 const pendingItems = computed(() => queryData.value || [])
+
+// Firebase Real-time Sync
+useFirebaseSync('PICKING_LIST', 'REFRESH_PICKING', () => fetchPendingItems())
 
 // --- STATE ---
 const isVoiding = ref(false)

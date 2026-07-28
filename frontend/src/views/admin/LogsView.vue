@@ -1,7 +1,6 @@
 <!-- frontend/src/views/admin/LogsView.vue -->
 <script setup>
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
-
 import { ref, onMounted, watch } from 'vue'
 import axios from '@/api/axios.js'
 import { dayjs } from '@/api/helpers/time.js'
@@ -42,7 +41,7 @@ const actionOptions = [
   { id: 'CREATE', label: 'CREATE' },
   { id: 'UPDATE', label: 'UPDATE' },
   { id: 'DELETE', label: 'DELETE' },
-  { id: 'LOGIN', label: 'LOGIN' },
+  { id: 'LOGIN', label: 'LOGIN' }
 ]
 
 const targetOptions = [
@@ -50,7 +49,7 @@ const targetOptions = [
   { id: 'USER', label: 'USER' },
   { id: 'ROLE', label: 'ROLE' },
   { id: 'LOCATION', label: 'LOCATION' },
-  { id: 'SETTING', label: 'SETTING' },
+  { id: 'SETTING', label: 'SETTING' }
 ]
 
 const fetchLogs = async () => {
@@ -63,7 +62,7 @@ const fetchLogs = async () => {
       action: JSON.stringify(actionFilter.value),
       targetType: JSON.stringify(targetFilter.value),
       startDate: startDate.value,
-      endDate: endDate.value,
+      endDate: endDate.value
     }
 
     const response = await axios.get('/logs', { params })
@@ -77,12 +76,12 @@ const fetchLogs = async () => {
 }
 
 // Helpers
-const formatDate = (dateString) => {
+const formatDate = dateString => {
   if (!dateString) return '-'
   return dayjs(dateString).format('DD MMM YYYY HH:mm')
 }
 
-const formatChanges = (changesJson) => {
+const formatChanges = changesJson => {
   if (!changesJson) return '-'
   try {
     const changes = typeof changesJson === 'string' ? JSON.parse(changesJson) : changesJson
@@ -95,18 +94,25 @@ const formatChanges = (changesJson) => {
 // Pagination handled by usePagination
 
 // Watchers
-watch([
-  search, 
-  () => actionFilter.value.include, () => actionFilter.value.exclude, 
-  () => targetFilter.value.include, () => targetFilter.value.exclude, 
-  startDate, endDate
-], () => {
-  if (page.value !== 1) {
-    page.value = 1
-  } else {
-    fetchLogs()
-  }
-}, { deep: true })
+watch(
+  [
+    search,
+    () => actionFilter.value.include,
+    () => actionFilter.value.exclude,
+    () => targetFilter.value.include,
+    () => targetFilter.value.exclude,
+    startDate,
+    endDate
+  ],
+  () => {
+    if (page.value !== 1) {
+      page.value = 1
+    } else {
+      fetchLogs()
+    }
+  },
+  { deep: true }
+)
 
 watch([page, limit], () => {
   fetchLogs()
@@ -120,21 +126,19 @@ onMounted(() => {
 <template>
   <div class="px-6">
     <WmsActionHeader title="Audit Logs" icon="fa-solid fa-history">
-    <template #actions>
-      <button
-        @click="fetchLogs"
-        class="bg-primary/10 text-primary px-4 py-2 rounded-lg hover:bg-primary/20 transition-colors"
-      >
-        <font-awesome-icon icon="fa-solid fa-rotate-right" :spin="isLoading" />
-        Refresh
-      </button>
-    </template>
-  </WmsActionHeader>
+      <template #actions>
+        <button
+          @click="fetchLogs"
+          class="bg-primary/10 text-primary px-4 py-2 rounded-lg hover:bg-primary/20 transition-colors"
+        >
+          <font-awesome-icon icon="fa-solid fa-rotate-right" :spin="isLoading" />
+          Refresh
+        </button>
+      </template>
+    </WmsActionHeader>
 
     <!-- Filters -->
-    <div
-      class="bg-background rounded-xl shadow-sm border border-secondary/20 p-4 mb-6 flex flex-wrap gap-4"
-    >
+    <div class="bg-background rounded-xl shadow-sm border border-secondary/20 p-4 mb-6 flex flex-wrap gap-4">
       <div class="flex-1 min-w-[200px]">
         <input
           v-model="search"
@@ -164,15 +168,10 @@ onMounted(() => {
     </div>
 
     <!-- Table & Pagination Card -->
-    <div
-      class="bg-background shadow-md rounded-xl border border-secondary/20 flex flex-col h-[calc(100vh-100px)]"
-    >
+    <div class="bg-background shadow-md rounded-xl border border-secondary/20 flex flex-col h-[calc(100vh-100px)]">
       <!-- Scrollable Table -->
       <div class="overflow-x-auto overflow-y-auto custom-scrollbar flex-1 relative rounded-t-xl">
-        <table
-          class="w-full text-sm text-left text-text border-collapse"
-          :class="isMobile ? 'block' : ''"
-        >
+        <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : ''">
           <thead
             class="bg-background/95 backdrop-blur-md shadow-sm ring-1 ring-secondary/5"
             :class="isMobile ? 'hidden' : 'sticky top-0 z-30'"
@@ -193,15 +192,16 @@ onMounted(() => {
             <template v-if="isLoading">
               <tr v-for="n in 5" :key="`skeleton-${n}`" class="border-b border-secondary/20 animate-pulse">
                 <td v-for="i in 5" :key="i" class="px-6 py-4">
-                  <BaseSkeleton :shape="i === 5 ? 'rect' : 'text'" :className="i === 1 ? 'w-8 h-4 mx-auto' : i === 5 ? 'w-16 h-6 mx-auto rounded-md' : 'w-full h-4'" />
+                  <BaseSkeleton
+                    :shape="i === 5 ? 'rect' : 'text'"
+                    :className="i === 1 ? 'w-8 h-4 mx-auto' : i === 5 ? 'w-16 h-6 mx-auto rounded-md' : 'w-full h-4'"
+                  />
                 </td>
               </tr>
             </template>
 
             <tr v-else-if="logs.length === 0" key="empty">
-              <td colspan="5" class="py-12 text-center text-text/50 italic">
-                Tidak ada log aktivitas ditemukan.
-              </td>
+              <td colspan="5" class="py-12 text-center text-text/50 italic">Tidak ada log aktivitas ditemukan.</td>
             </tr>
 
             <tr
@@ -223,41 +223,25 @@ onMounted(() => {
                     : 'px-6 py-4 sticky left-0 z-20 shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]'
                 "
               >
-                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
-                  >Waktu</span
-                >
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Waktu</span>
                 <div class="flex flex-col" :class="isMobile ? 'items-end' : ''">
                   <span class="font-bold text-sm text-text">{{ formatDate(log.created_at) }}</span>
                   <span class="text-[10px] text-text/40">{{ log.ip_address || '-' }}</span>
                 </div>
               </td>
               <td
-                :class="
-                  isMobile
-                    ? 'flex justify-between items-center py-2 border-b border-secondary/10'
-                    : 'px-6 py-4'
-                "
+                :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'"
               >
-                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
-                  >User</span
-                >
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">User</span>
                 <div class="flex flex-col" :class="isMobile ? 'items-end' : ''">
-                  <span class="font-bold text-sm">{{
-                    log.nickname || log.username || 'System'
-                  }}</span>
+                  <span class="font-bold text-sm">{{ log.nickname || log.username || 'System' }}</span>
                   <span class="text-xs text-text/50">{{ log.role || 'N/A' }}</span>
                 </div>
               </td>
               <td
-                :class="
-                  isMobile
-                    ? 'flex justify-between items-center py-2 border-b border-secondary/10'
-                    : 'px-6 py-4'
-                "
+                :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'"
               >
-                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
-                  >Aksi</span
-                >
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Aksi</span>
                 <span
                   class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide border"
                   :class="{
@@ -265,27 +249,20 @@ onMounted(() => {
                     'bg-warning/10 text-warning border-warning/20': log.action === 'UPDATE',
                     'bg-danger/10 text-danger border-danger/20': log.action === 'DELETE',
                     'bg-accent/10 text-accent border-accent/20': log.action === 'LOGIN',
-                    'bg-secondary/10 text-secondary border-secondary/20': log.action === 'OTHER',
+                    'bg-secondary/10 text-secondary border-secondary/20': log.action === 'OTHER'
                   }"
                 >
                   {{ log.action }}
                 </span>
               </td>
               <td
-                :class="
-                  isMobile
-                    ? 'flex justify-between items-center py-2 border-b border-secondary/10'
-                    : 'px-6 py-4'
-                "
+                :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'"
               >
-                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
-                  >Target</span
-                >
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Target</span>
                 <div class="flex flex-col" :class="isMobile ? 'items-end' : ''">
-                  <span
-                    class="font-bold text-xs text-primary bg-primary/5 px-2 py-0.5 rounded w-fit mb-1"
-                    >{{ log.target_type }}</span
-                  >
+                  <span class="font-bold text-xs text-primary bg-primary/5 px-2 py-0.5 rounded w-fit mb-1">{{
+                    log.target_type
+                  }}</span>
                   <span
                     class="text-xs text-text/60 font-mono tracking-tight text-ellipsis overflow-hidden max-w-[200px]"
                   >
@@ -313,28 +290,19 @@ onMounted(() => {
                       :title="key"
                       >{{ key }}:</span
                     >
-                    <div
-                      v-if="val && typeof val === 'object'"
-                      class="font-mono flex items-center gap-2 flex-wrap"
-                    >
+                    <div v-if="val && typeof val === 'object'" class="font-mono flex items-center gap-2 flex-wrap">
                       <span
                         class="bg-danger/5 text-danger px-1.5 py-0.5 rounded decoration-auto line-through opacity-70 break-all"
                         >{{ val.old !== undefined ? val.old : 'NULL' }}</span
                       >
-                      <font-awesome-icon
-                        icon="fa-solid fa-arrow-right"
-                        class="text-text/20 text-[10px]"
-                      />
-                      <span
-                        class="bg-success/5 text-success px-1.5 py-0.5 rounded font-bold break-all"
-                        >{{ val.new !== undefined ? val.new : 'NULL' }}</span
-                      >
+                      <font-awesome-icon icon="fa-solid fa-arrow-right" class="text-text/20 text-[10px]" />
+                      <span class="bg-success/5 text-success px-1.5 py-0.5 rounded font-bold break-all">{{
+                        val.new !== undefined ? val.new : 'NULL'
+                      }}</span>
                     </div>
                     <!-- Handle if val is a primitive -->
                     <div v-else class="font-mono flex items-center gap-2 flex-wrap">
-                      <span class="text-text/80 break-all">{{
-                        val !== null && val !== undefined ? val : 'NULL'
-                      }}</span>
+                      <span class="text-text/80 break-all">{{ val !== null && val !== undefined ? val : 'NULL' }}</span>
                     </div>
                   </div>
                 </div>
@@ -346,14 +314,8 @@ onMounted(() => {
       </div>
 
       <!-- Pagination (Sticky Bottom) -->
-      <div
-        class="border-t border-secondary/20 flex justify-between items-center bg-background rounded-b-xl shrink-0"
-      >
-        <BasePagination
-          :pagination="paginationData"
-          @changePage="onChangePage"
-          @update:limit="onUpdateLimit"
-        />
+      <div class="border-t border-secondary/20 flex justify-between items-center bg-background rounded-b-xl shrink-0">
+        <BasePagination :pagination="paginationData" @changePage="onChangePage" @update:limit="onUpdateLimit" />
       </div>
     </div>
   </div>

@@ -5,6 +5,7 @@ import { ref, onMounted, watch, computed } from 'vue'
 import { useToast } from '@/composables/useToast.js'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll.js'
 import { useHistoryGrouping } from '@/composables/useHistoryGrouping.js'
+import { useFirebaseSync } from '@/composables/useFirebaseSync.js'
 import { getHistoryPickingItems, voidPickingList } from '@/api/helpers/picking.js'
 import PickingFilterBar from '@/components/picking/PickingFilterBar.vue'
 import PickingListCard from '@/components/picking/PickingListCard.vue'
@@ -56,6 +57,9 @@ const shopOptions = computed(() => {
 
   return options
 })
+
+// Firebase Real-time Sync
+useFirebaseSync('PICKING_LIST', 'REFRESH_PICKING', () => fetchHistoryItems())
 
 // --- API FETCH ---
 async function fetchHistoryItems() {

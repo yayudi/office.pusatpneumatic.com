@@ -1,7 +1,7 @@
 <!-- frontend/src/views/wms/StockRequests.vue -->
 <script setup>
 import { swalConfirm } from '@/composables/useSweetAlert'
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useToast } from '@/composables/useToast'
 import {
   fetchStockRequests,
@@ -14,6 +14,7 @@ import StockRequestModal from '@/components/wms/StockRequestModal.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import { useAuthStore } from '@/stores/auth'
 import { usePagination } from '@/composables/usePagination.js'
+import { useFirebaseSync } from '@/composables/useFirebaseSync.js'
 
 const authStore = useAuthStore()
 const currentUser = computed(() => authStore.user)
@@ -63,19 +64,9 @@ async function loadRequests(silent = false) {
   }
 }
 
-let pollingInterval = null
-
-onUnmounted(() => {
-  if (pollingInterval) clearInterval(pollingInterval)
-})
-
-onMounted(() => {
-  loadRequests()
-  // Auto-polling default setiap 30 detik
-  pollingInterval = setInterval(() => {
-    loadRequests(true)
-  }, 30000)
-})
+// Firebase Real-time Event Listener for Stock Requests
+onMounted(() => loadRequests())
+useFirebaseSync('STOCK_REQUESTS', 'REFRESH_REQUESTS', () => loadRequests(true))
 
 const filteredRequests = computed(() => requests.value)
 
@@ -343,7 +334,7 @@ function printRequest(req) {
         @click="loadRequests()"
         :class="isLoading ? 'animate-spin' : ''"
         class="px-3 py-2 bg-background text-text/60 border border-secondary hover:bg-secondary/20 rounded-lg font-semibold text-sm flex items-center gap-2 transition-all shadow-sm"
-        title="Muat Ulang / Paksa Polling"
+        title="Muat Ulang Data"
       >
         <font-awesome-icon :icon="isLoading ? 'fa-solid fa-spinner' : 'fa-solid fa-refresh'" />
       </button>

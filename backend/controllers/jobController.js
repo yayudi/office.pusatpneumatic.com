@@ -3,7 +3,6 @@ import db from "../config/db.js";
 import * as jobRepo from "../repositories/jobRepository.js";
 import Logger from "../utils/logger.js";
 
-import AppError from "../utils/AppError.js";
 /**
  * Get list of import jobs for the current user.
  */
@@ -49,39 +48,5 @@ export const getUserImportJobs = async (req, res, next) => {
     next(error);
   } finally {
     if (connection) connection.release();
-  }
-};
-
-/**
- * Endpoint untuk memicu tugas latar belakang secara manual.
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- */
-export const triggerJob = async (req, res, next) => {
-  const { task } = req.params;
-
-  const allowedTasks = ["stock", "holidays"];
-  if (!allowedTasks.includes(task)) {
-    return next(new AppError("Tugas tidak valid.", 400));
-  }
-
-  try {
-    const [result] = await db.query("INSERT INTO jobs (task_name, status) VALUES (?, 'pending')", [
-      task,
-    ]);
-
-    Logger.info(
-      `Tugas '${task}' berhasil ditambahkan ke antrian dengan ID: ${result.insertId}`,
-      "JOB_CTRL",
-    );
-
-    res.status(202).json({
-      success: true,
-      message: `Tugas '${task}' telah ditambahkan ke antrian dan akan segera diproses.`,
-    });
-  } catch (error) {
-    Logger.error(`Gagal menambahkan tugas '${task}' ke antrian`, error, "JOB_CTRL");
-    return next(new AppError("Gagal memulai tugas.", 500));
   }
 };

@@ -32,7 +32,6 @@ function refreshActiveTab() {
   } else if (activeTab.value === 'history' && historyTabRef.value) {
     historyTabRef.value.fetchHistoryItems()
   }
-  // Note: Tab Upload melakukan auto-polling, jadi tidak wajib di-refresh manual
 }
 
 // Fungsi Navigasi Tab Otomatis

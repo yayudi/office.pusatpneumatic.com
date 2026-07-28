@@ -9,8 +9,6 @@ import axios from '@/api/axios.js'
 import debounce from 'lodash/debounce'
 import { useDownloadStore } from '@/stores/downloadStore.js'
 import { useMasterDataStore } from '@/stores/masterData.js'
-
-// Components
 import BatchEditModal from '@/components/products/BatchEditModal.vue'
 import ProductFormModal from '@/components/wms/shared/ProductFormModal.vue'
 import ConnectionStatus from '@/components/wms/shared/ConnectionStatus.vue'

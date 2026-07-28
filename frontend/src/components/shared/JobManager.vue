@@ -133,7 +133,7 @@ const getErrorUrl = job => {
             <h3 class="font-bold text-sm text-text">Pusat Aktivitas</h3>
           </div>
           <div class="flex items-center gap-2">
-            <span v-if="downloadStore.isPolling || uploadStore.isPolling" class="flex h-2 w-2">
+            <span v-if="downloadStore.pendingCount > 0 || uploadStore.pendingCount > 0" class="flex h-2 w-2">
               <span class="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-primary opacity-75"></span>
               <span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
             </span>

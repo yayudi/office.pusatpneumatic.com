@@ -61,6 +61,7 @@ const {
 
 // Firebase Real-time Sync untuk Media
 useFirebaseSync('MASTER_DATA', 'REFRESH_MEDIA', () => fetchMedia(currentPage.value, true))
+useFirebaseSync('BACKGROUND_JOBS', 'MEDIA_PROCESSED', () => fetchMedia(currentPage.value, true))
 
 const changePageSize = newLimit => {
   doChangePageSize(newLimit)
@@ -132,8 +133,6 @@ const openInfoModal = item => {
   infoMediaId.value = item.id
   isInfoModalOpen.value = true
 }
-
-let pollInterval = null
 
 // backendUrl and resolveUrl now come from useImageUrl composable
 
@@ -476,18 +475,6 @@ const bulkDownloadImages = async () => {
   toast(`${items.length} gambar sedang diunduh.`, 'success')
 }
 
-const startPolling = async () => {
-  pollInterval = setInterval(() => {
-    // Hindari Ghost Polling (Page Visibility API) & Hindari UI Conflict
-    if (document.visibilityState === 'visible' && !isBulkModalOpen.value) {
-      const hasPending = mediaList.value.some(m => ['PENDING', 'PROCESSING'].includes(m.status))
-      if (hasPending) {
-        fetchMedia(pagination.value.page, true)
-      }
-    }
-  }, 5000) // 5 detik
-}
-
 // Global Drag and Drop State
 const isDragging = ref(false)
 
@@ -527,12 +514,10 @@ const handleDrop = async e => {
 onMounted(() => {
   fetchMedia(1)
   window.addEventListener('paste', handlePaste)
-  startPolling()
 })
 
 onUnmounted(() => {
   window.removeEventListener('paste', handlePaste)
-  if (pollInterval) clearInterval(pollInterval)
   if (debouncedFetchMedia) debouncedFetchMedia.cancel()
 })
 </script>

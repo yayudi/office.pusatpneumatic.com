@@ -10,7 +10,6 @@ import productRoutes from "./productRouter.js";
 import stockRoutes from "./stockRouter.js";
 import stockRequestRoutes from "./stockRequestRouter.js";
 import locationRoutes from "./locationRouter.js";
-import realtimeRouter from "./realtimeRouter.js";
 import roleRoutes from "./roleRouter.js";
 import pickingRouter from "./pickingRouter.js";
 import returnRouter from "./returnRouter.js";
@@ -31,7 +30,6 @@ import stickerTemplateRoutes from "./stickerTemplateRouter.js";
 import investigationRoutes from "./investigationRouter.js";
 import paperSizeRoutes from "./paperSizeRouter.js";
 import uploadRoutes from "./uploadRouter.js";
-// import cronRouter from "./cronRouter.js";
 
 import AppError from "../utils/AppError.js";
 
@@ -55,7 +53,6 @@ apiRouter.use("/attendance", authenticateToken, attendanceRouter);
 apiRouter.use("/user", authenticateToken, userRoutes);
 apiRouter.use("/admin/users", authenticateToken, canAccess("manage-users"), adminRoutes);
 apiRouter.use("/admin/roles", authenticateToken, canAccess("manage-roles"), roleRoutes);
-apiRouter.use("/realtime", authenticateToken, realtimeRouter);
 apiRouter.use("/picking", authenticateToken, pickingRouter);
 apiRouter.use("/returns", authenticateToken, returnRouter);
 apiRouter.use("/return", authenticateToken, returnRouter);
@@ -76,7 +73,6 @@ apiRouter.use("/sticker-templates", authenticateToken, stickerTemplateRoutes);
 apiRouter.use("/paper-sizes", paperSizeRoutes); // Authentication handled in router
 apiRouter.use("/investigation", authenticateToken, investigationRoutes);
 apiRouter.use("/uploads", authenticateToken, uploadRoutes);
-// apiRouter.use("/cron", authenticateToken, cronRouter);
 
 // Rute tes "canary"
 apiRouter.get("/test", async (req, res, next) => {
