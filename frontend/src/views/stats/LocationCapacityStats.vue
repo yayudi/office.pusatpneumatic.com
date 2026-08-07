@@ -96,13 +96,13 @@
           <table class="min-w-full divide-y divide-secondary/20">
             <thead class="bg-secondary/5 sticky top-0 z-10">
               <tr>
-                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-text sm:pl-6">Kode Lokasi</th>
-                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-text">Gedung / Lantai</th>
-                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-text">Purpose</th>
-                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-text">Jml Produk</th>
-                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-text">Kuantitas</th>
-                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-text">Berat (kg)</th>
-                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-text">Kubikasi (m³)</th>
+                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-text sm:pl-6" title="Kode unik lokasi penyimpanan">Kode Lokasi</th>
+                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-text" title="Gedung dan lantai tempat lokasi berada">Gedung / Lantai</th>
+                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-text" title="Tujuan penggunaan atau fungsi lokasi">Purpose</th>
+                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-text" title="Jumlah jenis produk/SKU berbeda yang ada di lokasi ini">Jml Produk</th>
+                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-text" title="Total keseluruhan barang (kuantitas) di lokasi ini">Kuantitas</th>
+                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-text" title="Estimasi total berat barang di lokasi ini dalam kilogram (kg)">Berat (kg)</th>
+                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-text" title="Estimasi total volume/kubikasi barang di lokasi ini dalam meter kubik (m³)">Kubikasi (m³)</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-secondary/20 bg-background">

@@ -316,6 +316,7 @@ const toggleSort = () => {
                 <th
                   @click="toggleSort"
                   class="px-6 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 w-[200px]"
+                  title="Periode waktu terjadinya pergerakan barang (hari/bulan)"
                 >
                   <div class="flex items-center gap-2">
                     Periode Waktu
@@ -325,9 +326,9 @@ const toggleSort = () => {
                     />
                   </div>
                 </th>
-                <th class="px-6 py-4 font-semibold text-text/80 text-center">Total Inbound</th>
-                <th class="px-6 py-4 font-semibold text-text/80 text-center">Total Outbound</th>
-                <th class="px-6 py-4 font-semibold text-text/80 text-right">Selisih Kuantitas (Net)</th>
+                <th class="px-6 py-4 font-semibold text-text/80 text-center" title="Total barang yang masuk (inbound) pada periode ini">Total Inbound</th>
+                <th class="px-6 py-4 font-semibold text-text/80 text-center" title="Total barang yang keluar (outbound) pada periode ini">Total Outbound</th>
+                <th class="px-6 py-4 font-semibold text-text/80 text-right" title="Selisih bersih antara barang masuk dan keluar (Inbound - Outbound)">Selisih Kuantitas (Net)</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-secondary/20">

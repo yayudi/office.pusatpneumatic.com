@@ -610,28 +610,46 @@ const saveTemplate = async () => {
                 <div class="mt-4 space-y-4 pt-4 border-t border-primary/10" v-if="activeObject.type !== 'image'">
                   <!-- Colors -->
                   <div class="flex gap-4">
-                    <div class="flex-1">
-                      <label class="block text-[10px] font-bold text-text/70 mb-1">Warna Utama</label>
-                      <div class="flex items-center gap-2">
+                    <div class="flex-1 min-w-0">
+                      <label class="flex justify-between items-center text-[10px] font-bold text-text/70 mb-1">
+                        <span>Warna Utama</span>
+                        <button @click="updateProperty('fill', 'transparent')" class="text-primary hover:underline font-normal text-[9px]">Transparan</button>
+                      </label>
+                      <div class="flex items-center gap-1">
                         <input
                           type="color"
-                          v-model="activeObjFill"
-                          @input="updateProperty('fill', activeObjFill)"
-                          class="w-8 h-8 rounded cursor-pointer p-0 border-0 bg-transparent"
+                          :value="(activeObjFill && activeObjFill.startsWith('#')) ? activeObjFill.substring(0, 7) : '#000000'"
+                          @input="updateProperty('fill', $event.target.value)"
+                          class="w-7 h-7 rounded cursor-pointer p-0 border-0 bg-transparent shrink-0"
                         />
-                        <span class="text-xs text-text/60 font-mono">{{ activeObjFill }}</span>
+                        <input
+                          type="text"
+                          v-model="activeObjFill"
+                          @change="updateProperty('fill', activeObjFill)"
+                          class="w-full min-w-0 text-[10px] bg-secondary/30 text-text rounded px-1.5 py-1 outline-none border border-transparent focus:border-primary/50 font-mono"
+                          placeholder="rgba(0,0,0,0)"
+                        />
                       </div>
                     </div>
-                    <div class="flex-1">
-                      <label class="block text-[10px] font-bold text-text/70 mb-1">Warna Garis</label>
-                      <div class="flex items-center gap-2">
+                    <div class="flex-1 min-w-0">
+                      <label class="flex justify-between items-center text-[10px] font-bold text-text/70 mb-1">
+                        <span>Warna Garis</span>
+                        <button @click="updateProperty('stroke', 'transparent')" class="text-primary hover:underline font-normal text-[9px]">Transparan</button>
+                      </label>
+                      <div class="flex items-center gap-1">
                         <input
                           type="color"
-                          v-model="activeObjStroke"
-                          @input="updateProperty('stroke', activeObjStroke)"
-                          class="w-8 h-8 rounded cursor-pointer p-0 border-0 bg-transparent"
+                          :value="(activeObjStroke && activeObjStroke.startsWith('#')) ? activeObjStroke.substring(0, 7) : '#000000'"
+                          @input="updateProperty('stroke', $event.target.value)"
+                          class="w-7 h-7 rounded cursor-pointer p-0 border-0 bg-transparent shrink-0"
                         />
-                        <span class="text-xs text-text/60 font-mono">{{ activeObjStroke || 'none' }}</span>
+                        <input
+                          type="text"
+                          v-model="activeObjStroke"
+                          @change="updateProperty('stroke', activeObjStroke)"
+                          class="w-full min-w-0 text-[10px] bg-secondary/30 text-text rounded px-1.5 py-1 outline-none border border-transparent focus:border-primary/50 font-mono"
+                          placeholder="rgba(0,0,0,0)"
+                        />
                       </div>
                     </div>
                   </div>

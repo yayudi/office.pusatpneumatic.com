@@ -327,6 +327,7 @@ const chartTopAssetProportionOptions = computed(() => {
                 <th
                   @click="sortBy('sku')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 relative"
+                  title="Kode unik produk (Stock Keeping Unit)"
                 >
                   <div class="flex items-center gap-2">
                     SKU <font-awesome-icon :icon="getSortIcon('sku')" class="text-xs opacity-50" />
@@ -335,6 +336,7 @@ const chartTopAssetProportionOptions = computed(() => {
                 <th
                   @click="sortBy('name')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 w-full min-w-[250px]"
+                  title="Nama lengkap produk"
                 >
                   <div class="flex items-center gap-2">
                     Nama Produk
@@ -344,6 +346,7 @@ const chartTopAssetProportionOptions = computed(() => {
                 <th
                   @click="sortBy('price')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 text-right"
+                  title="Harga Pokok Penjualan (HPP) atau modal rata-rata per satuan produk"
                 >
                   <div class="flex items-center justify-end gap-2">
                     HPP (Modal)
@@ -353,6 +356,7 @@ const chartTopAssetProportionOptions = computed(() => {
                 <th
                   @click="sortBy('total_quantity')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 text-center"
+                  title="Jumlah total stok produk ini di semua lokasi"
                 >
                   <div class="flex items-center justify-center gap-2">
                     Total Stok
@@ -362,6 +366,7 @@ const chartTopAssetProportionOptions = computed(() => {
                 <th
                   @click="sortBy('total_value')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 text-right"
+                  title="Total nilai aset (HPP dikalikan dengan Total Stok)"
                 >
                   <div class="flex items-center justify-end gap-2">
                     Gross Value
@@ -371,6 +376,7 @@ const chartTopAssetProportionOptions = computed(() => {
                 <th
                   @click="sortBy('percentage')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 text-center"
+                  title="Persentase kontribusi nilai produk ini terhadap total keseluruhan nilai inventaris"
                 >
                   <div class="flex justify-center items-center gap-2">
                     Share %

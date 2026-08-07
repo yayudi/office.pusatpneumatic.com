@@ -1,7 +1,9 @@
 <template>
   <div class="space-y-6">
     <div class="flex items-center justify-between">
-      <h2 class="text-2xl font-bold leading-7 text-text sm:truncate sm:text-3xl sm:tracking-tight">Analisis Duplikasi Barang</h2>
+      <h2 class="text-2xl font-bold leading-7 text-text sm:truncate sm:text-3xl sm:tracking-tight">
+        Analisis Duplikasi Barang
+      </h2>
       <div class="flex space-x-3">
         <button
           @click="fetchData"
@@ -84,15 +86,45 @@
           <h3 class="text-base font-semibold leading-6 text-text">Beban Tiap Lokasi</h3>
           <p class="mt-1 text-sm text-text/60">Informasi jumlah produk dan kuantitas di setiap lokasi.</p>
         </div>
-        <div class="overflow-x-auto flex-1 max-h-[600px]">
-          <table class="min-w-full divide-y divide-secondary/20">
-            <thead class="bg-secondary/5 sticky top-0 z-10">
+        <div class="overflow-x-auto flex-1 max-h-[600px] custom-scrollbar">
+          <table class="min-w-full divide-y divide-secondary">
+            <thead class="bg-secondary sticky top-0 z-10">
               <tr>
-                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-text sm:pl-6">Kode</th>
-                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-text">Gedung / Lantai</th>
-                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-text">Purpose</th>
-                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-text">Jml Produk</th>
-                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-text">Kuantitas</th>
+                <th
+                  scope="col"
+                  class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-text sm:pl-6"
+                  title="Kode unik lokasi penyimpanan"
+                >
+                  Kode
+                </th>
+                <th
+                  scope="col"
+                  class="px-3 py-3.5 text-left text-sm font-semibold text-text"
+                  title="Gedung dan lantai tempat lokasi berada"
+                >
+                  Gedung / Lantai
+                </th>
+                <th
+                  scope="col"
+                  class="px-3 py-3.5 text-left text-sm font-semibold text-text"
+                  title="Tujuan penggunaan atau fungsi lokasi (misal: Bulky, Retail, dll)"
+                >
+                  Purpose
+                </th>
+                <th
+                  scope="col"
+                  class="px-3 py-3.5 text-right text-sm font-semibold text-text"
+                  title="Jumlah jenis produk/SKU berbeda yang disimpan bercampur di lokasi ini"
+                >
+                  Jml Produk
+                </th>
+                <th
+                  scope="col"
+                  class="px-3 py-3.5 text-right text-sm font-semibold text-text"
+                  title="Total keseluruhan barang (kuantitas) yang ada di lokasi ini"
+                >
+                  Kuantitas
+                </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-secondary/20 bg-background">
@@ -130,14 +162,38 @@
             Produk yang disimpan di lebih dari satu lokasi dengan purpose yang sama.
           </p>
         </div>
-        <div class="overflow-x-auto flex-1 max-h-[600px]">
-          <table class="min-w-full divide-y divide-secondary/20">
-            <thead class="bg-secondary/5 sticky top-0 z-10">
+        <div class="overflow-x-auto flex-1 max-h-[600px] custom-scrollbar">
+          <table class="min-w-full divide-y divide-secondary">
+            <thead class="bg-secondary sticky top-0 z-10">
               <tr>
-                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-text sm:pl-6">Produk</th>
-                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-text">Purpose</th>
-                <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-text">Jml Lokasi</th>
-                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-text">Daftar Lokasi</th>
+                <th
+                  scope="col"
+                  class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-text sm:pl-6"
+                  title="Nama produk dan kode SKU"
+                >
+                  Produk
+                </th>
+                <th
+                  scope="col"
+                  class="px-3 py-3.5 text-left text-sm font-semibold text-text"
+                  title="Tujuan penggunaan lokasi (misal: Bulky, Retail, dll)"
+                >
+                  Purpose
+                </th>
+                <th
+                  scope="col"
+                  class="px-3 py-3.5 text-center text-sm font-semibold text-text"
+                  title="Jumlah lokasi berbeda yang menyimpan produk ini"
+                >
+                  Jml Lokasi
+                </th>
+                <th
+                  scope="col"
+                  class="px-3 py-3.5 text-left text-sm font-semibold text-text"
+                  title="Daftar kode lokasi tempat produk ini disimpan"
+                >
+                  Daftar Lokasi
+                </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-secondary/20 bg-background">
@@ -312,7 +368,6 @@ const avgProductsPerLocation = computed(() => {
 const totalQuantity = computed(() => {
   return locationLoads.value.reduce((sum, loc) => sum + loc.total_quantity, 0)
 })
-
 
 onMounted(() => {
   fetchData()

@@ -475,12 +475,12 @@ const periodLabel = computed(() => {
             <table class="w-full text-left text-sm whitespace-nowrap">
               <thead class="bg-background border-b border-secondary sticky top-0 z-10">
                 <tr>
-                  <th class="px-6 py-4 font-semibold text-text/80">Nama Toko</th>
-                  <th class="px-6 py-4 font-semibold text-text/80 text-center">Saluran</th>
-                  <th class="px-6 py-4 font-semibold text-text/80 text-right">Total Order</th>
-                  <th class="px-6 py-4 font-semibold text-text/80 text-right">Qty Terjual</th>
-                  <th class="px-6 py-4 font-semibold text-text/80 text-right">Omset</th>
-                  <th class="px-6 py-4 font-semibold text-text/80 text-right">% Omset</th>
+                  <th class="px-6 py-4 font-semibold text-text/80" title="Nama toko atau cabang">Nama Toko</th>
+                  <th class="px-6 py-4 font-semibold text-text/80 text-center" title="Platform/saluran penjualan (Online/Offline/Marketplace)">Saluran</th>
+                  <th class="px-6 py-4 font-semibold text-text/80 text-right" title="Jumlah transaksi atau pesanan yang terjadi">Total Order</th>
+                  <th class="px-6 py-4 font-semibold text-text/80 text-right" title="Total kuantitas barang yang terjual dari toko ini">Qty Terjual</th>
+                  <th class="px-6 py-4 font-semibold text-text/80 text-right" title="Total pendapatan kotor dari toko ini">Omset</th>
+                  <th class="px-6 py-4 font-semibold text-text/80 text-right" title="Persentase kontribusi omset toko ini terhadap total pendapatan keseluruhan">% Omset</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-secondary/20">
@@ -566,13 +566,13 @@ const periodLabel = computed(() => {
           <table class="w-full text-left text-sm whitespace-nowrap">
             <thead class="bg-background border-b border-secondary sticky top-0 z-10">
               <tr>
-                <th class="px-6 py-4 font-semibold text-text/80">#</th>
-                <th class="px-6 py-4 font-semibold text-text/80">SKU</th>
-                <th class="px-6 py-4 font-semibold text-text/80">Produk</th>
-                <th class="px-6 py-4 font-semibold text-text/80">Toko</th>
-                <th class="px-6 py-4 font-semibold text-text/80 text-center">Saluran</th>
-                <th class="px-6 py-4 font-semibold text-text/80 text-right">Qty Terjual</th>
-                <th class="px-6 py-4 font-semibold text-text/80 text-right">Pendapatan</th>
+                <th class="px-6 py-4 font-semibold text-text/80" title="Peringkat penjualan">#</th>
+                <th class="px-6 py-4 font-semibold text-text/80" title="Kode unik produk">SKU</th>
+                <th class="px-6 py-4 font-semibold text-text/80" title="Nama produk">Produk</th>
+                <th class="px-6 py-4 font-semibold text-text/80" title="Toko tempat produk terjual">Toko</th>
+                <th class="px-6 py-4 font-semibold text-text/80 text-center" title="Platform penjualan">Saluran</th>
+                <th class="px-6 py-4 font-semibold text-text/80 text-right" title="Jumlah produk yang terjual">Qty Terjual</th>
+                <th class="px-6 py-4 font-semibold text-text/80 text-right" title="Total pendapatan dari penjualan produk ini">Pendapatan</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-secondary/20">

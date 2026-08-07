@@ -644,6 +644,7 @@ const chartScatterOptions = computed(() => ({
                 <th
                   @click="sortBy('sku')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 relative"
+                  title="Kode unik produk (Stock Keeping Unit)"
                 >
                   <div class="flex items-center gap-2">
                     SKU
@@ -653,6 +654,7 @@ const chartScatterOptions = computed(() => ({
                 <th
                   @click="sortBy('name')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 w-full min-w-[250px]"
+                  title="Nama lengkap produk"
                 >
                   <div class="flex items-center gap-2">
                     Nama Produk
@@ -662,6 +664,7 @@ const chartScatterOptions = computed(() => ({
                 <th
                   @click="sortBy('total_sold')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40"
+                  title="Total barang keluar (penjualan, transfer keluar, dll) dalam rentang waktu yang dipilih"
                 >
                   <div class="flex items-center gap-2">
                     Out
@@ -671,6 +674,7 @@ const chartScatterOptions = computed(() => ({
                 <th
                   @click="sortBy('total_inbound')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40"
+                  title="Total barang masuk (pembelian, retur, transfer masuk, dll) dalam rentang waktu yang dipilih"
                 >
                   <div class="flex items-center gap-2">
                     Inbound
@@ -680,6 +684,7 @@ const chartScatterOptions = computed(() => ({
                 <th
                   @click="sortBy('current_stock')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40"
+                  title="Jumlah stok saat ini (total di semua lokasi)"
                 >
                   <div class="flex items-center gap-2">
                     Sisa Stok
@@ -689,6 +694,7 @@ const chartScatterOptions = computed(() => ({
                 <th
                   @click="sortBy('avg_daily_sales')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40"
+                  title="Rata-rata barang keluar per hari (total out ÷ jumlah hari dalam rentang)"
                 >
                   <div class="flex items-center gap-2">
                     Avg. Out
@@ -698,6 +704,7 @@ const chartScatterOptions = computed(() => ({
                 <th
                   @click="sortBy('days_of_inventory')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40"
+                  title="Estimasi berapa hari stok akan bertahan berdasarkan rata-rata pengeluaran (Sisa Stok ÷ Avg. Out)"
                 >
                   <div class="flex items-center gap-2">
                     Ketahanan
@@ -707,13 +714,14 @@ const chartScatterOptions = computed(() => ({
                 <th
                   @click="sortBy('status')"
                   class="px-4 py-4 font-semibold text-text/80 cursor-pointer hover:bg-secondary/40 text-center"
+                  title="Status kesehatan stok: Aman (hijau), Waspada (kuning), Kritis (merah), Mati (abu-abu)"
                 >
                   <div class="flex justify-center items-center gap-2">
                     Stat
                     <font-awesome-icon :icon="getSortIcon('status')" class="text-xs opacity-50" />
                   </div>
                 </th>
-                <th class="px-4 py-4 font-semibold text-text/80 text-center">Aksi</th>
+                <th class="px-4 py-4 font-semibold text-text/80 text-center" title="Tombol aksi: lihat detail riwayat pergerakan">Aksi</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-secondary/20">

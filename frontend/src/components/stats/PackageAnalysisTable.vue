@@ -308,12 +308,12 @@ const getStatusText = status => {
             <thead class="bg-secondary/5 border-b border-secondary sticky top-0 z-10">
               <tr>
                 <th class="px-4 py-3 w-10"></th>
-                <th class="px-4 py-3 font-semibold text-text/80">SKU Komponen</th>
-                <th class="px-4 py-3 font-semibold text-text/80">Nama Komponen</th>
-                <th class="px-4 py-3 font-semibold text-text/80 text-right">Stok Saat Ini</th>
-                <th class="px-4 py-3 font-semibold text-text/80 text-right">Total Kebutuhan</th>
-                <th class="px-4 py-3 font-semibold text-text/80 text-right">Defisit</th>
-                <th class="px-4 py-3 font-semibold text-text/80 text-center">Status</th>
+                <th class="px-4 py-3 font-semibold text-text/80" title="Kode unik komponen penyusun paket">SKU Komponen</th>
+                <th class="px-4 py-3 font-semibold text-text/80" title="Nama produk komponen">Nama Komponen</th>
+                <th class="px-4 py-3 font-semibold text-text/80 text-right" title="Jumlah stok komponen yang tersedia di seluruh lokasi saat ini">Stok Saat Ini</th>
+                <th class="px-4 py-3 font-semibold text-text/80 text-right" title="Total jumlah komponen yang dibutuhkan berdasarkan riwayat pergerakan paket">Total Kebutuhan</th>
+                <th class="px-4 py-3 font-semibold text-text/80 text-right" title="Kekurangan stok komponen (jika Total Kebutuhan melebihi Stok Saat Ini)">Defisit</th>
+                <th class="px-4 py-3 font-semibold text-text/80 text-center" title="Status ketersediaan stok komponen (Aman/Defisit)">Status</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-secondary/20">
@@ -364,11 +364,11 @@ const getStatusText = status => {
                       >
                         <thead class="bg-secondary/10 text-text/60 border-b border-secondary/20">
                           <tr>
-                            <th class="px-3 py-2 font-semibold">SKU Paket</th>
-                            <th class="px-3 py-2 font-semibold">Nama Paket</th>
-                            <th class="px-3 py-2 font-semibold text-right">Terjual</th>
-                            <th class="px-3 py-2 font-semibold text-right">Qty per Paket</th>
-                            <th class="px-3 py-2 font-semibold text-right">Subtotal Kebutuhan</th>
+                            <th class="px-3 py-2 font-semibold" title="Kode unik produk paket induk yang membutuhkan komponen ini">SKU Paket</th>
+                            <th class="px-3 py-2 font-semibold" title="Nama produk paket induk">Nama Paket</th>
+                            <th class="px-3 py-2 font-semibold text-right" title="Jumlah paket induk yang terjual/bergerak keluar">Terjual</th>
+                            <th class="px-3 py-2 font-semibold text-right" title="Jumlah komponen yang dibutuhkan untuk merakit 1 paket induk">Qty per Paket</th>
+                            <th class="px-3 py-2 font-semibold text-right" title="Total komponen yang dibutuhkan untuk paket ini (Terjual × Qty per Paket)">Subtotal Kebutuhan</th>
                           </tr>
                         </thead>
                         <tbody class="divide-y divide-secondary/10">
