@@ -285,17 +285,19 @@ async function handleExport() {
             <button
               @click="handleExport"
               :disabled="exportLoading"
-              title="Export ke Excel"
-              class="h-[42px] px-4 bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200 hover:text-emerald-700 hover:bg-emerald-100 rounded-lg text-sm font-bold transition-all disabled:opacity-50 disabled:hover:scale-100 flex-1 xl:flex-none"
+              title="Export"
+              class="h-[42px] px-4 flex items-center justify-center gap-2 border border-primary/30 rounded-lg text-sm font-semibold text-primary hover:bg-primary/10 transition-all bg-primary/5 active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 flex-1 xl:flex-none"
             >
-              <font-awesome-icon v-if="exportLoading" icon="fa-solid fa-spinner" spin />
-              <font-awesome-icon v-else icon="fa-solid fa-file-excel" />
+              <font-awesome-icon v-if="exportLoading" icon="fa-solid fa-circle-notch" spin />
+              <font-awesome-icon v-else icon="fa-solid fa-file-export" />
+              <span class="hidden xl:inline">Export</span>
             </button>
             <button
               @click="handleReset"
-              class="h-[42px] px-4 bg-secondary/10 text-text/70 ring-1 ring-danger/20 hover:text-danger hover:bg-danger/10 rounded-lg text-sm font-bold transition-all flex-1 xl:flex-none"
+              class="h-[42px] px-4 flex items-center justify-center gap-2 border border-danger/30 rounded-lg text-sm font-semibold text-danger hover:bg-danger/10 transition-all bg-danger/5 active:scale-[0.98] flex-1 xl:flex-none"
             >
               <font-awesome-icon icon="fa-solid fa-rotate-right" />
+              <span class="hidden xl:inline">Reset</span>
             </button>
             <button
               @click="

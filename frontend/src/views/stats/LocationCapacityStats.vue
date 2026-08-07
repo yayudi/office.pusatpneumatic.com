@@ -1,7 +1,9 @@
 <template>
   <div class="space-y-6">
     <div class="flex items-center justify-between">
-      <h2 class="text-2xl font-bold leading-7 text-text sm:truncate sm:text-3xl sm:tracking-tight">Statistik Kapasitas Lokasi</h2>
+      <h2 class="text-2xl font-bold leading-7 text-text sm:truncate sm:text-3xl sm:tracking-tight">
+        Statistik Kapasitas Lokasi
+      </h2>
       <div class="flex space-x-3">
         <button
           @click="fetchData"
@@ -86,23 +88,67 @@
     <div class="grid grid-cols-1 gap-6">
       <!-- Data Table: Beban Lokasi -->
       <div class="bg-background rounded-lg shadow-sm border border-secondary/20 overflow-hidden flex flex-col">
-        <div class="px-4 py-5 sm:px-6 border-b border-secondary/20 flex flex-col sm:flex-row sm:justify-between sm:items-center">
+        <div
+          class="px-4 py-5 sm:px-6 border-b border-secondary/20 flex flex-col sm:flex-row sm:justify-between sm:items-center"
+        >
           <div>
             <h3 class="text-base font-semibold leading-6 text-text">Detail Beban Kapasitas Lokasi</h3>
             <p class="mt-1 text-sm text-text/60">Informasi berat (kg) dan kubikasi (CBM) di setiap lokasi.</p>
           </div>
         </div>
-        <div class="overflow-x-auto flex-1 max-h-[800px]">
+        <div class="overflow-x-auto flex-1 max-h-[800px] custom-scrollbar">
           <table class="min-w-full divide-y divide-secondary/20">
-            <thead class="bg-secondary/5 sticky top-0 z-10">
+            <thead class="bg-secondary sticky top-0 z-10">
               <tr>
-                <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-text sm:pl-6" title="Kode unik lokasi penyimpanan">Kode Lokasi</th>
-                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-text" title="Gedung dan lantai tempat lokasi berada">Gedung / Lantai</th>
-                <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-text" title="Tujuan penggunaan atau fungsi lokasi">Purpose</th>
-                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-text" title="Jumlah jenis produk/SKU berbeda yang ada di lokasi ini">Jml Produk</th>
-                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-text" title="Total keseluruhan barang (kuantitas) di lokasi ini">Kuantitas</th>
-                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-text" title="Estimasi total berat barang di lokasi ini dalam kilogram (kg)">Berat (kg)</th>
-                <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-text" title="Estimasi total volume/kubikasi barang di lokasi ini dalam meter kubik (m³)">Kubikasi (m³)</th>
+                <th
+                  scope="col"
+                  class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-text sm:pl-6"
+                  title="Kode unik lokasi penyimpanan"
+                >
+                  Kode Lokasi
+                </th>
+                <th
+                  scope="col"
+                  class="px-3 py-3.5 text-left text-sm font-semibold text-text"
+                  title="Gedung dan lantai tempat lokasi berada"
+                >
+                  Gedung / Lantai
+                </th>
+                <th
+                  scope="col"
+                  class="px-3 py-3.5 text-left text-sm font-semibold text-text"
+                  title="Tujuan penggunaan atau fungsi lokasi"
+                >
+                  Purpose
+                </th>
+                <th
+                  scope="col"
+                  class="px-3 py-3.5 text-right text-sm font-semibold text-text"
+                  title="Jumlah jenis produk/SKU berbeda yang ada di lokasi ini"
+                >
+                  Jml Produk
+                </th>
+                <th
+                  scope="col"
+                  class="px-3 py-3.5 text-right text-sm font-semibold text-text"
+                  title="Total keseluruhan barang (kuantitas) di lokasi ini"
+                >
+                  Kuantitas
+                </th>
+                <th
+                  scope="col"
+                  class="px-3 py-3.5 text-right text-sm font-semibold text-text"
+                  title="Estimasi total berat barang di lokasi ini dalam kilogram (kg)"
+                >
+                  Berat (kg)
+                </th>
+                <th
+                  scope="col"
+                  class="px-3 py-3.5 text-right text-sm font-semibold text-text"
+                  title="Estimasi total volume/kubikasi barang di lokasi ini dalam meter kubik (m³)"
+                >
+                  Kubikasi (m³)
+                </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-secondary/20 bg-background">
@@ -131,7 +177,9 @@
                 </td>
               </tr>
               <tr v-if="locationLoads.length === 0">
-                <td colspan="7" class="px-3 py-8 text-sm text-text/50 text-center">Tidak ada data kapasitas lokasi yang ditemukan</td>
+                <td colspan="7" class="px-3 py-8 text-sm text-text/50 text-center">
+                  Tidak ada data kapasitas lokasi yang ditemukan
+                </td>
               </tr>
             </tbody>
           </table>
@@ -172,7 +220,7 @@ const totalCBM = computed(() => {
 
 const avgWeightPerLocation = computed(() => {
   if (locationLoads.value.length === 0) return 0
-  return (totalWeight.value / 1000) / locationLoads.value.length
+  return totalWeight.value / 1000 / locationLoads.value.length
 })
 
 const fetchData = async () => {
@@ -241,12 +289,16 @@ const buildingOptions = computed(() => {
         uniqueBuildingsByPurpose.value[p].forEach(b => blds.add(b))
       }
     })
-    return Array.from(blds).sort().map(b => ({ value: b, label: b }))
+    return Array.from(blds)
+      .sort()
+      .map(b => ({ value: b, label: b }))
   }
-  
+
   const allBlds = new Set()
   Object.values(uniqueBuildingsByPurpose.value).forEach(list => list.forEach(b => allBlds.add(b)))
-  return Array.from(allBlds).sort().map(b => ({ value: b, label: b }))
+  return Array.from(allBlds)
+    .sort()
+    .map(b => ({ value: b, label: b }))
 })
 
 const floorOptions = computed(() => {
@@ -258,21 +310,33 @@ const floorOptions = computed(() => {
         uniqueFloorsByBuilding.value[b].forEach(f => flrs.add(f))
       }
     })
-    return Array.from(flrs).sort().map(f => ({ value: f, label: f }))
+    return Array.from(flrs)
+      .sort()
+      .map(f => ({ value: f, label: f }))
   }
-  
+
   const allFlrs = new Set()
   Object.values(uniqueFloorsByBuilding.value).forEach(list => list.forEach(f => allFlrs.add(f)))
-  return Array.from(allFlrs).sort().map(f => ({ value: f, label: f }))
+  return Array.from(allFlrs)
+    .sort()
+    .map(f => ({ value: f, label: f }))
 })
 
-watch(() => filters.value.purpose, () => {
-  filters.value.building = { include: [], exclude: [] }
-}, { deep: true })
+watch(
+  () => filters.value.purpose,
+  () => {
+    filters.value.building = { include: [], exclude: [] }
+  },
+  { deep: true }
+)
 
-watch(() => filters.value.building, () => {
-  filters.value.floor = { include: [], exclude: [] }
-}, { deep: true })
+watch(
+  () => filters.value.building,
+  () => {
+    filters.value.floor = { include: [], exclude: [] }
+  },
+  { deep: true }
+)
 
 onMounted(() => {
   fetchData()

@@ -601,11 +601,11 @@ const chartScatterOptions = computed(() => ({
           v-if="canExport"
           @click="handleExport"
           :disabled="isExporting"
-          class="h-[42px] px-4 flex items-center justify-center gap-2 border border-secondary rounded-lg text-sm font-semibold text-text/70 hover:bg-secondary/10 transition-colors bg-background flex-1 lg:flex-none"
+          class="h-[42px] px-4 flex items-center justify-center gap-2 border border-primary/30 rounded-lg text-sm font-semibold text-primary hover:bg-primary/10 transition-all bg-primary/5 active:scale-[0.98] flex-1 lg:flex-none"
         >
           <font-awesome-icon v-if="isExporting" icon="fa-solid fa-circle-notch" spin />
           <font-awesome-icon v-else icon="fa-solid fa-file-export" />
-          <span>Export</span>
+          <span class="hidden lg:inline">Export</span>
         </button>
       </template>
     </FilterBar>

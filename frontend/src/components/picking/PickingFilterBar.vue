@@ -177,10 +177,11 @@ watch(
             <button
               v-if="hasActiveFilters"
               @click="clearFilters"
-              class="h-[42px] px-3 text-sm font-bold text-danger border border-danger/20 hover:bg-danger/10 rounded-lg flex items-center justify-center transition-all"
+              class="h-[42px] px-3 flex items-center justify-center gap-2 border border-danger/30 rounded-lg text-sm font-semibold text-danger hover:bg-danger/10 transition-all bg-danger/5 active:scale-[0.98]"
               title="Reset Filter"
             >
-              <font-awesome-icon icon="fa-solid fa-eraser" />
+              <font-awesome-icon icon="fa-solid fa-rotate-right" />
+              <span class="hidden lg:inline">Reset</span>
             </button>
           </transition>
         </div>

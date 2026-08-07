@@ -424,7 +424,7 @@ function formatJobType(type) {
                           <button
                             @click="handleRequestExport"
                             :disabled="isRequesting"
-                            class="w-full py-3 bg-primary text-secondary rounded-xl font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
+                            class="w-full py-3 flex items-center justify-center gap-2 border border-primary/30 rounded-xl text-sm font-bold text-primary hover:bg-primary/10 transition-all bg-primary/5 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <font-awesome-icon v-if="isRequesting" icon="fa-solid fa-circle-notch" spin />
                             <font-awesome-icon v-else icon="fa-solid fa-file-export" />

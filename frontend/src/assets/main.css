@@ -170,6 +170,15 @@
   text-shadow: 5px 5px 5px hsl(var(--color-background)) !important;
 }
 
+.apexcharts-tooltip-text-y-label,
+.apexcharts-tooltip-text-y-value {
+  color: hsl(var(--color-text)) !important;
+}
+
+.apexcharts-xcrosshairs {
+  fill: hsl(var(--color-secondary) / 0.5) !important;
+}
+
 .tooltip.tooltip-error .tooltip-box {
   background-color: hsl(var(--color-danger));
   color: hsl(var(--color-background));
@@ -239,7 +248,9 @@
 }
 
 #nprogress .peg {
-  box-shadow: 0 0 10px hsl(var(--color-primary)), 0 0 5px hsl(var(--color-primary)) !important;
+  box-shadow:
+    0 0 10px hsl(var(--color-primary)),
+    0 0 5px hsl(var(--color-primary)) !important;
 }
 
 #nprogress .spinner-icon {

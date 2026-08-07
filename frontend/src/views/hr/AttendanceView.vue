@@ -242,9 +242,10 @@ async function handleExportExcel() {
                 v-if="canViewAll"
                 @click="handleExportExcel"
                 title="Export Excel"
-                class="bg-success/10 border border-success/30 text-success hover:bg-success/30 text-sm font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 whitespace-nowrap flex-1 md:flex-none shadow-sm"
+                class="h-[42px] px-4 flex items-center justify-center gap-2 border border-primary/30 rounded-lg text-sm font-semibold text-primary hover:bg-primary/10 transition-all bg-primary/5 active:scale-[0.98] whitespace-nowrap flex-1 md:flex-none shadow-sm"
               >
-                <font-awesome-icon icon="fa-solid fa-file-excel" />
+                <font-awesome-icon icon="fa-solid fa-file-export" />
+                <span class="hidden md:inline">Export</span>
               </button>
 
               <button

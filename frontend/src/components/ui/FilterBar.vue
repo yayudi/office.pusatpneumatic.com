@@ -172,10 +172,10 @@ function emitClear() {
       <!-- Clear Button -->
       <button
         type="button"
-        class="h-[42px] px-4 bg-secondary/10 hover:bg-danger/10 text-text/80 hover:text-danger text-sm font-bold border border-secondary/20 hover:border-danger/20 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2"
+        class="h-[42px] px-4 flex items-center justify-center gap-2 border border-danger/30 rounded-lg text-sm font-semibold text-danger hover:bg-danger/10 transition-all bg-danger/5 active:scale-[0.98]"
         @click="emitClear"
       >
-        <font-awesome-icon icon="fa-solid fa-eraser" />
+        <font-awesome-icon icon="fa-solid fa-rotate-right" />
         <span class="hidden lg:inline">Reset</span>
       </button>
 
