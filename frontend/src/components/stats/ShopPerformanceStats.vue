@@ -205,7 +205,9 @@ const labelColor = computed(() => themeColors.value.text)
 const totalRevenueOverall = computed(() => summaryData.value.reduce((a, c) => a + c.total_revenue, 0))
 const totalItemsOverall = computed(() => summaryData.value.reduce((a, c) => a + c.total_items_sold, 0))
 const totalOrdersOverall = computed(() => summaryData.value.reduce((a, c) => a + c.total_orders, 0))
-const aovOverall = computed(() => totalOrdersOverall.value > 0 ? totalRevenueOverall.value / totalOrdersOverall.value : 0)
+const aovOverall = computed(() =>
+  totalOrdersOverall.value > 0 ? totalRevenueOverall.value / totalOrdersOverall.value : 0
+)
 
 const getPercentage = (val, total) => {
   if (!total) return 0
@@ -259,10 +261,18 @@ const pieOptions = computed(() => ({
 }))
 
 // === TREND TAB ===
-const trendSeries = computed(() => [
-  { name: 'Omset (Rp)', type: 'area', data: dailyTrendData.value.map(d => d.totalRevenue) },
-  { name: 'Qty Terjual', type: 'line', data: dailyTrendData.value.map(d => d.totalItemsSold) }
-])
+const trendMetric = ref('omset')
+
+const trendSeries = computed(() => {
+  if (trendMetric.value === 'omset') {
+    return [{ name: 'Omset (Rp)', type: 'area', data: dailyTrendData.value.map(d => d.totalRevenue) }]
+  } else if (trendMetric.value === 'qty') {
+    return [{ name: 'Qty Terjual', type: 'area', data: dailyTrendData.value.map(d => d.totalItemsSold) }]
+  } else {
+    return [{ name: 'Total Order (Resi)', type: 'area', data: dailyTrendData.value.map(d => d.totalOrders) }]
+  }
+})
+
 const trendOptions = computed(() => ({
   chart: { background: 'transparent', toolbar: { show: false }, stacked: false },
   theme: { mode: isDarkTheme.value ? 'dark' : 'light' },
@@ -272,20 +282,30 @@ const trendOptions = computed(() => ({
   },
   yaxis: [
     {
-      title: { text: 'Omset (Rp)', style: { color: labelColor.value } },
-      labels: { style: { colors: labelColor.value }, formatter: v => formatCurrency(v) }
-    },
-    {
-      opposite: true,
-      title: { text: 'Qty', style: { color: labelColor.value } },
-      labels: { style: { colors: labelColor.value } }
+      title: {
+        text: trendMetric.value === 'omset' ? 'Omset (Rp)' : trendMetric.value === 'qty' ? 'Qty' : 'Total Order',
+        style: { color: labelColor.value }
+      },
+      labels: {
+        style: { colors: labelColor.value },
+        formatter: v => (trendMetric.value === 'omset' ? formatCurrency(v) : formatNumber(v))
+      }
     }
   ],
-  stroke: { width: [2, 2], curve: 'smooth' },
-  fill: { type: ['gradient', 'solid'], opacity: [0.3, 1] },
-  legend: { labels: { colors: labelColor.value } },
-  tooltip: { shared: true, intersect: false },
-  grid: { borderColor: isDarkTheme.value ? '#333' : '#eee' }
+  stroke: { width: 2, curve: 'smooth' },
+  fill: { type: 'gradient', opacity: 0.3 },
+  legend: { show: false },
+  tooltip: {
+    y: { formatter: v => (trendMetric.value === 'omset' ? formatCurrency(v) : formatNumber(v)) }
+  },
+  grid: { borderColor: isDarkTheme.value ? '#333' : '#eee' },
+  colors: [
+    trendMetric.value === 'omset'
+      ? themeColors.value.primary
+      : trendMetric.value === 'qty'
+        ? themeColors.value.warning
+        : themeColors.value.success
+  ]
 }))
 
 // === SOURCE BADGE ===
@@ -476,11 +496,36 @@ const periodLabel = computed(() => {
               <thead class="bg-background border-b border-secondary sticky top-0 z-10">
                 <tr>
                   <th class="px-6 py-4 font-semibold text-text/80" title="Nama toko atau cabang">Nama Toko</th>
-                  <th class="px-6 py-4 font-semibold text-text/80 text-center" title="Platform/saluran penjualan (Online/Offline/Marketplace)">Saluran</th>
-                  <th class="px-6 py-4 font-semibold text-text/80 text-right" title="Jumlah transaksi atau pesanan yang terjadi">Total Order</th>
-                  <th class="px-6 py-4 font-semibold text-text/80 text-right" title="Total kuantitas barang yang terjual dari toko ini">Qty Terjual</th>
-                  <th class="px-6 py-4 font-semibold text-text/80 text-right" title="Total pendapatan kotor dari toko ini">Omset</th>
-                  <th class="px-6 py-4 font-semibold text-text/80 text-right" title="Persentase kontribusi omset toko ini terhadap total pendapatan keseluruhan">% Omset</th>
+                  <th
+                    class="px-6 py-4 font-semibold text-text/80 text-center"
+                    title="Platform/saluran penjualan (Online/Offline/Marketplace)"
+                  >
+                    Saluran
+                  </th>
+                  <th
+                    class="px-6 py-4 font-semibold text-text/80 text-right"
+                    title="Jumlah transaksi atau pesanan yang terjadi"
+                  >
+                    Total Order
+                  </th>
+                  <th
+                    class="px-6 py-4 font-semibold text-text/80 text-right"
+                    title="Total kuantitas barang yang terjual dari toko ini"
+                  >
+                    Qty Terjual
+                  </th>
+                  <th
+                    class="px-6 py-4 font-semibold text-text/80 text-right"
+                    title="Total pendapatan kotor dari toko ini"
+                  >
+                    Omset
+                  </th>
+                  <th
+                    class="px-6 py-4 font-semibold text-text/80 text-right"
+                    title="Persentase kontribusi omset toko ini terhadap total pendapatan keseluruhan"
+                  >
+                    % Omset
+                  </th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-secondary/20">
@@ -543,9 +588,30 @@ const periodLabel = computed(() => {
         <p class="text-text/50 text-sm">Tidak ada data tren untuk rentang waktu ini.</p>
       </div>
       <div v-else class="bg-background border border-secondary p-5 md:p-8 rounded-xl shadow-sm animate-fade-in">
-        <h4 class="font-bold text-text text-lg mb-1">Tren Penjualan Harian</h4>
-        <p class="text-xs text-text/50 mb-6">Pergerakan omset dan kuantitas terjual dari hari ke hari.</p>
-        <VueApexCharts v-if="!isThemeChanging" height="380" type="line" :options="trendOptions" :series="trendSeries" />
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <div>
+            <h4 class="font-bold text-text text-lg mb-1">Tren Penjualan Harian</h4>
+            <p class="text-xs text-text/50">Pergerakan data penjualan dari hari ke hari.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-xs font-semibold text-text/70">Tampilkan:</label>
+            <select
+              v-model="trendMetric"
+              class="px-3 py-1.5 bg-background border border-secondary rounded-lg text-sm font-medium text-text focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
+            >
+              <option value="omset">Omset</option>
+              <option value="qty">Qty Terjual</option>
+              <option value="resi">Resi / Order</option>
+            </select>
+          </div>
+        </div>
+        <VueApexCharts
+          v-if="!isThemeChanging"
+          height="380"
+          :type="trendSeries[0].type"
+          :options="trendOptions"
+          :series="trendSeries"
+        />
       </div>
     </template>
 
@@ -571,8 +637,15 @@ const periodLabel = computed(() => {
                 <th class="px-6 py-4 font-semibold text-text/80" title="Nama produk">Produk</th>
                 <th class="px-6 py-4 font-semibold text-text/80" title="Toko tempat produk terjual">Toko</th>
                 <th class="px-6 py-4 font-semibold text-text/80 text-center" title="Platform penjualan">Saluran</th>
-                <th class="px-6 py-4 font-semibold text-text/80 text-right" title="Jumlah produk yang terjual">Qty Terjual</th>
-                <th class="px-6 py-4 font-semibold text-text/80 text-right" title="Total pendapatan dari penjualan produk ini">Pendapatan</th>
+                <th class="px-6 py-4 font-semibold text-text/80 text-right" title="Jumlah produk yang terjual">
+                  Qty Terjual
+                </th>
+                <th
+                  class="px-6 py-4 font-semibold text-text/80 text-right"
+                  title="Total pendapatan dari penjualan produk ini"
+                >
+                  Pendapatan
+                </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-secondary/20">
