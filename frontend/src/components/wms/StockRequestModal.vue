@@ -165,113 +165,115 @@ function closeModal() {
 </script>
 
 <template>
-  <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-    <div
-      class="bg-background border border-secondary/20 rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in"
-    >
-      <!-- Header -->
-      <div class="px-6 py-4 border-b border-secondary/20 flex justify-between items-center bg-secondary/5">
-        <h3 class="text-lg font-bold text-text flex items-center gap-2">
-          <font-awesome-icon icon="fa-solid fa-file-invoice" class="text-primary" />
-          Buat Permintaan Stok Baru
-        </h3>
-        <button @click="closeModal" class="text-text/50 hover:text-danger transition-colors">
-          <font-awesome-icon icon="fa-solid fa-xmark" class="text-xl" />
-        </button>
-      </div>
+  <Teleport to="body">
+    <div v-if="isOpen" class="fixed inset-0 flex items-center justify-center p-4 bg-accent/80 backdrop-blur-sm">
+      <div
+        class="bg-background border border-secondary/20 rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in"
+      >
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-secondary/20 flex justify-between items-center bg-secondary/5">
+          <h3 class="text-lg font-bold text-text flex items-center gap-2">
+            <font-awesome-icon icon="fa-solid fa-file-invoice" class="text-primary" />
+            Buat Permintaan Stok Baru
+          </h3>
+          <button @click="closeModal" class="text-text/50 hover:text-danger transition-colors">
+            <font-awesome-icon icon="fa-solid fa-xmark" class="text-xl" />
+          </button>
+        </div>
 
-      <!-- Body -->
-      <div class="p-4 md:p-5 overflow-y-auto space-y-4 md:space-y-5 custom-scrollbar">
-        <!-- Lokasi & Notes -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-secondary/5 p-4 rounded-xl border border-secondary/20">
-          <div class="space-y-4">
-            <div>
-              <label class="block text-xs font-bold text-text/60 uppercase mb-1.5">Tipe Permintaan</label>
-              <select
-                v-model="type"
-                class="w-full p-2.5 bg-background border border-secondary/30 rounded-lg text-sm text-text focus:ring-1 focus:ring-primary outline-none"
-              >
-                <option value="TRANSFER">Transfer Stok</option>
-                <option value="STOCK_OPNAME">Stock Opname</option>
-              </select>
+        <!-- Body -->
+        <div class="p-4 md:p-5 overflow-y-auto space-y-4 md:space-y-5 custom-scrollbar">
+          <!-- Lokasi & Notes -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-secondary/5 p-4 rounded-xl border border-secondary/20">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-text/60 uppercase mb-1.5">Tipe Permintaan</label>
+                <select
+                  v-model="type"
+                  class="w-full p-2.5 bg-background border border-secondary/30 rounded-lg text-sm text-text focus:ring-1 focus:ring-primary outline-none"
+                >
+                  <option value="TRANSFER">Transfer Stok</option>
+                  <option value="STOCK_OPNAME">Stock Opname</option>
+                </select>
+              </div>
+
+              <div v-if="type === 'TRANSFER'">
+                <label class="block text-xs font-bold text-text/60 uppercase mb-1.5">Minta Dari Lokasi (Asal)</label>
+                <select
+                  v-model="fromLocationId"
+                  class="w-full p-2.5 bg-background border border-secondary/30 rounded-lg text-sm text-text focus:ring-1 focus:ring-primary outline-none"
+                >
+                  <option :value="null" disabled>Pilih Lokasi Asal</option>
+                  <option v-for="loc in allLocations" :key="loc.id" :value="loc.id">
+                    {{ loc.code }} - {{ loc.name }}
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-text/60 uppercase mb-1.5">
+                  {{ type === 'TRANSFER' ? 'Kirim Ke Lokasi (Tujuan)' : 'Lokasi Opname' }}
+                </label>
+                <select
+                  v-model="toLocationId"
+                  class="w-full p-2.5 bg-background border border-secondary/30 rounded-lg text-sm text-text focus:ring-1 focus:ring-primary outline-none"
+                >
+                  <option :value="null" disabled>Pilih Lokasi</option>
+                  <!-- Untuk opname, operator bebas pilih semua lokasi -->
+                  <option v-for="loc in type === 'TRANSFER' ? myLocations : allLocations" :key="loc.id" :value="loc.id">
+                    {{ loc.code }} - {{ loc.name }}
+                  </option>
+                </select>
+              </div>
             </div>
 
-            <div v-if="type === 'TRANSFER'">
-              <label class="block text-xs font-bold text-text/60 uppercase mb-1.5">Minta Dari Lokasi (Asal)</label>
-              <select
-                v-model="fromLocationId"
-                class="w-full p-2.5 bg-background border border-secondary/30 rounded-lg text-sm text-text focus:ring-1 focus:ring-primary outline-none"
-              >
-                <option :value="null" disabled>Pilih Lokasi Asal</option>
-                <option v-for="loc in allLocations" :key="loc.id" :value="loc.id">
-                  {{ loc.code }} - {{ loc.name }}
-                </option>
-              </select>
-            </div>
-
             <div>
-              <label class="block text-xs font-bold text-text/60 uppercase mb-1.5">
-                {{ type === 'TRANSFER' ? 'Kirim Ke Lokasi (Tujuan)' : 'Lokasi Opname' }}
-              </label>
-              <select
-                v-model="toLocationId"
-                class="w-full p-2.5 bg-background border border-secondary/30 rounded-lg text-sm text-text focus:ring-1 focus:ring-primary outline-none"
-              >
-                <option :value="null" disabled>Pilih Lokasi</option>
-                <!-- Untuk opname, operator bebas pilih semua lokasi -->
-                <option v-for="loc in type === 'TRANSFER' ? myLocations : allLocations" :key="loc.id" :value="loc.id">
-                  {{ loc.code }} - {{ loc.name }}
-                </option>
-              </select>
+              <label class="block text-xs font-bold text-text/60 uppercase mb-1.5">Catatan / Alasan</label>
+              <textarea
+                v-model="notes"
+                rows="3"
+                class="w-full p-3 bg-background border border-secondary/30 rounded-lg text-sm text-text focus:ring-1 focus:ring-primary outline-none resize-none placeholder:text-text/30"
+                placeholder="Contoh: Stok untuk event akhir pekan..."
+              ></textarea>
             </div>
           </div>
 
-          <div>
-            <label class="block text-xs font-bold text-text/60 uppercase mb-1.5">Catatan / Alasan</label>
-            <textarea
-              v-model="notes"
-              rows="3"
-              class="w-full p-3 bg-background border border-secondary/30 rounded-lg text-sm text-text focus:ring-1 focus:ring-primary outline-none resize-none placeholder:text-text/30"
-              placeholder="Contoh: Stok untuk event akhir pekan..."
-            ></textarea>
+          <div class="border-t border-secondary/20 pt-4">
+            <h4 class="text-sm font-bold text-text/80 uppercase mb-3">Daftar Produk</h4>
+
+            <!-- Pakai komponen yg sama dgn Batch Adjustment -->
+            <ProductSearchAddForm
+              :active-tab="type"
+              :search-location-id="type === 'TRANSFER' ? fromLocationId : toLocationId"
+              :disabled="type === 'TRANSFER' ? !fromLocationId || isLoading : !toLocationId || isLoading"
+              @add-product="handleAddProduct"
+            />
+
+            <BatchItemList class="mt-3" :items="batchList" :active-tab="type" @remove-item="removeFromBatch" />
           </div>
         </div>
 
-        <div class="border-t border-secondary/20 pt-4">
-          <h4 class="text-sm font-bold text-text/80 uppercase mb-3">Daftar Produk</h4>
-
-          <!-- Pakai komponen yg sama dgn Batch Adjustment -->
-          <ProductSearchAddForm
-            :active-tab="type"
-            :search-location-id="type === 'TRANSFER' ? fromLocationId : toLocationId"
-            :disabled="type === 'TRANSFER' ? !fromLocationId || isLoading : !toLocationId || isLoading"
-            @add-product="handleAddProduct"
-          />
-
-          <BatchItemList class="mt-3" :items="batchList" :active-tab="type" @remove-item="removeFromBatch" />
+        <!-- Footer -->
+        <div class="px-6 py-4 border-t border-secondary/20 bg-secondary/5 flex justify-end gap-3">
+          <button
+            @click="closeModal"
+            class="px-5 py-2.5 rounded-lg text-sm font-bold text-text/70 bg-background border border-secondary/30 hover:bg-secondary/10 transition-colors"
+          >
+            Batal
+          </button>
+          <button
+            @click="submitRequest"
+            :disabled="isLoading || batchList.length === 0 || !toLocationId || (type === 'TRANSFER' && !fromLocationId)"
+            class="px-5 py-2.5 bg-primary text-secondary rounded-lg text-sm font-bold disabled:opacity-50 flex items-center gap-2 hover:bg-primary/90 transition-colors"
+          >
+            <font-awesome-icon v-if="isLoading" icon="fa-solid fa-spinner" class="animate-spin" />
+            <font-awesome-icon v-else icon="fa-solid fa-paper-plane" />
+            Kirim Permintaan
+          </button>
         </div>
-      </div>
-
-      <!-- Footer -->
-      <div class="px-6 py-4 border-t border-secondary/20 bg-secondary/5 flex justify-end gap-3">
-        <button
-          @click="closeModal"
-          class="px-5 py-2.5 rounded-lg text-sm font-bold text-text/70 bg-background border border-secondary/30 hover:bg-secondary/10 transition-colors"
-        >
-          Batal
-        </button>
-        <button
-          @click="submitRequest"
-          :disabled="isLoading || batchList.length === 0 || !toLocationId || (type === 'TRANSFER' && !fromLocationId)"
-          class="px-5 py-2.5 bg-primary text-secondary rounded-lg text-sm font-bold disabled:opacity-50 flex items-center gap-2 hover:bg-primary/90 transition-colors"
-        >
-          <font-awesome-icon v-if="isLoading" icon="fa-solid fa-spinner" class="animate-spin" />
-          <font-awesome-icon v-else icon="fa-solid fa-paper-plane" />
-          Kirim Permintaan
-        </button>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <style scoped>

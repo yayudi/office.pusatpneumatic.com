@@ -29,6 +29,7 @@ const downloadStore = useDownloadStore()
 
 const { toast } = useToast()
 const isSidebarOpen = ref(false)
+const isDesktopSidebarCollapsed = ref(false)
 
 // State untuk data KPI
 const kpiData = ref(null)
@@ -262,11 +263,20 @@ function formatJobType(type) {
     ></div>
 
     <aside
-      class="fixed md:sticky top-12 bottom-0 left-0 md:h-[calc(100vh-3rem)] z-50 w-64 bg-background border-r border-secondary/20 transform transition-transform duration-300 ease-in-out flex flex-col shadow-lg md:shadow-none overflow-y-auto"
-      :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
+      class="fixed md:sticky top-12 bottom-0 left-0 md:h-[calc(100vh-3rem)] z-50 w-64 bg-background border-r border-secondary/20 transform transition-all duration-300 ease-in-out flex flex-col shadow-lg md:shadow-none overflow-y-auto"
+      :class="[
+        isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
+        isDesktopSidebarCollapsed ? 'md:w-20' : 'md:w-64'
+      ]"
     >
-      <div class="p-6 border-b border-secondary/20 flex justify-between items-center bg-secondary/5">
-        <h2 class="text-xl font-bold text-text flex items-center gap-3">
+      <div 
+        class="p-6 border-b border-secondary/20 flex items-center bg-secondary/5 h-[72px]"
+        :class="isDesktopSidebarCollapsed ? 'justify-center' : 'justify-between'"
+      >
+        <h2 
+          class="text-xl font-bold text-text flex items-center gap-3 transition-opacity duration-200"
+          :class="isDesktopSidebarCollapsed ? 'hidden' : 'block'"
+        >
           <font-awesome-icon icon="fa-solid fa-chart-simple" class="text-primary" />
           <span>Statistik</span>
         </h2>
@@ -276,32 +286,52 @@ function formatJobType(type) {
         >
           <font-awesome-icon icon="fa-solid fa-xmark" size="lg" />
         </button>
+        <button
+          @click="isDesktopSidebarCollapsed = !isDesktopSidebarCollapsed"
+          class="hidden md:flex text-text/60 hover:text-primary p-2 rounded-lg transition-colors hover:bg-secondary/10"
+          :class="isDesktopSidebarCollapsed ? 'mx-auto' : ''"
+          title="Toggle Sidebar"
+        >
+          <font-awesome-icon :icon="isDesktopSidebarCollapsed ? 'fa-solid fa-angles-right' : 'fa-solid fa-angles-left'" size="lg" />
+        </button>
       </div>
 
-      <nav class="flex-1 overflow-y-auto space-y-1">
+      <nav class="flex-1 overflow-y-auto space-y-1 custom-scrollbar">
         <div
           v-for="(reports, groupName) in groupedReportsMenu"
           :key="groupName"
-          class="py-4 px-4 pr-6 border-t border-secondary"
+          class="py-4 border-t border-secondary transition-all duration-300"
+          :class="isDesktopSidebarCollapsed ? 'px-2 flex flex-col items-center' : 'px-4 pr-6'"
         >
-          <span class="text-xs font-bold text-text/40 uppercase tracking-wider block mb-2">
-            {{ groupName }}
+          <span 
+            class="font-bold text-text/40 uppercase tracking-wider block mb-2 transition-all duration-300"
+            :class="isDesktopSidebarCollapsed ? 'text-[10px] text-center w-full truncate' : 'text-xs'"
+            :title="isDesktopSidebarCollapsed ? groupName : ''"
+          >
+            {{ isDesktopSidebarCollapsed ? '...' : groupName }}
           </span>
-          <div class="space-y-1">
+          <div class="space-y-1 w-full">
             <a
               v-for="item in reports"
               :key="item.key"
               href="#"
               @click.prevent="((activeReport = item.key), (isSidebarOpen = false))"
-              class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200"
-              :class="
+              class="flex items-center py-2.5 text-sm font-medium rounded-lg transition-all duration-200 overflow-hidden"
+              :class="[
                 activeReport === item.key
                   ? 'bg-primary/10 text-primary font-semibold shadow-sm ring-1 ring-primary/20'
-                  : 'text-text/70 hover:bg-secondary/20 hover:text-primary'
-              "
+                  : 'text-text/70 hover:bg-secondary/20 hover:text-primary',
+                isDesktopSidebarCollapsed ? 'px-0 justify-center' : 'px-3 gap-3'
+              ]"
+              :title="item.label"
             >
-              <font-awesome-icon :icon="item.icon" class="w-5" />
-              <span>{{ item.label }}</span>
+              <font-awesome-icon :icon="item.icon" class="w-5 shrink-0" />
+              <span 
+                class="transition-opacity duration-200 whitespace-nowrap"
+                :class="isDesktopSidebarCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100'"
+              >
+                {{ item.label }}
+              </span>
             </a>
           </div>
         </div>

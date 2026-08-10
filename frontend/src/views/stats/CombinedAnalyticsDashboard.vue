@@ -28,7 +28,12 @@ const filters = ref({
 })
 
 const mainFilters = computed(() => [
-  { type: 'daterange', keyStart: 'startDate', keyEnd: 'endDate', class: 'md:col-span-1 lg:col-span-2' },
+  {
+    type: 'daterange',
+    keyStart: 'startDate',
+    keyEnd: 'endDate',
+    class: 'md:col-span-1 lg:col-span-2 self-end'
+  },
   {
     type: 'triselect',
     key: 'building',
@@ -49,35 +54,98 @@ const kpi = ref({
 
 // Charts Configuration
 const shopPerformanceChartOptions = ref({
-  chart: { type: 'area', height: 350, toolbar: { show: false }, background: 'transparent' },
+  chart: {
+    type: 'area',
+    height: 350,
+    toolbar: { show: false },
+    background: 'transparent'
+  },
   xaxis: { categories: [] },
   colors: ['#3b82f6', '#ef4444'], // Blue for sales, Red for out movements
   dataLabels: { enabled: false },
   stroke: { curve: 'smooth' },
   theme: { mode: 'light' },
-  title: { text: 'Performa Toko vs Stok Keluar', align: 'left', style: { color: '#64748b' } }
+  title: {
+    text: 'Performa Toko vs Stok Keluar',
+    align: 'left',
+    style: { color: '#64748b' }
+  }
 })
 const shopPerformanceSeries = ref([])
 
 const inventoryValueChartOptions = ref({
-  chart: { type: 'donut', height: 350, background: 'transparent' },
+  chart: {
+    type: 'donut',
+    height: 350,
+    background: 'transparent'
+  },
   labels: [],
-  colors: ['#10b981', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899'],
+  colors: ['#10b981', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#ef4444', '#06b6d4', '#84cc16'],
+  legend: {
+    position: 'bottom',
+    fontSize: '12px',
+    labels: { useSeriesColors: true },
+    formatter: label => {
+      return label.length > 20 ? label.substring(0, 20) + '…' : label
+    }
+  },
+  dataLabels: {
+    enabled: true,
+    formatter: val => `${val.toFixed(1)}%`,
+    style: {
+      fontSize: '12px',
+      fontFamily: 'inherit',
+      fontWeight: 'bold',
+      dropShadow: {
+        enabled: false
+      }
+    }
+  },
+  tooltip: {
+    y: {
+      formatter: val =>
+        new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val)
+    }
+  },
   theme: { mode: 'light' },
-  title: { text: 'Distribusi Nilai Inventaris', align: 'left', style: { color: '#64748b' } }
+  title: {
+    text: 'Distribusi Nilai Inventaris',
+    align: 'left',
+    style: { color: '#64748b' }
+  }
 })
 const inventoryValueSeries = ref([])
 
 const packageAnalysisChartOptions = ref({
-  chart: { type: 'bar', height: 350, toolbar: { show: false }, background: 'transparent' },
+  chart: {
+    type: 'bar',
+    height: 350,
+    toolbar: { show: false },
+    background: 'transparent'
+  },
   plotOptions: {
-    bar: { horizontal: true, columnWidth: '55%', borderRadius: 4 }
+    bar: {
+      horizontal: true,
+      columnWidth: '55%',
+      borderRadius: 4
+    }
   },
   xaxis: { categories: [] },
   colors: ['#8b5cf6'],
   dataLabels: { enabled: false },
   theme: { mode: 'light' },
-  title: { text: 'Top Paket Paling Laku', align: 'left', style: { color: '#64748b' } }
+  title: {
+    text: 'Top Paket Paling Laku',
+    align: 'left',
+    style: { color: '#64748b' }
+  },
+  yaxis: {
+    labels: {
+      show: true,
+      align: 'left',
+      maxWidth: 400
+    }
+  }
 })
 const packageAnalysisSeries = ref([])
 
@@ -108,7 +176,7 @@ const fetchData = async () => {
     const shopDailyTrend = shopRaw?.dailyTrend || []
 
     processKpi(movementsSummary, inventoryData, shopSummary)
-    processShopVsMovementChart(shopDailyTrend, movementsSummary)
+    processShopVsMovementChart(shopDailyTrend)
     processInventoryValueChart(inventoryData)
     processPackageAnalysisChart(packageData)
   } catch (error) {
@@ -125,67 +193,57 @@ const processKpi = (movements, inventory, shop) => {
   kpi.value.totalMovements = movements?.reduce((acc, curr) => acc + (Number(curr.total_sold) || 0), 0) || 0
 }
 
-const processShopVsMovementChart = (shop, movements) => {
-  // Aggregate data by date
-  const dateMap = {}
+const processShopVsMovementChart = dailyTrend => {
+  // dailyTrend items: { date, totalOrders, totalItemsSold, totalRevenue }
+  const sortedDates = dailyTrend.map(item => item.date).sort()
 
-  shop?.forEach(item => {
-    const d = item.date?.split('T')[0] || item.created_at?.split('T')[0]
-    if (d) {
-      if (!dateMap[d]) dateMap[d] = { sales: 0, out: 0 }
-      dateMap[d].sales += Number(item.total_qty || item.quantity || 0)
-    }
-  })
-
-  movements?.forEach(item => {
-    const d = item.date || item.created_at?.split('T')[0]
-    if (d) {
-      if (!dateMap[d]) dateMap[d] = { sales: 0, out: 0 }
-      dateMap[d].out += Number(item.out_qty || 0)
-    }
-  })
-
-  const sortedDates = Object.keys(dateMap).sort()
   shopPerformanceChartOptions.value = {
     ...shopPerformanceChartOptions.value,
     xaxis: { categories: sortedDates }
   }
 
   shopPerformanceSeries.value = [
-    { name: 'Penjualan Toko (Qty)', data: sortedDates.map(d => dateMap[d].sales) },
-    { name: 'Stok Keluar (Qty)', data: sortedDates.map(d => dateMap[d].out) }
+    { name: 'Item Terjual', data: dailyTrend.sort((a, b) => a.date.localeCompare(b.date)).map(d => d.totalItemsSold) },
+    { name: 'Jumlah Order', data: dailyTrend.sort((a, b) => a.date.localeCompare(b.date)).map(d => d.totalOrders) }
   ]
 }
 
 const processInventoryValueChart = inventory => {
   const categoriesMap = {}
   inventory?.forEach(item => {
-    const cat = item.category_name || item.building || 'Lainnya'
+    const cat = item.category || item.category_name || item.building || 'Lainnya'
     if (!categoriesMap[cat]) categoriesMap[cat] = 0
     categoriesMap[cat] += Number(item.total_value || 0)
   })
 
+  // Limit to top 8 categories, group rest as "Lainnya"
+  const sorted = Object.entries(categoriesMap).sort((a, b) => b[1] - a[1])
+  const topN = 8
+  const topCategories = sorted.slice(0, topN)
+  const othersTotal = sorted.slice(topN).reduce((acc, [, val]) => acc + val, 0)
+  if (othersTotal > 0) topCategories.push(['Lainnya', othersTotal])
+
   inventoryValueChartOptions.value = {
     ...inventoryValueChartOptions.value,
-    labels: Object.keys(categoriesMap)
+    labels: topCategories.map(([label]) => label)
   }
-  inventoryValueSeries.value = Object.values(categoriesMap)
+  inventoryValueSeries.value = topCategories.map(([, val]) => val)
 }
 
 const processPackageAnalysisChart = packages => {
   // Sort by highest quantity
   const sorted = (packages || [])
-    .sort((a, b) => (Number(b.total_qty || b.usage_count) || 0) - (Number(a.total_qty || a.usage_count) || 0))
+    .sort((a, b) => (Number(b.total_needed) || 0) - (Number(a.total_needed) || 0))
     .slice(0, 10)
 
   packageAnalysisChartOptions.value = {
     ...packageAnalysisChartOptions.value,
-    xaxis: { categories: sorted.map(p => p.package_name || p.name || 'Paket') }
+    xaxis: { categories: sorted.map(p => p.name || p.sku || 'Produk') }
   }
   packageAnalysisSeries.value = [
     {
-      name: 'Jumlah Terjual',
-      data: sorted.map(p => Number(p.total_qty || p.usage_count) || 0)
+      name: 'Total Dibutuhkan',
+      data: sorted.map(p => Number(p.total_needed) || 0)
     }
   ]
 }
@@ -254,7 +312,7 @@ watch(
 
 <template>
   <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-    <h1 class="text-2xl font-bold text-text">Dashboard Analitik Terpadu</h1>
+    <h1 class="text-2xl font-bold text-primary">Dashboard Analitik Terpadu</h1>
 
     <!-- Global Filters -->
     <FilterBar v-model="filters" :filters="mainFilters" @change="fetchData" />

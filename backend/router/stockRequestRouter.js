@@ -56,6 +56,16 @@ router.post(
 );
 
 /**
+ * POST /api/stock-requests/:id/dispatch
+ * Mengirim barang permintaan stok. Menggunakan permission khusus.
+ */
+router.post(
+  "/:id/dispatch",
+  canAccess(["approve-stock-requests"]),
+  stockRequestController.dispatchStockRequest
+);
+
+/**
  * POST /api/stock-requests/:id/complete
  * Menerima barang dan menyelesaikan permintaan.
  */

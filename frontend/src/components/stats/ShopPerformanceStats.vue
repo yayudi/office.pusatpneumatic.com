@@ -478,7 +478,7 @@ const periodLabel = computed(() => {
             <VueApexCharts
               v-if="!isThemeChanging"
               width="100%"
-              :height="Math.max(350, summaryData.length * 40 + 200)"
+              :height="Math.max(350, summaryData.length * 40)"
               type="pie"
               :options="pieOptions"
               :series="pieSeries"
@@ -507,6 +507,12 @@ const periodLabel = computed(() => {
                     title="Jumlah transaksi atau pesanan yang terjadi"
                   >
                     Total Order
+                  </th>
+                  <th
+                    class="px-6 py-4 font-semibold text-text/80 text-right"
+                    title="Persentase kontribusi transaksi toko ini terhadap total transaksi keseluruhan"
+                  >
+                    % Transaksi
                   </th>
                   <th
                     class="px-6 py-4 font-semibold text-text/80 text-right"
@@ -548,6 +554,21 @@ const periodLabel = computed(() => {
                   </td>
                   <td class="px-6 py-4 text-right font-mono">
                     {{ formatNumber(item.total_orders) }}
+                  </td>
+                  <td class="px-6 py-4 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                      <span class="text-xs font-bold"
+                        >{{ getPercentage(item.total_orders, totalOrdersOverall) }}%</span
+                      >
+                      <div class="w-16 h-1.5 bg-secondary/20 rounded-full overflow-hidden">
+                        <div
+                          class="h-full bg-accent"
+                          :style="{
+                            width: `${getPercentage(item.total_orders, totalOrdersOverall)}%`
+                          }"
+                        ></div>
+                      </div>
+                    </div>
                   </td>
                   <td class="px-6 py-4 text-right font-mono">
                     {{ formatNumber(item.total_items_sold) }}

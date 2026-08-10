@@ -158,6 +158,65 @@ export const approveStockRequestService = async (requestId, user) => {
 };
 
 /**
+ * Dispatch Permintaan Stok (Oleh Pihak Pengirim)
+ * Mengurangi stok dari gudang asal dan merubah status jadi SHIPPED
+ */
+export const dispatchStockRequestService = async (requestId, user) => {
+  const connection = await db.getConnection();
+  await connection.beginTransaction();
+  try {
+    const request = await stockRequestRepo.getStockRequestById(connection, requestId);
+    if (!request) throw new Error("Permintaan stok tidak ditemukan.");
+    if (request.status !== "APPROVED")
+      throw new Error("Hanya permintaan berstatus APPROVED yang dapat dikirim.");
+    if (request.type === "STOCK_OPNAME")
+      throw new Error("Permintaan Stock Opname tidak memerlukan pengiriman.");
+
+    // Deduct stock from sender (TRANSFER_OUT)
+    const movements = request.items.map((reqItem) => ({
+      sku: reqItem.sku,
+      quantity: reqItem.quantity,
+      fromLocationId: request.from_location_id,
+      notes: `Pengiriman Permintaan Stok ${request.request_number}`,
+    }));
+
+    await processBatchMovementsService({
+      type: "TRANSFER_OUT",
+      fromLocationId: request.from_location_id,
+      toLocationId: null, // Hanya pengurangan stok
+      notes: `Pengiriman Stok ${request.request_number}`,
+      movements: movements,
+      userId: user.id,
+      userRoleId: user.role_id || 1, // Bypass jika role admin
+    });
+
+    await stockRequestRepo.updateStockRequestStatus(connection, requestId, "SHIPPED");
+
+    await connection.commit();
+    emitSharedTaskSignal("STOCK_REQUESTS", "REFRESH_REQUESTS").catch((e) => Logger.error("Signal Error", e, "STOCK_REQUEST_SERVICE"));
+
+    // Notifikasi ke requester
+    notificationService
+      .notifyUsers(
+        [request.requester_id],
+        "WMS",
+        "Barang Telah Dikirim",
+        `Barang untuk permintaan stok ${request.request_number} telah dikirim oleh gudang asal.`,
+        { requestId, requestNumber: request.request_number },
+        true,
+      )
+      .catch((e) => Logger.error("Failed to send notification", e, "STOCK_REQUEST_SERVICE"));
+
+    return { success: true, message: "Barang berhasil dikirim dan stok asal telah dipotong." };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+};
+
+/**
  * Reject Permintaan Stok
  */
 export const rejectStockRequestService = async (requestId, _) => {
@@ -197,7 +256,7 @@ export const rejectStockRequestService = async (requestId, _) => {
 
 /**
  * Complete Permintaan Stok (Oleh Pihak Penerima)
- * Ini akan mentrigger transfer stok.
+ * Ini akan mentrigger penambahan stok (TRANSFER_IN).
  */
 export const completeStockRequestService = async (requestId, receivedItems, user) => {
   const connection = await db.getConnection();
@@ -205,8 +264,8 @@ export const completeStockRequestService = async (requestId, receivedItems, user
   try {
     const request = await stockRequestRepo.getStockRequestById(connection, requestId);
     if (!request) throw new Error("Permintaan stok tidak ditemukan.");
-    if (request.status !== "APPROVED")
-      throw new Error("Hanya permintaan berstatus APPROVED yang dapat diselesaikan.");
+    if (request.status !== "SHIPPED")
+      throw new Error("Hanya permintaan berstatus SHIPPED yang dapat diselesaikan.");
 
     // Update received_quantity
     const movements = [];
@@ -226,19 +285,19 @@ export const completeStockRequestService = async (requestId, receivedItems, user
           movements.push({
             sku: reqItem.sku,
             quantity: rQty,
-            fromLocationId: request.from_location_id,
+            fromLocationId: null,
             toLocationId: request.to_location_id,
-            notes: `Stock Request ${request.request_number}`,
+            notes: `Penerimaan Permintaan Stok ${request.request_number}`,
           });
         }
       }
     }
 
-    // Trigger pergerakan stok menggunakan existing service.
+    // Trigger penambahan stok (TRANSFER_IN)
     if (movements.length > 0) {
       await processBatchMovementsService({
-        type: "TRANSFER",
-        fromLocationId: request.from_location_id,
+        type: "TRANSFER_IN",
+        fromLocationId: null,
         toLocationId: request.to_location_id,
         notes: `Penyelesaian Permintaan Stok ${request.request_number}`,
         movements: movements,

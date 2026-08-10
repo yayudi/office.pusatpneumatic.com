@@ -39,6 +39,15 @@ export const rejectStockRequest = catchAsync(async (req, res, next) => {
 });
 
 /**
+ * Mengirim barang untuk permintaan stok
+ */
+export const dispatchStockRequest = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const result = await stockRequestService.dispatchStockRequestService(id, req.user);
+  res.json(result);
+});
+
+/**
  * Menyelesaikan permintaan stok dan menerima barang
  */
 export const completeStockRequest = catchAsync(async (req, res, next) => {

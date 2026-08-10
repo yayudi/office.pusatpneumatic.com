@@ -165,6 +165,14 @@
   font-weight: bold !important;
 }
 
+.apexcharts-datalabels text {
+  text-shadow:
+    1px 1px 3px hsl(var(--color-background)),
+    -1px -1px 3px hsl(var(--color-background)),
+    1px -1px 3px hsl(var(--color-background)),
+    -1px 1px 3px hsl(var(--color-background)) !important;
+}
+
 .apexcharts-pie-series > .apexcharts-pie-label:hover {
   color: hsl(var(--color-background)) !important;
   text-shadow: 5px 5px 5px hsl(var(--color-background)) !important;
@@ -177,6 +185,34 @@
 
 .apexcharts-xcrosshairs {
   fill: hsl(var(--color-secondary) / 0.5) !important;
+}
+
+.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title {
+  background-color: hsl(var(--color-secondary)) !important;
+}
+
+.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-series-group {
+  background-color: hsl(var(--color-background)) !important;
+}
+
+.apexcharts-tooltip .apexcharts-theme-light .apexcharts-active {
+  background-color: hsl(var(--color-background)) !important;
+}
+
+.apexcharts-legend-text {
+  color: hsl(var(--color-text)) !important;
+}
+
+.apexcharts-title-text {
+  fill: hsl(var(--color-accent)) !important;
+}
+
+.apexcharts-text {
+  fill: hsl(var(--color-text)) !important;
+}
+
+.apexcharts-datalabels rect {
+  fill: hsl(var(--color-background)) !important;
 }
 
 .tooltip.tooltip-error .tooltip-box {

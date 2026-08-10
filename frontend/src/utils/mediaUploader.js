@@ -28,7 +28,7 @@ const computeHash = async blob => {
  * @returns {Promise<{mainBlob: Blob, thumbBlob: Blob, hash: string, sizeBytes: number, width: number, height: number, originalName: string}>}
  */
 export const processMediaClientSide = async file => {
-  // 1. BUAT MAIN IMAGE (Max 1600px, WebP, Web Worker)
+  // BUAT MAIN IMAGE (Max 1600px, WebP, Web Worker)
   const mainOptions = {
     maxWidthOrHeight: 1600,
     useWebWorker: true,
@@ -40,7 +40,7 @@ export const processMediaClientSide = async file => {
 
   const mainBlob = await imageCompression(file, mainOptions)
 
-  // 2. BUAT THUMBNAIL (Crop 1:1 di Tengah menggunakan Canvas)
+  // BUAT THUMBNAIL (Crop 1:1 di Tengah menggunakan Canvas)
   const imageBitmap = await createBitmap(mainBlob)
   const canvas = document.createElement('canvas')
   canvas.width = 300
@@ -58,7 +58,7 @@ export const processMediaClientSide = async file => {
     canvas.toBlob(resolve, 'image/webp', 0.75)
   })
 
-  // 3. Hash SHA-256
+  // Hash SHA-256
   const hash = await computeHash(mainBlob)
 
   return {
@@ -81,7 +81,7 @@ export const processMediaClientSide = async file => {
  * @param {Function} onProgressCallback - Callback progress (0-100)
  */
 export const uploadMediaToR2 = async (apiClient, files, fileTitles, tags, products, onProgressCallback = null) => {
-  // A. Minta Presigned URL dari Backend
+  // Minta Presigned URL dari Backend
   const fileRequests = files.map(f => ({ name: f.name, type: 'image/webp' }))
   const presignedRes = await apiClient.post('/media/presigned-url', { files: fileRequests })
   const urls = presignedRes.data.data
@@ -97,7 +97,7 @@ export const uploadMediaToR2 = async (apiClient, files, fileTitles, tags, produc
     }
   }
 
-  // B. Proses & Unggah masing-masing file
+  // Proses & Unggah masing-masing file
   for (let i = 0; i < files.length; i++) {
     const file = files[i]
     const title = fileTitles && fileTitles[i] ? fileTitles[i].trim() : file.name
@@ -105,23 +105,23 @@ export const uploadMediaToR2 = async (apiClient, files, fileTitles, tags, produc
 
     if (!urlData) throw new Error(`URL presigned tidak ditemukan untuk ${file.name}`)
 
-    // 1. Client-Side Processing
+    // Client-Side Processing
     const processed = await processMediaClientSide(file)
     updateProgress()
 
-    // 2. Upload Main Image ke R2
+    // Upload Main Image ke R2
     await axios.put(urlData.main.url, processed.mainBlob, {
       headers: { 'Content-Type': 'image/webp' }
     })
     updateProgress()
 
-    // 3. Upload Thumbnail Image ke R2
+    // Upload Thumbnail Image ke R2
     await axios.put(urlData.thumb.url, processed.thumbBlob, {
       headers: { 'Content-Type': 'image/webp' }
     })
     updateProgress()
 
-    // 4. Siapkan Metadata
+    // Siapkan Metadata
     assetsMetadata.push({
       title: title,
       tags: tags || [],
@@ -134,7 +134,7 @@ export const uploadMediaToR2 = async (apiClient, files, fileTitles, tags, produc
     })
   }
 
-  // C. Konfirmasi unggahan ke Backend untuk disimpan di MySQL
+  // Konfirmasi unggahan ke Backend untuk disimpan di MySQL
   const confirmRes = await apiClient.post('/media/confirm', {
     assets: assetsMetadata,
     products: products

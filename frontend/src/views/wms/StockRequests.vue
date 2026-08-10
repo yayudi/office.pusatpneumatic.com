@@ -7,6 +7,7 @@ import {
   fetchStockRequests,
   approveStockRequest,
   rejectStockRequest,
+  dispatchStockRequest,
   completeStockRequest,
   bulkActionStockRequests
 } from '@/api/helpers/stockRequest'
@@ -71,7 +72,7 @@ useFirebaseSync('STOCK_REQUESTS', 'REFRESH_REQUESTS', () => loadRequests(true))
 const filteredRequests = computed(() => requests.value)
 
 async function handleApprove(id) {
-  if (!await swalConfirm('Apakah Anda yakin menyetujui permintaan ini?')) return
+  if (!(await swalConfirm('Apakah Anda yakin menyetujui permintaan ini?'))) return
   try {
     await approveStockRequest(id)
     toast('Permintaan disetujui', 'success')
@@ -82,7 +83,7 @@ async function handleApprove(id) {
 }
 
 async function handleReject(id) {
-  if (!await swalConfirm('Apakah Anda yakin menolak permintaan ini?')) return
+  if (!(await swalConfirm('Apakah Anda yakin menolak permintaan ini?'))) return
   try {
     await rejectStockRequest(id)
     toast('Permintaan ditolak', 'success')
@@ -92,12 +93,26 @@ async function handleReject(id) {
   }
 }
 
+async function handleDispatch(id) {
+  if (!(await swalConfirm('Apakah Anda yakin barang sudah siap dan akan dikirim sekarang?'))) return
+  try {
+    await dispatchStockRequest(id)
+    toast('Barang berhasil dikirim', 'success')
+    loadRequests()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
 async function handleComplete(id, items, req) {
-  if (!await swalConfirm(
-    req && req.type === 'STOCK_OPNAME' 
-      ? 'Konfirmasi kuantitas fisik dan simpan perubahan stok opname?'
-      : 'Tandai telah diterima? Pastikan barang fisik sudah sesuai.'
-  )) return
+  if (
+    !(await swalConfirm(
+      req && req.type === 'STOCK_OPNAME'
+        ? 'Konfirmasi kuantitas fisik dan simpan perubahan stok opname?'
+        : 'Tandai telah diterima? Pastikan barang fisik sudah sesuai.'
+    ))
+  )
+    return
   try {
     const safeItems = Array.isArray(items) ? items : []
     const receivedItems = safeItems.map(item => ({
@@ -116,12 +131,16 @@ async function handleComplete(id, items, req) {
 // Bulk Actions
 const isAllSelected = computed({
   get() {
-    const selectable = filteredRequests.value.filter(req => req.status === 'PENDING' && req.requester_id !== currentUser.value?.id)
+    const selectable = filteredRequests.value.filter(
+      req => req.status === 'PENDING' && req.requester_id !== currentUser.value?.id
+    )
     return selectable.length > 0 && selectedIds.value.length === selectable.length
   },
   set(val) {
     if (val) {
-      const selectable = filteredRequests.value.filter(req => req.status === 'PENDING' && req.requester_id !== currentUser.value?.id)
+      const selectable = filteredRequests.value.filter(
+        req => req.status === 'PENDING' && req.requester_id !== currentUser.value?.id
+      )
       selectedIds.value = selectable.map(req => req.id)
     } else {
       selectedIds.value = []
@@ -137,10 +156,10 @@ function canSelectRequest(req) {
 
 async function handleBulkAction(action) {
   if (selectedIds.value.length === 0) return
-  
+
   const actionText = action === 'APPROVE' ? 'menyetujui' : 'menolak'
-  if (!await swalConfirm(`Apakah Anda yakin ${actionText} ${selectedIds.value.length} permintaan sekaligus?`)) return
-  
+  if (!(await swalConfirm(`Apakah Anda yakin ${actionText} ${selectedIds.value.length} permintaan sekaligus?`))) return
+
   try {
     const res = await bulkActionStockRequests(action, selectedIds.value)
     if (res.data?.failedCount > 0) {
@@ -161,6 +180,8 @@ function getStatusBadgeClass(status) {
       return 'bg-warning/20 text-warning border-warning/30'
     case 'APPROVED':
       return 'bg-primary/20 text-primary border-primary/30'
+    case 'SHIPPED':
+      return 'bg-accent/20 text-accent border-accent/30'
     case 'REJECTED':
       return 'bg-danger/20 text-danger border-danger/30'
     case 'COMPLETED':
@@ -216,15 +237,18 @@ function printRequest(req) {
     )
     .join('')
 
+  const docTitle =
+    req.status === 'SHIPPED' || req.status === 'COMPLETED' ? 'SURAT JALAN / DELIVERY ORDER' : 'DOKUMEN PERMINTAAN STOK'
+
   const html = `
     <html>
       <head>
-        <title>Dokumen Permintaan Stok - ${req.request_number}</title>
+        <title>${docTitle} - ${req.request_number}</title>
         <style>
           body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
           .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
           .title { font-size: 24px; font-weight: bold; margin: 0; }
-          .subtitle { font-size: 14px; color: #666; margin-top: 5px; }
+          .subtitle { font-size: 14px; color: #666; margin: 2px 0; }
           .info-table { width: 100%; margin-bottom: 20px; }
           .info-table td { padding: 4px; vertical-align: top; }
           .info-table .label { font-weight: bold; width: 150px; }
@@ -232,7 +256,7 @@ function printRequest(req) {
           .item-table th { border: 1px solid #ccc; padding: 10px; background-color: #f5f5f5; text-align: left; }
           .signature-section { display: flex; justify-content: space-between; margin-top: 50px; }
           .signature-box { text-align: center; width: 200px; }
-          .signature-line { border-bottom: 1px solid #333; margin-top: 60px; margin-bottom: 5px; }
+          .signature-line { border-bottom: 1px solid #333; margin-top: 120px; margin-bottom: 5px; }
           @media print {
             body { padding: 0; }
             @page { margin: 1cm; }
@@ -241,28 +265,23 @@ function printRequest(req) {
       </head>
       <body>
         <div class="header">
-          <h1 class="title">DOKUMEN PERMINTAAN STOK</h1>
+          <h1 class="title">${docTitle}</h1>
           <p class="subtitle">Nomor Dokumen: ${req.request_number}</p>
+          <p class="subtitle">${dateStr}</p>
         </div>
 
         <table class="info-table">
           <tr>
-            <td class="label">Tanggal</td>
-            <td>: ${dateStr}</td>
             <td class="label">Status</td>
             <td>: <strong>${req.status}</strong></td>
-          </tr>
-          <tr>
-            <td class="label">Dari Lokasi (Asal)</td>
-            <td>: ${req.from_location_code} - ${req.from_location_name}</td>
             <td class="label">Peminta</td>
             <td>: ${req.requester_name}</td>
           </tr>
           <tr>
+            <td class="label">Dari Lokasi (Asal)</td>
+            <td>: ${req.from_location_code}</td>
             <td class="label">Ke Lokasi (Tujuan)</td>
-            <td>: ${req.to_location_code} - ${req.to_location_name}</td>
-            <td class="label">Catatan</td>
-            <td>: ${req.notes || '-'}</td>
+            <td>: ${req.to_location_code}</td>
           </tr>
         </table>
 
@@ -280,19 +299,23 @@ function printRequest(req) {
           </tbody>
         </table>
 
+        <div v-if="req.notes" class="notes" style="margin: 30px 0;">
+          <p><strong>Catatan:</strong> ${req.notes}</p>
+        </div>
+
         <div class="signature-section">
           <div class="signature-box">
-            <p>Dibuat Oleh,</p>
+            <p>Dibuat Oleh</p>
             <div class="signature-line"></div>
             <p>(${req.requester_name})</p>
           </div>
           <div class="signature-box">
-            <p>Disetujui Oleh,</p>
+            <p>Disetujui Oleh</p>
             <div class="signature-line"></div>
             <p>(...................................)</p>
           </div>
           <div class="signature-box">
-            <p>Penerima Barang,</p>
+            <p>Penerima Barang</p>
             <div class="signature-line"></div>
             <p>(...................................)</p>
           </div>
@@ -315,7 +338,7 @@ function printRequest(req) {
     <!-- Filters -->
     <div class="bg-secondary/75 rounded-xl border border-secondary p-4 shadow-sm flex gap-2 overflow-x-auto">
       <button
-        v-for="filter in ['ALL', 'PENDING', 'APPROVED', 'COMPLETED', 'REJECTED']"
+        v-for="filter in ['ALL', 'PENDING', 'APPROVED', 'SHIPPED', 'COMPLETED', 'REJECTED']"
         :key="filter"
         @click="((currentFilter = filter), loadRequests())"
         class="px-4 py-1.5 rounded-full text-xs font-bold transition-all border border-secondary shadow-sm whitespace-nowrap"
@@ -414,8 +437,8 @@ function printRequest(req) {
         <thead>
           <tr class="bg-secondary/10 border-b border-secondary/20">
             <th class="p-3 w-10 text-center">
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 v-model="isAllSelected"
                 class="rounded border-secondary/30 text-primary focus:ring-primary cursor-pointer w-4 h-4"
               />
@@ -441,14 +464,18 @@ function printRequest(req) {
           <template v-for="req in filteredRequests" :key="req.id">
             <tr class="hover:bg-secondary/5 transition-colors group">
               <td class="p-3 text-center">
-                <input 
+                <input
                   v-if="canSelectRequest(req)"
-                  type="checkbox" 
+                  type="checkbox"
                   :value="req.id"
                   v-model="selectedIds"
                   class="rounded border-secondary/30 text-primary focus:ring-primary cursor-pointer w-4 h-4"
                 />
-                <span v-else-if="req.status === 'PENDING'" title="Anda tidak bisa memproses permintaan ini" class="text-secondary/40">
+                <span
+                  v-else-if="req.status === 'PENDING'"
+                  title="Anda tidak bisa memproses permintaan ini"
+                  class="text-secondary/40"
+                >
                   <font-awesome-icon icon="fa-solid fa-ban" class="text-[10px]" />
                 </span>
               </td>
@@ -462,8 +489,15 @@ function printRequest(req) {
                     class="text-xs"
                   />
                   {{ req.request_number }}
-                  <span v-if="req.type" class="ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold border"
-                    :class="req.type === 'STOCK_OPNAME' ? 'bg-primary/20 text-primary border-primary/30' : 'bg-secondary/30 text-text/60 border-secondary/40'">
+                  <span
+                    v-if="req.type"
+                    class="ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold border"
+                    :class="
+                      req.type === 'STOCK_OPNAME'
+                        ? 'bg-primary/20 text-primary border-primary/30'
+                        : 'bg-secondary/30 text-text/60 border-secondary/40'
+                    "
+                  >
                     {{ req.type === 'STOCK_OPNAME' ? 'OPNAME' : 'TRANSFER' }}
                   </span>
                 </button>
@@ -508,6 +542,15 @@ function printRequest(req) {
                 </template>
                 <template v-if="req.status === 'APPROVED'">
                   <button
+                    @click="handleDispatch(req.id)"
+                    class="px-3 py-1 bg-accent text-secondary rounded text-xs font-bold hover:bg-accent/90"
+                    title="Kirim Barang"
+                  >
+                    <font-awesome-icon icon="fa-solid fa-truck" class="mr-1" /> Kirim
+                  </button>
+                </template>
+                <template v-if="req.status === 'SHIPPED'">
+                  <button
                     @click="openReceiveForm(req)"
                     class="px-3 py-1 bg-success text-secondary rounded text-xs font-bold hover:bg-success/90"
                     title="Terima Barang"
@@ -549,7 +592,7 @@ function printRequest(req) {
                         <td class="py-2 text-right font-bold">{{ item.quantity }}</td>
                         <td class="py-2 text-right">
                           <input
-                            v-if="req.status === 'APPROVED'"
+                            v-if="req.status === 'SHIPPED'"
                             type="number"
                             min="0"
                             :max="item.quantity"
@@ -561,7 +604,7 @@ function printRequest(req) {
                       </tr>
                     </tbody>
                   </table>
-                  <div v-if="req.status === 'APPROVED'" class="mt-4 flex justify-end">
+                  <div v-if="req.status === 'SHIPPED'" class="mt-4 flex justify-end">
                     <button
                       @click="handleComplete(req.id, req.items, req)"
                       class="px-4 py-2 bg-success text-secondary rounded-lg text-sm font-bold hover:bg-success/90 flex items-center gap-2 transition-all shadow-sm"

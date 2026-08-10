@@ -62,6 +62,21 @@ export async function rejectStockRequest(id) {
 }
 
 /**
+ * Dispatch (Mengirim) permintaan stok
+ * @param {number} id - ID stock_request
+ * @returns {Promise<object>}
+ */
+export async function dispatchStockRequest(id) {
+  try {
+    const response = await axios.post(`/stock-requests/${id}/dispatch`)
+    return response.data
+  } catch (error) {
+    console.error('Error dispatching stock request:', error.response?.data || error.message)
+    throw error.response?.data || error
+  }
+}
+
+/**
  * Complete (Menerima) permintaan stok
  * @param {number} id - ID stock_request
  * @param {Array<{productId, receivedQuantity}>} receivedItems - Item yang diterima secara fisik

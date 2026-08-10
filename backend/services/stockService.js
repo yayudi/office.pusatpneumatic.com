@@ -347,6 +347,38 @@ export const processBatchMovementsService = async ({
           });
           break;
 
+        case "TRANSFER_OUT":
+          if (!srcLoc) throw new Error("Lokasi asal wajib diisi.");
+          const currentStockOut = await locationRepo.getStockAtLocation(connection, productId, srcLoc, true);
+          if (currentStockOut < quantity)
+            throw new Error(`Stok SKU '${item.sku}' kurang. Ada: ${currentStockOut}, Butuh: ${quantity}.`);
+
+          await locationRepo.deductStock(connection, productId, srcLoc, quantity);
+          await stockRepo.createLog(connection, {
+            productId,
+            quantity,
+            fromLocationId: srcLoc,
+            toLocationId: null,
+            type: "TRANSFER_OUT",
+            userId,
+            notes: itemNote,
+          });
+          break;
+
+        case "TRANSFER_IN":
+          if (!destLoc) throw new Error("Lokasi tujuan wajib diisi.");
+          await locationRepo.incrementStock(connection, productId, destLoc, quantity);
+          await stockRepo.createLog(connection, {
+            productId,
+            quantity,
+            fromLocationId: null,
+            toLocationId: destLoc,
+            type: "TRANSFER_IN",
+            userId,
+            notes: itemNote,
+          });
+          break;
+
         case "ADJUSTMENT": {
           if (!destLoc) throw new Error("Lokasi wajib diisi.");
           const originalMov = movements.find((m) => m.sku === (item.parentSku || item.sku));
