@@ -3,6 +3,7 @@
 import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth.js'
 import { formatNumber, formatCurrency } from '@/utils/formatters.js'
+import CombinedAnalyticsDashboard from '@/views/stats/CombinedAnalyticsDashboard.vue'
 
 const auth = useAuthStore()
 
@@ -13,8 +14,6 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['navigate'])
-
 const todayDateString = computed(() => {
   return new Date().toLocaleDateString('id-ID', {
     weekday: 'long',
@@ -24,43 +23,6 @@ const todayDateString = computed(() => {
   })
 })
 
-const quickLinks = computed(() => {
-  const links = [
-    {
-      key: 'stock-movement',
-      title: 'Pergerakan Stok',
-      desc: 'Analisis In/Out & Fast-Moving Product',
-      icon: 'fa-solid fa-arrow-right-arrow-left',
-      colorClass: 'text-primary bg-primary/10 border-primary/20 group-hover:bg-primary group-hover:text-white'
-    },
-    {
-      key: 'time-performance',
-      title: 'Performa Waktu',
-      desc: 'Kecepatan Proses Order Fulfillment',
-      icon: 'fa-solid fa-stopwatch',
-      colorClass: 'text-warning bg-warning/10 border-warning/20 group-hover:bg-warning group-hover:text-black'
-    }
-  ]
-
-  if (auth.hasPermission('statistic.finance.view')) {
-    links.splice(1, 0, {
-      key: 'inventory-value',
-      title: 'Nilai Inventaris',
-      desc: 'Valuasi Modal & Aset Gudang',
-      icon: 'fa-solid fa-sack-dollar',
-      colorClass: 'text-success bg-success/10 border-success/20 group-hover:bg-success group-hover:text-white'
-    })
-    links.push({
-      key: 'channel-performance',
-      title: 'Performa Toko',
-      desc: 'Omset & Tren Penjualan per Saluran',
-      icon: 'fa-solid fa-store',
-      colorClass: 'text-accent bg-accent/10 border-accent/20 group-hover:bg-accent group-hover:text-white'
-    })
-  }
-
-  return links
-})
 </script>
 
 <template>
@@ -146,35 +108,9 @@ const quickLinks = computed(() => {
       </div>
     </div>
 
-    <!-- Bento Box Navigation (Quick Insights & Shortcuts) -->
-    <div>
-      <h3 class="text-lg font-bold text-text mb-4">Navigasi Laporan Analitik</h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <button
-          v-for="link in quickLinks"
-          :key="link.key"
-          @click="emit('navigate', link.key)"
-          class="group text-left bg-background border border-secondary/30 rounded-2xl p-5 hover:border-primary/50 hover:shadow-lg transition-all duration-300 flex flex-col justify-between h-36 relative overflow-hidden"
-        >
-          <div
-            :class="[
-              'w-10 h-10 rounded-lg flex items-center justify-center border transition-all duration-300',
-              link.colorClass
-            ]"
-          >
-            <font-awesome-icon :icon="link.icon" class="text-lg" />
-          </div>
-          <div class="mt-4 relative z-10">
-            <h4 class="font-bold text-text mb-1 group-hover:text-primary transition-colors">{{ link.title }}</h4>
-            <p class="text-[11px] text-text/50 leading-tight">{{ link.desc }}</p>
-          </div>
-          <!-- Decorative Background Arrow -->
-          <font-awesome-icon
-            icon="fa-solid fa-arrow-right"
-            class="absolute -right-4 -bottom-4 text-6xl opacity-0 group-hover:opacity-5 text-primary transition-all duration-500 group-hover:-translate-x-2 group-hover:-translate-y-2"
-          />
-        </button>
-      </div>
+    <!-- Dashboard Gabungan (Menggantikan Navigasi Laporan Analitik) -->
+    <div class="mt-8 border-t border-secondary/20 pt-8">
+      <CombinedAnalyticsDashboard />
     </div>
   </div>
 </template>

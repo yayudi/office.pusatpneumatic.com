@@ -32,6 +32,12 @@ const routes = [
     meta: { requiresAuth: true, requiresPermission: 'statistic.stock.view' }
   },
   {
+    path: '/stats/dashboard',
+    name: 'CombinedAnalyticsDashboard',
+    component: () => import('../views/stats/CombinedAnalyticsDashboard.vue'),
+    meta: { requiresAuth: true, requiresPermission: 'statistic.stock.view' }
+  },
+  {
     path: '/stats/locations',
     name: 'LocationAnalytics',
     component: () => import('../views/stats/LocationAnalytics.vue'),

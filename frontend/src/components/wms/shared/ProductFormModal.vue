@@ -234,9 +234,13 @@ watch(
 const debouncedComponentSearch = debounce(async query => {
   try {
     const { data } = await axios.get(`/products/search?q=${query}`)
+    
+    // Extract array depending on response format
+    const resultsArray = Array.isArray(data) ? data : (data.data || [])
+
     // Filter: Jangan tampilkan produk yang sudah dipilih atau produk itu sendiri (jika edit)
-    searchResults.value = data.filter(
-      p => !components.value.some(c => c.id === p.id) && (props.mode === 'create' || p.id !== props.productData.id)
+    searchResults.value = resultsArray.filter(
+      p => !components.value.some(c => c.id === p.id) && (props.mode === 'create' || p.id !== props.productData?.id)
     )
   } catch (err) {
     console.error(err)

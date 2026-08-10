@@ -67,3 +67,23 @@ export const getProductStockTimeline = async (productId, page, limit, buildings 
     throw error;
   }
 };
+
+/**
+ * Fetch location analysis statistics
+ * @param {Object} filters Filter params
+ * @returns {Promise<Array>} Array of statistic data
+ */
+export const fetchLocationAnalysis = async (filters) => {
+  try {
+    const { data } = await api.get('/statistics/location-analysis', {
+      params: filters
+    });
+    return data;
+  } catch (error) {
+    console.error(error)
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+    throw error;
+  }
+};
