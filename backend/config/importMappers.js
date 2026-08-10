@@ -323,6 +323,8 @@ export const Mappers = {
       "status",
       "is_active",
       "aktif",
+      "kategori",
+      "category",
     ],
     extract: (getter) => {
       // 1. Mandatory Identifier
@@ -396,9 +398,13 @@ export const Mappers = {
         is_active = lower === "1" || lower === "true" || lower === "active" || lower === "aktif";
       }
 
+      // Kategori
+      const category = getter(["kategori", "category"]);
+
       return {
         sku,
         name,
+        category,
         price,
         weight,
         length,

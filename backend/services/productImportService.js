@@ -59,6 +59,13 @@ export const processProductImport = async (
       }
     }
 
+    // [OPTIMIZATION] Fetch Categories to Map category names to IDs
+    const [categories] = await connection.query("SELECT id, name FROM categories WHERE is_active = 1");
+    const categoryMap = {};
+    categories.forEach(c => {
+      categoryMap[c.name.toLowerCase().trim()] = c.id;
+    });
+
     for (let i = startIndex; i < totalItems; i++) {
       // Cek Timeout
       if (Date.now() - startTime > TIME_LIMIT) {
@@ -85,9 +92,24 @@ export const processProductImport = async (
         const productExists = !!dbProduct;
 
         if (productExists) {
+          let targetCategoryId = dbProduct.category_id;
+          if (csvItem.category !== undefined && csvItem.category !== "") {
+            const mappedId = categoryMap[csvItem.category.toLowerCase().trim()];
+            if (mappedId) {
+              targetCategoryId = mappedId;
+            } else {
+              logicErrors.push({
+                row,
+                message: `Kategori '${csvItem.category}' tidak ditemukan. Mohon buat kategori tersebut di menu Kategori Produk terlebih dahulu.`,
+              });
+              continue; // Skip this row per Option A
+            }
+          }
+
           // --- UPDATE SCENARIO ---
           const payload = {
             name: csvItem.name || dbProduct.name,
+            category_id: targetCategoryId,
             price:
               csvItem.price !== undefined && csvItem.price !== "" ? csvItem.price : dbProduct.price,
             weight:

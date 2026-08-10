@@ -7,6 +7,7 @@ import { pipeline } from "stream/promises";
 import * as locationRepo from "../repositories/locationRepository.js";
 import * as reportRepo from "../repositories/reportRepository.js";
 import * as productRepo from "../repositories/productRepository.js";
+import * as categoryRepo from "../repositories/categoryRepository.js";
 import { buildTriStateWhere } from "./stockService.js";
 import Logger from "../utils/logger.js";
 
@@ -303,6 +304,7 @@ export const generateProductExportStreaming = async (filters, filePath) => {
         const row = {
           sku: p.sku,
           name: p.name,
+          kategori: p.category_name || "",
           price: p.price,
           weight: p.weight || 0,
           is_active: p.is_active ? 1 : 0,
@@ -328,10 +330,11 @@ export const generateProductExportStreaming = async (filters, filePath) => {
     } else {
       // EXCEL WRITING
       const sheet = workbookWriter.addWorksheet("Master Produk");
-      const headers = ["sku", "name", "price", "weight", "is_active"];
+      const headers = ["sku", "name", "kategori", "price", "weight", "is_active"];
       const columns = [
         { key: "sku", width: 12 },
         { key: "name", width: 75 },
+        { key: "kategori", width: 25 },
         { key: "price", width: 15 },
         { key: "weight", width: 12 },
         { key: "is_active", width: 12 },
@@ -357,6 +360,7 @@ export const generateProductExportStreaming = async (filters, filePath) => {
           const rowData = {
             sku: p.sku,
             name: p.name,
+            kategori: p.category_name || "",
             price: p.price,
             weight: p.weight || 0,
             is_active: p.is_active ? 1 : 0,
@@ -381,6 +385,21 @@ export const generateProductExportStreaming = async (filters, filePath) => {
           try {
             sheet.commit();
             if (imageSheet) imageSheet.commit();
+
+            // Category Reference Sheet
+            const categories = await categoryRepo.findAllCategories(connection);
+            const catSheet = workbookWriter.addWorksheet("Referensi Kategori");
+            catSheet.columns = [
+              { key: "id", width: 10 },
+              { key: "name", width: 50 },
+            ];
+            catSheet.getRow(1).values = ["ID", "Nama Kategori (Gunakan Ini)"];
+            styleHeader(catSheet, 1, 2, "FF5B9BD5", "FFFFFFFF");
+            categories.forEach(c => {
+              catSheet.addRow({ id: c.id, name: c.name }).commit();
+            });
+            catSheet.commit();
+
             await workbookWriter.commit();
             resolve();
           } catch (err) {

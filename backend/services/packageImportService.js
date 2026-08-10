@@ -7,9 +7,10 @@ import Logger from "../utils/logger.js";
  * Validates and Imports Package Components
  * Strategy:
  * 1. Read Excel/CSV.
- * 2. Validate Package SKU exists.
- * 3. Validate Component SKUs exist.
- * 4. Replace components (DELETE old -> INSERT new).
+ * 2. Find header row and map columns dynamically by name.
+ * 3. Validate Package SKU exists.
+ * 4. Validate Component SKUs exist.
+ * 5. Replace components (DELETE old -> INSERT new).
  */
 export const processPackageImport = async (filePath, jobId, updateProgress, userId) => {
   Logger.info(`Processing file: ${filePath}`, "PACKAGE_IMPORT");
@@ -27,13 +28,68 @@ export const processPackageImport = async (filePath, jobId, updateProgress, user
     if (!worksheet) throw new Error("File Excel tidak memiliki sheet.");
 
     const rows = [];
+    let headerRow = null;
     worksheet.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) return; // Skip Header
-      rows.push(row);
+      if (!headerRow && rowNumber <= 10 && row.hasValues) {
+        let hasSku = false;
+        row.eachCell((cell) => {
+          if (cell.text?.trim().toLowerCase() === "sku") hasSku = true;
+        });
+        if (hasSku) {
+           headerRow = row;
+           return;
+        }
+      }
+      if (headerRow && row.number > headerRow.number) {
+        rows.push(row);
+      }
     });
 
+    if (!headerRow) throw new Error("Header (dengan kolom 'SKU') tidak ditemukan di file.");
+
+    // Map Headers Dynamically
+    const headerMap = { sku: -1, name: -1, category: -1, price: -1 };
+    const componentPairs = []; // array of { compCol, qtyCol }
+
+    headerRow.eachCell((cell, colNumber) => {
+      const headerName = cell.text?.trim().toLowerCase();
+      if (!headerName) return;
+
+      if (headerName === "sku") headerMap.sku = colNumber;
+      else if (headerName === "nama paket" || headerName === "name" || headerName === "nama") headerMap.name = colNumber;
+      else if (headerName === "kategori" || headerName === "category") headerMap.category = colNumber;
+      else if (headerName === "harga jual" || headerName === "price" || headerName === "harga") headerMap.price = colNumber;
+      else if (headerName.startsWith("component_") || headerName.startsWith("komponen_")) {
+        const parts = headerName.split("_");
+        const idx = parseInt(parts[parts.length - 1], 10);
+        if (!isNaN(idx)) {
+          if (!componentPairs[idx]) componentPairs[idx] = {};
+          componentPairs[idx].compCol = colNumber;
+        }
+      }
+      else if (headerName.startsWith("qty_")) {
+        const parts = headerName.split("_");
+        const idx = parseInt(parts[parts.length - 1], 10);
+        if (!isNaN(idx)) {
+          if (!componentPairs[idx]) componentPairs[idx] = {};
+          componentPairs[idx].qtyCol = colNumber;
+        }
+      }
+    });
+
+    if (headerMap.sku === -1) throw new Error("Kolom 'SKU' wajib ada di baris header.");
+
+    const validComponentPairs = componentPairs.filter(p => p && p.compCol && p.qtyCol);
+
     const totalRows = rows.length;
-    Logger.info(`Total rows found: ${totalRows}`, "PACKAGE_IMPORT");
+    Logger.info(`Total rows found: ${totalRows}. Valid Component Pairs: ${validComponentPairs.length}`, "PACKAGE_IMPORT");
+
+    // [OPTIMIZATION] Fetch Categories to Map category names to IDs
+    const [categories] = await connection.query("SELECT id, name FROM categories WHERE is_active = 1");
+    const categoryMap = {};
+    categories.forEach(c => {
+      categoryMap[c.name.toLowerCase().trim()] = c.id;
+    });
 
     for (const row of rows) {
       processedCount++;
@@ -41,10 +97,7 @@ export const processPackageImport = async (filePath, jobId, updateProgress, user
         await updateProgress(Math.round((processedCount / totalRows) * 100));
       }
 
-      // Column Mapping (Based on Export Service)
-      // 1: SKU, 2: Name, 3: Price
-      // 4: Comp1, 5: Qty1, 6: Comp2, 7: Qty2 ...
-      const packageSku = row.getCell(1).text?.trim();
+      const packageSku = row.getCell(headerMap.sku).text?.trim();
 
       if (!packageSku) {
         errors.push(`Row ${row.number}: SKU Paket kosong.`);
@@ -57,15 +110,31 @@ export const processPackageImport = async (filePath, jobId, updateProgress, user
         errors.push(`Row ${row.number}: Paket SKU '${packageSku}' tidak ditemukan.`);
         continue;
       }
+      
+      const dbProduct = await productRepo.getProductById(connection, packageId);
+      
+      // Map Category
+      let targetCategoryId = dbProduct.category_id;
+      if (headerMap.category !== -1) {
+        const categoryName = row.getCell(headerMap.category).text?.trim();
+        if (categoryName) {
+           const mappedId = categoryMap[categoryName.toLowerCase()];
+           if (mappedId) {
+             targetCategoryId = mappedId;
+           } else {
+             errors.push(`Row ${row.number}: Kategori '${categoryName}' tidak ditemukan. Mohon buat kategori tersebut di menu Kategori Produk terlebih dahulu.`);
+             continue; // Skip per Option A
+           }
+        }
+      }
 
       // Parse Components
       const componentsToInsert = [];
-      let colIdx = 4;
       let hasComponentError = false;
 
-      while (colIdx < row.cellCount) {
-        const compSku = row.getCell(colIdx).text?.trim();
-        const compQty = row.getCell(colIdx + 1).value;
+      for (const pair of validComponentPairs) {
+        const compSku = row.getCell(pair.compCol).text?.trim();
+        const compQty = row.getCell(pair.qtyCol).value;
 
         if (compSku) {
           // Validate Component SKU
@@ -86,16 +155,15 @@ export const processPackageImport = async (filePath, jobId, updateProgress, user
 
           componentsToInsert.push({ id: compId, quantity: qty });
         }
-        colIdx += 2; // Jump to next pair
       }
 
       if (hasComponentError) continue;
 
-      const packageName = row.getCell(2).text?.trim();
-      const packagePrice = row.getCell(3).value;
+      const packageName = headerMap.name !== -1 ? row.getCell(headerMap.name).text?.trim() : null;
+      const packagePrice = headerMap.price !== -1 ? row.getCell(headerMap.price).value : null;
 
-      if (componentsToInsert.length === 0 && !packageName && (packagePrice === null || packagePrice === undefined || packagePrice === "")) {
-        errors.push(`Row ${row.number}: Tidak ada komponen valid atau data harga/nama untuk diupdate.`);
+      if (componentsToInsert.length === 0 && !packageName && (packagePrice === null || packagePrice === undefined || packagePrice === "") && targetCategoryId === dbProduct.category_id) {
+        errors.push(`Row ${row.number}: Tidak ada komponen valid atau data harga/nama/kategori untuk diupdate.`);
         continue;
       }
 
@@ -106,6 +174,7 @@ export const processPackageImport = async (filePath, jobId, updateProgress, user
         const updatePayload = {};
         if (packageName) updatePayload.name = packageName;
         if (packagePrice !== null && packagePrice !== undefined && packagePrice !== "") updatePayload.price = packagePrice;
+        if (targetCategoryId !== dbProduct.category_id) updatePayload.category_id = targetCategoryId;
 
         if (Object.keys(updatePayload).length > 0) {
           await productRepo.updateProductTransaction(connection, packageId, updatePayload, [], userId);

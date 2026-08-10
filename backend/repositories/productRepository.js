@@ -404,8 +404,9 @@ export const getProductsWithFiltersStream = (connection, filters) => {
       : "";
 
   const productsQuery = `
-      SELECT p.id, p.sku, p.name, p.category_id, p.price, p.weight, p.is_package, p.is_active, p.deleted_at${includeImageSql}
+      SELECT p.id, p.sku, p.name, p.category_id, c.name as category_name, p.price, p.weight, p.is_package, p.is_active, p.deleted_at${includeImageSql}
       FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
       ${whereSql}
       ORDER BY ${safeSortBy} ${sortOrder || "ASC"}
     `;
@@ -908,9 +909,11 @@ export const getAllPackagesWithComponents = async (connection) => {
       p.sku as package_sku,
       p.name as package_name,
       p.price as package_price,
+      cat.name as category_name,
       c.sku as component_sku,
       pc.quantity_per_package as component_qty
     FROM products p
+    LEFT JOIN categories cat ON p.category_id = cat.id
     LEFT JOIN package_components pc ON p.id = pc.package_product_id
     LEFT JOIN products c ON pc.component_product_id = c.id
     WHERE p.is_package = 1 AND p.is_active = 1 AND p.deleted_at IS NULL

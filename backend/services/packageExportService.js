@@ -2,6 +2,7 @@ import db from "../config/db.js";
 import ExcelJS from "exceljs";
 import fs from "fs";
 import * as productRepo from "../repositories/productRepository.js";
+import * as categoryRepo from "../repositories/categoryRepository.js";
 import Logger from "../utils/logger.js";
 
 const styleHeader = (worksheet, rowNumber, colCount, bgColor = "FFD9E1F2") => {
@@ -47,6 +48,7 @@ export const generatePackageExport = async (filters, filePath) => {
         packagesMap.set(row.package_sku, {
           sku: row.package_sku,
           name: row.package_name,
+          kategori: row.category_name,
           price: row.package_price,
           components: [],
         });
@@ -68,12 +70,13 @@ export const generatePackageExport = async (filters, filePath) => {
 
     // 3. Setup Sheet
     const sheet = workbookWriter.addWorksheet("Data Paket");
-    const headers = ["SKU", "Nama Paket", "Harga Jual"];
+    const headers = ["SKU", "Nama Paket", "Kategori", "Harga Jual"];
 
     // Add Dynamic Headers (Component_1, Qty_1, ...)
     const columns = [
       { key: "sku", width: 15 },
       { key: "name", width: 40 },
+      { key: "kategori", width: 25 },
       { key: "price", width: 15 },
     ];
 
@@ -91,6 +94,7 @@ export const generatePackageExport = async (filters, filePath) => {
       const rowData = {
         sku: p.sku,
         name: p.name,
+        kategori: p.kategori || "",
         price: p.price,
       };
 
@@ -104,6 +108,21 @@ export const generatePackageExport = async (filters, filePath) => {
     }
 
     sheet.commit();
+
+    // Category Reference Sheet
+    const categories = await categoryRepo.findAllCategories(connection);
+    const catSheet = workbookWriter.addWorksheet("Referensi Kategori");
+    catSheet.columns = [
+      { key: "id", width: 10 },
+      { key: "name", width: 50 },
+    ];
+    catSheet.getRow(1).values = ["ID", "Nama Kategori (Gunakan Ini)"];
+    styleHeader(catSheet, 1, 2, "FF5B9BD5", "FFFFFFFF");
+    categories.forEach(c => {
+      catSheet.addRow({ id: c.id, name: c.name }).commit();
+    });
+    catSheet.commit();
+
     await workbookWriter.commit();
 
     // Wait for stream to finish
