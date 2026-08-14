@@ -219,13 +219,17 @@ export const uploadAttendanceLogs = catchAsync(async (req, res, next) => {
   // Tentukan Tipe Job berdasarkan Mode
   const jobType = isDryRun ? "IMPORT_ATTENDANCE_DRY_RUN" : "IMPORT_ATTENDANCE";
 
+  const userNotes = req.body.notes ? req.body.notes.trim() : "";
+  const defaultNotes = isDryRun ? "Simulasi Import Absensi (Dry Run)" : "Import Absensi";
+  const finalNotes = userNotes ? `${defaultNotes} | ${userNotes}` : defaultNotes;
+
   // Create Job di Database via JobService
   const jobId = await createJobService({
     userId,
     type: jobType,
     originalname: req.file.originalname,
     serverFilePath: req.file.path,
-    notes: isDryRun ? "Simulasi Import Absensi (Dry Run)" : "Import Absensi",
+    notes: finalNotes,
   });
 
   res.json({

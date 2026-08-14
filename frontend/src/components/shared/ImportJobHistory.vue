@@ -73,11 +73,12 @@
           </span>
         </div>
 
-        <p
-          class="text-[11px] text-text/70 bg-secondary/10 p-2 rounded leading-relaxed border border-secondary/10"
+        <div
+          class="text-[11px] text-text/70 bg-secondary/10 p-2 rounded leading-relaxed border border-secondary/10 flex flex-col gap-1"
         >
-          {{ job.summary || 'Tidak ada detail.' }}
-        </p>
+          <p v-if="job.notes"><span class="font-semibold">Catatan:</span> {{ job.notes }}</p>
+          <p>{{ job.summary || 'Tidak ada detail.' }}</p>
+        </div>
       </div>
     </div>
   </div>

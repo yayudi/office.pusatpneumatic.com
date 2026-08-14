@@ -124,12 +124,17 @@ export const importBatchInbound = catchAsync(async (req, res, next) => {
   }
 
   const userId = req.user.id;
+  const userNotes = req.body.notes ? req.body.notes.trim() : "";
+  const finalNotes = userNotes
+    ? `Batch Stock Inbound | ${userNotes}`
+    : "Batch Stock Inbound";
+
   const jobId = await jobService.createJobService({
     userId,
     type: "IMPORT_STOCK_INBOUND",
     originalname: req.file.originalname,
     serverFilePath: req.file.path,
-    notes: "Batch Stock Inbound",
+    notes: finalNotes,
   });
 
   res.json({

@@ -110,6 +110,17 @@
                 </div>
               </div>
             </div>
+
+            <!-- Notes -->
+            <div>
+              <label class="block text-sm font-bold text-text mb-1.5">Catatan <span class="text-text/40 font-normal">(opsional)</span></label>
+              <textarea
+                v-model="userNotes"
+                rows="2"
+                placeholder="Tulis catatan untuk upload ini..."
+                class="w-full px-3 py-2 border border-secondary/30 rounded-lg bg-background text-text text-sm outline-none focus:border-primary transition-colors resize-none placeholder:text-text/30"
+              ></textarea>
+            </div>
           </div>
 
           <!-- TAB: REVIEW (NEW) -->
@@ -339,6 +350,7 @@ const isUploading = ref(false)
 const isSubmitting = ref(false)
 const fileInput = ref(null)
 const activeTab = ref('input') // 'input' | 'review' | 'history'
+const userNotes = ref('')
 
 // Review Data Lists
 const reviewRows = ref([])
@@ -395,6 +407,7 @@ const close = () => {
   file.value = null
   reviewRows.value = []
   activeTab.value = 'input'
+  userNotes.value = ''
   emit('close')
 }
 
@@ -626,7 +639,9 @@ const submitBatchJSON = async () => {
 
     const payload = {
       type: 'INBOUND',
-      notes: `PDF Inbound PO: ${file.value?.name || 'Manual Upload'}`,
+      notes: userNotes.value.trim()
+        ? `PDF Inbound PO: ${file.value?.name || 'Manual Upload'} | ${userNotes.value.trim()}`
+        : `PDF Inbound PO: ${file.value?.name || 'Manual Upload'}`,
       movements: reviewRows.value.map(row => ({
         sku: row.sku,
         quantity: row.quantity,
@@ -651,7 +666,9 @@ const submitBatchJSON = async () => {
 const uploadExcelFile = async () => {
   try {
     isUploading.value = true
-    const response = await uploadFile('/stock/import-batch', file.value)
+    const response = await uploadFile('/stock/import-batch', file.value, 'file', {
+      notes: userNotes.value.trim() || ''
+    })
 
     if (response.data.success) {
       toast(response.data.message, 'success')

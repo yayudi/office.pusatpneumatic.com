@@ -86,7 +86,9 @@ export const uploadAndValidate = async (req, res, next) => {
 
       // Tentukan catatan untuk Audit Trail / UI
       const modeText = isDryRun ? "Simulasi" : "Import";
-      const note = `${modeText} ${source} Sales`;
+      const defaultNote = `${modeText} ${source} Sales`;
+      const userNotes = req.body.notes ? req.body.notes.trim() : "";
+      const note = userNotes ? `${defaultNote} | ${userNotes}` : defaultNote;
 
       const jobId = await jobService.createJobService({
         userId,

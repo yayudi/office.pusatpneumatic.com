@@ -61,6 +61,17 @@
       <!-- Extra Fields Slot (e.g. Dry Run toggle) -->
       <slot name="extra-fields"></slot>
 
+      <!-- Notes -->
+      <div>
+        <label class="block text-sm font-bold text-text mb-1.5">Catatan <span class="text-text/40 font-normal">(opsional)</span></label>
+        <textarea
+          v-model="userNotes"
+          rows="2"
+          placeholder="Tulis catatan untuk upload ini..."
+          class="w-full px-3 py-2 border border-secondary/30 rounded-lg bg-background text-text text-sm outline-none focus:border-primary transition-colors resize-none placeholder:text-text/30"
+        ></textarea>
+      </div>
+
       <!-- Error Message -->
       <div v-if="errorMessage" class="bg-danger/10 text-danger px-4 py-3 rounded-lg text-sm flex items-start gap-3">
         <font-awesome-icon icon="fa-solid fa-circle-exclamation" class="mt-0.5 shrink-0" />
@@ -205,6 +216,7 @@ const fileInput = ref(null)
 const selectedFile = ref(null)
 const isUploading = ref(false)
 const errorMessage = ref('')
+const userNotes = ref('')
 
 const isLoadingJobs = computed(() => uploadStore.jobs.length === 0 && !uploadStore.isExpanded)
 const jobs = computed(() => {
@@ -237,7 +249,13 @@ const upload = async () => {
   errorMessage.value = ''
 
   try {
-    const res = await uploadFile(props.uploadUrl, selectedFile.value, props.uploadFieldName, props.additionalData)
+    const mergedData = { ...props.additionalData }
+    if (userNotes.value.trim()) {
+      mergedData.notes = mergedData.notes
+        ? `${mergedData.notes} | ${userNotes.value.trim()}`
+        : userNotes.value.trim()
+    }
+    const res = await uploadFile(props.uploadUrl, selectedFile.value, props.uploadFieldName, mergedData)
     
     // Asumsi standar API sukses mengembalikan success: true
     if (res.data && res.data.success !== false) {
@@ -277,6 +295,7 @@ watch(
 const close = () => {
   selectedFile.value = null
   errorMessage.value = ''
+  userNotes.value = ''
   emit('close')
 }
 </script>

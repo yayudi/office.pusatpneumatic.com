@@ -31,6 +31,7 @@ export const getUserImportJobs = async (req, res, next) => {
         jobType: job.job_type,
         originalFilename: job.original_filename,
         summary: job.log_summary,
+        notes: job.notes || null,
         errorLog: errorLog, // Contains download_url and errors array
         createdAt: job.created_at,
         updatedAt: job.updated_at,
