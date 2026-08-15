@@ -134,6 +134,7 @@ export const processMediaLinkImport = async (connection, filePath, userId) => {
     }
 
     result.success = true;
+    result.headerRowIndex = headerRowIndex;
   } catch (error) {
     Logger.error("Failed processMediaLinkImport", error, "MEDIA_IMPORT");
     result.errors.push({ row: 0, message: error.message });

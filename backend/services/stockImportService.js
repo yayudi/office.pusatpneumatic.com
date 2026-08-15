@@ -1,10 +1,8 @@
 import db from "../config/db.js";
 import ExcelJS from "exceljs";
-import fs from "fs";
 import * as stockService from "./stockService.js";
 import * as locationRepo from "../repositories/locationRepository.js";
 import * as productRepo from "../repositories/productRepository.js";
-import Logger from "../utils/logger.js";
 
 /**
  * @param {number|string} jobId
@@ -12,7 +10,12 @@ import Logger from "../utils/logger.js";
  * @param {number|string} userId
  * @returns {Promise<any>}
  */
-export const processStockInboundImport = async (jobId, filePath, userId) => {
+export const processStockInboundImport = async (
+  jobId,
+  filePath,
+  userId,
+  jobNotes = "Batch Inbound",
+) => {
   let connection;
   const errors = [];
   const movements = [];
@@ -26,53 +29,72 @@ export const processStockInboundImport = async (jobId, filePath, userId) => {
     // 2. Read Excel
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(filePath);
-    const sheet = workbook.getWorksheet(1); // Assume first sheet
+    const sheet = workbook.getWorksheet(1);
 
     if (!sheet) throw new Error("File Excel tidak valid atau kosong.");
 
-    // 3. Parse Rows
+    // 3. First pass: collect unique SKUs for bulk validation
+    const skuSet = new Set();
+    const rawRows = [];
+
     sheet.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return; // Skip Header
 
-      // Kolom: A=SKU, B=Location, C=Quantity, D=Notes
       const sku = row.getCell(1).text?.trim();
       const locCode = row.getCell(2).text?.trim();
-      const quantity = parseInt(row.getCell(3).value);
+      const qtyRaw = row.getCell(3).value;
       const notes = row.getCell(4).text?.trim();
 
-      if (!sku && !locCode && !quantity) return; // Skip empty rows
+      if (!sku && !locCode && !qtyRaw) return; // Skip empty rows
 
-      // Basic Validation
-      // Cek Lokasi via Map
+      if (sku) skuSet.add(sku);
+      rawRows.push({ rowNumber, sku, locCode, qtyRaw, notes });
+    });
+
+    // 4. Bulk fetch product map for SKU validation
+    const productMap =
+      skuSet.size > 0
+        ? await productRepo.getProductMapWithComponents(connection, Array.from(skuSet))
+        : new Map();
+
+    // 5. Second pass: validate each row
+    for (const { rowNumber, sku, locCode, qtyRaw, notes } of rawRows) {
+      const quantity = parseInt(qtyRaw);
+
+      if (!sku) {
+        errors.push({ row: rowNumber, error: "SKU wajib diisi." });
+        continue;
+      }
+      if (!productMap.has(sku)) {
+        errors.push({ row: rowNumber, error: `SKU '${sku}' tidak ditemukan di database.` });
+        continue;
+      }
+
       const locationId = locationMap.get(locCode);
       if (!locationId) {
         errors.push({ row: rowNumber, error: `Lokasi '${locCode}' tidak ditemukan.` });
-        return;
-      }
-      if (!sku) {
-        errors.push({ row: rowNumber, error: "SKU wajib diisi." });
-        return;
+        continue;
       }
       if (isNaN(quantity) || quantity <= 0) {
         errors.push({ row: rowNumber, error: "Quantity harus angka positif." });
-        return;
+        continue;
       }
 
       movements.push({
         sku,
         quantity,
-        toLocationId: locationId, // For Inbound, dest is toLocation
-        fromLocationId: null, // Inbound doesn't have source
-        notes: notes || "Batch Inbound",
+        toLocationId: locationId,
+        fromLocationId: null,
+        notes: notes || jobNotes || "Batch Inbound",
       });
-    });
-
-    if (errors.length > 0) {
-      return { success: false, errors };
     }
 
     if (movements.length === 0) {
-      return { success: false, errors: [{ row: 0, error: "Tidak ada data valid untuk diproses." }] };
+      return {
+        success: false,
+        errors:
+          errors.length > 0 ? errors : [{ row: 0, error: "Tidak ada data valid untuk diproses." }],
+      };
     }
 
     // 4. Execute Batch Inbound
@@ -80,28 +102,22 @@ export const processStockInboundImport = async (jobId, filePath, userId) => {
       type: "INBOUND",
       fromLocationId: null,
       toLocationId: null, // Individual items carry their own toLocationId
-      notes: "Batch Inbound",
+      notes: jobNotes || "Batch Inbound",
       movements,
       userId,
       userRoleId: 1, // Assume Admin for Batch Import for now
     });
 
-    return { success: true, count: result.count };
+    return { success: true, count: result.count, errors };
   } finally {
     if (connection) connection.release();
-    // Cleanup file
-    try {
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    } catch (e) {
-      Logger.error("Gagal hapus file upload", e, "STOCK_IMPORT_SERVICE");
-    }
   }
 };
 
 /**
  * Proses Bulk Import Stock Adjustment (Stock Opname)
  * Digunakan oleh importQueue.js -> jobType: ADJUST_STOCK
- * 
+ *
  * @param {object} connection - DB Connection dari Worker
  * @param {string} filePath - Absolute path ke file Excel
  * @param {number} userId - ID User yang menjalankan job
@@ -116,12 +132,12 @@ export const processStockImport = async (
   userId,
   originalFilename,
   updateProgress,
-  isDryRun
+  isDryRun,
 ) => {
   const errors = [];
   const movements = [];
   const stats = { success: 0, failed: 0 };
-  let logSummary = "";
+  let logSummary;
 
   try {
     // 1. Load Data dasar (Location Map)
@@ -167,7 +183,10 @@ export const processStockImport = async (
     }
 
     // 3. Ambil Product Map untuk validasi SKU massal
-    const productMap = await productRepo.getProductMapWithComponents(connection, Array.from(skuSet));
+    const productMap = await productRepo.getProductMapWithComponents(
+      connection,
+      Array.from(skuSet),
+    );
 
     // 4. Proses perhitungan selisih stok (Difference)
     for (let i = 0; i < rowData.length; i++) {
@@ -242,4 +261,3 @@ export const processStockImport = async (
     };
   }
 };
-

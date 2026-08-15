@@ -22,30 +22,7 @@ export async function processAttendanceImport(
   isDryRun = false,
   options = {},
 ) {
-  // --- DEBUG ARGUMENTS ---
-  // Cek apakah argumen sudah sesuai
-  if (typeof isDryRun === "function") {
-    Logger.error(
-      "CRITICAL: Argument Mismatch! 'isDryRun' is a function.",
-      null,
-      "ATTENDANCE_IMPORT",
-    );
-    Logger.error("DEBUG ARGS", null, "ATTENDANCE_IMPORT", {
-      userId,
-      originalFilename,
-      typeProgress: typeof updateProgress,
-      typeDry: typeof isDryRun,
-    });
-    // Auto-fix darurat (Shift Right)
-    // Jika userId menerima filename, dan originalFilename menerima function...
-    // Kita asumsikan caller mengirim (conn, path, filename, progress, dry, opts) tanpa userId
-    // TAPI log anda menunjukkan userId masuk ke originalFilename.
-    // Jadi caller mengirim (conn, path, userId, filename, progress, dry, opts)
-    // TAPI service ini mungkin sebelumnya (conn, path, originalFilename, ...)
-    // Dengan menambahkan 'userId' kembali di parameter function di atas, masalah ini harusnya selesai.
-  }
-
-  let logSummary = "";
+  let logSummary;
   const errors = [];
   const stats = { success: 0, failed: 0, skipped: 0 };
   const filenameStr = String(originalFilename);
@@ -111,7 +88,7 @@ export async function processAttendanceImport(
     Logger.info(`Periode Terdeteksi: ${year}-${month}`, "ATTENDANCE_IMPORT");
 
     // 2. Parse Data User dari CSV
-    const { data: parsedData } = await parseCsvToUserData(filePath);
+    const { data: parsedData, headerRowIndex } = await parseCsvToUserData(filePath);
     const totalUsers = Object.keys(parsedData).length;
 
     if (totalUsers === 0) {
@@ -208,73 +185,76 @@ export async function processAttendanceImport(
       return h * 60 + m;
     };
 
-    // Proses Database (Transactional)
-    await connection.beginTransaction();
+    // Proses Database (Transactional) per-user
     let totalProcessedDays = 0;
     let dbInsertCount = 0;
 
     for (const idKey in parsedData) {
+      await connection.beginTransaction();
+      let userProcessedDays = 0;
+      let userInsertCount = 0;
       const user = parsedData[idKey];
       const username = user.nama || `User-${user.id}`;
 
-      const defaultUserShift = userShiftMap[username] || defaultShift;
+      try {
+        const defaultUserShift = userShiftMap[username] || defaultShift;
 
-      // Update progress bar
-      if (typeof updateProgress === "function") {
-        await updateProgress(totalProcessedDays, totalUsers * 30);
-      }
-
-      for (const dayKey in user.days) {
-        const dailyLog = user.days[dayKey];
-
-        // dayKey sudah berformat 'YYYY-MM-DD' dari parser
-        const dateStr = dayKey;
-
-        // Determine Specific Shift (Schedule > Default)
-        let shift = defaultUserShift;
-        if (userScheduleMap[username] && userScheduleMap[username][dateStr]) {
-          shift = userScheduleMap[username][dateStr];
+        // Update progress bar
+        if (typeof updateProgress === "function") {
+          await updateProgress(totalProcessedDays, totalUsers * 30);
         }
 
-        const shiftStartMin = timeToMinutes(shift.start_time);
-        const shiftEndMin = timeToMinutes(shift.end_time);
-        const tolerance = shift.flexible_minutes || 0;
+        for (const dayKey in user.days) {
+          const dailyLog = user.days[dayKey];
 
-        // Hitung Jam Masuk & Pulang
-        const checkIns = dailyLog.l.filter((log) => log.y === "in").map((log) => log.m);
-        const earliestCheckIn = checkIns.length > 0 ? Math.min(...checkIns) : null;
+          // dayKey sudah berformat 'YYYY-MM-DD' dari parser
+          const dateStr = dayKey;
 
-        const checkOuts = dailyLog.l.filter((log) => log.y === "out").map((log) => log.m);
-        const latestCheckOut = checkOuts.length > 0 ? Math.max(...checkOuts) : null;
-
-        // Hitung Keterlambatan
-        let lateness = 0;
-        if (earliestCheckIn) {
-          if (earliestCheckIn > shiftStartMin + tolerance) {
-            lateness = earliestCheckIn - shiftStartMin;
+          // Determine Specific Shift (Schedule > Default)
+          let shift = defaultUserShift;
+          if (userScheduleMap[username] && userScheduleMap[username][dateStr]) {
+            shift = userScheduleMap[username][dateStr];
           }
-        }
 
-        // Hitung Lembur
-        let overtime = 0;
-        if (latestCheckOut) {
-          if (latestCheckOut > shiftEndMin) {
-            overtime = latestCheckOut - shiftEndMin;
+          const shiftStartMin = timeToMinutes(shift.start_time);
+          const shiftEndMin = timeToMinutes(shift.end_time);
+          const tolerance = shift.flexible_minutes || 0;
+
+          // Hitung Jam Masuk & Pulang
+          const checkIns = dailyLog.l.filter((log) => log.y === "in").map((log) => log.m);
+          const earliestCheckIn = checkIns.length > 0 ? Math.min(...checkIns) : null;
+
+          const checkOuts = dailyLog.l.filter((log) => log.y === "out").map((log) => log.m);
+          const latestCheckOut = checkOuts.length > 0 ? Math.max(...checkOuts) : null;
+
+          // Hitung Keterlambatan
+          let lateness = 0;
+          if (earliestCheckIn) {
+            if (earliestCheckIn > shiftStartMin + tolerance) {
+              lateness = earliestCheckIn - shiftStartMin;
+            }
           }
-        }
 
-        const minutesToTime = (minutes) => {
-          if (minutes === null || minutes === undefined) return null;
-          const h = Math.floor(minutes / 60)
-            .toString()
-            .padStart(2, "0");
-          const m = (minutes % 60).toString().padStart(2, "0");
-          return `${h}:${m}:00`;
-        };
+          // Hitung Lembur
+          let overtime = 0;
+          if (latestCheckOut) {
+            if (latestCheckOut > shiftEndMin) {
+              overtime = latestCheckOut - shiftEndMin;
+            }
+          }
 
-        // INSERT DB (Hanya jika BUKAN Dry Run)
-        if (isDryRun === false) {
-          const summarySql = `
+          const minutesToTime = (minutes) => {
+            if (minutes === null || minutes === undefined) return null;
+            const h = Math.floor(minutes / 60)
+              .toString()
+              .padStart(2, "0");
+            const m = (minutes % 60).toString().padStart(2, "0");
+            return `${h}:${m}:00`;
+          };
+
+          // INSERT DB (Hanya jika BUKAN Dry Run)
+          if (isDryRun === false) {
+            const summarySql = `
             INSERT INTO attendance_logs (username, date, check_in, check_out, lateness_minutes, overtime_minutes, status)
             VALUES (?, ?, ?, ?, ?, ?, 'HADIR')
             ON DUPLICATE KEY UPDATE
@@ -285,69 +265,85 @@ export async function processAttendanceImport(
               status='HADIR'
           `;
 
-          const [summaryResult] = await connection.query(summarySql, [
-            username,
-            dateStr,
-            minutesToTime(earliestCheckIn),
-            minutesToTime(latestCheckOut),
-            lateness,
-            overtime,
-          ]);
-
-          // Ambil ID untuk Foreign Key Raw Logs
-          let summaryId = summaryResult.insertId;
-          if (!summaryId) {
-            const [rows] = await connection.query(
-              "SELECT id FROM attendance_logs WHERE username = ? AND date = ?",
-              [username, dateStr],
-            );
-            if (rows.length > 0) summaryId = rows[0].id;
-          }
-
-          // Insert Raw Logs (Hapus data lama hari ini -> Insert baru)
-          if (summaryId) {
-            await connection.query("DELETE FROM attendance_raw_logs WHERE attendance_log_id = ?", [
-              summaryId,
+            const [summaryResult] = await connection.query(summarySql, [
+              username,
+              dateStr,
+              minutesToTime(earliestCheckIn),
+              minutesToTime(latestCheckOut),
+              lateness,
+              overtime,
             ]);
 
-            const rawValues = dailyLog.l.map((log) => [
-              summaryId,
-              minutesToTime(log.m),
-              logTypeMap[log.y] || "unknown",
-            ]);
-
-            if (rawValues.length > 0) {
-              await connection.query(
-                "INSERT INTO attendance_raw_logs (attendance_log_id, log_time, log_type) VALUES ?",
-                [rawValues],
+            // Ambil ID untuk Foreign Key Raw Logs
+            let summaryId = summaryResult.insertId;
+            if (!summaryId) {
+              const [rows] = await connection.query(
+                "SELECT id FROM attendance_logs WHERE username = ? AND date = ?",
+                [username, dateStr],
               );
+              if (rows.length > 0) summaryId = rows[0].id;
             }
-            dbInsertCount++; // Increment counter
+
+            // Insert Raw Logs (Hapus data lama hari ini -> Insert baru)
+            if (summaryId) {
+              await connection.query(
+                "DELETE FROM attendance_raw_logs WHERE attendance_log_id = ?",
+                [summaryId],
+              );
+
+              const rawValues = dailyLog.l.map((log) => [
+                summaryId,
+                minutesToTime(log.m),
+                logTypeMap[log.y] || "unknown",
+              ]);
+
+              if (rawValues.length > 0) {
+                await connection.query(
+                  "INSERT INTO attendance_raw_logs (attendance_log_id, log_time, log_type) VALUES ?",
+                  [rawValues],
+                );
+              }
+              userInsertCount++; // Increment counter
+            }
           }
+          userProcessedDays++;
         }
-        totalProcessedDays++;
+
+        if (isDryRun === true) {
+          await connection.rollback();
+        } else {
+          await connection.commit();
+          dbInsertCount += userInsertCount;
+        }
+        totalProcessedDays += userProcessedDays;
+      } catch (err) {
+        await connection.rollback();
+        Logger.error(`Error processing attendance for ${username}`, err, "ATTENDANCE_IMPORT");
+        if (user.sourceRows && user.sourceRows.length > 0) {
+          user.sourceRows.forEach((row) => {
+            errors.push({ row, message: `Error untuk user ${username}: ${err.message}` });
+          });
+        } else {
+          errors.push({ message: `Error untuk user ${username}: ${err.message}` });
+        }
       }
     }
 
     if (isDryRun === true) {
-      Logger.info("Mode Dry Run: Rollback transaksi", "ATTENDANCE_IMPORT");
-      await connection.rollback();
-      logSummary = `[SIMULASI SUKSES] Validasi ${totalProcessedDays} hari kerja untuk ${totalUsers} karyawan. Data valid.`;
+      Logger.info("Mode Dry Run Selesai", "ATTENDANCE_IMPORT");
+      logSummary = `[SIMULASI SUKSES] Validasi ${totalProcessedDays} hari kerja untuk ${totalUsers} karyawan.`;
     } else {
-      await connection.commit();
-      Logger.info(
-        `Mode LIVE: Commit transaksi berhasil. ${dbInsertCount} hari kerja tersimpan.`,
-        "ATTENDANCE_IMPORT",
-      );
+      Logger.info(`Mode LIVE Selesai. ${dbInsertCount} hari kerja tersimpan.`, "ATTENDANCE_IMPORT");
       logSummary = `Sukses: ${totalProcessedDays} data hari kerja, ${totalUsers} karyawan.`;
     }
 
     stats.success = totalProcessedDays;
+    stats.failed = errors.length;
     Logger.info(`Selesai. ${logSummary}`, "ATTENDANCE_IMPORT");
 
-    return { logSummary, errors, stats };
+    return { logSummary, errors, stats, headerRowIndex };
   } catch (error) {
-    await connection.rollback();
+    if (connection) await connection.rollback();
     Logger.error("Fatal Error", error, "ATTENDANCE_IMPORT");
     throw error;
   }

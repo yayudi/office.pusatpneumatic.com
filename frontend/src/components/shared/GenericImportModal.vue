@@ -98,9 +98,11 @@
             :class="
               job.status === 'COMPLETED'
                 ? 'bg-success/5 border-success/20'
-                : job.status === 'ERROR'
-                  ? 'bg-danger/5 border-danger/20'
-                  : 'bg-primary/5 border-primary/20'
+                : job.status === 'COMPLETED_WITH_ERRORS'
+                  ? 'bg-warning/5 border-warning/20'
+                  : ['ERROR', 'FAILED'].includes(job.status)
+                    ? 'bg-danger/5 border-danger/20'
+                    : 'bg-primary/5 border-primary/20'
             "
           >
             <div class="flex justify-between items-start">
@@ -131,7 +133,14 @@
                   Selesai
                 </span>
                 <span
-                  v-else-if="job.status === 'ERROR'"
+                  v-else-if="job.status === 'COMPLETED_WITH_ERRORS'"
+                  class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md bg-warning/10 text-warning border border-warning/30 flex items-center gap-1.5"
+                >
+                  <font-awesome-icon icon="fa-solid fa-triangle-exclamation" />
+                  Parsial
+                </span>
+                <span
+                  v-else-if="['ERROR', 'FAILED'].includes(job.status)"
                   class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md bg-danger/10 text-danger border border-danger/30 flex items-center gap-1.5"
                 >
                   <font-awesome-icon icon="fa-solid fa-circle-exclamation" />

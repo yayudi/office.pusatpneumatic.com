@@ -34,8 +34,9 @@ export const processProductImport = async (
     // Gunakan Mapper baru 'MassProductUpdate'
     const parser = new ParserEngine(filePath, "MassProductUpdate");
 
-    const { orders: dataMap, errors: parserErrors } = await parser.run();
+    const { orders: dataMap, errors: parserErrors, headerRowIdx } = await parser.run();
     logicErrors.push(...parserErrors);
+    const actualHeaderRowIndex = headerRowIdx || 1;
 
     const totalItems = dataMap.size;
     const allData = Array.from(dataMap.values());
@@ -72,6 +73,7 @@ export const processProductImport = async (
         return {
           logSummary: logSummary + ` (Paused at row ${i})`,
           errors: logicErrors,
+          headerRowIndex: actualHeaderRowIndex,
           stats: {
             total: totalItems,
             success: updatedCount + createdCount,
@@ -189,6 +191,7 @@ export const processProductImport = async (
     return {
       logSummary,
       errors: logicErrors,
+      headerRowIndex: actualHeaderRowIndex,
       stats: {
         total: totalItems,
         success: createdCount + updatedCount,

@@ -44,9 +44,7 @@ watch(viewMode, newMode => {
   localStorage.setItem('mediaViewMode', newMode)
 })
 
-
-
-const initialPageSize = Number(localStorage.getItem('mediaPageSize')) || 18
+const initialPageSize = Number(localStorage.getItem('mediaPageSize')) || 20
 const totalMedia = ref(0)
 const {
   currentPage,

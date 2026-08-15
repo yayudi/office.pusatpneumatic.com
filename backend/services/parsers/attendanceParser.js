@@ -128,11 +128,15 @@ export function parseCsvToUserData(filepath) {
         const minutes = dateObj.getHours() * 60 + dateObj.getMinutes();
 
         if (!data[id]) {
-          data[id] = { id: parseInt(id), nama: nama || `User-${id}`, days: {} };
+          data[id] = { id: parseInt(id), nama: nama || `User-${id}`, days: {}, sourceRows: [] };
         }
         if (!data[id].days[dayKey]) {
           data[id].days[dayKey] = { l: [] };
         }
+        
+        // 4 because skipLines: 3 means header is row 4, first data is row 5.
+        // rowCount starts at 1, so rowCount + 4 gives the correct Excel row number
+        data[id].sourceRows.push(rowCount + 4);
 
         const logType = determineLogType(minutes, dateObj.getDay(), data[id].days[dayKey].l);
 
@@ -149,7 +153,7 @@ export function parseCsvToUserData(filepath) {
           "ATTENDANCE_PARSER"
         );
         Logger.info(`User Unik Ditemukan: ${Object.keys(data).length}`, "ATTENDANCE_PARSER");
-        resolve({ data });
+        resolve({ data, headerRowIndex: 4 });
       })
       .on("error", (error) => {
         Logger.error("Stream Error", error, "ATTENDANCE_PARSER");

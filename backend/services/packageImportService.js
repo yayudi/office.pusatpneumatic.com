@@ -193,7 +193,7 @@ export const processPackageImport = async (filePath, jobId, updateProgress, user
       }
     }
 
-    return { successCount, errors };
+    return { successCount, errors, headerRowIndex: headerRow.number };
 
   } catch (error) {
     Logger.error("Fatal Error", error, "PACKAGE_IMPORT");

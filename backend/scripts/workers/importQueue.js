@@ -165,6 +165,7 @@ export const importQueue = async () => {
         isDryRun,
         jobOptions,
       );
+      if (result.headerRowIndex) headerRowIndex = result.headerRowIndex;
       logSummary = result.logSummary;
       errors = result.errors || [];
       processStats = result.stats || {};
@@ -182,6 +183,7 @@ export const importQueue = async () => {
         jobOptions,
       );
 
+      if (result.headerRowIndex) headerRowIndex = result.headerRowIndex;
       logSummary = result.logSummary;
       errors = (result.errors || []).map((e) => ({
         row: e.row,
@@ -200,7 +202,8 @@ export const importQueue = async () => {
         updateJobProgress,
         job.user_id,
       );
-      // Package Import returns { successCount, errors }
+      // Package Import returns { successCount, errors, headerRowIndex }
+      if (result.headerRowIndex) headerRowIndex = result.headerRowIndex;
       logSummary = `Selesai Import Paket. Berhasil: ${result.successCount}.`;
       errors = (result.errors || []).map(e => {
         const match = typeof e === "string" ? e.match(/^Row (\d+):\s*(.*)/) : null;
@@ -215,16 +218,17 @@ export const importQueue = async () => {
         jobId,
         absoluteFilePath,
         job.user_id,
+        job.notes
       );
       // Stock Import returns { success: boolean, count: number, errors: [] }
       if (result.success) {
         logSummary = `Selesai Inbound Massal via Excel. Berhasil: ${result.count} items.`;
         processStats = { success: result.count };
-        errors = [];
+        errors = (result.errors || []).map(e => ({ row: e.row, message: e.error || e.message }));
       } else {
         logSummary = "Gagal memproses Inbound Massal.";
         processStats = { success: 0 };
-        errors = result.errors || [];
+        errors = (result.errors || []).map(e => ({ row: e.row, message: e.error || e.message }));
       }
     } else if (realJobType === "IMPORT_SCHEDULES") {
       const result = await scheduleImportService.processScheduleImport(
@@ -247,6 +251,7 @@ export const importQueue = async () => {
         absoluteFilePath,
         job.user_id,
       );
+      if (result.headerRowIndex) headerRowIndex = result.headerRowIndex;
       if (result.success) {
         logSummary = `Selesai Tautkan Massal Media via Excel. Berhasil: ${result.successCount}, Gagal: ${result.failCount}.`;
         processStats = { success: result.successCount, fail: result.failCount };
