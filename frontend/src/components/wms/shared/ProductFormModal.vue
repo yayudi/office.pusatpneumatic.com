@@ -12,6 +12,7 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 import ProductHistoryList from '@/components/products/ProductHistoryList.vue'
 import SegmentedControl from '@/components/ui/SegmentedControl.vue'
 import { useMasterDataStore } from '@/stores/masterData.js'
+import { resolveProductImageUrl } from '@/composables/useImageUrl.js'
 
 const { isMobile } = useMobile()
 
@@ -22,8 +23,16 @@ const packageTypeOptions = [
 
 const props = defineProps({
   show: Boolean,
-  mode: { type: String, default: 'create' }, // 'create' or 'edit'
-  productData: { type: Object, default: () => ({}) }
+  mode: {
+    type: String,
+    default: 'create',
+    validator: v => ['create', 'edit', 'duplicate'].includes(v)
+  },
+  productData: Object,
+  initialTab: {
+    type: String,
+    default: 'info'
+  }
 })
 
 const emit = defineEmits(['close', 'refresh'])
@@ -155,6 +164,7 @@ watch(
 const selectedImage = ref(null)
 const imagePreview = ref(null)
 const isCompressing = ref(false)
+const copiedMediaIds = ref([])
 
 // Reset/Populate Form saat modal dibuka
 watch(
@@ -164,9 +174,30 @@ watch(
       // Reset state
       componentSearch.value = ''
       searchResults.value = []
+      copiedMediaIds.value = []
 
-      if (props.mode === 'edit' && props.productData?.id) {
-        // MODE EDIT: Fetch data lengkap dari server (termasuk komponen paket)
+      const generateNextSKU = async () => {
+        try {
+          const { data } = await axios.get('/products', {
+            params: { sortBy: 'sku', sortOrder: 'desc', limit: 1 }
+          })
+          if (data.data && data.data.length > 0) {
+            const lastSku = data.data[0].sku || ''
+            const match = lastSku.match(/^([A-Za-z]+)(\d+)$/)
+            if (match) {
+              const prefix = match[1]
+              const number = match[2]
+              const nextNumber = (parseInt(number) + 1).toString().padStart(number.length, '0')
+              form.value.sku = `${prefix}${nextNumber}`
+            }
+          }
+        } catch (error) {
+          console.error('Failed to auto-generate SKU', error)
+        }
+      }
+
+      if (['edit', 'duplicate'].includes(props.mode) && props.productData?.id) {
+        // MODE EDIT / DUPLICATE: Fetch data lengkap dari server
         fetchLoading.value = true
         try {
           const { data } = await axios.get(`/products/${props.productData.id}`)
@@ -184,9 +215,21 @@ watch(
             }
             // Mapping komponen jika ada
             components.value = data.data.components || []
-            // Set existing image if any (backend should return full URL or path)
-            if (data.data.image_path) {
-              imagePreview.value = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/uploads/products/${data.data.image_path}`
+            // Set existing image if any
+            if (data.data.images && data.data.images.length > 0) {
+              imagePreview.value = resolveProductImageUrl(data.data.images[0])
+              if (props.mode === 'duplicate') {
+                copiedMediaIds.value = data.data.images.map(img => img.media_id).filter(id => id != null)
+              }
+            } else if (data.data.image_path) {
+              imagePreview.value = resolveProductImageUrl(data.data)
+            }
+            
+            // Penyesuaian untuk mode duplikat
+            if (props.mode === 'duplicate') {
+              form.value.name = form.value.name + ' (Copy)'
+              form.value.sku = ''
+              await generateNextSKU()
             }
           }
         } catch (err) {
@@ -197,34 +240,25 @@ watch(
         }
       } else {
         // MODE CREATE: Kosongkan form
-        form.value = { sku: '', name: '', category_id: null, price: 0, weight: 0, length: 0, width: 0, height: 0, is_package: false }
+        form.value = {
+          sku: '',
+          name: '',
+          category_id: null,
+          price: 0,
+          weight: 0,
+          length: 0,
+          width: 0,
+          height: 0,
+          is_package: false
+        }
         components.value = []
         selectedImage.value = null
         imagePreview.value = null
 
         // Auto-Generate Next SKU
         fetchLoading.value = true
-        try {
-          const { data } = await axios.get('/products', {
-            params: { sortBy: 'sku', sortOrder: 'desc', limit: 1 }
-          })
-
-          if (data.data && data.data.length > 0) {
-            const lastSku = data.data[0].sku || ''
-            // Regex match: Prefix (Letters) + Suffix (Numbers)
-            const match = lastSku.match(/^([A-Za-z]+)(\d+)$/)
-            if (match) {
-              const prefix = match[1]
-              const number = match[2]
-              const nextNumber = (parseInt(number) + 1).toString().padStart(number.length, '0')
-              form.value.sku = `${prefix}${nextNumber}`
-            }
-          }
-        } catch (error) {
-          console.error('Failed to auto-generate SKU', error)
-        } finally {
-          fetchLoading.value = false
-        }
+        await generateNextSKU()
+        fetchLoading.value = false
       }
     }
   }
@@ -234,9 +268,9 @@ watch(
 const debouncedComponentSearch = debounce(async query => {
   try {
     const { data } = await axios.get(`/products/search?q=${query}`)
-    
+
     // Extract array depending on response format
-    const resultsArray = Array.isArray(data) ? data : (data.data || [])
+    const resultsArray = Array.isArray(data) ? data : data.data || []
 
     // Filter: Jangan tampilkan produk yang sudah dipilih atau produk itu sendiri (jika edit)
     searchResults.value = resultsArray.filter(
@@ -313,13 +347,13 @@ async function handleSubmit() {
     if (selectedImage.value) {
       // Judul file menggunakan nama produk atau SKU
       const imageTitle = form.value.name || form.value.sku || 'Gambar Produk'
-      
+
       const uploadRes = await uploadMediaToR2(
         axios,
         [selectedImage.value],
         [imageTitle],
         [], // tags kosong
-        []  // productIds kosong (akan dilink saat create/update produk)
+        [] // productIds kosong (akan dilink saat create/update produk)
       )
 
       if (uploadRes && uploadRes.success && uploadRes.data && uploadRes.data.length > 0) {
@@ -329,6 +363,9 @@ async function handleSubmit() {
         loading.value = false
         return
       }
+    } else if (props.mode === 'duplicate' && copiedMediaIds.value.length > 0) {
+      // Gunakan ulang ID gambar lama jika tidak ada gambar baru yang diunggah
+      mediaIds = copiedMediaIds.value
     }
 
     // 2. Submit Data Produk (JSON murni)
@@ -338,14 +375,14 @@ async function handleSubmit() {
     }
 
     let response
-    if (props.mode === 'create') {
+    if (props.mode === 'create' || props.mode === 'duplicate') {
       response = await axios.post('/products', finalPayload)
     } else {
       response = await axios.put(`/products/${props.productData.id}`, finalPayload)
     }
 
     if (response.data.success) {
-      toast(`Produk berhasil ${props.mode === 'create' ? 'dibuat' : 'diperbarui'}!`, 'success')
+      toast(`Produk berhasil ${props.mode === 'edit' ? 'diperbarui' : 'dibuat'}!`, 'success')
       emit('refresh') // Memberitahu parent untuk refresh tabel
       emit('close')
     }
@@ -377,7 +414,7 @@ watch(Alt_S, pressed => {
 <template>
   <BaseModal :show="show" @close="$emit('close')" maxWidth="max-w-2xl">
     <template #title>
-      {{ mode === 'create' ? 'Tambah Produk Baru' : 'Edit Produk' }}
+      {{ mode === 'create' ? 'Tambah Produk Baru' : mode === 'duplicate' ? 'Duplikasi Produk' : 'Edit Produk' }}
     </template>
 
     <div class="flex flex-col gap-4">

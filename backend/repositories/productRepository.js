@@ -35,6 +35,7 @@ export const getProductsWithFilters = async (connection, filters) => {
     floor,
     sortBy,
     sortOrder,
+    skipComponents,
   } = filters;
 
   const allowedSortColumns = ["name", "sku", "price", "updated_at", "deleted_at", "weight"];
@@ -198,6 +199,7 @@ export const getProductsWithFilters = async (connection, filters) => {
   const totalProducts = totalRows[0]?.total || 0;
   const productsQuery = `
       SELECT p.id, p.sku, p.name, p.category_id, c.name as category_name, p.price, p.weight, p.is_package, p.is_active, p.deleted_at,
+      (SELECT COUNT(*) FROM package_components pc WHERE pc.package_product_id = p.id) as component_count,
       (SELECT ma.main_path FROM product_images pi JOIN media_assets ma ON pi.media_id = ma.id WHERE pi.product_id = p.id AND pi.is_primary = 1 LIMIT 1) as image_path,
       (SELECT ma.thumbnail_path FROM product_images pi JOIN media_assets ma ON pi.media_id = ma.id WHERE pi.product_id = p.id AND pi.is_primary = 1 LIMIT 1) as thumbnail_path
       FROM products p
@@ -237,7 +239,7 @@ export const getProductsWithFilters = async (connection, filters) => {
   });
   const packageIds = products.filter((p) => p.is_package === 1).map((p) => p.id);
 
-  if (packageIds.length > 0) {
+  if (packageIds.length > 0 && !skipComponents) {
     const componentsQuery = `
       SELECT
         pc.package_product_id,
@@ -428,7 +430,7 @@ export const getProductDetailWithStock = async (connection, id) => {
   if (rows.length === 0) return null;
   const product = rows[0];
   const [images] = await connection.query(
-    "SELECT pi.id, ma.main_path as image_path, ma.thumbnail_path, ma.title, pi.is_primary FROM product_images pi JOIN media_assets ma ON pi.media_id = ma.id WHERE pi.product_id = ? ORDER BY pi.is_primary DESC, pi.sort_order ASC",
+    "SELECT pi.id, ma.id as media_id, ma.main_path as image_path, ma.thumbnail_path, ma.title, pi.is_primary FROM product_images pi JOIN media_assets ma ON pi.media_id = ma.id WHERE pi.product_id = ? ORDER BY pi.is_primary DESC, pi.sort_order ASC",
     [id],
   );
   product.images = images;

@@ -14,12 +14,12 @@ import ProductFormModal from '@/components/wms/shared/ProductFormModal.vue'
 import ConnectionStatus from '@/components/wms/shared/ConnectionStatus.vue'
 import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import { useInlineSave } from '@/composables/useInlineSave.js'
 import TriStateSelect from '@/components/ui/TriStateSelect.vue'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 import ProductTable from '@/components/products/ProductTable.vue'
 import ProductImageModal from '@/components/products/ProductImageModal.vue'
 import StickerGeneratorModal from '@/components/utilities/StickerGeneratorModal.vue'
-import { usePagination } from '@/composables/usePagination.js'
 
 const { toast } = useToast()
 const masterStore = useMasterDataStore()
@@ -33,6 +33,7 @@ const filterType = ref('all')
 const filterStatus = ref('active')
 const sortBy = ref('sku')
 const sortOrder = ref('desc')
+const tableKey = ref(0)
 
 const categoryOptions = ref([])
 const filterCategory = ref({ include: [], exclude: [] })
@@ -67,17 +68,7 @@ const isProcessingBulk = ref(false)
 
 // Pagination State
 const totalProducts = ref(0)
-const {
-  currentPage,
-  currentLimit,
-  meta: pagination,
-  changePage: handleChangePage,
-  changePageSize: handleUpdateLimit
-} = usePagination({
-  totalItems: totalProducts,
-  storageKey: 'productPageSize',
-  initialLimit: 20
-})
+const currentLimit = ref(50)
 
 const selectionCount = computed(() => selectedIds.value.size)
 const downloadStore = useDownloadStore()
@@ -85,11 +76,20 @@ const downloadStore = useDownloadStore()
 // Export State
 const isExporting = ref(false)
 
-// --- API ACTIONS (TanStack Vue Query) ---
-import { useQuery, keepPreviousData } from '@tanstack/vue-query'
+// Bulk Edit / Inline Edit State (from composable)
+const { 
+  dirtyProducts, 
+  isSavingInline, 
+  hasDirtyProducts, 
+  handleInlineEditChange, 
+  handleCancelInlineEdit, 
+  handleBulkSaveInline 
+} = useInlineSave({ fetchProducts: () => fetchProducts(), tableKeyRef: tableKey })
 
-const queryParams = computed(() => ({
-  page: currentPage.value,
+// --- API ACTIONS (TanStack Vue Query) ---
+import { useInfiniteQuery, keepPreviousData } from '@tanstack/vue-query'
+
+const searchParams = computed(() => ({
   limit: currentLimit.value,
   search: searchQuery.value,
   searchBy: searchBy.value,
@@ -104,12 +104,24 @@ const queryParams = computed(() => ({
 const {
   data: productsData,
   isLoading: loading,
+  isFetchingNextPage,
+  fetchNextPage,
+  hasNextPage,
   refetch: fetchProducts
-} = useQuery({
-  queryKey: ['products', queryParams],
-  queryFn: async () => {
-    const response = await axios.get('/products', { params: queryParams.value })
+} = useInfiniteQuery({
+  queryKey: ['products', searchParams],
+  queryFn: async ({ pageParam = 1 }) => {
+    const response = await axios.get('/products', {
+      params: { ...searchParams.value, page: pageParam }
+    })
     return response.data
+  },
+  getNextPageParam: (lastPage, allPages) => {
+    const total = lastPage.total || 0
+    const limit = currentLimit.value || 50
+    const last = Math.ceil(total / limit) || 1
+    const current = allPages.length
+    return current < last ? current + 1 : undefined
   },
   placeholderData: keepPreviousData,
   staleTime: 60 * 1000 // 1 minute
@@ -118,10 +130,10 @@ const {
 watch(
   productsData,
   resData => {
-    if (resData) {
-      const items = resData.data || resData.products || []
-      products.value = items
-      totalProducts.value = resData.meta?.total || resData.total || 0
+    if (resData && resData.pages) {
+      products.value = resData.pages.flatMap(page => page.data || page.products || [])
+      const lastPage = resData.pages[resData.pages.length - 1]
+      totalProducts.value = lastPage.meta?.total || lastPage.total || 0
     } else {
       products.value = []
       totalProducts.value = 0
@@ -131,6 +143,11 @@ watch(
 )
 
 // --- HANDLERS (Dioper ke Child Components) ---
+const handleFetchMore = () => {
+  if (hasNextPage.value && !isFetchingNextPage.value) {
+    fetchNextPage()
+  }
+}
 
 // Pagination & Sorting
 // Triggered implicitly by vue-query watching queryParams
@@ -145,7 +162,6 @@ const handleSort = field => {
 
 // Search & Filter (Debounce)
 const handleFilterChange = debounce(() => {
-  pagination.page = 1
   selectedIds.value.clear()
   fetchProducts()
 }, 300)
@@ -208,6 +224,11 @@ const openAddModal = async () => {
 }
 const openEditModal = p => {
   productFormMode.value = 'edit'
+  selectedProduct.value = p
+  showProductForm.value = true
+}
+const openDuplicateModal = p => {
+  productFormMode.value = 'duplicate'
   selectedProduct.value = p
   showProductForm.value = true
 }
@@ -288,6 +309,12 @@ const handleExport = async ({ format, includeImages }) => {
   }
 }
 
+// Inline Edit Chunking & Save Logic are handled by useInlineSave
+// To handle the custom logic of save, we pass the products list to handleBulkSaveInline
+const executeBulkSaveInline = () => {
+  handleBulkSaveInline(products.value)
+}
+
 const handleImport = async formData => {
   // Logic from old PriceUpdateModal/ProductImportModal
   try {
@@ -365,6 +392,28 @@ watch(Slash, pressed => {
       <WmsActionHeader title="Manajemen Produk" icon="fa-solid fa-tags">
         <template #actions>
           <div class="flex flex-wrap gap-3">
+            <button
+              v-if="hasDirtyProducts"
+              @click="handleCancelInlineEdit"
+              :disabled="isSavingInline"
+              class="px-5 py-2.5 bg-danger hover:bg-danger/90 text-secondary rounded-xl shadow-md font-medium flex items-center gap-2 transition-all disabled:opacity-50"
+            >
+              <font-awesome-icon icon="fa-solid fa-times" />
+              <span class="hidden sm:inline">Batal</span>
+            </button>
+
+            <!-- Tombol Simpan Perubahan (Muncul jika ada dirty) -->
+            <button
+              v-if="dirtyProducts.size > 0"
+              @click="executeBulkSaveInline"
+              class="bg-indigo-600/90 text-white px-4 py-2 rounded-lg font-medium shadow transition hover:bg-indigo-700 disabled:opacity-50"
+              :disabled="isSavingInline"
+            >
+              <font-awesome-icon v-if="isSavingInline" icon="fa-solid fa-spinner" spin class="mr-2" />
+              <font-awesome-icon v-else icon="fa-solid fa-save" class="mr-2" />
+              Simpan Semua ({{ dirtyProducts.size }})
+            </button>
+
             <!-- Tombol Batch Edit -->
             <button
               @click="showBatchEditModal = true"
@@ -504,21 +553,28 @@ watch(Slash, pressed => {
 
     <!-- TABLE COMPONENT -->
     <ProductTable
+      :key="tableKey"
       :products="products"
+      :categoryOptions="categoryOptions"
       :loading="loading"
-      :pagination="pagination"
       :selectedIds="selectedIds"
       :sortBy="sortBy"
       :sortOrder="sortOrder"
+      :dirtyProducts="dirtyProducts"
+      :isSaving="isSavingInline"
+      :isFetchingNextPage="isFetchingNextPage"
+      :hasNextPage="hasNextPage"
       @sort="handleSort"
-      @changePage="handleChangePage"
-      @update:limit="handleUpdateLimit"
+      @fetch-more="handleFetchMore"
       @toggleSelection="toggleSelection"
       @toggleSelectAll="toggleSelectAll"
       @edit="openEditModal"
+      @duplicate="openDuplicateModal"
+      @view-history="openEditModal"
       @restore="handleRestore"
       @delete="handleDelete"
       @view-image="openImageModal"
+      @cell-edit="handleInlineEditChange"
     />
 
     <!-- FLOATING ACTION BAR -->

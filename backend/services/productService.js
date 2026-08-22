@@ -138,22 +138,24 @@ export const updateProductService = async (id, data, userId) => {
       );
     }
 
-    // Handle Package Components (Selalu replace logic untuk konsistensi)
-    await productRepo.deleteComponents(connection, id);
+    // Handle Package Components (Selalu replace logic untuk konsistensi, HANYA jika data.components diberikan)
+    if (data.is_package && data.components !== undefined) {
+      await productRepo.deleteComponents(connection, id);
 
-    if (data.is_package && data.components?.length > 0) {
-      await productRepo.insertComponents(connection, id, data.components);
+      if (data.components.length > 0) {
+        await productRepo.insertComponents(connection, id, data.components);
 
-      // Generic log untuk perubahan struktur komponen
-      await logChange(
-        connection,
-        id,
-        userId,
-        "UPDATE",
-        "components",
-        "Old Components",
-        `${data.components.length} Items`,
-      );
+        // Generic log untuk perubahan struktur komponen
+        await logChange(
+          connection,
+          id,
+          userId,
+          "UPDATE",
+          "components",
+          "Old Components",
+          `${data.components.length} Items`,
+        );
+      }
     }
 
     await connection.commit();

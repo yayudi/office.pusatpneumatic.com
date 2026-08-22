@@ -73,6 +73,7 @@ export const getProducts = async (req, res, next) => {
 
       sortBy: req.query.sortBy || "sku",
       sortOrder: req.query.sortOrder === "asc" ? "ASC" : "DESC",
+      skipComponents: req.query.skipComponents === "true",
     };
     filters.offset = (filters.page - 1) * filters.limit;
     const result = await productRepo.getProductsWithFilters(db, filters);

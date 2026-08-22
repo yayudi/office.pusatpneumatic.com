@@ -14,6 +14,9 @@ import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
 import { useMobile } from '@/composables/useMobile.js'
 import { usePagination } from '@/composables/usePagination.js'
+import BaseContextMenu from '@/components/ui/BaseContextMenu.vue'
+import { useContextMenu } from '@/composables/useContextMenu.js'
+import { useInstantInlineEdit } from '@/composables/useInstantInlineEdit.js'
 
 const { isMobile } = useMobile()
 
@@ -101,6 +104,23 @@ async function handleSave() {
   }
 }
 
+// --- INLINE EDIT HANDLERS ---
+  const { contextMenu, openContextMenu } = useContextMenu()
+const { handleCellBlur, handleDropdownChange } = useInstantInlineEdit(
+  async (id, payload) => {
+    await updateLocation(id, payload)
+  },
+  (item) => ({ ...item, floor: item.floor ? Number(item.floor) : null }) // send full location object with floor as number
+)
+
+function handleContextAction(action) {
+  if (action === 'delete') {
+    handleDelete(contextMenu.value.row.id)
+  } else if (action === 'edit') {
+    openEditModal(contextMenu.value.row)
+  }
+}
+
 async function handleDelete(locationId) {
   if (
     await swalConfirm(
@@ -112,7 +132,7 @@ async function handleDelete(locationId) {
       toast('Lokasi berhasil dihapus.', 'success')
       loadLocations() // Muat ulang data
     } catch (error) {
-      console.error(error) // Auto-added to prevent unused var
+      console.error(error)
     }
   }
 }
@@ -165,11 +185,7 @@ watch(Alt_S, pressed => {
             <th class="px-6 py-3 border-b border-secondary/10">Lantai</th>
             <th class="px-6 py-3 border-b border-secondary/10">Nama/Deskripsi</th>
             <th class="px-6 py-3 border-b border-secondary/10">Purpose</th>
-            <th
-              class="px-6 py-3 text-center sticky right-0 z-30 bg-background/95 backdrop-blur-md border-b border-secondary/10 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]"
-            >
-              Aksi
-            </th>
+
           </tr>
         </thead>
         <TransitionGroup
@@ -185,14 +201,11 @@ watch(Alt_S, pressed => {
               <td class="px-6 py-4"><BaseSkeleton shape="text" className="w-1/4 h-4" /></td>
               <td class="px-6 py-4"><BaseSkeleton shape="text" className="w-3/4 h-4" /></td>
               <td class="px-6 py-4"><BaseSkeleton shape="rect" className="w-16 h-6 rounded-md" /></td>
-              <td class="px-6 py-4 text-center">
-                <BaseSkeleton shape="rect" className="w-16 h-6 mx-auto rounded-md" />
-              </td>
             </tr>
           </template>
 
           <tr v-else-if="allLocations.length === 0" key="empty">
-            <td colspan="6" class="py-12 text-center text-text/50 italic">Tidak ada data lokasi.</td>
+            <td colspan="5" class="py-12 text-center text-text/50 italic">Tidak ada data lokasi.</td>
           </tr>
 
           <tr
@@ -205,6 +218,7 @@ watch(Alt_S, pressed => {
                 ? 'block mb-4 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4'
                 : 'border-b border-secondary/20 hover:bg-secondary/5'
             "
+            @contextmenu.prevent.stop="openContextMenu($event, loc)"
           >
             <td
               class="font-mono font-semibold bg-background group-hover:bg-secondary/5 transition-colors"
@@ -215,70 +229,57 @@ watch(Alt_S, pressed => {
               "
             >
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-sans">Kode</span>
-              <span>{{ loc.code }}</span>
+              <span
+                contenteditable="true"
+                class="outline-none focus:ring-2 focus:ring-primary focus:bg-background/80 px-1 -mx-1 rounded inline-block min-w-[30px]"
+                @blur="handleCellBlur($event, loc, 'code')"
+                @keydown.enter.prevent="$event.target.blur()"
+              >{{ loc.code }}</span>
             </td>
             <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Gedung</span>
-              <span>{{ loc.building }}</span>
+              <span
+                contenteditable="true"
+                class="outline-none focus:ring-2 focus:ring-primary focus:bg-background/80 px-1 -mx-1 rounded inline-block min-w-[30px]"
+                @blur="handleCellBlur($event, loc, 'building')"
+                @keydown.enter.prevent="$event.target.blur()"
+              >{{ loc.building }}</span>
             </td>
             <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Lantai</span>
-              <span>{{ loc.floor || '-' }}</span>
+              <span
+                contenteditable="true"
+                class="outline-none focus:ring-2 focus:ring-primary focus:bg-background/80 px-1 -mx-1 rounded inline-block min-w-[30px]"
+                @blur="handleCellBlur($event, loc, 'floor')"
+                @keydown.enter.prevent="$event.target.blur()"
+              >{{ loc.floor ?? '' }}</span>
             </td>
             <td
               class="text-text/80"
               :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'"
             >
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Nama</span>
-              <span>{{ loc.name || '-' }}</span>
+              <span
+                contenteditable="true"
+                class="outline-none focus:ring-2 focus:ring-primary focus:bg-background/80 px-1 -mx-1 rounded inline-block min-w-[30px]"
+                @blur="handleCellBlur($event, loc, 'name')"
+                @keydown.enter.prevent="$event.target.blur()"
+              >{{ loc.name }}</span>
             </td>
             <td
               class="font-mono text-xs"
               :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'"
             >
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-sans font-semibold">Purpose</span>
-              <span>{{ loc.purpose || '-' }}</span>
-            </td>
-            <td
-              class="bg-background group-hover:bg-secondary/5 transition-colors"
-              :class="
-                isMobile
-                  ? 'flex justify-end items-center pt-4'
-                  : 'px-6 py-4 text-center sticky right-0 z-20 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]'
-              "
-            >
-              <div
-                class="flex items-center justify-center gap-2 transition-all duration-200"
-                :class="isMobile ? 'opacity-100' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100'"
+              <select
+                class="bg-transparent outline-none focus:ring-2 focus:ring-primary focus:bg-background/80 px-1 -mx-1 rounded cursor-pointer"
+                :value="loc.purpose"
+                @change="handleDropdownChange(loc, 'purpose', $event.target.value)"
               >
-                <button
-                  @click="openEditModal(loc)"
-                  class="flex items-center justify-center rounded-lg hover:bg-primary/10 transition-colors"
-                  :class="
-                    isMobile
-                      ? 'px-3 py-1.5 bg-primary/10 text-primary font-semibold text-xs gap-2'
-                      : 'w-8 h-8 text-text/40 hover:text-primary'
-                  "
-                  title="Edit Lokasi"
-                >
-                  <font-awesome-icon icon="fa-solid fa-pen-to-square" />
-                  <span v-if="isMobile">Edit</span>
-                </button>
-                <button
-                  @click="handleDelete(loc.id)"
-                  class="flex items-center justify-center rounded-lg hover:bg-danger/10 transition-colors"
-                  :class="
-                    isMobile
-                      ? 'px-3 py-1.5 bg-danger/10 text-danger font-semibold text-xs gap-2'
-                      : 'w-8 h-8 text-text/40 hover:text-danger'
-                  "
-                  title="Hapus Lokasi"
-                >
-                  <font-awesome-icon icon="fa-solid fa-trash" />
-                  <span v-if="isMobile">Hapus</span>
-                </button>
-              </div>
+                <option v-for="opt in purposeOptions" :key="opt" :value="opt" class="bg-background text-text">{{ opt }}</option>
+              </select>
             </td>
+
           </tr>
         </TransitionGroup>
       </table>
@@ -295,6 +296,19 @@ watch(Alt_S, pressed => {
       />
     </div>
   </div>
+
+  <!-- CONTEXT MENU -->
+  <BaseContextMenu
+    :visible="contextMenu.visible"
+    :x="contextMenu.x"
+    :y="contextMenu.y"
+    :options="[
+      { label: 'Edit Lengkap', action: 'edit', icon: 'fa-solid fa-pen-to-square' },
+      { label: 'Hapus Lokasi', action: 'delete', icon: 'fa-solid fa-trash', danger: true }
+    ]"
+    @close="contextMenu.visible = false"
+    @action="handleContextAction"
+  />
 
   <!-- Modal untuk Tambah/Edit Lokasi -->
   <Teleport to="body">

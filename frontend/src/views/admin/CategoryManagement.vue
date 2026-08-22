@@ -13,6 +13,9 @@ import BasePagination from '@/components/ui/BasePagination.vue'
 import { useMobile } from '@/composables/useMobile.js'
 import { usePagination } from '@/composables/usePagination.js'
 import { useMasterDataStore } from '@/stores/masterData.js'
+import BaseContextMenu from '@/components/ui/BaseContextMenu.vue'
+import { useContextMenu } from '@/composables/useContextMenu.js'
+import { useInstantInlineEdit } from '@/composables/useInstantInlineEdit.js'
 
 const { isMobile } = useMobile()
 const { toast } = useToast()
@@ -105,6 +108,31 @@ async function handleDelete(categoryId) {
   }
 }
 
+const { contextMenu, openContextMenu } = useContextMenu()
+const { handleCellBlur } = useInstantInlineEdit(
+  async (id, payload) => {
+    const { data } = await axios.put(`/categories/${id}`, payload)
+    if (!data.success) throw new Error(data.message)
+  },
+  (item) => item // send full category object
+)
+
+const validateCategoryName = (val) => {
+  if (!val) {
+    toast('Nama kategori tidak boleh kosong', 'error')
+    return false
+  }
+  return true
+}
+
+function handleContextAction(action) {
+  if (action === 'delete') {
+    handleDelete(contextMenu.value.row.id)
+  } else if (action === 'edit') {
+    openEditModal(contextMenu.value.row)
+  }
+}
+
 // --- LOCAL HOTKEYS ---
 const { Alt_N, Alt_S } = useMagicKeys()
 
@@ -146,7 +174,6 @@ watch(Alt_S, pressed => {
           <tr class="text-xs text-text/80 uppercase">
             <th class="px-6 py-3 border-b border-secondary/10 w-16 text-center">#</th>
             <th class="px-6 py-3 border-b border-secondary/10">Nama Kategori</th>
-            <th class="px-6 py-3 text-center border-b border-secondary/10 w-32">Aksi</th>
           </tr>
         </thead>
         <TransitionGroup
@@ -160,12 +187,11 @@ watch(Alt_S, pressed => {
             <tr v-for="n in 5" :key="`skeleton-${n}`" class="border-b border-secondary/20 animate-pulse">
               <td class="px-6 py-4 text-center"><BaseSkeleton shape="rect" className="w-4 h-4 mx-auto" /></td>
               <td class="px-6 py-4"><BaseSkeleton shape="text" className="w-1/2 h-4" /></td>
-              <td class="px-6 py-4"><BaseSkeleton shape="rect" className="w-16 h-6 mx-auto rounded-lg" /></td>
             </tr>
           </template>
 
           <tr v-else-if="categories.length === 0" key="empty">
-            <td colspan="3" class="py-12 text-center text-text/50 italic">
+            <td colspan="2" class="py-12 text-center text-text/50 italic">
               <font-awesome-icon icon="fa-solid fa-tags" class="text-3xl text-text/20 mb-3 block" />
               Belum ada kategori. Tambahkan kategori pertama Anda.
             </td>
@@ -181,6 +207,7 @@ watch(Alt_S, pressed => {
                 ? 'block mb-3 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4'
                 : 'border-b border-secondary/20 hover:bg-secondary/5'
             "
+            @contextmenu.prevent.stop="openContextMenu($event, cat)"
           >
             <td
               class="text-text/40 font-mono text-xs"
@@ -191,43 +218,12 @@ watch(Alt_S, pressed => {
             </td>
             <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Nama</span>
-              <span class="font-medium text-text">{{ cat.name }}</span>
-            </td>
-            <td
-              class="bg-background group-hover:bg-secondary/5 transition-colors"
-              :class="isMobile ? 'flex justify-end items-center pt-4' : 'px-6 py-4 text-center'"
-            >
-              <div
-                class="flex items-center justify-center gap-2 transition-all duration-200"
-                :class="isMobile ? 'opacity-100' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100'"
-              >
-                <button
-                  @click="openEditModal(cat)"
-                  class="flex items-center justify-center rounded-lg hover:bg-primary/10 transition-colors"
-                  :class="
-                    isMobile
-                      ? 'px-3 py-1.5 bg-primary/10 text-primary font-semibold text-xs gap-2'
-                      : 'w-8 h-8 text-text/40 hover:text-primary'
-                  "
-                  title="Edit Kategori"
-                >
-                  <font-awesome-icon icon="fa-solid fa-pen-to-square" />
-                  <span v-if="isMobile">Edit</span>
-                </button>
-                <button
-                  @click="handleDelete(cat.id)"
-                  class="flex items-center justify-center rounded-lg hover:bg-danger/10 transition-colors"
-                  :class="
-                    isMobile
-                      ? 'px-3 py-1.5 bg-danger/10 text-danger font-semibold text-xs gap-2'
-                      : 'w-8 h-8 text-text/40 hover:text-danger'
-                  "
-                  title="Hapus Kategori"
-                >
-                  <font-awesome-icon icon="fa-solid fa-trash" />
-                  <span v-if="isMobile">Hapus</span>
-                </button>
-              </div>
+              <span
+                class="font-medium text-text outline-none focus:ring-2 focus:ring-primary focus:bg-background/80 px-1 -mx-1 rounded inline-block min-w-[50px]"
+                contenteditable="true"
+                @blur="handleCellBlur($event, cat, 'name', validateCategoryName)"
+                @keydown.enter.prevent="$event.target.blur()"
+              >{{ cat.name }}</span>
             </td>
           </tr>
         </TransitionGroup>
@@ -245,6 +241,19 @@ watch(Alt_S, pressed => {
       />
     </div>
   </div>
+
+  <!-- CONTEXT MENU -->
+  <BaseContextMenu
+    :visible="contextMenu.visible"
+    :x="contextMenu.x"
+    :y="contextMenu.y"
+    :options="[
+      { label: 'Edit Lengkap', action: 'edit', icon: 'fa-solid fa-pen-to-square' },
+      { label: 'Hapus Kategori', action: 'delete', icon: 'fa-solid fa-trash', danger: true }
+    ]"
+    @close="contextMenu.visible = false"
+    @action="handleContextAction"
+  />
 
   <!-- Modal untuk Tambah/Edit Kategori -->
   <Teleport to="body">

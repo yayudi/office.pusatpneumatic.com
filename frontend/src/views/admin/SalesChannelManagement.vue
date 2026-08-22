@@ -10,6 +10,9 @@ import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 import { useMobile } from '@/composables/useMobile.js'
 import { usePagination } from '@/composables/usePagination.js'
+import BaseContextMenu from '@/components/ui/BaseContextMenu.vue'
+import { useContextMenu } from '@/composables/useContextMenu.js'
+import { useInstantInlineEdit } from '@/composables/useInstantInlineEdit.js'
 
 const { isMobile } = useMobile()
 const { toast } = useToast()
@@ -62,26 +65,24 @@ const fetchChannels = async (silent = false) => {
   }
 }
 
-const openAddModal = () => {
-  modalMode.value = 'add'
-  formData.value = {
-    id: null,
-    platform: 'Shopee',
-    name: '',
-    description: '',
-    isActive: true
-  }
-  isModalOpen.value = true
-}
-
-const openEditModal = item => {
-  modalMode.value = 'edit'
-  formData.value = {
-    id: item.id,
-    platform: item.platform,
-    name: item.name,
-    description: item.description || '',
-    isActive: item.is_active === 1
+const openModal = (mode, item = null) => {
+  modalMode.value = mode
+  if (mode === 'edit') {
+    formData.value = {
+      id: item.id,
+      platform: item.platform,
+      name: item.name,
+      description: item.description || '',
+      isActive: item.is_active === 1 || item.is_active === true
+    }
+  } else {
+    formData.value = {
+      id: null,
+      platform: 'Shopee',
+      name: '',
+      description: '',
+      isActive: true
+    }
   }
   isModalOpen.value = true
 }
@@ -133,6 +134,36 @@ const confirmDelete = async item => {
     console.error(error) // Auto-added to prevent unused var
   }
 }
+
+// --- INLINE EDIT HANDLERS ---
+const { contextMenu, openContextMenu } = useContextMenu()
+const { handleCellBlur, handleDropdownChange } = useInstantInlineEdit(
+  async (id, payload) => {
+    await api.put(`/sales-channels/${id}`, payload)
+  },
+  (item) => ({
+    platform: item.platform,
+    name: item.name,
+    description: item.description,
+    isActive: item.is_active === 1 || item.is_active === true
+  })
+)
+
+const validateChannelName = (val) => {
+  if (!val) {
+    toast('Nama Toko / Sales harus diisi.', 'warning')
+    return false
+  }
+  return true
+}
+
+const handleContextAction = (action) => {
+  if (action === 'delete') {
+    confirmDelete(contextMenu.value.row)
+  } else if (action === 'edit') {
+    openModal('edit', contextMenu.value.row)
+  }
+}
 </script>
 
 <template>
@@ -145,7 +176,7 @@ const confirmDelete = async item => {
     >
       <template #actions>
         <button
-          @click="openAddModal"
+          @click="openModal('add')"
           class="bg-primary text-secondary text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 shadow-md shadow-primary/20"
         >
           <font-awesome-icon icon="fa-solid fa-plus" />
@@ -169,7 +200,6 @@ const confirmDelete = async item => {
               <th class="px-6 py-3 border-b border-secondary/10">Nama Toko / Sales</th>
               <th class="px-6 py-3 border-b border-secondary/10">Keterangan</th>
               <th class="px-6 py-3 border-b border-secondary/10 text-center">Status</th>
-              <th class="px-6 py-3 text-center border-b border-secondary/10 w-32">Aksi</th>
             </tr>
           </thead>
           <TransitionGroup
@@ -185,12 +215,11 @@ const confirmDelete = async item => {
                 <td class="px-6 py-4"><BaseSkeleton shape="text" className="w-1/2 h-4" /></td>
                 <td class="px-6 py-4"><BaseSkeleton shape="text" className="w-3/4 h-4" /></td>
                 <td class="px-6 py-4 text-center"><BaseSkeleton shape="rect" className="w-12 h-5 mx-auto rounded-lg" /></td>
-                <td class="px-6 py-4 text-center"><BaseSkeleton shape="rect" className="w-20 h-6 mx-auto rounded-lg" /></td>
               </tr>
             </template>
 
             <tr v-else-if="channels.length === 0" key="empty">
-              <td colspan="5" class="py-12 text-center text-text/50 italic">
+              <td colspan="4" class="py-12 text-center text-text/50 italic">
                 <font-awesome-icon icon="fa-solid fa-store-slash" class="text-3xl text-text/20 mb-3 block" />
                 Belum ada data saluran penjualan.
               </td>
@@ -206,61 +235,54 @@ const confirmDelete = async item => {
                   ? 'block mb-3 p-4 bg-background/50 rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4'
                   : 'border-b border-secondary/20 hover:bg-secondary/5'
               "
+              @contextmenu.prevent.stop="openContextMenu($event, item)"
             >
               <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
                 <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Platform</span>
-                <span
-                  class="px-2 py-1 rounded-md text-xs font-bold"
+                <select
+                  class="bg-transparent outline-none focus:ring-2 focus:ring-primary focus:bg-background/80 px-1 -mx-1 rounded text-xs font-bold cursor-pointer"
                   :class="
                     item.platform === 'Shopee'
-                      ? 'bg-[#ee4d2d]/10 text-[#ee4d2d]'
+                      ? 'text-[#ee4d2d]'
                       : item.platform === 'Tokopedia'
-                        ? 'bg-[#00AA5B]/10 text-[#00AA5B]'
-                        : 'bg-secondary/20 text-text/70'
+                        ? 'text-[#00AA5B]'
+                        : 'text-text/70'
                   "
+                  :value="item.platform"
+                  @change="handleDropdownChange(item, 'platform', $event.target.value)"
                 >
-                  {{ item.platform }}
-                </span>
+                  <option v-for="opt in platformOptions" :key="opt" :value="opt" class="bg-background text-text">{{ opt }}</option>
+                </select>
               </td>
               <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
                 <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Nama Toko</span>
-                <span class="font-bold text-text">{{ item.name }}</span>
+                <span
+                  class="font-medium text-text outline-none focus:ring-2 focus:ring-primary focus:bg-background/80 px-1 -mx-1 rounded inline-block min-w-[50px]"
+                  contenteditable="true"
+                  @blur="handleCellBlur($event, item, 'name', validateChannelName)"
+                  @keydown.enter.prevent="$event.target.blur()"
+                >{{ item.name }}</span>
               </td>
               <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
                 <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Keterangan</span>
-                <span class="text-text/60 truncate max-w-xs">{{ item.description || '-' }}</span>
+                <span
+                  class="text-text/60 truncate max-w-xs outline-none focus:ring-2 focus:ring-primary focus:bg-background/80 px-1 -mx-1 rounded inline-block min-w-[50px]"
+                  contenteditable="true"
+                  @blur="handleCellBlur($event, item, 'description')"
+                  @keydown.enter.prevent="$event.target.blur()"
+                >{{ item.description || '' }}</span>
               </td>
               <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4 text-center'">
                 <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Status</span>
-                <span v-if="item.is_active" class="px-2 py-1 bg-success/10 text-success text-xs font-bold rounded-lg"
-                  >Aktif</span
+                <select
+                  class="bg-transparent outline-none focus:ring-2 focus:ring-primary focus:bg-background/80 px-1 -mx-1 rounded text-xs font-bold cursor-pointer"
+                  :class="item.is_active === 1 || item.is_active === true ? 'text-success' : 'text-danger'"
+                  :value="item.is_active === 1 || item.is_active === true"
+                  @change="handleDropdownChange(item, 'is_active', $event.target.value === 'true')"
                 >
-                <span v-else class="px-2 py-1 bg-danger/10 text-danger text-xs font-bold rounded-lg">Nonaktif</span>
-              </td>
-              <td class="bg-background group-hover:bg-secondary/5 transition-colors" :class="isMobile ? 'flex justify-end items-center pt-4' : 'px-6 py-4 text-center'">
-                <div
-                  class="flex items-center justify-center gap-2 transition-all duration-200"
-                  :class="isMobile ? 'opacity-100' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100'"
-                >
-                  <button
-                    @click="openEditModal(item)"
-                    class="flex items-center justify-center rounded-lg hover:bg-primary/10 transition-colors"
-                    :class="isMobile ? 'px-3 py-1.5 bg-primary/10 text-primary font-semibold text-xs gap-2' : 'w-8 h-8 text-text/40 hover:text-primary'"
-                    title="Edit Saluran"
-                  >
-                    <font-awesome-icon icon="fa-solid fa-pen-to-square" />
-                    <span v-if="isMobile">Edit</span>
-                  </button>
-                  <button
-                    @click="confirmDelete(item)"
-                    class="flex items-center justify-center rounded-lg hover:bg-danger/10 transition-colors"
-                    :class="isMobile ? 'px-3 py-1.5 bg-danger/10 text-danger font-semibold text-xs gap-2' : 'w-8 h-8 text-text/40 hover:text-danger'"
-                    title="Hapus Saluran"
-                  >
-                    <font-awesome-icon icon="fa-solid fa-trash" />
-                    <span v-if="isMobile">Hapus</span>
-                  </button>
-                </div>
+                  <option :value="true" class="bg-background text-text">Aktif</option>
+                  <option :value="false" class="bg-background text-text">Nonaktif</option>
+                </select>
               </td>
             </tr>
           </TransitionGroup>
@@ -278,6 +300,19 @@ const confirmDelete = async item => {
         />
       </div>
     </div>
+
+    <!-- CONTEXT MENU -->
+    <BaseContextMenu
+      :visible="contextMenu.visible"
+      :x="contextMenu.x"
+      :y="contextMenu.y"
+      :options="[
+        { label: 'Edit Lengkap', action: 'edit', icon: 'fa-solid fa-pen-to-square' },
+        { label: 'Hapus Saluran', action: 'delete', icon: 'fa-solid fa-trash', danger: true }
+      ]"
+      @close="contextMenu.visible = false"
+      @action="handleContextAction"
+    />
 
     <!-- Form Modal -->
     <Teleport to="body">

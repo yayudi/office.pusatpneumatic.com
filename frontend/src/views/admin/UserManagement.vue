@@ -5,7 +5,7 @@ import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 import { ref, onMounted, computed, watch } from 'vue'
 import { useMagicKeys } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
-import { fetchRoles, fetchShifts, createUser, deleteUser } from '@/api/helpers/admin.js'
+import { fetchRoles, fetchShifts, createUser, deleteUser, updateUser } from '@/api/helpers/admin.js'
 import { swalConfirm } from '@/composables/useSweetAlert'
 import { useMasterDataStore } from '@/stores/masterData'
 
@@ -17,6 +17,9 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 import TriStateSelect from '@/components/ui/TriStateSelect.vue'
 import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
+import BaseContextMenu from '@/components/ui/BaseContextMenu.vue'
+import { useContextMenu } from '@/composables/useContextMenu.js'
+import { useInstantInlineEdit } from '@/composables/useInstantInlineEdit.js'
 import { useMobile } from '@/composables/useMobile.js'
 
 const { isMobile } = useMobile()
@@ -146,6 +149,31 @@ function openLocationModal(user) {
 function openEditModal(user) {
   selectedUser.value = user
   isEditModalOpen.value = true
+}
+
+// --- INLINE EDIT HANDLERS ---
+const { contextMenu, openContextMenu } = useContextMenu()
+const { handleCellBlur, handleDropdownChange } = useInstantInlineEdit(
+  async (id, payload) => {
+    await updateUser(id, payload)
+  },
+  (user) => ({
+    username: user.username,
+    nickname: user.nickname,
+    role_id: user.role_id,
+    shift_id: user.shift_id
+  }),
+  () => fetchData() // Callback onSuccess untuk menyegarkan tabel (mendapatkan role_name/shift_name baru)
+)
+
+const handleContextAction = (action) => {
+  if (action === 'delete') {
+    handleDeleteUser(contextMenu.value.row.id)
+  } else if (action === 'edit') {
+    openEditModal(contextMenu.value.row)
+  } else if (action === 'location') {
+    openLocationModal(contextMenu.value.row)
+  }
 }
 
 // --- LOCAL HOTKEYS ---
@@ -297,6 +325,7 @@ onMounted(fetchData)
                 ? 'block mb-4 p-4 bg-background rounded-xl border border-secondary/20 shadow-sm mx-4 mt-4'
                 : 'border-b border-secondary/20 hover:bg-secondary/30'
             "
+            @contextmenu.prevent.stop="openContextMenu($event, user)"
           >
             <td
               class="font-medium bg-secondary/20 group-hover:bg-secondary/30 transition-colors"
@@ -314,60 +343,79 @@ onMounted(fetchData)
               :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'"
             >
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Nickname</span>
-              <span>{{ user.nickname || '-' }}</span>
+              <span
+                class="font-medium text-text outline-none focus:ring-2 focus:ring-primary focus:bg-background/80 px-1 -mx-1 rounded inline-block min-w-[50px]"
+                contenteditable="true"
+                @blur="handleCellBlur($event, user, 'nickname')"
+                @keydown.enter.prevent="$event.target.blur()"
+              >{{ user.nickname || '' }}</span>
             </td>
             <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'">
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Role</span>
-              <span class="px-2 py-1 rounded text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-                {{ user.role_name }}
-              </span>
+              <select
+                class="bg-primary/10 text-primary border border-primary/20 px-2 py-1 rounded text-xs font-semibold outline-none focus:ring-2 focus:ring-primary focus:bg-background/80 cursor-pointer"
+                :value="user.role_id || ''"
+                @change="handleDropdownChange(user, 'role_id', $event.target.value === '' ? null : Number($event.target.value))"
+              >
+                <option v-for="role in allRoles" :key="role.id" :value="role.id" class="bg-background text-text">{{ role.name }}</option>
+              </select>
             </td>
             <td
               class="text-text/80 text-sm"
               :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-6 py-4'"
             >
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Shift</span>
-              <span v-if="user.shift_name" class="flex items-center gap-1.5">
+              <div class="flex items-center gap-1.5 w-full md:w-auto">
                 <font-awesome-icon icon="fa-solid fa-clock" class="text-text/40 text-xs" />
-                {{ user.shift_name }}
-              </span>
-              <span v-else class="text-text/40 italic">Default</span>
+                <select
+                  class="bg-transparent outline-none focus:ring-2 focus:ring-primary focus:bg-background/80 px-1 -mx-1 rounded text-xs cursor-pointer truncate max-w-[150px]"
+                  :value="user.shift_id || ''"
+                  @change="handleDropdownChange(user, 'shift_id', $event.target.value === '' ? null : Number($event.target.value))"
+                >
+                  <option value="" class="bg-background text-text">Default (Regular Office)</option>
+                  <option v-for="shift in allShifts" :key="shift.id" :value="shift.id" class="bg-background text-text">
+                    {{ shift.name }} ({{ shift.start_time?.slice(0, 5) }} - {{ shift.end_time?.slice(0, 5) }})
+                  </option>
+                </select>
+              </div>
             </td>
             <td
-              class="space-x-2 bg-secondary/20 transition-colors"
+              class="bg-secondary/20 transition-colors"
               :class="
                 isMobile
                   ? 'flex justify-end items-center pt-4'
-                  : 'text-center px-6 py-4 sticky right-0 z-20 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]'
+                  : 'px-6 py-4 sticky right-0 z-20 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.05)]'
               "
             >
-              <button
-                @click="openEditModal(user)"
-                class="text-primary hover:text-primary/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105"
-              >
-                <font-awesome-icon icon="fa-solid fa-edit" />
-                <span>Edit</span>
-              </button>
-              <button
-                @click="openLocationModal(user)"
-                class="text-accent hover:text-accent/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105"
-              >
-                <font-awesome-icon icon="fa-solid fa-map-marker-alt" />
-                <span>Lokasi</span>
-              </button>
-              <button
-                @click="handleDeleteUser(user.id)"
-                class="text-danger hover:text-danger/80 text-xs font-semibold inline-flex items-center gap-1 transition-transform hover:scale-105"
-              >
-                <font-awesome-icon icon="fa-solid fa-trash" />
-                <span>Hapus</span>
-              </button>
+              <div class="flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                <button
+                  @click.stop="openContextMenu($event, user)"
+                  class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-primary/10 text-text/40 hover:text-primary transition-colors"
+                  title="Opsi Lanjutan"
+                >
+                  <font-awesome-icon icon="fa-solid fa-ellipsis-vertical" />
+                </button>
+              </div>
             </td>
           </tr>
         </TransitionGroup>
       </table>
     </div>
   </div>
+
+  <!-- CONTEXT MENU -->
+  <BaseContextMenu
+    :visible="contextMenu.visible"
+    :x="contextMenu.x"
+    :y="contextMenu.y"
+    :options="[
+      { label: 'Edit Lengkap', action: 'edit', icon: 'fa-solid fa-edit' },
+      { label: 'Lokasi', action: 'location', icon: 'fa-solid fa-map-marker-alt' },
+      { label: 'Hapus Pengguna', action: 'delete', icon: 'fa-solid fa-trash', danger: true }
+    ]"
+    @close="contextMenu.visible = false"
+    @action="handleContextAction"
+  />
 
   <!-- Semua Modal yang Digunakan di Halaman Ini -->
   <UserLocationModal

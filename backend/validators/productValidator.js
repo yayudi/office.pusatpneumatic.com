@@ -14,9 +14,20 @@ export const productSchema = z.object({
   length: z.coerce.number().optional().default(0),
   width: z.coerce.number().optional().default(0),
   height: z.coerce.number().optional().default(0),
-  is_package: z.preprocess((val) => val === "true" || val === true, z.boolean().optional()),
-  is_active: z.preprocess((val) => val === "true" || val === true, z.boolean().optional()),
+  is_package: z.preprocess((val) => val === "true" || val === true || val === 1 || val === "1", z.boolean().optional()),
+  is_active: z.preprocess((val) => val === "true" || val === true || val === 1 || val === "1", z.boolean().optional()),
   components: z.preprocess((val) => {
+    if (val === undefined || val === null) return undefined;
+    if (typeof val === "string") {
+      try {
+        return JSON.parse(val);
+      } catch {
+        return [];
+      }
+    }
+    return val;
+  }, z.array(z.any()).optional()),
+  mediaIds: z.preprocess((val) => {
     if (typeof val === "string") {
       try {
         return JSON.parse(val);
@@ -25,10 +36,10 @@ export const productSchema = z.object({
       }
     }
     return val || [];
-  }, z.array(z.any()).optional()),
+  }, z.array(z.number()).optional()),
 }).refine((data) => {
-  // Jika ini paket, komponen tidak boleh kosong
-  if (data.is_package && (!data.components || data.components.length === 0)) {
+  // Jika ini paket, komponen tidak boleh kosong (hanya cek jika components dikirim)
+  if (data.is_package && data.components !== undefined && data.components.length === 0) {
     return false;
   }
   return true;

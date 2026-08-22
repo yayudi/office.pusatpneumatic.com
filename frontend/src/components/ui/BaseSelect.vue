@@ -59,6 +59,10 @@ const props = defineProps({
   placeholderValues: {
     type: Array,
     default: () => [null, '', 'all']
+  },
+  autoOpen: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -99,8 +103,8 @@ const displayValue = computed(() => {
   }
   if (props.emitValue) {
     const matched = props.options.find(opt => {
-      if (typeof opt === 'object') return opt[props.trackBy] === props.modelValue
-      return opt === props.modelValue
+      if (typeof opt === 'object') return opt[props.trackBy] == props.modelValue
+      return opt == props.modelValue
     })
     if (matched && typeof matched === 'object') return matched[props.label]
     if (matched) return matched
@@ -232,10 +236,10 @@ function findIndex(array, val) {
   return array.findIndex(item => {
     if (typeof item === 'object' && typeof val === 'object' && props.trackBy) {
       if (item[props.trackBy] !== undefined) {
-        return item[props.trackBy] === val[props.trackBy]
+        return item[props.trackBy] == val[props.trackBy]
       }
     }
-    return item === val
+    return item == val
   })
 }
 
@@ -247,10 +251,10 @@ function isSelected(option) {
   if (props.modelValue == null || props.modelValue === '') return false
   if (typeof props.modelValue === 'object' && typeof val === 'object' && props.trackBy) {
     if (props.modelValue[props.trackBy] !== undefined) {
-      return props.modelValue[props.trackBy] === val[props.trackBy]
+      return props.modelValue[props.trackBy] == val[props.trackBy]
     }
   }
-  return props.modelValue === val
+  return props.modelValue == val
 }
 
 function selectAll() {
@@ -295,6 +299,16 @@ onMounted(() => {
   document.addEventListener('click', handleClickOutside)
 })
 
+// --- LIFECYCLE ---
+onMounted(() => {
+  if (props.autoOpen) {
+    // slight delay to ensure teleport target is ready if needed
+    setTimeout(() => {
+      open()
+    }, 10)
+  }
+})
+
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
@@ -330,7 +344,7 @@ onUnmounted(() => {
             typeof item === 'object'
               ? item[label]
               : props.emitValue
-                ? options.find(o => (typeof o === 'object' ? o[trackBy] === item : o === item))?.[label] || item
+                ? options.find(o => (typeof o === 'object' ? o[trackBy] == item : o == item))?.[label] || item
                 : item
           }}</span>
           <span @click="e => removeTag(item, e)" class="cursor-pointer hover:text-primary/70 font-bold">&times;</span>

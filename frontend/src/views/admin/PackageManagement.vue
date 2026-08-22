@@ -13,21 +13,36 @@ import PackageBatchEditModal from '@/components/products/PackageBatchEditModal.v
 import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
+import { useInlineSave } from '@/composables/useInlineSave.js'
 import { useDownloadStore } from '@/stores/downloadStore.js'
 import { useMobile } from '@/composables/useMobile.js'
-import { usePagination } from '@/composables/usePagination.js'
+import { useInfiniteQuery, keepPreviousData } from '@tanstack/vue-query'
 
 const { toast } = useToast()
 const { isMobile } = useMobile()
 
 // --- STATE ---
 const products = ref([])
-const loading = ref(false)
 const searchQuery = ref('')
 const searchBy = ref('name')
 const filterStatus = ref('active')
 const sortBy = ref('name')
 const sortOrder = ref('asc')
+
+const packageTableRef = ref(null)
+const tableKey = ref(0)
+const { 
+  dirtyProducts, 
+  isSavingInline, 
+  hasDirtyProducts, 
+  handleInlineEditChange, 
+  handleCancelInlineEdit, 
+  handleBulkSaveInline 
+} = useInlineSave({ 
+  fetchProducts: () => fetchProducts(), 
+  tableKeyRef: tableKey,
+  afterSaveAction: () => packageTableRef.value?.clearComponentCache()
+})
 
 const statusOptions = [
   { value: 'active', label: 'Aktif' },
@@ -46,65 +61,75 @@ const isProcessingBulk = ref(false)
 
 // Pagination State
 const totalProducts = ref(0)
+const currentLimit = ref(50)
+
+const searchParams = computed(() => ({
+  limit: currentLimit.value,
+  search: searchQuery.value,
+  searchBy: searchBy.value,
+  sortBy: sortBy.value,
+  sortOrder: sortOrder.value,
+  is_package: true, // HARDCODED: Hanya Paket
+  packageOnly: true,
+  status: filterStatus.value,
+  skipComponents: true // Lazy-load komponen saat klik expand
+}))
+
 const {
-  currentPage,
-  currentLimit,
-  meta: pagination,
-  changePage: handleChangePage,
-  changePageSize: handleUpdateLimit
-} = usePagination({
-  totalItems: totalProducts,
-  storageKey: 'packagePageSize',
-  initialLimit: 20
+  data: productsData,
+  isLoading: loading,
+  isFetchingNextPage,
+  fetchNextPage,
+  hasNextPage,
+  refetch: fetchProducts
+} = useInfiniteQuery({
+  queryKey: ['packages', searchParams],
+  queryFn: async ({ pageParam = 1 }) => {
+    const response = await axios.get('/products', {
+      params: { ...searchParams.value, page: pageParam }
+    })
+    return response.data
+  },
+  getNextPageParam: (lastPage, allPages) => {
+    const total = lastPage.total || 0
+    const limit = currentLimit.value || 50
+    const last = Math.ceil(total / limit) || 1
+    const current = allPages.length
+    return current < last ? current + 1 : undefined
+  },
+  placeholderData: keepPreviousData,
+  staleTime: 60 * 1000
 })
 
-const selectionCount = computed(() => selectedIds.value.size)
-const downloadStore = useDownloadStore()
-
-// Export State
-const isExporting = ref(false)
-
-// --- API ACTIONS ---
-
-const fetchProducts = async (silent = false) => {
-  if (!silent) loading.value = true
-  try {
-    const params = {
-      page: currentPage.value,
-      limit: currentLimit.value,
-      search: searchQuery.value,
-      searchBy: searchBy.value,
-      sortBy: sortBy.value,
-      sortOrder: sortOrder.value,
-      is_package: true, // HARDCODED: Hanya Paket
-      packageOnly: true, // Explicit flag for backend if needed
-      status: filterStatus.value
-    }
-    const response = await axios.get('/products', { params })
-    const resData = response.data
-    const items = resData.data || resData.products || []
-
-    if (Array.isArray(items)) {
-      products.value = items
-      totalProducts.value = resData.meta?.total || resData.total || 0
+watch(
+  productsData,
+  resData => {
+    if (resData && resData.pages) {
+      products.value = resData.pages.flatMap(page => page.data || page.products || [])
+      const lastPage = resData.pages[resData.pages.length - 1]
+      totalProducts.value = lastPage.meta?.total || lastPage.total || 0
     } else {
       products.value = []
       totalProducts.value = 0
     }
-  } catch (err) {
-    console.error(err)
-  } finally {
-    loading.value = false
+  },
+  { immediate: true }
+)
+
+const handleFetchMore = () => {
+  if (hasNextPage.value && !isFetchingNextPage.value) {
+    fetchNextPage()
   }
 }
+
+const selectionCount = computed(() => selectedIds.value.size)
+const downloadStore = useDownloadStore()
+const isExporting = ref(false)
 
 // --- HANDLERS ---
 
 // Pagination & Sorting
-// Trigger fetch when pagination changes via watchers or wrap handlers
-watch([currentPage, currentLimit], () => {
-  fetchProducts()
-})
+
 const handleSort = field => {
   if (sortBy.value === field) sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
   else {
@@ -116,7 +141,6 @@ const handleSort = field => {
 
 // Search & Filter (Debounce)
 const handleFilterChange = debounce(() => {
-  pagination.page = 1
   selectedIds.value.clear()
   fetchProducts()
 }, 300)
@@ -171,6 +195,11 @@ const openEditModal = p => {
   selectedProduct.value = p
   showProductForm.value = true
 }
+const openDuplicateModal = p => {
+  productFormMode.value = 'duplicate'
+  selectedProduct.value = p
+  showProductForm.value = true
+}
 
 // Bulk Actions
 const performBulkAction = async actionType => {
@@ -192,9 +221,16 @@ const performBulkAction = async actionType => {
     toast(`Berhasil memproses ${ids.length} paket.`, 'success')
     selectedIds.value.clear()
     fetchProducts()
-  } catch (e) { console.error(e) } finally {
+  } catch (e) {
+    console.error(e)
+  } finally {
     isProcessingBulk.value = false
   }
+}
+
+// Inline Edit logic is handled by useInlineSave
+const executeBulkSaveInline = () => {
+  handleBulkSaveInline(products.value)
 }
 
 // Exports / Imports (Package Phase 2)
@@ -238,6 +274,7 @@ const handleImport = async formData => {
   }
 }
 const handleProductSaved = () => {
+  packageTableRef.value?.clearComponentCache()
   fetchProducts()
 }
 
@@ -246,7 +283,10 @@ onMounted(() => {
   fetchProducts()
 })
 
-useFirebaseSync('MASTER_DATA', 'REFRESH_PRODUCTS', () => fetchProducts(true))
+useFirebaseSync('MASTER_DATA', 'REFRESH_PRODUCTS', () => {
+  packageTableRef.value?.clearComponentCache()
+  fetchProducts(true)
+})
 
 // --- LOCAL HOTKEYS ---
 const { Alt_N, Alt_A, Alt_R, Slash } = useMagicKeys()
@@ -287,6 +327,28 @@ watch(Slash, pressed => {
         <WmsActionHeader title="Manajemen Paket" icon="fa-solid fa-boxes-stacked">
           <template #actions>
             <div class="flex flex-wrap gap-3">
+              <button
+                v-if="hasDirtyProducts"
+                @click="handleCancelInlineEdit"
+                :disabled="isSavingInline"
+                class="px-5 py-2.5 bg-danger hover:bg-danger/90 text-secondary rounded-xl shadow-md font-medium flex items-center gap-2 transition-all disabled:opacity-50"
+              >
+                <font-awesome-icon icon="fa-solid fa-times" />
+                <span class="hidden sm:inline">Batal</span>
+              </button>
+
+              <!-- Tombol Simpan Perubahan (Muncul jika ada dirty) -->
+              <button
+                v-if="dirtyProducts.size > 0"
+                @click="executeBulkSaveInline"
+                class="bg-indigo-600/90 text-white px-4 py-2 rounded-lg font-medium shadow transition hover:bg-indigo-700 disabled:opacity-50"
+                :disabled="isSavingInline"
+              >
+                <font-awesome-icon v-if="isSavingInline" icon="fa-solid fa-spinner" spin class="mr-2" />
+                <font-awesome-icon v-else icon="fa-solid fa-save" class="mr-2" />
+                Simpan Semua ({{ dirtyProducts.size }})
+              </button>
+
               <!-- Tombol Batch Edit -->
               <button
                 @click="showBatchEditModal = true"
@@ -344,18 +406,25 @@ watch(Slash, pressed => {
 
       <!-- TABLE COMPONENT -->
       <PackageTable
+        ref="packageTableRef"
+        :key="tableKey"
+        :dirtyProducts="dirtyProducts"
+        :isSaving="isSavingInline"
         :products="products"
         :loading="loading"
-        :pagination="pagination"
         :selectedIds="selectedIds"
         :sortBy="sortBy"
         :sortOrder="sortOrder"
+        :isFetchingNextPage="isFetchingNextPage"
+        :hasNextPage="hasNextPage"
+        @cell-edit="handleInlineEditChange"
         @sort="handleSort"
-        @changePage="handleChangePage"
-        @update:limit="handleUpdateLimit"
+        @fetch-more="handleFetchMore"
         @toggleSelection="toggleSelection"
         @toggleSelectAll="toggleSelectAll"
         @edit="openEditModal"
+        @duplicate="openDuplicateModal"
+        @view-history="openEditModal"
         @restore="handleRestore"
         @delete="handleDelete"
       />
