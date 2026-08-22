@@ -44,6 +44,10 @@ const dismissHotkeyBanner = () => {
           <kbd class="px-1.5 py-0.5 bg-background border border-secondary/50 rounded-md shadow-sm">Alt</kbd>
           + <kbd class="px-1.5 py-0.5 bg-background border border-secondary/50 rounded-md shadow-sm">H</kbd>untuk panduan sistem.
         </p>
+        <p class="flex items-center gap-2 mt-0.5">
+          <kbd class="px-1.5 py-0.5 bg-background border border-secondary/50 rounded-md shadow-sm">Alt</kbd>
+          + <kbd class="px-1.5 py-0.5 bg-background border border-secondary/50 rounded-md shadow-sm">S</kbd>untuk submit/simpan form.
+        </p>
       </div>
       <div class="flex-shrink-0">
         <button @click="dismissHotkeyBanner"

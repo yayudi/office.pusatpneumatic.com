@@ -7,13 +7,16 @@ const props = defineProps({
 import { useToast } from '@/composables/useToast.js'
 const { toast } = useToast()
 
-const emit = defineEmits(['remove-item'])
+const emit = defineEmits(['remove-item', 'duplicate-item'])
 
 import { useMobile } from '@/composables/useMobile.js'
 const { isMobile } = useMobile()
 
-function emitRemove(sku) {
-  emit('remove-item', sku)
+function emitRemove(index) {
+  emit('remove-item', index)
+}
+function emitDuplicate(index) {
+  emit('duplicate-item', index)
 }
 
 function validateQuantity(item) {
@@ -63,8 +66,8 @@ function validateQuantity(item) {
         </thead>
         <tbody :class="isMobile ? 'block' : 'divide-y divide-secondary/20'">
           <tr
-            v-for="item in items"
-            :key="item.sku"
+            v-for="(item, index) in items"
+            :key="item._id || item.sku + index"
             class="transition-colors relative"
             :class="
               isMobile
@@ -115,17 +118,27 @@ function validateQuantity(item) {
               </div>
             </td>
             <td :class="isMobile ? 'pt-3 mt-2 border-t border-secondary/10 block' : 'p-2 text-center'">
-              <button
-                @click="emitRemove(item.sku)"
-                :class="
-                  isMobile
-                    ? 'text-danger hover:bg-danger/10 flex items-center justify-center gap-2 w-full py-2 bg-danger/5 rounded-lg transition-colors'
-                    : 'text-danger hover:text-danger/80'
-                "
-              >
-                <font-awesome-icon icon="fa-solid fa-trash" />
-                <span v-if="isMobile" class="text-sm font-semibold">Hapus Item</span>
-              </button>
+              <div class="flex items-center justify-center gap-2">
+                <button
+                  @click="emitDuplicate(index)"
+                  v-if="!isMobile"
+                  class="text-primary hover:text-primary/80 px-2"
+                  title="Duplikasi"
+                >
+                  <font-awesome-icon icon="fa-solid fa-copy" />
+                </button>
+                <button
+                  @click="emitRemove(index)"
+                  :class="
+                    isMobile
+                      ? 'text-danger hover:bg-danger/10 flex items-center justify-center gap-2 w-full py-2 bg-danger/5 rounded-lg transition-colors'
+                      : 'text-danger hover:text-danger/80 px-2'
+                  "
+                >
+                  <font-awesome-icon icon="fa-solid fa-trash" />
+                  <span v-if="isMobile" class="text-sm font-semibold">Hapus Item</span>
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>

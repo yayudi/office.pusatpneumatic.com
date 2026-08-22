@@ -21,6 +21,8 @@ const localHotkeys = [
   { keys: ['Alt', 'N'], desc: 'Tambah Data Baru' },
   { keys: ['Alt', 'R'], desc: 'Refresh Tabel / Data' },
   { keys: ['Alt', 'A'], desc: 'Pilih Semua (Bulk Action)' },
+  { keys: ['Ctrl', 'D'], desc: 'Gandakan (Duplicate) Baris' },
+  { keys: ['Shift', 'Del'], desc: 'Hapus Baris' },
   { keys: ['Esc'], desc: 'Tutup Modal / Batal' },
 ]
 

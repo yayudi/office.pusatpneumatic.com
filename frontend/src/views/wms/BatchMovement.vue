@@ -12,6 +12,7 @@ import BatchMovementHeader from '@/components/wms/transfer/BatchMovementHeader.v
 import ProductSearchAddForm from '@/components/wms/transfer/ProductSearchAddForm.vue'
 import BatchItemList from '@/components/wms/transfer/BatchItemList.vue'
 import MultiLocationTransferTab from '@/components/wms/transfer/MultiLocationTransferTab.vue'
+import SpreadsheetTransferTab from '@/components/wms/transfer/SpreadsheetTransferTab.vue'
 import BatchInboundModal from '@/components/stock/BatchInboundModal.vue'
 
 const masterData = useMasterDataStore()
@@ -26,6 +27,7 @@ const allLocations = ref([])
 const isLoading = ref(false)
 const activeTab = ref('TRANSFER') // Tab default
 const batchList = ref([])
+const spreadsheetTabRef = ref(null)
 const isBatchInboundModalOpen = ref(false)
 const isStickerModalOpen = ref(false)
 const detailedTransferTabRef = ref(null)
@@ -174,6 +176,7 @@ function handleAddProduct({ product, quantity }) {
     existing.quantity += quantity
   } else {
     batchList.value.push({
+      _id: Date.now() + Math.random(),
       sku: product.sku,
       name: product.name,
       current_stock: product.current_stock ?? 0,
@@ -192,8 +195,15 @@ async function copyFromSku() {
   )
 }
 
-function removeFromBatch(sku) {
-  batchList.value = batchList.value.filter(item => item.sku !== sku)
+function removeFromBatch(index) {
+  batchList.value.splice(index, 1)
+}
+
+function duplicateFromBatch(index) {
+  const item = batchList.value[index]
+  if (item) {
+    batchList.value.splice(index + 1, 0, { ...item, _id: Date.now() + Math.random() })
+  }
 }
 
 async function submitBatch() {
@@ -223,6 +233,34 @@ async function submitBatch() {
     }
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
+  } finally {
+    isLoading.value = false
+  }
+}
+
+async function handleSpreadsheetSubmit(validRows) {
+  isLoading.value = true
+  try {
+    const payload = {
+      type: 'TRANSFER_MULTI',
+      notes: notes.value,
+      movements: validRows.map(r => ({
+        sku: r.sku,
+        fromLocationId: r.fromLocationId,
+        toLocationId: r.toLocationId,
+        quantity: r.quantity
+      }))
+    }
+    const response = await processBatchMovement(payload)
+    if (response.success) {
+      toast('Spreadsheet transfer berhasil', 'success')
+      notes.value = ''
+      if (spreadsheetTabRef.value) {
+        spreadsheetTabRef.value.resetRows()
+      }
+    }
+  } catch (error) {
+    console.error(error)
   } finally {
     isLoading.value = false
   }
@@ -262,6 +300,14 @@ async function submitBatch() {
       :is-loading-locations="isLoading"
     />
 
+    <SpreadsheetTransferTab
+      v-else-if="activeTab === 'SPREADSHEET_TRANSFER'"
+      ref="spreadsheetTabRef"
+      :all-locations="allLocations"
+      :is-loading-locations="isLoading"
+      @submit="handleSpreadsheetSubmit"
+    />
+
     <!-- Panel untuk semua mode 'BATCH' ('TRANSFER', 'INBOUND') -->
     <template v-else>
       <!-- Form Penambahan Item Batch -->
@@ -273,7 +319,7 @@ async function submitBatch() {
       />
 
       <!-- Tabel Daftar Batch -->
-      <BatchItemList :items="batchList" :active-tab="activeTab" @remove-item="removeFromBatch" />
+      <BatchItemList :items="batchList" :active-tab="activeTab" @remove-item="removeFromBatch" @duplicate-item="duplicateFromBatch" />
 
       <!-- Tombol Aksi Final Batch -->
       <div class="flex justify-end pt-6 border-t border-secondary/20 gap-2">

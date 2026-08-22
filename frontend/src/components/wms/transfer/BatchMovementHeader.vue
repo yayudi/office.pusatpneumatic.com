@@ -20,8 +20,9 @@ const toLocation = defineModel('toLocation')
 const notes = defineModel('notes')
 
 const tabs = [
-  { label: 'Batch Transfer', value: 'TRANSFER' },
-  { label: 'Detailed Transfer', value: 'DETAILED_TRANSFER' },
+  { label: 'Single Location', value: 'TRANSFER' },
+  { label: 'Multi Location', value: 'DETAILED_TRANSFER' },
+  { label: 'Spreadsheet Mode', value: 'SPREADSHEET_TRANSFER' },
   { label: 'Inbound', value: 'INBOUND' }
 ]
 
@@ -38,7 +39,7 @@ watch([fromLocation, toLocation], ([newFrom, newTo]) => {
     <!-- Tabs navigation -->
     <BaseTabs :tabs="tabs" v-model:model-value="activeTab" />
     <div
-      v-if="activeTab !== 'DETAILED_TRANSFER'"
+      v-if="activeTab !== 'DETAILED_TRANSFER' && activeTab !== 'SPREADSHEET_TRANSFER'"
       class="my-4 bg-secondary/50 rounded-xl border border-secondary/20 p-4 shadow-sm flex flex-col gap-4 relative z-30"
     >
       <div class="grid grid-cols-1 md:grid-cols-12 gap-6 w-full">

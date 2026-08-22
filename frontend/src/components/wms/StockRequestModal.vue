@@ -104,6 +104,7 @@ function handleAddProduct({ product, quantity }) {
     existing.quantity += quantity
   } else {
     batchList.value.push({
+      _id: Date.now() + Math.random(),
       productId: product.id,
       sku: product.sku,
       name: product.name,
@@ -112,8 +113,15 @@ function handleAddProduct({ product, quantity }) {
   }
 }
 
-function removeFromBatch(sku) {
-  batchList.value = batchList.value.filter(item => item.sku !== sku)
+function removeFromBatch(index) {
+  batchList.value.splice(index, 1)
+}
+
+function duplicateFromBatch(index) {
+  const item = batchList.value[index]
+  if (item) {
+    batchList.value.splice(index + 1, 0, { ...item, _id: Date.now() + Math.random() })
+  }
 }
 
 async function submitRequest() {
@@ -249,7 +257,7 @@ function closeModal() {
               @add-product="handleAddProduct"
             />
 
-            <BatchItemList class="mt-3" :items="batchList" :active-tab="type" @remove-item="removeFromBatch" />
+            <BatchItemList class="mt-3" :items="batchList" :active-tab="type" @remove-item="removeFromBatch" @duplicate-item="duplicateFromBatch" />
           </div>
         </div>
 

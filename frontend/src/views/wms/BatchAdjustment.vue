@@ -166,6 +166,7 @@ async function handleAddProduct({ product, quantity }) {
     existing.quantity += quantity
   } else {
     batchList.value.push({
+      _id: Date.now() + Math.random(),
       sku: product.sku,
       name: product.name,
       current_stock: product.current_stock ?? 0,
@@ -174,8 +175,15 @@ async function handleAddProduct({ product, quantity }) {
   }
 }
 
-function removeFromBatch(sku) {
-  batchList.value = batchList.value.filter(item => item.sku !== sku)
+function removeFromBatch(index) {
+  batchList.value.splice(index, 1)
+}
+
+function duplicateFromBatch(index) {
+  const item = batchList.value[index]
+  if (item) {
+    batchList.value.splice(index + 1, 0, { ...item, _id: Date.now() + Math.random() })
+  }
 }
 
 async function submitBatch() {
@@ -281,7 +289,7 @@ watch(Alt_S, pressed => {
         @add-product="handleAddProduct"
       />
 
-      <BatchItemList :items="batchList" active-tab="ADJUSTMENT" @remove-item="removeFromBatch" />
+      <BatchItemList :items="batchList" active-tab="ADJUSTMENT" @remove-item="removeFromBatch" @duplicate-item="duplicateFromBatch" />
 
       <div class="flex justify-end pt-6 border-t border-secondary/20">
         <button
