@@ -2,15 +2,16 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import api from '@/api/axios.js'
+import { triggerPwaUpdate, isPwaUpdateAvailable } from '@/composables/usePwaUpdate.js'
 
 export const useAuthStore = defineStore('auth', () => {
-  const token = ref(localStorage.getItem('token'))
   const user = ref(JSON.parse(localStorage.getItem('authUser')))
   const isLoadingUser = ref(false)
 
-  function setToken(newToken) {
-    localStorage.setItem('token', newToken)
-    token.value = newToken
+  function setToken() {
+    if (isPwaUpdateAvailable && triggerPwaUpdate) {
+      triggerPwaUpdate(true)
+    }
   }
 
   function setUser(newUser) {
@@ -23,19 +24,18 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function clearToken() {
-    localStorage.removeItem('token')
     localStorage.removeItem('authUser')
-    token.value = null
     user.value = null
   }
 
   function logout() {
     clearToken()
-    // Jika perlu redirect atau logika lain, bisa ditambahkan di sini.
-    // Karena ini dipanggil dari Axios saat token expired, cukup clearToken saja.
+    if (isPwaUpdateAvailable && triggerPwaUpdate) {
+      triggerPwaUpdate(true)
+    }
   }
 
-  const isAuthenticated = computed(() => !!token.value)
+  const isAuthenticated = computed(() => !!user.value)
   const isAdmin = computed(() => user.value?.role_id === 1)
   const isSales = computed(() => user.value?.role_id === 2)
   const isGudang = computed(() => user.value?.role_id === 3)
@@ -43,24 +43,22 @@ export const useAuthStore = defineStore('auth', () => {
 
   const canViewPrices = computed(() => hasPermission('view-prices'))
 
-  const hasPermission = (permissionName) => {
+  const hasPermission = permissionName => {
     if (isAdmin.value) return true
     if (!user.value || !Array.isArray(user.value.permissions)) return false
     return user.value.permissions.includes(permissionName)
   }
 
   async function fetchUser() {
-    if (token.value) {
-      isLoadingUser.value = true
-      try {
-        const response = await api.get('/user/profile')
-        setUser(response.data.user)
-      } catch (error) {
-    console.error(error) // Auto-added to prevent unused var
-        clearToken(error)
-      } finally {
-        isLoadingUser.value = false
-      }
+    isLoadingUser.value = true
+    try {
+      const response = await api.get('/user/profile')
+      setUser(response.data.user)
+    } catch (error) {
+      console.error(error)
+      clearToken(error)
+    } finally {
+      isLoadingUser.value = false
     }
   }
 
@@ -72,7 +70,6 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return {
-    token,
     user,
     isLoadingUser,
     setToken,
@@ -87,6 +84,6 @@ export const useAuthStore = defineStore('auth', () => {
     fetchUser,
     canViewPrices,
     updateUserNickname,
-    hasPermission,
+    hasPermission
   }
 })

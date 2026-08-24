@@ -1,16 +1,11 @@
 <template>
   <div class="p-6 max-w-2xl mx-auto">
     <div class="mb-6">
-      <button
-        @click="router.back()"
-        class="text-muted hover:text-text mb-4 inline-flex items-center"
-      >
+      <button @click="router.back()" class="text-muted hover:text-text mb-4 inline-flex items-center">
         <font-awesome-icon icon="fa-solid fa-arrow-left" class="mr-2" /> Kembali
       </button>
       <h1 class="text-2xl font-bold text-text">Preferensi Notifikasi</h1>
-      <p class="text-muted mt-1 text-sm">
-        Atur notifikasi mana saja yang ingin Anda terima melalui aplikasi web.
-      </p>
+      <p class="text-muted mt-1 text-sm">Atur notifikasi mana saja yang ingin Anda terima melalui aplikasi web.</p>
     </div>
 
     <div class="bg-background rounded-lg border border-secondary shadow-sm overflow-hidden">
@@ -72,9 +67,9 @@
 </template>
 
 <script setup>
+import api from '@/api/axios'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import api from '@/api/axios'
 import { useToast } from '@/composables/useToast'
 
 const router = useRouter()
@@ -96,7 +91,7 @@ onMounted(async () => {
   }
 })
 
-const togglePreference = (index) => {
+const togglePreference = index => {
   preferences.value[index].is_enabled = !preferences.value[index].is_enabled
 }
 
@@ -104,7 +99,7 @@ const savePreferences = async () => {
   saving.value = true
   try {
     const response = await api.put('/notifications/preferences', {
-      preferences: preferences.value,
+      preferences: preferences.value
     })
     if (response.data.success) {
       toast('Preferensi disimpan', 'success')
@@ -116,25 +111,25 @@ const savePreferences = async () => {
   }
 }
 
-const getTitle = (type) => {
+const getTitle = type => {
   const titles = {
     WMS: 'Notifikasi WMS (Gudang)',
     HRIS: 'Notifikasi HRIS (SDM)',
-    SYSTEM: 'Pembaruan Sistem',
+    SYSTEM: 'Pembaruan Sistem'
   }
   return titles[type] || type
 }
 
-const getDescription = (type) => {
+const getDescription = type => {
   const descs = {
     WMS: 'Peringatan stok menipis, jadwal opname, pesanan masuk, dll.',
     HRIS: 'Permintaan cuti, peringatan absensi, pengumuman HR, dll.',
-    SYSTEM: 'Maintenance server, fitur baru, dan peringatan keamanan.',
+    SYSTEM: 'Maintenance server, fitur baru, dan peringatan keamanan.'
   }
   return descs[type] || ''
 }
 
-const getIconClass = (type) => {
+const getIconClass = type => {
   if (type === 'WMS') return 'fa-box text-accent'
   if (type === 'HRIS') return 'fa-users text-primary'
   return 'fa-server text-muted'

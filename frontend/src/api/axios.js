@@ -3,10 +3,10 @@ import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import { useLoadingStore } from '@/stores/loadingStore'
 
-// Buat instance axios
 const instance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
   timeout: 30000, // Timeout dalam 30 detik untuk shared hosting
+  withCredentials: true, // Untuk HttpOnly cookies
   headers: {
     'Content-Type': 'application/json'
   }
@@ -18,16 +18,9 @@ const instance = axios.create({
  */
 instance.interceptors.request.use(
   config => {
-    // Lebih baik ambil dari store agar reaktif, tapi fallback ke localStorage aman
-    const authStore = useAuthStore()
     const loadingStore = useLoadingStore()
-    const token = authStore.token || localStorage.getItem('token')
 
     loadingStore.startLoading()
-
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`
-    }
 
     // --- AUTO TIMEOUT OVERRIDE ---
     // Jika payload adalah FormData (Upload File) atau response diharapkan Blob (Download File)
@@ -56,7 +49,7 @@ instance.interceptors.response.use(
     return response
   },
   async error => {
-    const authStore = useAuthStore() // Pastikan import store sudah benar di sini
+    const authStore = useAuthStore()
     const loadingStore = useLoadingStore()
     const { toast } = await import('@/composables/useToast.js').then(m => m.useToast())
 
@@ -70,7 +63,9 @@ instance.interceptors.response.use(
       if (status === 401 && !error.config.url.includes('/auth/login')) {
         authStore.logout()
         toast('Sesi Anda telah habis, silakan login kembali.', 'error')
-        window.location.href = '/login'
+        setTimeout(() => {
+          window.location.href = '/login'
+        }, 2000)
       }
       // Tidak Punya Izin (403)
       // -> JANGAN Logout, tapi beri tahu user

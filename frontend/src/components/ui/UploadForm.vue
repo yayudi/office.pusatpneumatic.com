@@ -32,6 +32,7 @@ const fileInputRef = ref(null)
 const files = ref([])
 const isDragging = ref(false)
 const isDryRun = ref(false)
+const userNotes = ref('')
 
 function triggerFileSelect() {
   fileInputRef.value?.click()
@@ -80,6 +81,10 @@ function handleSubmit() {
   // Append Dry Run Flag
   if (props.showDryRun && isDryRun.value) {
     formData.append('dryRun', 'true')
+  }
+
+  if (userNotes.value.trim()) {
+    formData.append('notes', userNotes.value.trim())
   }
 
   emit('submit', formData)
@@ -137,6 +142,17 @@ function handleSubmit() {
           <font-awesome-icon icon="fa-solid fa-xmark" />
         </button>
       </div>
+    </div>
+
+    <!-- Catatan -->
+    <div class="pt-2">
+      <label class="block text-[10px] font-bold uppercase text-text/40 mb-2 tracking-wider">Catatan Tambahan <span class="text-text/40 font-normal">(opsional)</span></label>
+      <textarea
+        v-model="userNotes"
+        rows="2"
+        placeholder="Tulis catatan..."
+        class="w-full px-3 py-2 border border-secondary/30 rounded-lg bg-background text-text text-sm outline-none focus:border-primary transition-colors resize-none placeholder:text-text/30"
+      ></textarea>
     </div>
 
     <!-- Options & Actions -->

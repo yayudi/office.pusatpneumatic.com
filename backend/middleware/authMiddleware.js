@@ -6,7 +6,9 @@ function authenticateToken(req, res, next) {
   let token;
   const authHeader = req.headers["authorization"];
 
-  if (authHeader && authHeader.startsWith("Bearer ")) {
+  if (req.cookies && req.cookies.token) {
+    token = req.cookies.token;
+  } else if (authHeader && authHeader.startsWith("Bearer ")) {
     token = authHeader.split(" ")[1];
   } else if (req.query.token) {
     token = req.query.token;

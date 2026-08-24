@@ -151,15 +151,6 @@
 @tailwind utilities;
 
 /* Style Override */
-
-/* Tooltip Custom */
-.apexcharts-tooltip-series-group {
-  color: hsl(var(--color-background));
-  box-shadow:
-    0 4px 6px -1px hsl(var(--color-secondary) / 0.2),
-    0 2px 4px -2px hsl(var(--color-secondary) / 0.2);
-}
-
 .apexcharts-datalabels .apexcharts-pie-label {
   color: hsl(var(--color-text)) !important;
   font-weight: bold !important;
@@ -178,24 +169,43 @@
   text-shadow: 5px 5px 5px hsl(var(--color-background)) !important;
 }
 
+.apexcharts-xcrosshairs {
+  fill: hsl(var(--color-secondary) / 0.5) !important;
+}
+/* Tooltip Custom */
+.apexcharts-tooltip {
+  color: red !important;
+}
+
+.apexcharts-tooltip .apexcharts-theme-dark,
+.apexcharts-tooltip .apexcharts-theme-light {
+  background: red !important;
+}
+
 .apexcharts-tooltip-text-y-label,
 .apexcharts-tooltip-text-y-value {
   color: hsl(var(--color-text)) !important;
 }
 
-.apexcharts-xcrosshairs {
-  fill: hsl(var(--color-secondary) / 0.5) !important;
+.apexcharts-tooltip-series-group {
+  color: hsl(var(--color-background));
+  box-shadow:
+    0 4px 6px -1px hsl(var(--color-secondary) / 0.2),
+    0 2px 4px -2px hsl(var(--color-secondary) / 0.2);
 }
 
-.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title {
+.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title,
+.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-title {
   background-color: hsl(var(--color-secondary)) !important;
 }
 
-.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-series-group {
+.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-series-group,
+.apexcharts-tooltip.apexcharts-theme-dark .apexcharts-tooltip-series-group {
   background-color: hsl(var(--color-background)) !important;
 }
 
-.apexcharts-tooltip .apexcharts-theme-light .apexcharts-active {
+.apexcharts-tooltip .apexcharts-theme-light .apexcharts-active,
+.apexcharts-tooltip .apexcharts-theme-dark .apexcharts-active {
   background-color: hsl(var(--color-background)) !important;
 }
 

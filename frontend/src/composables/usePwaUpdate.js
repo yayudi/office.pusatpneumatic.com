@@ -1,5 +1,10 @@
 // frontend/src/composables/usePwaUpdate.js
 import { useRegisterSW } from 'virtual:pwa-register/vue'
+import { watch } from 'vue'
+
+// Variabel global untuk diakses dari luar (contoh: auth.js)
+export let triggerPwaUpdate = null
+export let isPwaUpdateAvailable = false
 
 /**
  * Composable for detecting and handling PWA service worker updates.
@@ -9,6 +14,10 @@ import { useRegisterSW } from 'virtual:pwa-register/vue'
  */
 export const usePwaUpdate = () => {
   const { needRefresh, updateServiceWorker } = useRegisterSW({
+    onNeedRefresh() {
+      // Hapus timeout 1 jam, ganti dengan trigger saat login/logout (di auth.js)
+      isPwaUpdateAvailable = true
+    },
     onRegistered(registration) {
       if (registration) {
         // Check for updates periodically (e.g. every 1 hour)
@@ -38,7 +47,16 @@ export const usePwaUpdate = () => {
 
   const dismissUpdate = () => {
     needRefresh.value = false
+    isPwaUpdateAvailable = false
   }
+
+  // Assign ke variabel global agar bisa dipanggil dari store/auth.js
+  triggerPwaUpdate = updateServiceWorker
+  
+  // Update state global setiap kali needRefresh berubah
+  watch(needRefresh, (val) => {
+    isPwaUpdateAvailable = val
+  })
 
   return { needRefresh, updateServiceWorker, dismissUpdate }
 }

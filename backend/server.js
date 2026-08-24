@@ -1,6 +1,7 @@
 // backend\server.js
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import "dotenv/config";
 import path from "path";
 import fs from "fs";
@@ -20,7 +21,12 @@ const app = express();
 // ==================================================================
 // Validasi Kredensial R2 (Fail-Fast)
 // ==================================================================
-if (!process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY || !process.env.R2_ENDPOINT || !process.env.R2_BUCKET_NAME) {
+if (
+  !process.env.R2_ACCESS_KEY_ID ||
+  !process.env.R2_SECRET_ACCESS_KEY ||
+  !process.env.R2_ENDPOINT ||
+  !process.env.R2_BUCKET_NAME
+) {
   Logger.error("FATAL ERROR: Kredensial Cloudflare R2 belum diset di .env", null, "SERVER");
   // process.exit(1); // Jangan exit agar nodemon tidak crash loop, cukup log error
 }
@@ -46,7 +52,7 @@ app.set("trust proxy", true);
 const corsOptions = {
   origin: function (origin, callback) {
     // Selalu izinkan origin apapun.
-    // Ini diperlukan jika whitelist strict (string match) gagal karena protokol http/https
+    // Ini diperlukwan jika whitelist strict (string match) gagal karena protokol http/https
     // atau trailing slash.
     callback(null, true);
   },
@@ -124,6 +130,7 @@ app.use(
 );
 
 // Routing API Utama
+app.use(cookieParser());
 app.use("/api", apiRouter);
 app.use("/", assetsRouter);
 

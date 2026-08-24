@@ -18,6 +18,7 @@ const isLoading = ref(false)
 const loadingMessage = ref('')
 const isDragging = ref(false)
 const isDryRun = ref(false)
+const userNotes = ref('')
 
 const tabs = [
   { label: 'Offline', value: 'Offline' },
@@ -90,6 +91,7 @@ function removeFile(index) {
 function resetFileInput() {
   selectedFiles.value = []
   shopNames.value = []
+  userNotes.value = ''
   if (fileInputRef.value) fileInputRef.value.value = ''
 }
 
@@ -147,6 +149,10 @@ async function triggerUpload() {
     // Kirim flag dryRun ke backend
     if (isDryRun.value) {
       formData.append('dryRun', 'true')
+    }
+
+    if (userNotes.value.trim()) {
+      formData.append('notes', userNotes.value.trim())
     }
 
     const response = await axios.post('/picking/upload-and-validate', formData, {
@@ -262,6 +268,17 @@ async function triggerUpload() {
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Catatan Tambahan -->
+    <div class="pt-2">
+      <label class="block text-[10px] font-bold uppercase text-text/40 mb-2 tracking-wider">Catatan Tambahan <span class="text-text/40 font-normal">(opsional)</span></label>
+      <textarea
+        v-model="userNotes"
+        rows="2"
+        placeholder="Tulis catatan untuk upload ini..."
+        class="w-full px-3 py-2 border border-secondary/30 rounded-lg bg-background text-text text-sm outline-none focus:border-primary transition-colors resize-none placeholder:text-text/30"
+      ></textarea>
     </div>
 
     <!-- Options & Actions -->
