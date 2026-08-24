@@ -1,7 +1,7 @@
 <!-- frontend\src\views\WMSBatchAdjustment.vue -->
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
-import { useMagicKeys } from '@vueuse/core'
+import { useMagicKeys, useLocalStorage } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import { fetchMyLocations } from '@/api/helpers/user.js'
 import { processBatchMovement, requestAdjustmentUpload, getImportJobs } from '@/api/helpers/stock.js'
@@ -21,10 +21,10 @@ const { downloadFile } = useDownload()
 // --- STATE UTAMA ---
 const myLocations = ref([])
 const isLoading = ref(false)
-const batchList = ref([])
-const inputMode = ref('manual')
-const adjustmentLocation = ref(null)
-const notes = ref('')
+const batchList = useLocalStorage('draft-ba-batch', [])
+const inputMode = useLocalStorage('draft-ba-mode', 'manual')
+const adjustmentLocation = useLocalStorage('draft-ba-loc', null)
+const notes = useLocalStorage('draft-ba-notes', '')
 const importJobHistory = ref([])
 const isImportHistoryLoading = ref(false)
 const selectedFile = ref(null)

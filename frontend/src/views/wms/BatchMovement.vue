@@ -1,7 +1,7 @@
 <!-- frontend\src\views\WMSBatchMovement.vue -->
 <script setup>
 import { ref, onMounted, computed, watch, defineAsyncComponent } from 'vue'
-import { useMagicKeys } from '@vueuse/core'
+import { useMagicKeys, useLocalStorage } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import { fetchMyLocations } from '@/api/helpers/user.js'
 import { useMasterDataStore } from '@/stores/masterData'
@@ -25,8 +25,8 @@ const { toast } = useToast()
 const myLocations = ref([])
 const allLocations = ref([])
 const isLoading = ref(false)
-const activeTab = ref('TRANSFER') // Tab default
-const batchList = ref([])
+const activeTab = useLocalStorage('draft-bm-tab', 'TRANSFER') // Tab default
+const batchList = useLocalStorage('draft-bm-batch', [])
 const spreadsheetTabRef = ref(null)
 const isBatchInboundModalOpen = ref(false)
 const isStickerModalOpen = ref(false)
@@ -51,9 +51,9 @@ watch(Alt_S, pressed => {
 })
 
 // --- STATE FORM BATCH (untuk header) ---
-const fromLocation = ref(null)
-const toLocation = ref(null)
-const notes = ref('')
+const fromLocation = useLocalStorage('draft-bm-from', null)
+const toLocation = useLocalStorage('draft-bm-to', null)
+const notes = useLocalStorage('draft-bm-notes', '')
 
 // Ambil data lokasi
 onMounted(async () => {

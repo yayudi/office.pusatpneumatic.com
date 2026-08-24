@@ -1,6 +1,7 @@
 <!-- frontend\src\components\batch\MultiLocationTransferTab.vue -->
 <script setup>
 import { ref } from 'vue'
+import { useLocalStorage } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import { fetchProductStockDetails } from '@/api/helpers/products.js'
 import { processBatchMovement } from '@/api/helpers/stock.js'
@@ -19,9 +20,8 @@ const props = defineProps({
 
 const { toast } = useToast()
 
-// --- STATE DAFTAR BATCH ---
-const batchList = ref([])
-const notes = ref('')
+const batchList = useLocalStorage('draft-ml-batch', [])
+const notes = useLocalStorage('draft-ml-notes', '')
 const isSubmitting = ref(false)
 
 // --- STATE FORM PENAMBAHAN ---
@@ -32,9 +32,9 @@ const productSearchRef = ref(null)
 const stockDetails = ref([]) // Stok untuk produk yang dipilih
 const isLoadingDetails = ref(false)
 
-const fromLocation = ref(null)
-const toLocation = ref(null)
-const quantity = ref(1)
+const fromLocation = useLocalStorage('draft-ml-from', null)
+const toLocation = useLocalStorage('draft-ml-to', null)
+const quantity = useLocalStorage('draft-ml-qty', 1)
 
 // --- FUNGSI FORM PENAMBAHAN ---
 
@@ -53,15 +53,15 @@ async function onProductSelect(product) {
   try {
     const details = await fetchProductStockDetails(product.id)
     const validStock = details.filter(item => item.quantity > 0)
-    
+
     if (validStock.length === 0) {
       toast('Produk ini tidak memiliki stok yang tersedia untuk ditransfer.', 'warning')
       selectedProduct.value = null
     } else {
       stockDetails.value = validStock
     }
-  } catch (e) { 
-    console.error(e) 
+  } catch (e) {
+    console.error(e)
   } finally {
     isLoadingDetails.value = false
   }
@@ -100,7 +100,7 @@ function onBatchItemLocationChange(item) {
       toast(`Kuantitas disesuaikan karena stok di lokasi asal baru hanya ${item.maxQuantity}.`, 'warning')
     }
   }
-  
+
   if (item.fromLocationId === item.toLocationId) {
     toast('Peringatan: Lokasi Asal dan Tujuan sama.', 'warning')
   }
@@ -170,7 +170,7 @@ function addItemToBatch() {
     toLocation.value = null
   }
   quantity.value = 1
-  
+
   // Kembalikan fokus ke pencarian produk
   if (productSearchRef.value) {
     productSearchRef.value.focusInput()
@@ -289,11 +289,13 @@ defineExpose({ submitDetailedBatch, hasData, resetData })
       <div>
         <div class="flex justify-between items-center mb-2">
           <label class="block text-sm font-medium text-text/90">Ke Lokasi</label>
-          <button 
+          <button
             @click="isLocationLocked = !isLocationLocked"
             class="text-[10px] flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors"
             :class="isLocationLocked ? 'bg-primary/10 text-primary font-bold' : 'text-text/40 hover:bg-secondary/20'"
-            :title="isLocationLocked ? 'Lokasi tujuan dikunci (tidak di-reset)' : 'Lokasi tujuan akan di-reset otomatis'"
+            :title="
+              isLocationLocked ? 'Lokasi tujuan dikunci (tidak di-reset)' : 'Lokasi tujuan akan di-reset otomatis'
+            "
           >
             <font-awesome-icon :icon="isLocationLocked ? 'fa-solid fa-lock' : 'fa-solid fa-lock-open'" />
             <span>Kunci</span>
@@ -389,7 +391,7 @@ defineExpose({ submitDetailedBatch, hasData, resetData })
                   v-model="item.fromLocationId"
                   @change="onBatchItemLocationChange(item)"
                   class="p-1 border border-secondary/50 rounded bg-background text-sm font-mono max-w-[120px] outline-none focus:border-primary"
-                  :class="{'border-danger text-danger': item.fromLocationId === item.toLocationId}"
+                  :class="{ 'border-danger text-danger': item.fromLocationId === item.toLocationId }"
                 >
                   <option v-for="loc in item.availableStocks" :key="loc.location_id" :value="loc.location_id">
                     {{ loc.location_code }}
@@ -406,7 +408,7 @@ defineExpose({ submitDetailedBatch, hasData, resetData })
                   v-model="item.toLocationId"
                   @change="onBatchItemToLocationChange(item)"
                   class="p-1 border border-secondary/50 rounded bg-background text-sm font-mono max-w-[120px] outline-none focus:border-primary"
-                  :class="{'border-danger text-danger': item.fromLocationId === item.toLocationId}"
+                  :class="{ 'border-danger text-danger': item.fromLocationId === item.toLocationId }"
                 >
                   <option v-for="loc in allLocations" :key="loc.id" :value="loc.id">
                     {{ loc.code }}
@@ -492,7 +494,11 @@ defineExpose({ submitDetailedBatch, hasData, resetData })
         >
           <font-awesome-icon v-if="isSubmitting" icon="fa-solid fa-spinner" class="animate-spin" />
           <span>{{ isSubmitting ? 'Memproses...' : 'Submit Batch Transfer' }}</span>
-          <kbd v-if="!isSubmitting" class="hidden md:inline-block ml-1 px-1.5 py-0.5 text-[10px] bg-secondary/20 text-secondary border border-secondary/30 rounded font-mono shadow-sm group-hover:bg-secondary/30 transition-colors">Alt+S</kbd>
+          <kbd
+            v-if="!isSubmitting"
+            class="hidden md:inline-block ml-1 px-1.5 py-0.5 text-[10px] bg-secondary/20 text-secondary border border-secondary/30 rounded font-mono shadow-sm group-hover:bg-secondary/30 transition-colors"
+            >Alt+S</kbd
+          >
         </button>
       </div>
     </div>

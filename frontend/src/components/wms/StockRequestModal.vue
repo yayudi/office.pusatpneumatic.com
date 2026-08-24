@@ -1,6 +1,7 @@
 <!-- frontend/src/components/wms/StockRequestModal.vue -->
 <script setup>
 import { ref, watch, onMounted } from 'vue'
+import { useLocalStorage } from '@vueuse/core'
 import { useToast } from '@/composables/useToast'
 import { fetchMyLocations } from '@/api/helpers/user'
 import { useMasterDataStore } from '@/stores/masterData'
@@ -8,6 +9,7 @@ import { createStockRequest } from '@/api/helpers/stockRequest'
 import ProductSearchAddForm from '@/components/wms/transfer/ProductSearchAddForm.vue'
 import BatchItemList from '@/components/wms/transfer/BatchItemList.vue'
 import { swalConfirm } from '@/composables/useSweetAlert'
+import Swal from 'sweetalert2'
 
 defineProps({
   isOpen: {
@@ -23,11 +25,11 @@ const { toast } = useToast()
 const isLoading = ref(false)
 const myLocations = ref([])
 const allLocations = ref([])
-const fromLocationId = ref(null)
-const toLocationId = ref(null)
-const notes = ref('')
-const type = ref('TRANSFER')
-const batchList = ref([])
+const fromLocationId = useLocalStorage('draft-sr-from', null)
+const toLocationId = useLocalStorage('draft-sr-to', null)
+const notes = useLocalStorage('draft-sr-notes', '')
+const type = useLocalStorage('draft-sr-type', 'TRANSFER')
+const batchList = useLocalStorage('draft-sr-batch', [])
 
 onMounted(async () => {
   try {
@@ -151,7 +153,8 @@ async function submitRequest() {
     await createStockRequest(payload)
     toast('Permintaan stok berhasil dibuat', 'success')
     emit('request-created')
-    closeModal()
+    clearDraft()
+    emit('close')
   } catch (error) {
     console.error(error) // Auto-added to prevent unused var
   } finally {
@@ -159,8 +162,7 @@ async function submitRequest() {
   }
 }
 
-function closeModal() {
-  // Reset form
+function clearDraft() {
   fromLocationId.value = null
   notes.value = ''
   type.value = 'TRANSFER'
@@ -168,7 +170,38 @@ function closeModal() {
   if (myLocations.value.length > 1) {
     toLocationId.value = null
   }
-  emit('close')
+}
+
+async function closeModal() {
+  if (batchList.value.length > 0 || notes.value.trim() !== '') {
+    const result = await Swal.fire({
+      title: 'Tutup Form?',
+      text: 'Form belum selesai. Simpan sebagai draf atau hapus seluruh isian?',
+      icon: 'question',
+      showDenyButton: true,
+      showCancelButton: true,
+      confirmButtonText: 'Simpan Draf',
+      denyButtonText: 'Hapus Isian',
+      cancelButtonText: 'Batal',
+      customClass: {
+        popup: 'bg-background text-text rounded-xl shadow-2xl border border-secondary/50',
+        title: 'text-text font-bold',
+        htmlContainer: 'text-text opacity-90',
+        confirmButton: 'bg-primary hover:opacity-90 text-white font-semibold py-2.5 px-5 rounded-lg mx-2 transition-all',
+        denyButton: 'bg-danger hover:opacity-90 text-white font-semibold py-2.5 px-5 rounded-lg mx-2 transition-all',
+        cancelButton: 'bg-secondary hover:opacity-90 text-text font-semibold py-2.5 px-5 rounded-lg mx-2 transition-all'
+      }
+    })
+    
+    if (result.isConfirmed) {
+      emit('close')
+    } else if (result.isDenied) {
+      clearDraft()
+      emit('close')
+    }
+  } else {
+    emit('close')
+  }
 }
 </script>
 

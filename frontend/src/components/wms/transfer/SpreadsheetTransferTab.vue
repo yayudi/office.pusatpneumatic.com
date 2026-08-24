@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { useLocalStorage } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import BaseContextMenu from '@/components/ui/BaseContextMenu.vue'
 import { useContextMenu } from '@/composables/useContextMenu.js'
@@ -16,7 +17,7 @@ const { contextMenu, openContextMenu } = useContextMenu()
 
 // State
 const isLoading = ref(false)
-const rows = ref([createEmptyRow()])
+const rows = useLocalStorage('draft-spreadsheet-rows', [createEmptyRow()])
 const searchResults = ref([])
 const filteredLocations = ref([])
 const activeDropdown = ref({ rowIndex: -1, colIndex: -1, type: null })
@@ -55,9 +56,9 @@ async function fetchStock(rowIndex) {
   }
   try {
     const results = await searchProducts(row.sku, row.fromLocationId, 1, 1)
-    const productList = Array.isArray(results) ? results : (results?.data || [])
+    const productList = Array.isArray(results) ? results : results?.data || []
     if (productList.length > 0) {
-       row.availableStock = productList[0].current_stock || 0
+      row.availableStock = productList[0].current_stock || 0
     }
   } catch (err) {
     console.error('Error fetching stock:', err)
@@ -125,12 +126,10 @@ function handleKeyDown(event, rowIndex, colIndex) {
   else if (event.key === 'ArrowLeft' && event.ctrlKey) {
     nextCol = Math.max(0, colIndex - 1)
     if (nextCol === 4) nextCol = 3 // skip Stok column
-  }
-  else if (event.key === 'ArrowRight' && event.ctrlKey) {
+  } else if (event.key === 'ArrowRight' && event.ctrlKey) {
     nextCol = Math.min(maxCol, colIndex + 1)
     if (nextCol === 4) nextCol = 5 // skip Stok column
-  }
-  else if (event.key === 'Enter') {
+  } else if (event.key === 'Enter') {
     event.preventDefault()
     if (rowIndex === maxRow) {
       rows.value.push(createEmptyRow())
@@ -173,15 +172,15 @@ async function handleSkuInput(rowIndex) {
   try {
     const results = await searchProducts(row.sku, row.fromLocationId || null, 1, 1)
     console.log('Search products result for SKU:', results)
-    
-    const productList = Array.isArray(results) ? results : (results?.data || [])
-    
+
+    const productList = Array.isArray(results) ? results : results?.data || []
+
     if (productList.length > 0) {
       const product = productList[0]
       if (product.sku.toLowerCase() === row.sku.toLowerCase()) {
-         row.name = product.name
-         if (row.fromLocationId) row.availableStock = product.current_stock || 0
-         console.log('SKU exactly matched:', product.name)
+        row.name = product.name
+        if (row.fromLocationId) row.availableStock = product.current_stock || 0
+        console.log('SKU exactly matched:', product.name)
       }
     }
   } catch (error) {
@@ -198,23 +197,23 @@ function handleNameInput(event, rowIndex) {
   const query = event.target.value
   console.log('handleNameInput called, query:', query)
   rows.value[rowIndex].name = query
-  
+
   referenceEl.value = event.target
   dropdownWidth.value = `${event.target.getBoundingClientRect().width}px`
-  
+
   clearTimeout(searchTimeout)
   if (query.length < 2) {
     activeDropdown.value = { rowIndex: -1, colIndex: -1, type: null }
     return
   }
-  
+
   searchTimeout = setTimeout(async () => {
     try {
       console.log('Executing API call for Name search:', query)
       const results = await searchProducts(query, rows.value[rowIndex].fromLocationId || null, 1, 10)
       console.log('Name search results:', results)
       // Check if results is nested
-      searchResults.value = Array.isArray(results) ? results : (results?.data || [])
+      searchResults.value = Array.isArray(results) ? results : results?.data || []
       dropdownSelectedIndex.value = 0
       activeDropdown.value = { rowIndex, colIndex: 1, type: 'product' }
     } catch (error) {
@@ -227,11 +226,11 @@ function selectProduct(product, rowIndex) {
   rows.value[rowIndex].sku = product.sku
   rows.value[rowIndex].name = product.name
   activeDropdown.value = { rowIndex: -1, colIndex: -1, type: null }
-  
+
   if (rowIndex === rows.value.length - 1) {
     rows.value.push(createEmptyRow())
   }
-  
+
   fetchStock(rowIndex)
   nextTick(() => focusCell(rowIndex, 2))
 }
@@ -240,13 +239,16 @@ function handleLocationInput(event, rowIndex, type) {
   const query = event.target.value
   referenceEl.value = event.target
   dropdownWidth.value = `${event.target.getBoundingClientRect().width}px`
-  
+
   if (type === 'from') rows.value[rowIndex].fromLocationCode = query
   else rows.value[rowIndex].toLocationCode = query
-  
+
   if (!query) filteredLocations.value = props.allLocations
-  else filteredLocations.value = props.allLocations.filter(l => l.code.toLowerCase().includes(query.toLowerCase()) || l.name?.toLowerCase().includes(query.toLowerCase()))
-  
+  else
+    filteredLocations.value = props.allLocations.filter(
+      l => l.code.toLowerCase().includes(query.toLowerCase()) || l.name?.toLowerCase().includes(query.toLowerCase())
+    )
+
   dropdownSelectedIndex.value = 0
   activeDropdown.value = { rowIndex, colIndex: type === 'from' ? 2 : 3, type }
 }
@@ -255,10 +257,13 @@ function handleLocationFocus(event, rowIndex, type) {
   referenceEl.value = event.target
   dropdownWidth.value = `${event.target.getBoundingClientRect().width}px`
   const query = type === 'from' ? rows.value[rowIndex].fromLocationCode : rows.value[rowIndex].toLocationCode
-  
+
   if (!query) filteredLocations.value = props.allLocations
-  else filteredLocations.value = props.allLocations.filter(l => l.code.toLowerCase().includes(query.toLowerCase()) || l.name?.toLowerCase().includes(query.toLowerCase()))
-  
+  else
+    filteredLocations.value = props.allLocations.filter(
+      l => l.code.toLowerCase().includes(query.toLowerCase()) || l.name?.toLowerCase().includes(query.toLowerCase())
+    )
+
   dropdownSelectedIndex.value = 0
   activeDropdown.value = { rowIndex, colIndex: type === 'from' ? 2 : 3, type }
 }
@@ -315,46 +320,46 @@ const emit = defineEmits(['submit'])
 function emitSubmit() {
   // Ambil baris yang setidaknya salah satu selnya diisi (mengabaikan baris kosong murni)
   const activeRows = rows.value.filter(r => r.sku || r.fromLocationCode || r.toLocationCode || r.quantity)
-  
+
   if (activeRows.length === 0) {
     toast('Tidak ada data baris yang diisi untuk disimpan.', 'warning')
     return
   }
-  
+
   const validRows = []
   const stockUsage = {}
-  
+
   for (const [index, r] of activeRows.entries()) {
     // Validasi SKU
     if (!r.sku || !r.name) {
       toast(`Baris ${index + 1}: SKU tidak valid atau nama produk kosong.`, 'error')
       return
     }
-    
+
     // Validasi Lokasi Asal
     if (!r.fromLocationId) {
       toast(`Baris ${index + 1}: Lokasi asal belum dipilih dari daftar untuk SKU ${r.sku}.`, 'error')
       return
     }
-    
+
     // Validasi Lokasi Tujuan
     if (!r.toLocationId) {
       toast(`Baris ${index + 1}: Lokasi tujuan belum dipilih dari daftar untuk SKU ${r.sku}.`, 'error')
       return
     }
-    
+
     // Validasi Lokasi Sama
     if (r.fromLocationId === r.toLocationId) {
       toast(`Baris ${index + 1}: Lokasi asal dan tujuan tidak boleh sama.`, 'error')
       return
     }
-    
+
     // Validasi Qty
     if (!r.quantity || r.quantity <= 0) {
       toast(`Baris ${index + 1}: Jumlah transfer tidak valid.`, 'error')
       return
     }
-    
+
     // Validasi Akumulasi Stok
     if (r.availableStock !== null) {
       const key = `${r.sku.toUpperCase()}-${r.fromLocationId}`
@@ -364,16 +369,16 @@ function emitSubmit() {
         return
       }
     }
-    
+
     validRows.push(r)
   }
-  
+
   // Format payload
   const formattedRows = validRows.map(r => ({
     ...r,
     sku: r.sku.toUpperCase()
   }))
-  
+
   emit('submit', formattedRows)
 }
 
@@ -409,7 +414,6 @@ function resetRows() {
   rows.value = [createEmptyRow()]
 }
 defineExpose({ resetRows })
-
 </script>
 
 <template>
@@ -427,15 +431,15 @@ defineExpose({ resetRows })
           </tr>
         </thead>
         <tbody>
-          <tr 
-            v-for="(row, index) in rows" 
+          <tr
+            v-for="(row, index) in rows"
             :key="row._id"
             class="hover:bg-primary/5 transition-colors group"
             @contextmenu.prevent.stop="openContextMenu($event, index)"
           >
             <!-- SKU -->
             <td class="border border-secondary/20 p-0 relative">
-              <input 
+              <input
                 :id="`spreadsheet-cell-${index}-0`"
                 v-model="row.sku"
                 @keydown="handleKeyDown($event, index, 0)"
@@ -445,10 +449,10 @@ defineExpose({ resetRows })
                 placeholder="SKU..."
               />
             </td>
-            
+
             <!-- Nama -->
             <td class="border border-secondary/20 p-0 relative">
-              <input 
+              <input
                 :id="`spreadsheet-cell-${index}-1`"
                 :value="row.name"
                 @input="handleNameInput($event, index)"
@@ -457,10 +461,10 @@ defineExpose({ resetRows })
                 placeholder="Nama Produk..."
               />
             </td>
-            
+
             <!-- From Location -->
             <td class="border border-secondary/20 p-0 relative">
-              <input 
+              <input
                 :id="`spreadsheet-cell-${index}-2`"
                 :value="row.fromLocationCode"
                 @input="handleLocationInput($event, index, 'from')"
@@ -470,10 +474,10 @@ defineExpose({ resetRows })
                 placeholder="Pilih Asal..."
               />
             </td>
-            
+
             <!-- To Location -->
             <td class="border border-secondary/20 p-0 relative">
-              <input 
+              <input
                 :id="`spreadsheet-cell-${index}-3`"
                 :value="row.toLocationCode"
                 @input="handleLocationInput($event, index, 'to')"
@@ -483,17 +487,17 @@ defineExpose({ resetRows })
                 placeholder="Pilih Tujuan..."
               />
             </td>
-            
+
             <!-- Stok -->
             <td class="border border-secondary/20 p-0 relative bg-secondary/5">
               <div class="w-full h-full p-2 text-center font-bold text-text/70 flex items-center justify-center">
                 {{ row.availableStock !== null ? row.availableStock : '-' }}
               </div>
             </td>
-            
+
             <!-- Qty -->
             <td class="border border-secondary/20 p-0 relative">
-              <input 
+              <input
                 :id="`spreadsheet-cell-${index}-5`"
                 v-model.number="row.quantity"
                 @keydown="handleKeyDown($event, index, 5)"
@@ -508,12 +512,13 @@ defineExpose({ resetRows })
           </tr>
         </tbody>
       </table>
-      
+
       <div class="p-3 bg-secondary/5 text-center text-xs text-text/50 font-medium">
-        Ketik SKU atau Nama dan tekan <b>Enter</b> untuk berpindah ke baris baru. Klik kanan untuk <b>Hapus</b> / <b>Duplikasi</b> baris.
+        Ketik SKU atau Nama dan tekan <b>Enter</b> untuk berpindah ke baris baru. Klik kanan untuk <b>Hapus</b> /
+        <b>Duplikasi</b> baris.
       </div>
     </div>
-    
+
     <div class="flex justify-end pt-4 border-t border-secondary/20">
       <button
         @click="emitSubmit"
@@ -525,7 +530,7 @@ defineExpose({ resetRows })
         <span>Submit Spreadsheet</span>
       </button>
     </div>
-    
+
     <BaseContextMenu
       v-if="contextMenu.visible"
       :x="contextMenu.x"
@@ -539,17 +544,19 @@ defineExpose({ resetRows })
       @close="contextMenu.visible = false"
       @action="handleContextAction"
     />
-    
+
     <!-- Floating UI Autocomplete Dropdown -->
     <Teleport to="body">
-      <div 
-        v-if="activeDropdown.rowIndex !== -1" 
+      <div
+        v-if="activeDropdown.rowIndex !== -1"
         ref="floatingEl"
         :style="{ ...floatingStyles, width: dropdownWidth }"
         class="bg-background text-text border border-secondary/20 shadow-xl rounded-lg z-[100] max-h-48 overflow-y-auto custom-scrollbar"
       >
         <template v-if="activeDropdown.type === 'product'">
-          <div v-if="searchResults.length === 0" class="p-2 text-xs text-text/50 text-center italic">Tidak ditemukan...</div>
+          <div v-if="searchResults.length === 0" class="p-2 text-xs text-text/50 text-center italic">
+            Tidak ditemukan...
+          </div>
           <button
             v-for="(prod, index) in searchResults"
             :key="prod.id"
@@ -564,9 +571,11 @@ defineExpose({ resetRows })
             <div class="text-sm truncate text-text/90">{{ prod.name }}</div>
           </button>
         </template>
-        
+
         <template v-if="activeDropdown.type === 'from' || activeDropdown.type === 'to'">
-          <div v-if="filteredLocations.length === 0" class="p-2 text-xs text-text/50 text-center italic">Tidak ditemukan...</div>
+          <div v-if="filteredLocations.length === 0" class="p-2 text-xs text-text/50 text-center italic">
+            Tidak ditemukan...
+          </div>
           <button
             v-for="(loc, index) in filteredLocations"
             :key="loc.id"

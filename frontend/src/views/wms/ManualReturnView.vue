@@ -2,10 +2,11 @@
 
 <script setup>
 import { ref, onMounted, toRaw, computed, watch } from 'vue'
-import { useMagicKeys } from '@vueuse/core'
+import { useMagicKeys, useLocalStorage } from '@vueuse/core'
 import { useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast.js'
 import { swalAlert } from '@/composables/useSweetAlert'
+import Swal from 'sweetalert2'
 import api from '@/api/axios'
 import ProductSearchSelector from '@/components/wms/transfer/ProductSearchSelector.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
@@ -22,7 +23,7 @@ const { toast } = useToast()
 const isLoading = ref(false)
 const locations = ref([])
 
-const form = ref({
+const form = useLocalStorage('draft-mr-form', {
   invoiceId: '',
   items: [{ selectedProduct: null, quantity: 1, condition: 'GOOD', locationId: '', notes: '' }]
 })
@@ -100,6 +101,10 @@ async function submitForm() {
 
     if (successCount > 0) {
       toast(`Berhasil memproses ${successCount} item. Stok telah bertambah.`, 'success')
+      form.value = {
+        invoiceId: '',
+        items: [{ selectedProduct: null, quantity: 1, condition: 'GOOD', locationId: '', notes: '' }]
+      }
       router.go(-1)
     }
   } catch {
@@ -109,8 +114,37 @@ async function submitForm() {
   }
 }
 
-function goBack() {
-  router.go(-1)
+async function goBack() {
+  const isDirty = form.value.invoiceId.trim() !== '' || form.value.items.length > 1 || form.value.items[0].selectedProduct !== null
+  if (isDirty) {
+    const result = await Swal.fire({
+      title: 'Kembali?',
+      text: 'Form belum selesai. Simpan sebagai draf atau hapus seluruh isian?',
+      icon: 'question',
+      showDenyButton: true,
+      showCancelButton: true,
+      confirmButtonText: 'Simpan Draf',
+      denyButtonText: 'Hapus Isian',
+      cancelButtonText: 'Batal',
+      customClass: {
+        popup: 'bg-background text-text rounded-xl shadow-2xl border border-secondary/50',
+        title: 'text-text font-bold',
+        htmlContainer: 'text-text opacity-90',
+        confirmButton: 'bg-primary hover:opacity-90 text-white font-semibold py-2.5 px-5 rounded-lg mx-2 transition-all',
+        denyButton: 'bg-danger hover:opacity-90 text-white font-semibold py-2.5 px-5 rounded-lg mx-2 transition-all',
+        cancelButton: 'bg-secondary hover:opacity-90 text-text font-semibold py-2.5 px-5 rounded-lg mx-2 transition-all'
+      }
+    })
+    
+    if (result.isConfirmed) {
+      router.go(-1)
+    } else if (result.isDenied) {
+      form.value = { invoiceId: '', items: [{ selectedProduct: null, quantity: 1, condition: 'GOOD', locationId: '', notes: '' }] }
+      router.go(-1)
+    }
+  } else {
+    router.go(-1)
+  }
 }
 
 onMounted(() => {
