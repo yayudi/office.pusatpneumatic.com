@@ -4,7 +4,7 @@ import { useAuthStore } from '../stores/auth'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 
-NProgress.configure({ showSpinner: false }) // Kita pakai Spinner terpisah
+NProgress.configure({ showSpinner: false })
 
 const routes = [
   // --- AUTH ROUTES ---
@@ -244,19 +244,6 @@ router.beforeEach(async (to, from, next) => {
   NProgress.start()
   const auth = useAuthStore()
 
-  // Session Restoration Logic (Critical)
-  // Pastikan user diload sebelum mengecek permission
-  if (auth.token && !auth.user) {
-    try {
-      await auth.fetchUser()
-    } catch (error) {
-      console.error('Session restore failed:', error)
-      // Opsional: Clear token jika fetch gagal agar user login ulang
-      // auth.logout()
-      return next({ name: 'Login' })
-    }
-  }
-
   const isLoggedIn = auth.isAuthenticated
 
   // Guest Only Logic (Login page)
@@ -275,8 +262,6 @@ router.beforeEach(async (to, from, next) => {
 
     // Cek permission menggunakan method store
     if (!auth.hasPermission(requiredPermission)) {
-      // Jika tidak punya akses, redirect ke dashboard atau 403 (jika ada)
-      // Di sini kita lempar ke WMS Dashboard sebagai default safe zone
       return next({ name: 'WMS' })
     }
   }

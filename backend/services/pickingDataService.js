@@ -2,8 +2,6 @@
 import db from "../config/db.js";
 import Logger from "../utils/logger.js";
 import AppError from "../utils/AppError.js";
-
-// REPOSITORIES
 import * as pickingRepo from "../repositories/pickingRepository.js";
 import * as locationRepo from "../repositories/locationRepository.js";
 import * as stockRepo from "../repositories/stockMovementRepository.js";
@@ -239,13 +237,8 @@ export const retryBackordersService = async (pickingListId) => {
       );
 
       if (bestLocation) {
-        await pickingRepo.updateSuggestedLocation(
-          connection,
-          item.id,
-          bestLocation.location_id,
-          bestLocation.stock_location_id,
-          "PENDING",
-        );
+        await pickingRepo.updateSuggestedLocation(connection, item.id, bestLocation.location_id);
+        await pickingRepo.updateItemStatus(connection, item.id, "PENDING");
         recoveredCount++;
       }
     }
@@ -454,7 +447,7 @@ export const completePickingItemsService = async (payloadItems, userId) => {
     const itemIds = payloadItems.map((i) => i.id);
     const dbItems = await pickingRepo.getItemsByIds(connection, itemIds);
 
-    // --- FASE 1: STRICT VALIDATION (SATPAM) ---
+    // --- STRICT VALIDATION (SATPAM) ---
     const executionPlan = []; // Menyimpan data valid untuk eksekusi nanti
 
     // [OPTIMIZATION] Pre-fetch and lock all stock locations for the required products
@@ -561,7 +554,7 @@ export const completePickingItemsService = async (payloadItems, userId) => {
       throw error;
     }
 
-    // --- FASE 2: EKSEKUSI AMAN ---
+    // --- EKSEKUSI AMAN ---
     const affectedListIds = new Set();
     let processedCount = 0;
 
@@ -602,7 +595,7 @@ export const completePickingItemsService = async (payloadItems, userId) => {
       processedCount++;
     }
 
-    // --- FASE 3: UPDATE HEADER ---
+    // --- UPDATE HEADER ---
     for (const listId of affectedListIds) {
       const remainingCount = await pickingRepo.countPendingItems(connection, listId);
       if (remainingCount === 0) {

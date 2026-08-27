@@ -32,8 +32,11 @@ async function login() {
       password: password.value
     })
 
-    if (res.data.success && res.data.token) {
-      auth.setToken(res.data.token)
+    if (res.data.success) {
+      if (res.data.user) {
+        auth.setUser(res.data.user)
+      }
+      auth.setToken() // trigger PWA check
       toast('Login berhasil', 'success')
       // Force hard navigation untuk memastikan PWA update terbaru diambil dari server
       window.location.href = '/'
