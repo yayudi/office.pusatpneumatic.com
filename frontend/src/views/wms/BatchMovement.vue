@@ -12,7 +12,6 @@ import BatchMovementHeader from '@/components/wms/transfer/BatchMovementHeader.v
 import ProductSearchAddForm from '@/components/wms/transfer/ProductSearchAddForm.vue'
 import BatchItemList from '@/components/wms/transfer/BatchItemList.vue'
 import MultiLocationTransferTab from '@/components/wms/transfer/MultiLocationTransferTab.vue'
-import SpreadsheetTransferTab from '@/components/wms/transfer/SpreadsheetTransferTab.vue'
 import BatchInboundModal from '@/components/stock/BatchInboundModal.vue'
 
 const masterData = useMasterDataStore()
@@ -27,7 +26,6 @@ const allLocations = ref([])
 const isLoading = ref(false)
 const activeTab = useLocalStorage('draft-bm-tab', 'TRANSFER') // Tab default
 const batchList = useLocalStorage('draft-bm-batch', [])
-const spreadsheetTabRef = ref(null)
 const isBatchInboundModalOpen = ref(false)
 const isStickerModalOpen = ref(false)
 const detailedTransferTabRef = ref(null)
@@ -232,34 +230,6 @@ async function submitBatch() {
       notes.value = ''
     }
   } catch (error) {
-    console.error(error) // Auto-added to prevent unused var
-  } finally {
-    isLoading.value = false
-  }
-}
-
-async function handleSpreadsheetSubmit(validRows) {
-  isLoading.value = true
-  try {
-    const payload = {
-      type: 'TRANSFER_MULTI',
-      notes: notes.value,
-      movements: validRows.map(r => ({
-        sku: r.sku,
-        fromLocationId: r.fromLocationId,
-        toLocationId: r.toLocationId,
-        quantity: r.quantity
-      }))
-    }
-    const response = await processBatchMovement(payload)
-    if (response.success) {
-      toast('Spreadsheet transfer berhasil', 'success')
-      notes.value = ''
-      if (spreadsheetTabRef.value) {
-        spreadsheetTabRef.value.resetRows()
-      }
-    }
-  } catch (error) {
     console.error(error)
   } finally {
     isLoading.value = false
@@ -298,14 +268,6 @@ async function handleSpreadsheetSubmit(validRows) {
       ref="detailedTransferTabRef"
       :all-locations="allLocations"
       :is-loading-locations="isLoading"
-    />
-
-    <SpreadsheetTransferTab
-      v-else-if="activeTab === 'SPREADSHEET_TRANSFER'"
-      ref="spreadsheetTabRef"
-      :all-locations="allLocations"
-      :is-loading-locations="isLoading"
-      @submit="handleSpreadsheetSubmit"
     />
 
     <!-- Panel untuk semua mode 'BATCH' ('TRANSFER', 'INBOUND') -->

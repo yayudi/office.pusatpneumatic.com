@@ -7,7 +7,7 @@ import { useFloating, autoUpdate, offset, flip, shift, size } from '@floating-ui
 
 const props = defineProps({
   modelValue: { type: Object, default: null },
-  placeholder: { type: String, default: 'Ketik nama / SKU...' },
+  placeholder: { type: String, default: 'Ketik nama / SKU' },
   locationId: { type: [Number, String], default: null },
   disabled: { type: Boolean, default: false },
   enableScanner: { type: Boolean, default: false },

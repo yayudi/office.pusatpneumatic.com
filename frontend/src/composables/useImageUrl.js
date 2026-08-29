@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/auth.js'
  * MediaInfoModal, and MediaLightbox.
  */
 
-const baseUrl = apiClient.defaults.baseURL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
+const baseUrl = apiClient.defaults.baseURL || import.meta.env.VITE_API_BASE_URL || ''
 
 /** Backend root URL (without /api suffix) */
 export const backendUrl = import.meta.env.VITE_API_MEDIA_URL || baseUrl.replace(/\/api\/?$/, '')
@@ -34,9 +34,9 @@ export const resolveUrl = path => {
     base = import.meta.env.VITE_API_MEDIA_URL
     if (!base.endsWith('/')) base += '/'
   } else {
-    // baseUrl fallback biasanya http://localhost:3000
+    // baseUrl fallback akan menggunakan origin saat ini jika kosong
     let root = baseUrl.replace(/\/api\/?$/, '')
-    if (!root.endsWith('/')) root += '/'
+    if (root && !root.endsWith('/')) root += '/'
     base = root + 'uploads/'
   }
 

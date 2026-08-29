@@ -8,6 +8,7 @@ const route = useRoute()
 
 const actionRoutes = [
   { name: 'Batch Movement', path: '/wms/actions/batch-movement', icon: 'fa-solid fa-truck-ramp-box' },
+  { name: 'Spreadsheet', path: '/wms/actions/spreadsheet', icon: 'fa-solid fa-table-cells' },
   { name: 'Retur', path: '/wms/actions/return', icon: 'fa-solid fa-rotate-left' },
   { name: 'Picking List', path: '/wms/actions/picking-list', icon: 'fa-solid fa-boxes-packing' },
   { name: 'Request Stok', path: '/wms/actions/stock-requests', icon: 'fa-solid fa-file-import' },
@@ -21,6 +22,11 @@ const routeMetaMap = {
     title: "Batch <span class='text-primary'>Movement</span>",
     iconClass: 'text-primary',
     description: 'Kelola pemindahan stok & mutasi barang antar lokasi di dalam gudang.'
+  },
+  '/wms/actions/spreadsheet': {
+    title: 'Spreadsheet',
+    iconClass: 'text-primary',
+    description: 'Pencatatan Inbound, Outbound, dan Transfer stok dengan gaya Spreadsheet.'
   },
   '/wms/actions/return': {
     title: "Retur <span class='text-danger'>Penjualan</span>",

@@ -2,10 +2,9 @@
 import { swalConfirm } from '@/composables/useSweetAlert'
 import { ref, watch, computed, onMounted } from 'vue'
 import { useFirebaseSync } from '@/composables/useFirebaseSync'
-import { useMagicKeys } from '@vueuse/core'
+import { useMagicKeys, refDebounced } from '@vueuse/core'
 import { useToast } from '@/composables/useToast.js'
 import axios from '@/api/axios.js'
-import debounce from 'lodash/debounce'
 import ProductFormModal from '@/components/wms/shared/ProductFormModal.vue'
 import ConnectionStatus from '@/components/wms/shared/ConnectionStatus.vue'
 import PackageTable from '@/components/products/PackageTable.vue'
@@ -24,6 +23,7 @@ const { isMobile } = useMobile()
 // --- STATE ---
 const products = ref([])
 const searchQuery = ref('')
+const debouncedSearchQuery = refDebounced(searchQuery, 300)
 const searchBy = ref('name')
 const filterStatus = ref('active')
 const sortBy = ref('name')
@@ -31,15 +31,15 @@ const sortOrder = ref('asc')
 
 const packageTableRef = ref(null)
 const tableKey = ref(0)
-const { 
-  dirtyProducts, 
-  isSavingInline, 
-  hasDirtyProducts, 
-  handleInlineEditChange, 
-  handleCancelInlineEdit, 
-  handleBulkSaveInline 
-} = useInlineSave({ 
-  fetchProducts: () => fetchProducts(), 
+const {
+  dirtyProducts,
+  isSavingInline,
+  hasDirtyProducts,
+  handleInlineEditChange,
+  handleCancelInlineEdit,
+  handleBulkSaveInline
+} = useInlineSave({
+  fetchProducts: () => fetchProducts(),
   tableKeyRef: tableKey,
   afterSaveAction: () => packageTableRef.value?.clearComponentCache()
 })
@@ -65,7 +65,7 @@ const currentLimit = ref(50)
 
 const searchParams = computed(() => ({
   limit: currentLimit.value,
-  search: searchQuery.value,
+  search: debouncedSearchQuery.value,
   searchBy: searchBy.value,
   sortBy: sortBy.value,
   sortOrder: sortOrder.value,
@@ -139,13 +139,11 @@ const handleSort = field => {
   fetchProducts()
 }
 
-// Search & Filter (Debounce)
-const handleFilterChange = debounce(() => {
+// Watch filter state changes to clear selection
+// TanStack Query automatically refetches when searchParams (the query key) changes
+watch([debouncedSearchQuery, searchBy, filterStatus], () => {
   selectedIds.value.clear()
-  fetchProducts()
-}, 300)
-
-watch([searchQuery, searchBy, filterStatus], handleFilterChange)
+})
 
 // Selection
 const toggleSelection = id => {
@@ -331,7 +329,7 @@ watch(Slash, pressed => {
                 v-if="hasDirtyProducts"
                 @click="handleCancelInlineEdit"
                 :disabled="isSavingInline"
-                class="px-5 py-2.5 bg-danger hover:bg-danger/90 text-secondary rounded-xl shadow-md font-medium flex items-center gap-2 transition-all disabled:opacity-50"
+                class="px-5 py-2.5 bg-danger hover:bg-danger/90 text-secondary rounded-xl shadow-md font-medium flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
               >
                 <font-awesome-icon icon="fa-solid fa-times" />
                 <span class="hidden sm:inline">Batal</span>
@@ -341,7 +339,7 @@ watch(Slash, pressed => {
               <button
                 v-if="dirtyProducts.size > 0"
                 @click="executeBulkSaveInline"
-                class="bg-indigo-600/90 text-white px-4 py-2 rounded-lg font-medium shadow transition hover:bg-indigo-700 disabled:opacity-50"
+                class="bg-accent/80 text-secondary px-4 py-2 rounded-lg font-medium shadow transition-all hover:bg-accent hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
                 :disabled="isSavingInline"
               >
                 <font-awesome-icon v-if="isSavingInline" icon="fa-solid fa-spinner" spin class="mr-2" />
@@ -352,7 +350,7 @@ watch(Slash, pressed => {
               <!-- Tombol Batch Edit -->
               <button
                 @click="showBatchEditModal = true"
-                class="px-5 py-2.5 bg-secondary hover:bg-secondary/80 text-text rounded-xl shadow-md font-medium flex items-center gap-2 transition-all border border-secondary/30"
+                class="px-5 py-2.5 bg-secondary hover:bg-secondary/80 text-text rounded-xl shadow-md font-medium flex items-center gap-2 transition-all border border-secondary/30 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
                 title="Edit paket secara massal (Export & Import)"
               >
                 <font-awesome-icon icon="fa-solid fa-pen-to-square" />
@@ -362,7 +360,7 @@ watch(Slash, pressed => {
               <!-- Tombol Tambah Paket -->
               <button
                 @click="openAddModal"
-                class="px-5 py-2.5 bg-primary hover:bg-primary/90 text-secondary rounded-xl shadow-lg font-bold flex items-center gap-2 transition-transform hover:-translate-y-0.5"
+                class="px-5 py-2.5 bg-primary hover:bg-primary/90 text-secondary rounded-xl shadow-lg font-bold flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
               >
                 <font-awesome-icon icon="fa-solid fa-plus" />
                 <span>Buat Paket</span>
@@ -380,7 +378,7 @@ watch(Slash, pressed => {
                   id="global-search-input"
                   v-model="searchQuery"
                   type="text"
-                  placeholder="Cari nama paket atau SKU..."
+                  placeholder="Cari nama paket atau SKU (Tekan / )"
                   class="w-full h-[40px] pl-10 pr-4 py-2 bg-background border border-secondary rounded-lg focus:outline-none focus:border-primary text-sm shadow-sm"
                   :class="isMobile ? 'mb-4 mr-4' : 'm-0'"
                 />

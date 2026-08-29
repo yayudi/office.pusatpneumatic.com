@@ -11,7 +11,7 @@ import { useMobile } from '@/composables/useMobile.js'
 const { isMobile } = useMobile()
 
 defineProps({
-  show: Boolean,
+  show: Boolean
 })
 
 const emit = defineEmits(['close'])
@@ -33,12 +33,12 @@ const PPN_RATE = 0.11
 const WEIGHT_UNITS = [
   { value: 'gr', label: 'Gram (gr)', divisor: 1 },
   { value: 'kg', label: 'Kilogram (kg)', divisor: 1000 },
-  { value: 'ton', label: 'Ton', divisor: 1000000 },
+  { value: 'ton', label: 'Ton', divisor: 1000000 }
 ]
 
 const discountOptions = [
   { value: 'percent', label: '%' },
-  { value: 'nominal', label: 'Rp' },
+  { value: 'nominal', label: 'Rp' }
 ]
 
 // COMPUTED
@@ -47,7 +47,7 @@ const totalWeightRaw = computed(() => {
 })
 
 const totalWeightDisplay = computed(() => {
-  const unit = WEIGHT_UNITS.find((u) => u.value === weightUnit.value)
+  const unit = WEIGHT_UNITS.find(u => u.value === weightUnit.value)
   return totalWeightRaw.value / unit.divisor
 })
 
@@ -55,7 +55,7 @@ const totalCbmRaw = computed(() => {
   return items.value.reduce((sum, item) => sum + item.total_cbm * item.quantity, 0)
 })
 
-const calculateSubtotal = (item) => {
+const calculateSubtotal = item => {
   const base = item.price * item.quantity
   let discountAmount = 0
 
@@ -83,7 +83,7 @@ const handleSearch = debounce(async () => {
   isSearching.value = true
   try {
     const response = await axios.get('/products/search', {
-      params: { q: searchQuery.value },
+      params: { q: searchQuery.value }
     })
     searchResults.value = response.data
     showSearchResults.value = true
@@ -94,8 +94,8 @@ const handleSearch = debounce(async () => {
   }
 }, 300)
 
-const addItem = (product) => {
-  const existing = items.value.find((i) => i.product.id === product.id)
+const addItem = product => {
+  const existing = items.value.find(i => i.product.id === product.id)
   if (existing) {
     existing.quantity++
   } else {
@@ -105,7 +105,7 @@ const addItem = (product) => {
       price: product.price || 0,
       weight: product.weight || 0,
       total_cbm: product.total_cbm || 0,
-      discount: { type: 'percent', value: 0 },
+      discount: { type: 'percent', value: 0 }
     })
   }
   searchQuery.value = ''
@@ -114,7 +114,7 @@ const addItem = (product) => {
   toast(`${product.name} ditambahkan ke simulasi`, 'success')
 }
 
-const removeItem = (index) => {
+const removeItem = index => {
   items.value.splice(index, 1)
   toast('Item dihapus dari simulasi', 'info')
 }
@@ -126,12 +126,12 @@ const resetSimulation = () => {
 
 // formatCurrency removed (imported from utils)
 
-const formatWeight = (val) => {
-  const unit = WEIGHT_UNITS.find((u) => u.value === weightUnit.value)
+const formatWeight = val => {
+  const unit = WEIGHT_UNITS.find(u => u.value === weightUnit.value)
   return (val / unit.divisor).toLocaleString('id-ID', { maximumFractionDigits: 2 })
 }
 
-const formatCbm = (val) => {
+const formatCbm = val => {
   return val.toLocaleString('id-ID', { maximumFractionDigits: 4 })
 }
 
@@ -153,13 +153,10 @@ const close = () => {
             v-model="searchQuery"
             @input="handleSearch"
             type="text"
-            placeholder="Ketik nama atau SKU..."
+            placeholder="Ketik nama atau SKU"
             class="w-full pl-10 pr-4 py-3 bg-background border border-secondary/30 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all"
           />
-          <font-awesome-icon
-            icon="fa-solid fa-search"
-            class="absolute left-3 top-3.5 text-text/40"
-          />
+          <font-awesome-icon icon="fa-solid fa-search" class="absolute left-3 top-3.5 text-text/40" />
           <font-awesome-icon
             v-if="isSearching"
             icon="fa-solid fa-spinner"
@@ -195,14 +192,10 @@ const close = () => {
       </div>
 
       <!-- Options Bar -->
-      <div
-        class="flex flex-wrap items-end gap-4 p-4 bg-secondary/5 rounded-xl border border-secondary/10"
-      >
+      <div class="flex flex-wrap items-end gap-4 p-4 bg-secondary/5 rounded-xl border border-secondary/10">
         <!-- Weight Unit Selector -->
         <div class="flex-1 min-w-[200px]">
-          <label class="block text-xs font-bold text-text/70 mb-1.5 uppercase tracking-wide"
-            >Satuan Berat</label
-          >
+          <label class="block text-xs font-bold text-text/70 mb-1.5 uppercase tracking-wide">Satuan Berat</label>
           <BaseSelect
             v-model="weightUnit"
             :options="WEIGHT_UNITS"
@@ -232,10 +225,7 @@ const close = () => {
       <!-- Items Table -->
       <div v-if="items.length > 0" class="border border-secondary/20 rounded-xl overflow-hidden">
         <table class="w-full text-sm text-left" :class="isMobile ? 'block' : ''">
-          <thead
-            class="bg-secondary/5 text-text/70 uppercase text-xs font-bold"
-            :class="isMobile ? 'hidden' : ''"
-          >
+          <thead class="bg-secondary/5 text-text/70 uppercase text-xs font-bold" :class="isMobile ? 'hidden' : ''">
             <tr>
               <th class="px-2 py-3 text-left">Produk</th>
               <th class="px-1 py-3 text-center w-20">Qty</th>
@@ -262,15 +252,9 @@ const close = () => {
                 <div class="text-xs text-text/50">{{ item.product.sku }}</div>
               </td>
               <td
-                :class="
-                  isMobile
-                    ? 'flex justify-between items-center py-2 border-b border-secondary/10'
-                    : 'px-1 py-3'
-                "
+                :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-1 py-3'"
               >
-                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
-                  >Qty</span
-                >
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Qty</span>
                 <input
                   v-model.number="item.quantity"
                   type="number"
@@ -280,15 +264,9 @@ const close = () => {
                 />
               </td>
               <td
-                :class="
-                  isMobile
-                    ? 'flex justify-between items-center py-2 border-b border-secondary/10'
-                    : 'px-1 py-3'
-                "
+                :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'px-1 py-3'"
               >
-                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
-                  >Diskon</span
-                >
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Diskon</span>
                 <div class="flex items-center gap-1 justify-center">
                   <BaseSelect
                     v-model="item.discount.type"
@@ -316,9 +294,7 @@ const close = () => {
                     : 'px-1 py-3 text-right text-text/70'
                 "
               >
-                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
-                  >Berat</span
-                >
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Berat</span>
                 <span>{{ formatWeight(item.weight * item.quantity) }} {{ weightUnit }}</span>
               </td>
               <td
@@ -328,9 +304,7 @@ const close = () => {
                     : 'px-1 py-3 text-right text-text/70'
                 "
               >
-                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
-                  >Volume</span
-                >
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Volume</span>
                 <span>{{ formatCbm(item.total_cbm * item.quantity) }} CBM</span>
               </td>
               <td
@@ -340,9 +314,7 @@ const close = () => {
                     : 'px-1 py-3 text-right font-medium'
                 "
               >
-                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold"
-                  >Total</span
-                >
+                <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">Total</span>
                 <div v-if="item.discount.value > 0" class="flex flex-col items-end">
                   <span class="text-[10px] text-text/40 line-through decoration-danger">
                     {{ formatCurrency(item.price * item.quantity) }}
@@ -354,10 +326,7 @@ const close = () => {
                 </div>
               </td>
               <td :class="isMobile ? 'absolute top-3 right-3' : 'px-1 py-3 text-center'">
-                <button
-                  @click="removeItem(index)"
-                  class="text-danger hover:text-danger-dark transition-colors"
-                >
+                <button @click="removeItem(index)" class="text-danger hover:text-danger-dark transition-colors">
                   <font-awesome-icon icon="fa-solid fa-times" />
                 </button>
               </td>
@@ -367,11 +336,11 @@ const close = () => {
             <tr>
               <td colspan="3" class="px-4 py-3 text-right text-text/70">Total:</td>
               <td class="px-4 py-3 text-right text-primary flex flex-col gap-1 items-end whitespace-nowrap">
-                <span>{{ totalWeightDisplay.toLocaleString('id-ID', { maximumFractionDigits: 2 }) }} {{ weightUnit }}</span>
+                <span
+                  >{{ totalWeightDisplay.toLocaleString('id-ID', { maximumFractionDigits: 2 }) }} {{ weightUnit }}</span
+                >
               </td>
-              <td class="px-4 py-3 text-right text-primary whitespace-nowrap">
-                {{ formatCbm(totalCbmRaw) }} CBM
-              </td>
+              <td class="px-4 py-3 text-right text-primary whitespace-nowrap">{{ formatCbm(totalCbmRaw) }} CBM</td>
               <td class="px-4 py-3 text-right text-primary text-lg">
                 <div class="flex flex-col items-end leading-tight">
                   <span>{{ formatCurrency(totalPrice) }}</span>
@@ -385,10 +354,7 @@ const close = () => {
           </tfoot>
         </table>
       </div>
-      <div
-        v-else
-        class="text-center py-8 text-text/40 border-2 border-dashed border-secondary/20 rounded-xl"
-      >
+      <div v-else class="text-center py-8 text-text/40 border-2 border-dashed border-secondary/20 rounded-xl">
         <font-awesome-icon icon="fa-solid fa-calculator" class="text-4xl mb-2" />
         <p>Belum ada item dalam simulasi.</p>
       </div>

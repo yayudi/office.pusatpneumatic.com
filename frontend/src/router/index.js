@@ -108,6 +108,12 @@ const routes = [
         meta: { requiresPermission: 'perform-batch-movement' }
       },
       {
+        path: 'spreadsheet',
+        name: 'WMSSpreadsheet',
+        component: () => import('../views/wms/SpreadsheetTransaction.vue'),
+        meta: { requiresPermission: 'perform-batch-movement' }
+      },
+      {
         path: 'picking-list',
         name: 'WMSPickingList',
         component: () => import('../views/wms/PickingList.vue'),

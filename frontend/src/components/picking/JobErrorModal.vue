@@ -8,7 +8,7 @@ const props = defineProps({
   job: Object,
   apiBaseUrl: {
     type: String,
-    default: 'http://localhost:3000',
+    default: '',
   },
 })
 

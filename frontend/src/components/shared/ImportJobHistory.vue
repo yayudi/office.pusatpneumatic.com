@@ -147,7 +147,7 @@ const getErrorUrl = (job) => {
     if (!log.download_url) return null
 
     // Determine Base URL from Env or Default
-    let baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+    let baseUrl = import.meta.env.VITE_API_BASE_URL || ''
 
     // Remove trailing /api if present (because uploads are served at root /uploads, not /api/uploads)
     baseUrl = baseUrl.replace(/\/api$/, '')

@@ -291,7 +291,7 @@ export const generateProductExportStreaming = async (filters, filePath) => {
       if (!path) return "";
       let cleanPath = path.replace(/^\/+/, '');
       if (cleanPath.startsWith('uploads/')) cleanPath = cleanPath.replace(/^uploads\//, '');
-      const base = process.env.MEDIA_URL || process.env.VITE_API_MEDIA_URL || "http://localhost:3000/uploads/";
+      const base = process.env.MEDIA_URL || process.env.VITE_API_MEDIA_URL || "";
       const separator = base && !base.endsWith('/') ? '/' : '';
       return `${base}${separator}${cleanPath}`;
     };

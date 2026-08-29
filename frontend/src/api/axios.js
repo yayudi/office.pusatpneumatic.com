@@ -4,7 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useLoadingStore } from '@/stores/loadingStore'
 
 const instance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: 30000, // Timeout dalam 30 detik untuk shared hosting
   withCredentials: true, // Untuk HttpOnly cookies
   headers: {

@@ -201,7 +201,7 @@ export const processStockImport = async (
         }
 
         // Validasi Produk
-        const product = productMap.get(sku);
+        const product = productMap.get(sku.toUpperCase());
         if (!product) {
           throw new Error(`SKU '${sku}' tidak ditemukan di database.`);
         }

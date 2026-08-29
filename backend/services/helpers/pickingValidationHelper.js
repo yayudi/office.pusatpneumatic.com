@@ -421,8 +421,8 @@ export async function insertPickingItems(connection, pickingListId, validItems, 
         ]);
       });
     } else {
-      const pid = productMap.get(item.sku).id;
-      const price = productMap.get(item.sku).price || 0;
+      const pid = productMap.get(item.sku.toUpperCase()).id;
+      const price = productMap.get(item.sku.toUpperCase()).price || 0;
       rows.push([
         pickingListId,
         pid,

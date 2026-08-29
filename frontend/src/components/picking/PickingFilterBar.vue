@@ -77,14 +77,12 @@ watch(
       <template #search>
         <div class="flex flex-wrap w-full lg:max-w-[50vw] items-center gap-2 flex-1 md:flex-none">
           <!-- Search -->
-          <div
-            class="w-[80%] lg:w-full relative group shrink-0 rounded-md ring-1 ring-secondary bg-background flex-1"
-          >
+          <div class="w-[80%] lg:w-full relative group shrink-0 rounded-md ring-1 ring-secondary bg-background flex-1">
             <input
               :value="localValues.search"
               @input="onSearchInput"
               type="text"
-              placeholder="Cari Invoice, SKU..."
+              placeholder="Cari Invoice, SKU"
               class="w-full pl-9 pr-10 py-2 rounded-lg bg-secondary/5 border border-transparent hover:border-secondary/20 focus:bg-background focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm font-medium h-[42px]"
               :class="{ '!bg-primary/5 !border-primary/30': localValues.search }"
             />
@@ -95,11 +93,7 @@ watch(
 
             <!-- Loading Spinner or Clear -->
             <div class="absolute right-2 top-2 h-6 flex items-center justify-center mt-0.5">
-              <font-awesome-icon
-                v-if="isSearching"
-                icon="fa-solid fa-spinner"
-                class="fa-spin text-primary text-sm"
-              />
+              <font-awesome-icon v-if="isSearching" icon="fa-solid fa-spinner" class="fa-spin text-primary text-sm" />
               <button
                 v-else-if="localValues.search"
                 @click="onSearchInput({ target: { value: '' } })"
@@ -236,7 +230,9 @@ watch(
 
       <!-- Advanced Grid Filters -->
       <template #advanced v-if="isAdvancedFilterOpen">
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full pt-4 mt-2 border-t border-secondary/20 animate-fade-in">
+        <div
+          class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full pt-4 mt-2 border-t border-secondary/20 animate-fade-in"
+        >
           <!-- Date Range -->
           <div class="flex flex-col gap-1.5 w-full">
             <label class="text-[10px] font-bold text-text/50 uppercase tracking-wide">Rentang Tanggal</label>

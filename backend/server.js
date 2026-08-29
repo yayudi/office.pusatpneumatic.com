@@ -150,7 +150,8 @@ import { initFirebaseCacheListener } from "./services/firebaseSignalService.js";
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  Logger.info(`Server backend berjalan di http://localhost:${PORT}`, "SERVER");
+  const appUrl = process.env.APP_URL || `http://localhost:${PORT}`;
+  Logger.info(`Server backend berjalan di ${appUrl}`, "SERVER");
   Logger.info(`Serving static uploads from: ${path.join(__dirname, "uploads")}`, "SERVER");
   Logger.info("CORS Policy: Permissive (All Origins Allowed)", "SERVER");
 

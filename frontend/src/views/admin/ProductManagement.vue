@@ -77,13 +77,13 @@ const downloadStore = useDownloadStore()
 const isExporting = ref(false)
 
 // Bulk Edit / Inline Edit State (from composable)
-const { 
-  dirtyProducts, 
-  isSavingInline, 
-  hasDirtyProducts, 
-  handleInlineEditChange, 
-  handleCancelInlineEdit, 
-  handleBulkSaveInline 
+const {
+  dirtyProducts,
+  isSavingInline,
+  hasDirtyProducts,
+  handleInlineEditChange,
+  handleCancelInlineEdit,
+  handleBulkSaveInline
 } = useInlineSave({ fetchProducts: () => fetchProducts(), tableKeyRef: tableKey })
 
 // --- API ACTIONS (TanStack Vue Query) ---
@@ -150,7 +150,6 @@ const handleFetchMore = () => {
 }
 
 // Pagination & Sorting
-// Triggered implicitly by vue-query watching queryParams
 const handleSort = field => {
   if (sortBy.value === field) sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
   else {
@@ -309,8 +308,6 @@ const handleExport = async ({ format, includeImages }) => {
   }
 }
 
-// Inline Edit Chunking & Save Logic are handled by useInlineSave
-// To handle the custom logic of save, we pass the products list to handleBulkSaveInline
 const executeBulkSaveInline = () => {
   handleBulkSaveInline(products.value)
 }
@@ -396,7 +393,7 @@ watch(Slash, pressed => {
               v-if="hasDirtyProducts"
               @click="handleCancelInlineEdit"
               :disabled="isSavingInline"
-              class="px-5 py-2.5 bg-danger hover:bg-danger/90 text-secondary rounded-xl shadow-md font-medium flex items-center gap-2 transition-all disabled:opacity-50"
+              class="px-5 py-2.5 bg-danger hover:bg-danger/90 text-secondary rounded-xl shadow-md font-medium flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
             >
               <font-awesome-icon icon="fa-solid fa-times" />
               <span class="hidden sm:inline">Batal</span>
@@ -406,7 +403,7 @@ watch(Slash, pressed => {
             <button
               v-if="dirtyProducts.size > 0"
               @click="executeBulkSaveInline"
-              class="bg-indigo-600/90 text-white px-4 py-2 rounded-lg font-medium shadow transition hover:bg-indigo-700 disabled:opacity-50"
+              class="bg-accent/90 text-secondary px-4 py-2 rounded-lg font-medium shadow transition hover:bg-accent hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
               :disabled="isSavingInline"
             >
               <font-awesome-icon v-if="isSavingInline" icon="fa-solid fa-spinner" spin class="mr-2" />
@@ -417,7 +414,7 @@ watch(Slash, pressed => {
             <!-- Tombol Batch Edit -->
             <button
               @click="showBatchEditModal = true"
-              class="px-5 py-2.5 bg-success/10 hover:bg-success/20 text-success rounded-xl shadow-md font-medium flex items-center gap-2 transition-all border border-success/30"
+              class="px-5 py-2.5 bg-success/10 hover:bg-success/20 text-success rounded-xl shadow-md font-medium flex items-center gap-2 transition-all border border-success/30 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
               title="Edit produk secara massal (Export & Import)"
             >
               <font-awesome-icon icon="fa-solid fa-pen-to-square" />
@@ -427,7 +424,7 @@ watch(Slash, pressed => {
             <!-- Tombol Cetak Label -->
             <button
               @click="handleBulkPrintLabel"
-              class="px-5 py-2.5 bg-accent/10 hover:bg-accent/20 text-accent rounded-xl shadow-sm font-medium flex items-center gap-2 transition-all border border-accent/50"
+              class="px-5 py-2.5 bg-accent/10 hover:bg-accent/20 text-accent rounded-xl shadow-sm font-medium flex items-center gap-2 transition-all border border-accent/50 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
               title="Cetak Label untuk produk terpilih atau semua produk di halaman ini"
             >
               <font-awesome-icon icon="fa-solid fa-print" />
@@ -437,7 +434,7 @@ watch(Slash, pressed => {
             <!-- Tombol Tambah Produk -->
             <button
               @click="openAddModal"
-              class="px-5 py-2.5 bg-primary hover:bg-primary/90 text-secondary rounded-xl shadow-lg font-bold flex items-center gap-2"
+              class="px-5 py-2.5 bg-primary hover:bg-primary/90 text-secondary rounded-xl shadow-lg font-bold flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
             >
               <font-awesome-icon icon="fa-solid fa-plus" />
               <span>Tambah</span>

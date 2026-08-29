@@ -11,10 +11,9 @@ export const useMasterDataStore = defineStore('masterData', {
     locations: [],
     categories: [],
     reportFilters: null,
-    // Private promise trackers to prevent duplicate concurrent requests
     _usersPromise: null,
     _locationsPromise: null,
-    _filtersPromise: null,
+    _filtersPromise: null
   }),
 
   actions: {
@@ -24,20 +23,20 @@ export const useMasterDataStore = defineStore('masterData', {
      * @returns {Promise<Array>}
      */
     getUsers(forceRefresh = false) {
-      // 1. Return cached data if available
+      // Return cached data if available
       if (this.users.length > 0 && !forceRefresh) return Promise.resolve(this.users)
 
-      // 2. Return ongoing promise if already fetching (prevents race conditions)
+      // Return ongoing promise if already fetching (prevents race conditions)
       if (this._usersPromise && !forceRefresh) return this._usersPromise
 
-      // 3. Start new fetch and store the promise
+      // Start new fetch and store the promise
       this._usersPromise = fetchAllUsers()
-        .then((users) => {
+        .then(users => {
           this.users = users
           this._usersPromise = null
           return users
         })
-        .catch((err) => {
+        .catch(err => {
           this._usersPromise = null
           throw err
         })
@@ -55,12 +54,12 @@ export const useMasterDataStore = defineStore('masterData', {
       if (this._locationsPromise && !forceRefresh) return this._locationsPromise
 
       this._locationsPromise = fetchAllLocations()
-        .then((locs) => {
+        .then(locs => {
           this.locations = locs
           this._locationsPromise = null
           return locs
         })
-        .catch((err) => {
+        .catch(err => {
           this._locationsPromise = null
           throw err
         })
@@ -73,12 +72,12 @@ export const useMasterDataStore = defineStore('masterData', {
       if (this._categoriesPromise && !forceRefresh) return this._categoriesPromise
 
       this._categoriesPromise = fetchCategories(search)
-        .then((categories) => {
+        .then(categories => {
           this.categories = categories
           this._categoriesPromise = null
           return categories
         })
-        .catch((err) => {
+        .catch(err => {
           this._categoriesPromise = null
           throw err
         })
@@ -96,12 +95,12 @@ export const useMasterDataStore = defineStore('masterData', {
       if (this._filtersPromise && !forceRefresh) return this._filtersPromise
 
       this._filtersPromise = fetchReportFilters()
-        .then((filters) => {
+        .then(filters => {
           this.reportFilters = filters
           this._filtersPromise = null
           return filters
         })
-        .catch((err) => {
+        .catch(err => {
           this._filtersPromise = null
           throw err
         })
@@ -116,6 +115,6 @@ export const useMasterDataStore = defineStore('masterData', {
       this.users = []
       this.locations = []
       this.reportFilters = null
-    },
-  },
+    }
+  }
 })

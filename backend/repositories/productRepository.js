@@ -846,7 +846,7 @@ export const getProductMapWithComponents = async (connection, skuArray) => {
   const products = await getProductsBySkus(connection, skuArray);
   const packageIds = [];
   products.forEach((p) => {
-    productMap.set(p.sku, {
+    productMap.set(p.sku.toUpperCase(), {
       id: p.id,
       name: p.name,
       sku: p.sku,

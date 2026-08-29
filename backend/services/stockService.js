@@ -30,7 +30,7 @@ const resolveInventoryItems = async (connection, movements) => {
   const productMap = await productRepo.getProductMapWithComponents(connection, Array.from(skuSet));
 
   for (const mov of movements) {
-    const product = productMap.get(mov.sku);
+    const product = productMap.get(mov.sku.toUpperCase());
 
     if (!product) {
       throw new Error(`SKU '${mov.sku}' tidak ditemukan di database.`);
@@ -348,6 +348,7 @@ export const processBatchMovementsService = async ({
           break;
 
         case "TRANSFER_OUT":
+        case "OUTBOUND": {
           if (!srcLoc) throw new Error("Lokasi asal wajib diisi.");
           const currentStockOut = await locationRepo.getStockAtLocation(connection, productId, srcLoc, true);
           if (currentStockOut < quantity)
@@ -359,11 +360,12 @@ export const processBatchMovementsService = async ({
             quantity,
             fromLocationId: srcLoc,
             toLocationId: null,
-            type: "TRANSFER_OUT",
+            type: type === "OUTBOUND" ? "OUTBOUND" : "TRANSFER_OUT",
             userId,
             notes: itemNote,
           });
           break;
+        }
 
         case "TRANSFER_IN":
           if (!destLoc) throw new Error("Lokasi tujuan wajib diisi.");
@@ -461,7 +463,7 @@ export const processBatchOpnameService = async ({ movements, userId, userRoleId 
     let processedCount = 0;
 
     for (const mov of movements) {
-      const product = productMap.get(mov.sku);
+      const product = productMap.get(mov.sku.toUpperCase());
       if (!product) {
         throw new Error(`SKU '${mov.sku}' tidak ditemukan di database.`);
       }

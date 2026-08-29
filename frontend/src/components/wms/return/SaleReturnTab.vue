@@ -175,8 +175,6 @@ watch(Slash, pressed => {
     <!-- Top Section: Header & Actions -->
     <div class="p-6 pb-4">
       <FilterBar title="Manajemen Retur" :filters="returnFilters" v-model="filterState" @clear="handleClearFilters">
-
-
         <template #tabs>
           <!-- Custom basic tab styling since we removed BaseTabs -->
           <div class="flex gap-2">
@@ -206,7 +204,7 @@ watch(Slash, pressed => {
               ref="searchInputRef"
               v-model="searchQuery"
               type="text"
-              placeholder="Cari Invoice, SKU... (Tekan / )"
+              placeholder="Cari Invoice, SKU (Tekan / )"
               class="input-filter pl-9 w-full"
             />
           </div>
@@ -221,7 +219,7 @@ watch(Slash, pressed => {
               <font-awesome-icon icon="fa-solid fa-plus" />
               <span>Retur Manual</span>
             </button>
-            
+
             <!-- Stats / Counter -->
             <div
               class="flex items-center justify-end px-3 py-2 text-xs font-bold text-text/40 bg-secondary/5 rounded-lg border border-secondary/10"

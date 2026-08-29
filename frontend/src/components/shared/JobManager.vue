@@ -101,7 +101,7 @@ const getErrorUrl = job => {
     if (!job.errorLog) return null
     const log = typeof job.errorLog === 'string' ? JSON.parse(job.errorLog) : job.errorLog
     if (!log.download_url) return null
-    let baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+    let baseUrl = import.meta.env.VITE_API_BASE_URL || ''
     baseUrl = baseUrl.replace(/\/api$/, '')
     baseUrl = baseUrl.replace(/\/$/, '')
     return `${baseUrl}${log.download_url}`
@@ -272,6 +272,10 @@ const getErrorUrl = job => {
 
               <div class="text-xs font-bold text-text truncate mb-1">
                 {{ job.originalFilename || 'Memproses file...' }}
+              </div>
+
+              <div v-if="job.notes" class="text-[10px] text-text/60 italic mb-2 border-l-2 border-primary/30 pl-1.5 truncate" :title="job.notes">
+                {{ job.notes }}
               </div>
 
               <!-- Progress Bar -->
