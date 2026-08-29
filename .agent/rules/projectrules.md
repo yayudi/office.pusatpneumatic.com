@@ -5,50 +5,49 @@ trigger: always_on
 # SYSTEM CONTEXT: WMS & HRIS PROJECT RULES
 
 ## 1. SYSTEM IDENTITY & TECH STACK
-**Role:** Expert Full Stack Developer (Vue.js + Node.js).
-**Environment:** Shared Hosting (Strict Timeout Limits).
+**Role:** Expert Full Stack Developer (Vue.js + Golang).
+**Environment:** VPS (Virtual Private Server).
 
 ### Technology Stack
 * **Frontend:** Vue.js 3 (Composition API, `<script setup>`), Tailwind CSS.
-* **Backend:** Node.js (Express), MySQL (Library: `mysql2/promise`).
-* **Testing:** Jest (ESM Mode with `experimental-vm-modules`).
-* **Execution Constraint:** Heavy data processing **MUST** run via CLI Workers (CRON/Child Process), never via HTTP requests to avoid timeouts.
+* **Backend:** Golang (Standard Library or Gin/Fiber), MySQL (Library: `database/sql` + `sqlx` or `gorm`).
+* **Testing:** Go `testing` package.
+* **Execution Constraint:** Heavy data processing **MUST** run via CLI Workers/Goroutines, never blocking HTTP requests to avoid timeouts.
 
 ---
 
 ## 2. BACKEND ARCHITECTURE (STRICT SEPARATION)
 Adhere strictly to the **Controller-Service-Repository** pattern.
 
-### A. Repository Layer (`backend/repositories/`)
+### A. Repository Layer (`backend/repository/`)
 **Role:** SQL Query Executor ONLY.
 * **DO:**
     * Handle `SELECT`, `INSERT`, `UPDATE`, `DELETE`.
-    * Accept database `connection` as a parameter (Dependency Injection).
+    * Accept `context.Context` and database connection/transaction (`*sql.DB` or `*sql.Tx`) as parameters.
     * Use **snake_case** for raw SQL column names.
-    * Add JSDoc for every function.
-    * **SECURITY:** ALWAYS use parameterized queries (`?`) or named placeholders. NEVER use template literals (`${var}`) for values inside SQL strings.
+    * Add Godoc comments for every function.
+    * **SECURITY:** ALWAYS use parameterized queries (`?`). NEVER use string concatenation for values inside SQL strings.
 * **DO NOT:**
     * Write Business Logic.
-    * Handle Transactions (`BEGIN`, `COMMIT`, `ROLLBACK`).
-    * Import DB config directly.
+    * Handle Transactions (`BEGIN`, `COMMIT`, `ROLLBACK`) unless it's a specific transaction repository function.
+    * Import global DB config directly (use Dependency Injection).
 
-### B. Service Layer (`backend/services/`)
+### B. Service Layer (`backend/service/`)
 **Role:** The "Brain" & Orchestrator.
 * **DO:**
-    * Manage Transactions: `connection.beginTransaction()`, `commit()`, `rollback()`.
+    * Manage Transactions: Orchestrate multiple repository calls within a transaction.
     * **Audit Logging:** Log every data change.
-    * **Validation:** Validate business rules and throw standard Errors.
-    * **Transformation:** Convert DB `snake_case` results to `camelCase` for the Controller.
-    * Add JSDoc for every function.
+    * **Validation:** Validate business rules and return standard `error`.
+    * Add Godoc comments for every function.
 
-### C. Controller Layer (`backend/controllers/`)
+### C. Controller/Handler Layer (`backend/handler/`)
 **Role:** HTTP Interface.
 * **DO:**
-    * Parse requests.
-    * **Validation:** Perform structural validation (e.g. valid email, numeric quantity) BEFORE calling Services.
+    * Parse HTTP requests and bind JSON/Forms to Go structs.
+    * **Validation:** Perform structural validation (e.g. valid email, numeric quantity) BEFORE calling Services (using `validator` package).
     * Call Services.
     * Return standardized JSON responses.
-    * Catch Service errors and map to HTTP Codes (400, 404, 500).
+    * Catch Service errors and map to appropriate HTTP Status Codes (400, 404, 500).
 * **DO NOT:**
     * Write ANY SQL queries.
     * Contain complex business logic.
@@ -61,24 +60,25 @@ The Agent **MUST** read these files before generating code to prevent hallucinat
 | Context Type | File Path | Instruction |
 | :--- | :--- | :--- |
 | **DB Schema** | `.agent/context/schema.sql` | **READ FIRST.** Verify table names, columns, types, and FKs before writing SQL. |
-| **API Contract** | `.agent/context/api_docs.md` | Ensure Controllers output JSON matching these contracts. |
+| **API Contract** | `.agent/context/api_docs.md` | Ensure Handlers output JSON matching these contracts. |
 | **Business Logic** | `.agent/context/architecture.md` | Check specific WMS rules (e.g., FIFO, Stock validation). |
 
 ---
 
 ## 4. CODE STYLE & CONVENTIONS
-* **Language:** JavaScript (ESM). No TypeScript.
-* **Documentation:** **JSDoc is Mandatory** for all Repository and Service functions.
-* **Guard Clauses:** Use early returns to avoid deep nesting.
+* **Language:** Golang (Go 1.21+).
+* **Documentation:** **Godoc is Mandatory** for all exported packages, functions, and structs.
+* **Guard Clauses:** Use early returns (`if err != nil`) to avoid deep nesting.
 * **Naming Conventions:**
     * **Database Columns:** `snake_case` (e.g., `is_active`, `created_at`)
-    * **JS Variables:** `camelCase` (e.g., `isActive`, `createdAt`)
-    * **Files:** `camelCase` (e.g., `productService.js`)
+    * **Go Variables/Structs:** `camelCase` for unexported, `PascalCase` for exported (e.g., `isActive`, `CreatedAt`)
+    * **Files:** `snake_case` (e.g., `product_service.go`, `user_repository.go`)
+* **Environment Variables & Hardcoding:** NEVER hardcode URLs, credentials, or environment-specific values in the source code. All URLs (like `MEDIA_URL`, `R2_PUBLIC_URL`) MUST be fetched from the `.env` file via the config package.
 
 ---
 
 ## 5. API RESPONSE STRUCTURE
-All Controllers **MUST** return JSON in this exact format.
+All Handlers **MUST** return JSON in this exact format.
 
 ### Frontend Integration Rule
 Frontend API fetchers **MUST** inspect `response.success`. If `false`, throw the `message` to the UI error handler. Do not blindly assume 200 OK means success.
@@ -92,7 +92,7 @@ Frontend API fetchers **MUST** inspect `response.success`. If `false`, throw the
 }
 ```
 
-**Success:**
+**Error:**
 ```json
 {
   "success": false,
@@ -101,79 +101,61 @@ Frontend API fetchers **MUST** inspect `response.success`. If `false`, throw the
 }
 ```
 
+---
 
-## 6. TESTING STRATEGY (JEST ESM ARCHITECTURE)
-The project uses **Native ESM** with Jest. Standard CommonJS mocking (`jest.mock`) will **NOT** work.
+## 6. TESTING STRATEGY (GO TESTING)
+The project uses the standard Go `testing` package.
 
 ### A. Environment Configuration
-* **Flag:** Tests must run with `NODE_OPTIONS=--experimental-vm-modules`.
-* **File Extension:** Test files must end in `.test.js`.
+* **File Extension:** Test files must end in `_test.go`.
+* **Execution:** Run tests using `go test ./...`.
 
-### B. Mocking Strategy (Strict ESM)
-* **Method:** Use `jest.unstable_mockModule('module-name', factory)` **BEFORE** dynamic imports.
-* **Pattern:**
-    ```javascript
-    // 1. Mock first
-    await jest.unstable_mockModule('../repositories/userRepository.js', () => ({
-      findUserByEmail: jest.fn(),
-    }));
-
-    // 2. Import module under test dynamically
-    const { login } = await import('../services/authService.js');
-    ```
+### B. Mocking Strategy
+* **Method:** Use interfaces for Repositories and Services. Generate mocks using `mockgen` or write manual mock structs to satisfy interfaces.
+* **Pattern:** Inject mock dependencies into the Service/Handler during test initialization.
 
 ### C. Isolation Rules
-1.  **NO Real Database:** Never import the real DB config. Mock the DB Connection object entirely.
-2.  **File System:** Mock `fs` and `fs/promises` to prevent creating junk files during tests.
-
-### D. Path Resolution in Tests
-* **Constraint:** When testing inside `backend/tests/`, imports from root configs/utils must use **`../` (one level up)**.
-    * *Correct:* `import { db } from '../config/database.js';`
-    * *Incorrect:* `../../config/database.js` (Do not traverse too far back).
+1.  **NO Real Database:** For unit tests, mock the Repository interface entirely. Integration tests can use isolated DB instances (e.g., testcontainers).
+2.  **File System:** Use `afero` or standard Go `testing/fstest` to mock file systems during tests to prevent creating junk files.
 
 ---
 
 ## 7. WORKER SYSTEM (CLI & BACKGROUND JOBS)
-**Context:** Shared hosting has strict HTTP timeouts. Heavy processes (e.g., Payroll calculation, Stock Opname) **MUST** run as CLI scripts, not HTTP requests.
+**Context:** VPS. Heavy processes (e.g., Payroll calculation, Stock Opname) **MUST** run as CLI scripts or Daemon, not blocking HTTP requests.
 
 ### A. Execution Context
-* **Entry Point:** All workers reside in `backend/scripts/workers/`.
-* **Trigger:** Executed via CRON jobs or Node.js `child_process` spawned by the Controller.
+* **Entry Point:** Goroutines for in-process background tasks, or separate CLI binaries in `cmd/worker/`.
+* **Trigger:** Executed via CRON jobs invoking the CLI binary, or internal task queues.
 
 ### B. Path Safety (CRITICAL)
-**Problem:** Relative paths (`./file`) break in CRON/Worker environments because the `cwd` (Current Working Directory) varies.
-**Rule:** Always construct absolute paths using `path.resolve` or `import.meta.url`.
+**Problem:** Relative paths (`./file`) break in CLI/Worker environments because the execution directory varies.
+**Rule:** Use absolute paths based on configuration or executable location.
 
 * **DO NOT:**
-    ```javascript
-    const file = fs.readFileSync('./data/export.csv'); // WILL FAIL
+    ```go
+    file, err := os.Open("./data/export.csv") // WILL FAIL if executed from different dir
     ```
 * **DO:**
-    ```javascript
-    import path from 'path';
-    const __dirname = path.dirname(new URL(import.meta.url).pathname);
-    const filePath = path.resolve(__dirname, '../../storage/exports/data.csv');
+    ```go
+    execPath, _ := os.Executable()
+    baseDir := filepath.Dir(execPath)
+    filePath := filepath.Join(baseDir, "../../storage/exports/data.csv")
     ```
-
-### C. Testing Workers
-* Since workers use absolute paths, assertions in Jest must use loose matching:
-    * **Use:** `expect(path).toEqual(expect.stringContaining('backend/storage'))`
-    * **Avoid:** Hardcoded full paths.
 
 ---
 
 ## 8. DEPENDENCY MANAGEMENT (STRICT)
-**Context:** To prevent bloat, security risks, and compatibility issues, no new packages should be added without explicit approval.
+**Context:** To prevent bloat, security risks, and compatibility issues, no new modules should be added without explicit approval.
 
 ### A. No Silent Installs
-* **Rule:** The Agent **MUST NOT** install any new NPM package (e.g., `npm install x`) without first asking for permission.
+* **Rule:** The Agent **MUST NOT** install any new Go module (e.g., `go get x`) without first asking for permission.
 * **Procedure:**
-    1.  Check if an existing package can solve the problem (Read `package.json`).
+    1.  Check if an existing package can solve the problem (Read `go.mod`).
     2.  If not, propose the new package with a justification.
     3.  Wait for user confirmation (Yes/No).
 
 ### B. Verification First
-* **Proof of Awareness:** Before suggesting a new library, the Agent must prove it has read `package.json` to verify the library doesn't already exist or a similar one isn't available.
+* **Proof of Awareness:** Before suggesting a new library, the Agent must prove it has read `go.mod` to verify the library doesn't already exist or a similar one isn't available.
 
 ---
 
