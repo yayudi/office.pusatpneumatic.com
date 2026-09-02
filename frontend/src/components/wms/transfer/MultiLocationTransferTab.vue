@@ -32,8 +32,19 @@ const productSearchRef = ref(null)
 const stockDetails = ref([]) // Stok untuk produk yang dipilih
 const isLoadingDetails = ref(false)
 
-const fromLocation = useLocalStorage('draft-ml-from', null)
-const toLocation = useLocalStorage('draft-ml-to', null)
+const objectSerializer = {
+  read: (v) => {
+    try {
+      return v === 'null' || !v ? null : JSON.parse(v)
+    } catch {
+      return null
+    }
+  },
+  write: (v) => JSON.stringify(v)
+}
+
+const fromLocation = useLocalStorage('draft-ml-from', null, { serializer: objectSerializer })
+const toLocation = useLocalStorage('draft-ml-to', null, { serializer: objectSerializer })
 const quantity = useLocalStorage('draft-ml-qty', 1)
 
 // --- FUNGSI FORM PENAMBAHAN ---

@@ -85,6 +85,14 @@ graphify-out
 # ===================================================================
 /backend-node/
 
+# Go Binaries
+/backend/*.exe
+/backend/tmp_build
+/backend/tmp_build.exe
+/backend/wmhris
+/backend/api
+/backend/worker
+
 # PHP & Legacy
 /backend/**/*.php
 /backend/**/*.py

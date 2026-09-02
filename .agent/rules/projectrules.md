@@ -180,3 +180,13 @@ The project uses the standard Go `testing` package.
     2. Maintain the `.gitignore` rules rigorously, especially the "SECURITY & SECRETS" and "BACKUPS & ARCHIVES" blocks.
     3. Do not commit `.pem`, `.key`, `.sqlite`, `.db`, `*.zip`, or accidental database `.sql` dumps to the root directory.
     4. Regularly scan `git status` when asked, and if any untracked or tracked sensitive file is found, warn the user and add it to `.gitignore`.
+
+---
+
+## 11. BACKEND-NODE AS THE SOURCE OF TRUTH (CRITICAL)
+**Context:** We are refactoring from an existing Node.js architecture (`backend-node`) to Golang (`backend`).
+* **Rule:** You MUST NOT invent new endpoints, schemas, or behaviors that did not exist in the Node.js implementation. The `backend-node` folder is the ABSOLUTE SOURCE OF TRUTH.
+* **Procedure:**
+    1. Before starting any new module or phase, you MUST analyze the corresponding router, controller, service, and repository inside `backend-node/`.
+    2. Ensure that the Go implementation precisely matches the Node.js implementation in terms of endpoint paths, logic, and response structures.
+    3. Use `graphify-out` to efficiently trace dependencies and business logic within `backend-node/` before writing Go code.

@@ -8,9 +8,10 @@ import (
 )
 
 type Config struct {
-	Port  string
-	Env   string
-	DBDSN string
+	Port      string
+	Env       string
+	DBDSN     string
+	JWTSecret string
 }
 
 var AppConfig Config
@@ -22,9 +23,10 @@ func LoadConfig() {
 	}
 
 	AppConfig = Config{
-		Port:  getEnv("PORT", "8080"),
-		Env:   getEnv("ENV", "development"),
-		DBDSN: getEnv("DB_DSN", ""),
+		Port:      getEnv("PORT", "8080"),
+		Env:       getEnv("ENV", "development"),
+		DBDSN:     getEnv("DB_DSN", ""),
+		JWTSecret: getEnv("JWT_SECRET", "default_secret_key"),
 	}
 
 	if AppConfig.DBDSN == "" {

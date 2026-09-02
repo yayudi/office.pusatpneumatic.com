@@ -49,8 +49,19 @@ watch(Alt_S, pressed => {
 })
 
 // --- STATE FORM BATCH (untuk header) ---
-const fromLocation = useLocalStorage('draft-bm-from', null)
-const toLocation = useLocalStorage('draft-bm-to', null)
+const objectSerializer = {
+  read: (v) => {
+    try {
+      return v === 'null' || !v ? null : JSON.parse(v)
+    } catch {
+      return null
+    }
+  },
+  write: (v) => JSON.stringify(v)
+}
+
+const fromLocation = useLocalStorage('draft-bm-from', null, { serializer: objectSerializer })
+const toLocation = useLocalStorage('draft-bm-to', null, { serializer: objectSerializer })
 const notes = useLocalStorage('draft-bm-notes', '')
 
 // Ambil data lokasi
