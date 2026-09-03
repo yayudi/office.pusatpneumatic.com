@@ -13,6 +13,7 @@ type JobRepository interface {
 	GetImportJobs(ctx context.Context, limit int, offset int) ([]model.ImportJob, error)
 	GetImportJobByID(ctx context.Context, id int) (*model.ImportJob, error)
 	UpdateImportJobStatus(ctx context.Context, id int, status string, logSummary *string, errorLog *string) error
+	UpdateImportJobProgress(ctx context.Context, id int, processed int, total int) error
 	GetPendingImportJobs(ctx context.Context) ([]model.ImportJob, error)
 
 	// Export Jobs
@@ -70,8 +71,15 @@ func (r *jobRepositoryImpl) UpdateImportJobStatus(ctx context.Context, id int, s
 	return err
 }
 
+func (r *jobRepositoryImpl) UpdateImportJobProgress(ctx context.Context, id int, processed int, total int) error {
+	_, err := r.db.ExecContext(ctx,
+		"UPDATE import_jobs SET processed_records = ?, total_records = ?, status = 'PROCESSING' WHERE id = ?",
+		processed, total, id)
+	return err
+}
+
 func (r *jobRepositoryImpl) GetPendingImportJobs(ctx context.Context) ([]model.ImportJob, error) {
-	query := `SELECT * FROM import_jobs WHERE status = 'PENDING' ORDER BY created_at ASC`
+	query := `SELECT * FROM import_jobs WHERE status IN ('PENDING', 'PROCESSING') ORDER BY created_at ASC`
 	var jobs []model.ImportJob
 	err := r.db.SelectContext(ctx, &jobs, query)
 	return jobs, err

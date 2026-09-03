@@ -31,7 +31,7 @@ func timeToMinutes(t time.Time) int {
 }
 
 // ParseAttendanceCSV parses the exported DAT/CSV file from attendance machine.
-func ParseAttendanceCSV(filepath string) (map[string]*UserAttendance, error) {
+func ParseAttendanceCSV(filepath string, thresholds map[string]int) (map[string]*UserAttendance, error) {
 	file, err := os.Open(filepath)
 	if err != nil {
 		return nil, err
@@ -183,7 +183,7 @@ func ParseAttendanceCSV(filepath string) (map[string]*UserAttendance, error) {
 
 		user.SourceRows = append(user.SourceRows, excelRow)
 		
-		logType := determineLogType(minutes, dateObj.Weekday(), user.Days[dayKey].Logs)
+		logType := determineLogType(minutes, dateObj.Weekday(), user.Days[dayKey].Logs, thresholds)
 		if logType != "" {
 			user.Days[dayKey].Logs = append(user.Days[dayKey].Logs, AttendanceRawLog{
 				Minutes: minutes,
@@ -196,14 +196,20 @@ func ParseAttendanceCSV(filepath string) (map[string]*UserAttendance, error) {
 }
 
 // Logic based on wmsConstants
-func determineLogType(minutes int, weekday time.Weekday, existingLogs []AttendanceRawLog) string {
-	// Harcoded constants for now. Should ideally be fetched from DB or config.
-	RANGE_MASUK_MULAI := 5 * 60     // 05:00
-	RANGE_MASUK_SELESAI := 11 * 60  // 11:00
-	RANGE_ISTIRAHAT_MULAI := 11 * 60 + 30 // 11:30
-	RANGE_ISTIRAHAT_SELESAI := 13 * 60 + 30 // 13:30
-	BATAS_PULANG_SABTU := 14 * 60   // 14:00
-	BATAS_PULANG_BIASA := 16 * 60   // 16:00
+func determineLogType(minutes int, weekday time.Weekday, existingLogs []AttendanceRawLog, thresholds map[string]int) string {
+	getThreshold := func(key string, defaultVal int) int {
+		if val, exists := thresholds[key]; exists {
+			return val
+		}
+		return defaultVal
+	}
+
+	RANGE_MASUK_MULAI := getThreshold("RANGE_MASUK_MULAI", 5*60)
+	RANGE_MASUK_SELESAI := getThreshold("RANGE_MASUK_SELESAI", 11*60)
+	RANGE_ISTIRAHAT_MULAI := getThreshold("RANGE_ISTIRAHAT_MULAI", 11*60+30)
+	RANGE_ISTIRAHAT_SELESAI := getThreshold("RANGE_ISTIRAHAT_SELESAI", 13*60+30)
+	BATAS_PULANG_SABTU := getThreshold("BATAS_PULANG_SABTU", 14*60)
+	BATAS_PULANG_BIASA := getThreshold("BATAS_PULANG_BIASA", 16*60)
 
 	if minutes >= RANGE_MASUK_MULAI && minutes <= RANGE_MASUK_SELESAI {
 		return "in"

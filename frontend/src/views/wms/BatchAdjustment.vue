@@ -36,6 +36,15 @@ const isDownloading = ref(false)
 onMounted(async () => {
   isLoading.value = true
   try {
+    if (
+      adjustmentLocation.value === '[object Object]' ||
+      (typeof adjustmentLocation.value === 'object' &&
+        adjustmentLocation.value !== null &&
+        !adjustmentLocation.value.id)
+    ) {
+      adjustmentLocation.value = null
+    }
+
     myLocations.value = await fetchMyLocations()
     await loadImportHistory()
   } catch (e) {
@@ -289,7 +298,12 @@ watch(Alt_S, pressed => {
         @add-product="handleAddProduct"
       />
 
-      <BatchItemList :items="batchList" active-tab="ADJUSTMENT" @remove-item="removeFromBatch" @duplicate-item="duplicateFromBatch" />
+      <BatchItemList
+        :items="batchList"
+        active-tab="ADJUSTMENT"
+        @remove-item="removeFromBatch"
+        @duplicate-item="duplicateFromBatch"
+      />
 
       <div class="flex justify-end pt-6 border-t border-secondary/20">
         <button

@@ -6,44 +6,15 @@ import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 
-const activeTab = ref('fitur')
+const activeTab = ref('panduan')
 const activeGuide = ref('pwa')
 
 const tabs = [
-  { value: 'fitur', label: 'Fitur Baru', icon: 'fa-solid fa-timeline' },
   { value: 'panduan', label: 'Panduan', icon: 'fa-solid fa-book-open' },
   { value: 'faq', label: 'FAQ', icon: 'fa-solid fa-circle-question' }
 ]
 
-const timelineFeatures = ref([])
-const isLoadingTimeline = ref(false)
 
-const fetchTimeline = async () => {
-  isLoadingTimeline.value = true
-  try {
-    const { data } = await api.get('/changelogs')
-    if (data.success) {
-      timelineFeatures.value = data.data.map(log => {
-        const d = new Date(log.releaseDate)
-        const dateStr = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
-        return {
-          date: dateStr,
-          title: `[${log.version}] ${log.title}`,
-          desc: log.description,
-          type: log.type
-        }
-      })
-    }
-  } catch (error) {
-    console.error('Failed to fetch changelog:', error)
-  } finally {
-    isLoadingTimeline.value = false
-  }
-}
-
-onMounted(() => {
-  fetchTimeline()
-})
 
 const hotkeys = [
   { group: 'Navigasi Global', keys: ['Alt', '1 - 5'], desc: 'Pindah antar modul utama (WMS, Media, Absensi, dll).' },
@@ -181,42 +152,7 @@ const faqCategories = [
         <BaseTabs :tabs="tabs" v-model="activeTab" />
       </div>
 
-      <!-- TAB CONTENT: FITUR (TIMELINE) -->
-      <div v-show="activeTab === 'fitur'" class="animate-fade-in space-y-2">
-        <div v-if="isLoadingTimeline" class="flex flex-col items-center justify-center py-12 text-primary">
-          <font-awesome-icon icon="fa-solid fa-circle-notch" class="animate-spin text-4xl mb-4" />
-          <p class="text-sm font-bold animate-pulse">Memuat riwayat pembaruan...</p>
-        </div>
-        <div v-else class="relative border-l-2 border-secondary/20 ml-3 md:ml-4 py-2">
-          <div v-for="(feat, idx) in timelineFeatures" :key="idx" class="mb-10 ml-8 relative group">
-            <!-- Timeline Dot -->
-            <div
-              class="absolute -left-[41px] md:-left-[43px] top-1 h-5 w-5 rounded-full border-4 border-background bg-primary shadow-sm group-hover:scale-125 transition-transform duration-300"
-            ></div>
 
-            <!-- Content -->
-            <div
-              class="bg-secondary/5 rounded-2xl p-5 border border-secondary/10 hover:border-primary/30 transition-colors shadow-sm"
-            >
-              <span class="text-xs font-bold px-2.5 py-1 bg-primary/10 text-primary rounded-full mb-3 inline-block">
-                {{ feat.date }}
-              </span>
-              <h3 class="text-xl font-bold text-text mb-2">{{ feat.title }}</h3>
-              <p class="text-text/80 leading-relaxed text-sm">
-                {{ feat.desc }}
-              </p>
-            </div>
-          </div>
-
-          <!-- End Node -->
-          <div class="ml-8 relative">
-            <div
-              class="absolute -left-[39px] md:-left-[41px] top-1 h-4 w-4 rounded-full border-4 border-background bg-secondary/30"
-            ></div>
-            <p class="text-xs text-text/40 font-bold italic">Awal sejarah versi tercatat.</p>
-          </div>
-        </div>
-      </div>
 
       <!-- TAB CONTENT: PANDUAN -->
       <div v-show="activeTab === 'panduan'" class="animate-fade-in">

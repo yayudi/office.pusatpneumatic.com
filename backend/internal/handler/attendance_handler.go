@@ -2,8 +2,11 @@ package handler
 
 import (
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 
+	"github.com/dps-wmhris/backend/internal/config"
 	"github.com/dps-wmhris/backend/internal/dto"
 	"github.com/dps-wmhris/backend/internal/service"
 	"github.com/gin-gonic/gin"
@@ -105,9 +108,7 @@ func (h *AttendanceHandler) UploadLogs(c *gin.Context) {
 		return
 	}
 
-	// For simplicity, pretend userID is 1 for now since auth isn't fully ported
-	// Replace with actual context user ID later
-	userID := 1
+	userID := getUserID(c)
 
 	dryRunStr := c.PostForm("dryRun")
 	isDryRun := dryRunStr == "true" || dryRunStr == "1"
@@ -127,9 +128,10 @@ func (h *AttendanceHandler) UploadLogs(c *gin.Context) {
 		finalNotes = defaultNotes + " | " + notes
 	}
 
-	// Create temp directory for uploads if not exists
-	// Using a hardcoded path for simplicity in matching Node.js behavior
-	uploadDir := "./storage/uploads/"
+	uploadDir := filepath.Join(config.AppConfig.StoragePath, "uploads", "attendance") + string(filepath.Separator)
+	// Ensure directory exists
+	os.MkdirAll(uploadDir, os.ModePerm)
+	
 	filepath := uploadDir + file.Filename
 	
 	if err := c.SaveUploadedFile(file, filepath); err != nil {

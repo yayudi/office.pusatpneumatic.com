@@ -11,7 +11,8 @@ type Config struct {
 	Port      string
 	Env       string
 	DBDSN     string
-	JWTSecret string
+	JWTSecret   string
+	StoragePath string
 }
 
 var AppConfig Config
@@ -26,7 +27,8 @@ func LoadConfig() {
 		Port:      getEnv("PORT", "8080"),
 		Env:       getEnv("ENV", "development"),
 		DBDSN:     getEnv("DB_DSN", ""),
-		JWTSecret: getEnv("JWT_SECRET", "default_secret_key"),
+		JWTSecret:   getEnv("JWT_SECRET", "default_secret_key"),
+		StoragePath: getEnv("STORAGE_PATH", "./storage"),
 	}
 
 	if AppConfig.DBDSN == "" {

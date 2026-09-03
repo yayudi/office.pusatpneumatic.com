@@ -12,6 +12,7 @@ import BasePagination from '@/components/ui/BasePagination.vue'
 import { useMobile } from '@/composables/useMobile.js'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { usePagination } from '@/composables/usePagination.js'
+import { generateDynamicExportName } from '@/utils/formatters.js'
 
 const masterData = useMasterDataStore()
 const downloadStore = useDownloadStore()
@@ -139,8 +140,15 @@ async function handleExport() {
     return
   }
   
-  exportLoading.value = true
   try {
+    exportLoading.value = true
+    const parts = [
+      startDate.value && endDate.value ? `${startDate.value}_to_${endDate.value}` : null,
+      searchProduct.value ? searchProduct.value.substring(0, 15) : null,
+      searchType.value.include?.join('_')
+    ]
+    const exportName = generateDynamicExportName('batch_log', parts)
+
     const filters = {
       productName: searchProduct.value,
       movementType: JSON.stringify(searchType.value),
@@ -148,7 +156,8 @@ async function handleExport() {
       destinationLocation: JSON.stringify(searchDestinationLocation.value),
       user: searchUser.value,
       notes: searchNotes.value,
-      format: 'xlsx'
+      format: 'xlsx',
+      exportName: exportName
     }
 
     await requestBatchLogExport(startDate.value, endDate.value, filters)

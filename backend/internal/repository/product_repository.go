@@ -518,7 +518,7 @@ func (r *productRepositoryImpl) GetProductStockDetails(ctx context.Context, id i
 func (r *productRepositoryImpl) GetProductHistory(ctx context.Context, id int) ([]dto.ProductHistoryResponse, error) {
 	query := `
 		SELECT 
-			a.id, a.action, u.name as user_name, a.created_at
+			a.id, a.action, u.nickname as user_name, a.created_at
 		FROM product_audit_logs a
 		LEFT JOIN users u ON a.user_id = u.id
 		WHERE a.product_id = ?
@@ -712,7 +712,7 @@ func (r *productRepositoryImpl) GetSumOfNewerStockMovements(ctx context.Context,
 }
 
 func (r *productRepositoryImpl) GetProductStockMovementsPaginated(ctx context.Context, productID int, limit int, offset int, buildings []string) ([]RawStockMovement, error) {
-	builder := sq.Select("sm.id", "sm.quantity", "sm.from_location_id", "sm.to_location_id", "sm.movement_type", "sm.notes", "sm.created_at", "u.name as user_name", "l_from.building as from_building", "l_to.building as to_building").
+	builder := sq.Select("sm.id", "sm.quantity", "sm.from_location_id", "sm.to_location_id", "sm.movement_type", "sm.notes", "sm.created_at", "u.nickname as user_name", "l_from.building as from_building", "l_to.building as to_building").
 		From("stock_movements sm").
 		LeftJoin("users u ON sm.user_id = u.id").
 		LeftJoin("locations l_from ON sm.from_location_id = l_from.id").

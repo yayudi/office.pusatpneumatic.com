@@ -100,27 +100,19 @@ func (s *storageServiceImpl) UploadFile(ctx context.Context, fileContent []byte,
 		folder = "exports"
 	}
 
-	parts := strings.Split(originalName, ".")
-	ext := parts[len(parts)-1]
-	if len(parts) == 1 {
-		ext = ""
-	}
-
-	randomStr := uuid.New().String()
 	timestamp := time.Now().UnixMilli()
-
-	uniqueFileName := fmt.Sprintf("%s/%d-%s", folder, timestamp, randomStr)
-	if ext != "" {
-		uniqueFileName += "." + ext
-	}
+	
+	// Gunakan timestamp + originalName agar rapi namun tetap unik
+	uniqueFileName := fmt.Sprintf("%s/%d-%s", folder, timestamp, originalName)
 
 	bucketName := os.Getenv("R2_BUCKET_NAME")
 
 	_, err := config.R2Client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:      aws.String(bucketName),
-		Key:         aws.String(uniqueFileName),
-		Body:        strings.NewReader(string(fileContent)),
-		ContentType: aws.String(mimeType),
+		Bucket:             aws.String(bucketName),
+		Key:                aws.String(uniqueFileName),
+		Body:               strings.NewReader(string(fileContent)),
+		ContentType:        aws.String(mimeType),
+		ContentDisposition: aws.String(fmt.Sprintf("attachment; filename=\"%s\"", originalName)),
 	})
 
 	if err != nil {

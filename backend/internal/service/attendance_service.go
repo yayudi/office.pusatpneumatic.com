@@ -27,7 +27,7 @@ type AttendanceService interface {
 	GetRangeData(ctx context.Context, startDate, endDate string) (*dto.AttendanceRangeResponse, error)
 	GetMonthlyData(ctx context.Context, year, month int) (*dto.AttendanceRangeResponse, error)
 	UpdateLog(ctx context.Context, req dto.UpdateLogRequest) error
-	ProcessImport(ctx context.Context, jobID int, filePath string, isDryRun bool) error
+	ProcessImport(ctx context.Context, jobID int, filePath string, isDryRun bool) (string, error)
 }
 
 type attendanceServiceImpl struct {
@@ -35,14 +35,16 @@ type attendanceServiceImpl struct {
 	userRepo       repository.UserRepository
 	shiftRepo      repository.ShiftRepository
 	scheduleRepo   repository.ScheduleRepository
+	settingRepo    repository.SettingRepository
 }
 
-func NewAttendanceService(attendanceRepo repository.AttendanceRepository, userRepo repository.UserRepository, shiftRepo repository.ShiftRepository, scheduleRepo repository.ScheduleRepository) AttendanceService {
+func NewAttendanceService(attendanceRepo repository.AttendanceRepository, userRepo repository.UserRepository, shiftRepo repository.ShiftRepository, scheduleRepo repository.ScheduleRepository, settingRepo repository.SettingRepository) AttendanceService {
 	return &attendanceServiceImpl{
 		attendanceRepo: attendanceRepo,
 		userRepo:       userRepo,
 		shiftRepo:      shiftRepo,
 		scheduleRepo:   scheduleRepo,
+		settingRepo:    settingRepo,
 	}
 }
 
@@ -219,12 +221,29 @@ func timeToMinutes(timeStr string) int {
 	return 0
 }
 
-func (s *attendanceServiceImpl) ProcessImport(ctx context.Context, jobID int, filePath string, isDryRun bool) error {
+func minToTimeString(minutes int) string {
+	return fmt.Sprintf("%02d:%02d:00", minutes/60, minutes%60)
+}
+
+func (s *attendanceServiceImpl) ProcessImport(ctx context.Context, jobID int, filePath string, isDryRun bool) (string, error) {
 	log.Printf("Memproses import absensi: %s", filePath)
 
-	data, err := parser.ParseAttendanceCSV(filePath)
+	// Fetch settings for attendance thresholds
+	settingsMap, err := s.settingRepo.GetSettingsAsMap(ctx)
 	if err != nil {
-		return fmt.Errorf("gagal memparsing CSV absensi: %v", err)
+		log.Printf("Gagal mengambil konfigurasi absensi: %v", err)
+	}
+	
+	thresholds := make(map[string]int)
+	for k, v := range settingsMap {
+		if v.ValueInt != nil {
+			thresholds[k] = *v.ValueInt
+		}
+	}
+
+	data, err := parser.ParseAttendanceCSV(filePath, thresholds)
+	if err != nil {
+		return "", fmt.Errorf("gagal memparsing CSV absensi: %v", err)
 	}
 
 	log.Printf("Berhasil memparsing %d user dari CSV", len(data))
@@ -235,13 +254,93 @@ func (s *attendanceServiceImpl) ProcessImport(ctx context.Context, jobID int, fi
 
 	if isDryRun {
 		log.Println("Dry run absensi selesai. Tidak ada perubahan yang disimpan.")
-		return nil
+		return fmt.Sprintf("Validasi sukses untuk %d baris/user", len(data)), nil
 	}
 
-	// Simulasi DB save (batch insert/update should go here)
-	log.Println("Import absensi berhasil disimpan ke DB (Simulation)")
+	successCount := 0
+	for idStr, userAttendance := range data {
+		// Match based on Name first, fallback to ID
+		user, err := s.userRepo.FindByUsername(ctx, userAttendance.Name)
+		if err != nil {
+			user, err = s.userRepo.FindByUsername(ctx, idStr)
+			if err != nil {
+				log.Printf("Skip user ID %s (Name: %s): tidak ditemukan di DB", idStr, userAttendance.Name)
+				continue
+			}
+		}
 
-	return nil
+		// Cache shift default per user
+		defaultShift, _ := s.shiftRepo.GetUserShift(ctx, user.Username)
+
+		for dateStr, dailyLog := range userAttendance.Days {
+			var checkIn *string
+			var checkOut *string
+			inMins := -1
+			outMins := -1
+
+			for _, l := range dailyLog.Logs {
+				if l.LogType == "in" && inMins == -1 {
+					inMins = l.Minutes
+					t := minToTimeString(inMins)
+					checkIn = &t
+				}
+				if l.LogType == "out" {
+					outMins = l.Minutes
+					t := minToTimeString(outMins)
+					checkOut = &t
+				}
+			}
+
+			// Get schedule for the day
+			var shift *model.Shift
+			schedule, err := s.scheduleRepo.GetByDate(ctx, user.ID, dateStr)
+			if err == nil && schedule != nil {
+				shift = &model.Shift{
+					StartTime:       schedule.StartTime,
+					EndTime:         schedule.EndTime,
+					FlexibleMinutes: schedule.FlexibleMinutes,
+				}
+			} else {
+				shift = defaultShift
+			}
+
+			latenessMinutes := 0
+			overtimeMinutes := 0
+
+			if shift != nil {
+				shiftStartMin := timeToMinutes(shift.StartTime)
+				shiftEndMin := timeToMinutes(shift.EndTime)
+				tolerance := shift.FlexibleMinutes
+
+				if inMins != -1 && inMins > (shiftStartMin+tolerance) {
+					latenessMinutes = inMins - shiftStartMin
+				}
+				if outMins != -1 && outMins > shiftEndMin {
+					overtimeMinutes = outMins - shiftEndMin
+				}
+			}
+
+			status := "HADIR"
+			logEntry := &model.AttendanceLog{
+				Username:        user.Username,
+				Date:            dateStr,
+				CheckIn:         checkIn,
+				CheckOut:        checkOut,
+				LatenessMinutes: latenessMinutes,
+				OvertimeMinutes: overtimeMinutes,
+				Status:          &status,
+			}
+
+			if err := s.attendanceRepo.UpsertLog(ctx, logEntry); err != nil {
+				log.Printf("Gagal insert log absensi %s tgl %s: %v", user.Username, dateStr, err)
+			}
+		}
+		successCount++
+	}
+
+	log.Printf("Import absensi berhasil disimpan ke DB untuk %d user", successCount)
+
+	return fmt.Sprintf("Berhasil mengimpor data untuk %d user", successCount), nil
 }
 
 func (s *attendanceServiceImpl) UpdateLog(ctx context.Context, req dto.UpdateLogRequest) error {

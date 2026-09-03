@@ -93,7 +93,6 @@ const { floatingStyles } = useFloating(triggerRef, dropdownRef, {
   ]
 })
 
-
 // --- COMPUTED ---
 const displayValue = computed(() => {
   if (props.multiple) return ''
@@ -137,11 +136,11 @@ const isPlaceholderState = computed(() => {
 const { selectedIndex, handleNavigation } = useListNavigation(
   dropdownRef,
   filteredOptions,
-  (option) => select(option),
+  option => select(option),
   '.select-option'
 )
 
-const handleKeydown = (event) => {
+const handleKeydown = event => {
   if (!isOpen.value) {
     if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault()
@@ -149,7 +148,7 @@ const handleKeydown = (event) => {
     }
     return
   }
-  
+
   if (event.key === 'Escape') {
     close()
     triggerRef.value?.focus()
@@ -234,11 +233,14 @@ function removeTag(item, event) {
 
 function findIndex(array, val) {
   return array.findIndex(item => {
-    if (typeof item === 'object' && typeof val === 'object' && props.trackBy) {
+    const isItemObj = item !== null && typeof item === 'object'
+    const isValObj = val !== null && typeof val === 'object'
+    if (isItemObj && isValObj && props.trackBy) {
       if (item[props.trackBy] !== undefined) {
         return item[props.trackBy] == val[props.trackBy]
       }
     }
+    if (isItemObj !== isValObj) return false
     return item == val
   })
 }
@@ -249,11 +251,17 @@ function isSelected(option) {
     return findIndex(selectedItems.value, val) !== -1
   }
   if (props.modelValue == null || props.modelValue === '') return false
-  if (typeof props.modelValue === 'object' && typeof val === 'object' && props.trackBy) {
+
+  const isModelObj = props.modelValue !== null && typeof props.modelValue === 'object'
+  const isValObj = val !== null && typeof val === 'object'
+
+  if (isModelObj && isValObj && props.trackBy) {
     if (props.modelValue[props.trackBy] !== undefined) {
       return props.modelValue[props.trackBy] == val[props.trackBy]
     }
   }
+
+  if (isModelObj !== isValObj) return false
   return props.modelValue == val
 }
 

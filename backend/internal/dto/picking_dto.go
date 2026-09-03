@@ -18,7 +18,7 @@ type CompletePickingRequest struct {
 }
 
 type RetryBackordersBatchRequest struct {
-	PickingListIDs []int `json:"pickingListIds" validate:"required"`
+	PickingListIDs []int `json:"pickingListIds"`
 }
 
 // ==========================================

@@ -2,7 +2,7 @@
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <h2 class="text-2xl font-bold leading-7 text-text sm:truncate sm:text-3xl sm:tracking-tight">
-        Analisis Duplikasi Barang
+        Sebaran Stok & Penempatan
       </h2>
       <div class="flex space-x-3">
         <button
@@ -70,7 +70,7 @@
         <dd class="mt-1 text-3xl font-semibold tracking-tight text-text">{{ avgProductsPerLocation }}</dd>
       </div>
       <div class="overflow-hidden rounded-lg bg-background px-4 py-5 shadow-sm border border-secondary/20 sm:p-6">
-        <dt class="truncate text-sm font-medium text-text/60">Produk Terduplikasi</dt>
+        <dt class="truncate text-sm font-medium text-text/60">Produk Tersebar</dt>
         <dd class="mt-1 text-3xl font-semibold tracking-tight text-text">{{ duplicateProducts.length }}</dd>
       </div>
       <div class="overflow-hidden rounded-lg bg-background px-4 py-5 shadow-sm border border-secondary/20 sm:p-6">
@@ -154,10 +154,10 @@
         </div>
       </div>
 
-      <!-- Data Table: Duplikasi Lokasi -->
+      <!-- Data Table: Sebaran Lokasi -->
       <div class="bg-background rounded-lg shadow-sm border border-secondary/20 overflow-hidden flex flex-col">
         <div class="px-4 py-5 sm:px-6 border-b border-secondary/20">
-          <h3 class="text-base font-semibold leading-6 text-text">Produk Terduplikasi (Berdasarkan Purpose)</h3>
+          <h3 class="text-base font-semibold leading-6 text-text">Sebaran Penempatan Produk (Berdasarkan Purpose)</h3>
           <p class="mt-1 text-sm text-text/60">
             Produk yang disimpan di lebih dari satu lokasi dengan purpose yang sama.
           </p>
@@ -223,7 +223,7 @@
               </tr>
               <tr v-if="duplicateProducts.length === 0">
                 <td colspan="4" class="px-3 py-4 text-sm text-text/50 text-center">
-                  Tidak ada produk yang terduplikasi
+                  Tidak ada produk yang tersebar di banyak lokasi
                 </td>
               </tr>
             </tbody>

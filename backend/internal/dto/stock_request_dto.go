@@ -1,7 +1,6 @@
 package dto
 
 type CreateStockRequest struct {
-	RequestNumber  string                   `json:"request_number" binding:"required"`
 	Type           string                   `json:"type" binding:"required"`
 	FromLocationID *int                     `json:"fromLocationId"`
 	ToLocationID   *int                     `json:"toLocationId"`

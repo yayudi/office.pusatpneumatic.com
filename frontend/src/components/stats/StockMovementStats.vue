@@ -15,7 +15,7 @@ import StatsChartCard from './shared/StatsChartCard.vue'
 import FilterBar from '@/components/ui/FilterBar.vue'
 import StockTimelineModal from '@/components/stats/StockTimelineModal.vue'
 import BasePagination from '@/components/ui/BasePagination.vue'
-import { formatNumber } from '@/utils/formatters.js'
+import { formatNumber, generateDynamicExportName } from '@/utils/formatters.js'
 import { usePagination } from '@/composables/usePagination.js'
 
 const authStore = useAuthStore()
@@ -157,11 +157,25 @@ const openTimelineInvestigation = productId => {
   showTimelineModal.value = true
 }
 
+const prepareFilters = filters => {
+  const prepared = { ...filters }
+  if (prepared.status && typeof prepared.status === 'object') {
+    prepared.status = JSON.stringify(prepared.status)
+  }
+  if (prepared.building && typeof prepared.building === 'object') {
+    prepared.building = JSON.stringify(prepared.building)
+  }
+  if (prepared.categoryId && typeof prepared.categoryId === 'object') {
+    prepared.categoryId = JSON.stringify(prepared.categoryId)
+  }
+  return prepared
+}
+
 const fetchStatistics = async () => {
   if (!filterValues.value.startDate || !filterValues.value.endDate) return
   isDataLoading.value = true
   try {
-    const response = await getStockMovementStatistics(filterValues.value)
+    const response = await getStockMovementStatistics(prepareFilters(filterValues.value))
     const payload = response?.data || response // Ambil properti data asli dari Controller
 
     if (payload && !Array.isArray(payload) && payload.summary) {
@@ -180,7 +194,20 @@ const handleExport = async () => {
   if (!filterValues.value.startDate || !filterValues.value.endDate) return
   isExporting.value = true
   try {
-    const data = await requestStatisticExport(filterValues.value)
+    const parts = [filterValues.value.startDate, filterValues.value.endDate]
+    if (filterValues.value.movement !== 'all') parts.push(filterValues.value.movement)
+    if (filterValues.value.status?.include?.length > 0)
+      parts.push('status_' + filterValues.value.status.include.join('-'))
+    if (filterValues.value.building?.include?.length > 0)
+      parts.push('bld_' + filterValues.value.building.include.join('-'))
+    if (filterValues.value.searchQuery) parts.push(filterValues.value.searchQuery)
+
+    const exportName = generateDynamicExportName('Stock_Movement', parts)
+    const filtersPayload = {
+      ...filterValues.value,
+      exportName
+    }
+    const data = await requestStatisticExport(prepareFilters(filtersPayload))
     if (data.success) {
       toast(data.message || 'Sedang memproses export ke background', 'success')
     }
@@ -721,7 +748,12 @@ const chartScatterOptions = computed(() => ({
                     <font-awesome-icon :icon="getSortIcon('status')" class="text-xs opacity-50" />
                   </div>
                 </th>
-                <th class="px-4 py-4 font-semibold text-text/80 text-center" title="Tombol aksi: lihat detail riwayat pergerakan">Aksi</th>
+                <th
+                  class="px-4 py-4 font-semibold text-text/80 text-center"
+                  title="Tombol aksi: lihat detail riwayat pergerakan"
+                >
+                  Aksi
+                </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-secondary/20">
@@ -796,11 +828,7 @@ const chartScatterOptions = computed(() => ({
           </table>
         </div>
         <div class="border-t border-secondary/20 bg-secondary/5 flex flex-col sm:flex-row items-center justify-between">
-          <BasePagination
-            :pagination="pagination"
-            @changePage="handleChangePage"
-            @update:limit="handleUpdateLimit"
-          />
+          <BasePagination :pagination="pagination" @changePage="handleChangePage" @update:limit="handleUpdateLimit" />
         </div>
       </main>
 

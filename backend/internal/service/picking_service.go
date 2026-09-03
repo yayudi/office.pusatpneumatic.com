@@ -18,10 +18,11 @@ type PickingService interface {
 	GetHistoryItems(ctx context.Context, limit int) ([]dto.HistoryPickingItemResponse, error)
 	GetPickingDetail(ctx context.Context, pickingListID int) ([]dto.PickingListDetailResponse, error)
 
-	CompletePickingItems(ctx context.Context, req dto.CompletePickingRequest, userID int) (string, error)
+	CompletePickingItems(ctx context.Context, req dto.CompletePickingRequest, userID int) (string, []string, error)
 	VoidPickingList(ctx context.Context, pickingListID int, userID int) error
 	RetryBackorders(ctx context.Context, pickingListID int) (string, error)
 	RetryBackordersBatch(ctx context.Context, req dto.RetryBackordersBatchRequest) (string, error)
+	ProcessSalesImport(ctx context.Context, jobID int, filePath string, source string, userID int, isDryRun bool, locationPurpose string, shopName string) error
 }
 
 type pickingService struct {
@@ -29,6 +30,8 @@ type pickingService struct {
 	pickingRepo  repository.PickingRepository
 	locationRepo repository.LocationRepository
 	stockRepo    repository.StockRepository
+	jobService   JobService
+	productRepo  repository.ProductRepository
 }
 
 func NewPickingService(
@@ -36,12 +39,16 @@ func NewPickingService(
 	pickingRepo repository.PickingRepository,
 	locationRepo repository.LocationRepository,
 	stockRepo repository.StockRepository,
+	jobService JobService,
+	productRepo repository.ProductRepository,
 ) PickingService {
 	return &pickingService{
 		db:           db,
 		pickingRepo:  pickingRepo,
 		locationRepo: locationRepo,
 		stockRepo:    stockRepo,
+		jobService:   jobService,
+		productRepo:  productRepo,
 	}
 }
 
@@ -280,14 +287,17 @@ func (s *pickingService) RetryBackordersBatch(ctx context.Context, req dto.Retry
 	return strings.Join(msg, " "), nil
 }
 
-func (s *pickingService) CompletePickingItems(ctx context.Context, req dto.CompletePickingRequest, userID int) (string, error) {
+func (s *pickingService) CompletePickingItems(ctx context.Context, req dto.CompletePickingRequest, userID int) (string, []string, error) {
+	if len(req.Items) == 0 {
+		return "", nil, errors.New("tidak ada item dipilih")
+	}
+
 	tx, err := s.db.BeginTxx(ctx, nil)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	defer tx.Rollback()
 
-	// 1. Group list IDs
 	listIDMap := make(map[int]bool)
 	var itemIDs []int
 	for _, item := range req.Items {
@@ -304,20 +314,20 @@ func (s *pickingService) CompletePickingItems(ctx context.Context, req dto.Compl
 	for listID := range listIDMap {
 		header, err := s.pickingRepo.GetHeaderByID(ctx, tx, listID)
 		if err != nil || header == nil {
-			return "", fmt.Errorf("Data Picking List #%d tidak ditemukan", listID)
+			return "", nil, fmt.Errorf("Data Picking List #%d tidak ditemukan", listID)
 		}
 
 		if header.OriginalInvoiceID != nil && strings.Contains(*header.OriginalInvoiceID, "_REV_") {
-			return "", fmt.Errorf("Order %s telah direvisi! Mohon refresh halaman.", *header.OriginalInvoiceID)
+			return "", nil, fmt.Errorf("Order %s telah direvisi! Mohon refresh halaman.", *header.OriginalInvoiceID)
 		}
 
 		if header.Status == "VOID" || header.Status == "CANCELLED" || header.Status == "CANCEL" {
-			return "", fmt.Errorf("Order #%d telah dibatalkan.", listID)
+			return "", nil, fmt.Errorf("Order #%d telah dibatalkan.", listID)
 		}
 
 		unfulfillable, err := s.pickingRepo.GetUnfulfillableItems(ctx, tx, listID)
 		if err != nil {
-			return "", err
+			return "", nil, err
 		}
 		if len(unfulfillable) > 0 {
 			invalidListIDs[listID] = true
@@ -340,7 +350,7 @@ func (s *pickingService) CompletePickingItems(ctx context.Context, req dto.Compl
 
 	dbItems, err := s.pickingRepo.GetItemsByIDs(ctx, tx, itemIDs)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	// Memory stock lock
@@ -378,7 +388,7 @@ func (s *pickingService) CompletePickingItems(ctx context.Context, req dto.Compl
 		}
 		var stocks []StockResult
 		if err := tx.SelectContext(ctx, &stocks, query, args...); err != nil {
-			return "", err
+			return "", nil, err
 		}
 
 		for _, s := range stocks {
@@ -455,7 +465,7 @@ func (s *pickingService) CompletePickingItems(ctx context.Context, req dto.Compl
 	}
 
 	if len(validationErrors) > 0 {
-		return "", errors.New(strings.Join(validationErrors, " | "))
+		return "", validationErrors, errors.New("Sebagian pesanan gagal diproses karena masalah ketersediaan stok atau status.")
 	}
 
 	affectedListIDs := make(map[int]bool)
@@ -464,20 +474,20 @@ func (s *pickingService) CompletePickingItems(ctx context.Context, req dto.Compl
 	for _, plan := range executionPlan {
 		if plan.IsChanged {
 			if err := s.pickingRepo.UpdateSuggestedLocation(ctx, tx, plan.ItemID, &plan.FinalLocID); err != nil {
-				return "", err
+				return "", nil, err
 			}
 		}
 
 		if err := s.pickingRepo.ValidateItem(ctx, tx, plan.ItemID, plan.FinalLocID); err != nil {
-			return "", err
+			return "", nil, err
 		}
 
 		if err := s.locationRepo.DeductStock(ctx, tx, plan.ProductID, plan.FinalLocID, plan.Quantity); err != nil {
-			return "", err
+			return "", nil, err
 		}
 
-		inv := invoiceMap[plan.PickingListID]
-		notes := fmt.Sprintf("Sale Ref: %s (Item #%d)", inv, plan.ItemID)
+		invoiceRef := invoiceMap[plan.PickingListID]
+		notes := fmt.Sprintf("Sale Ref: %s (Item #%d)", invoiceRef, plan.ItemID)
 		if err := s.stockRepo.RecordMovement(ctx, tx, &model.StockMovement{
 			ProductID:      plan.ProductID,
 			Quantity:       plan.Quantity,
@@ -486,7 +496,7 @@ func (s *pickingService) CompletePickingItems(ctx context.Context, req dto.Compl
 			UserID:         userID,
 			Notes:          notes,
 		}); err != nil {
-			return "", err
+			return "", nil, err
 		}
 
 		affectedListIDs[plan.PickingListID] = true
@@ -496,18 +506,18 @@ func (s *pickingService) CompletePickingItems(ctx context.Context, req dto.Compl
 	for listID := range affectedListIDs {
 		count, err := s.pickingRepo.CountPendingItems(ctx, tx, listID)
 		if err != nil {
-			return "", err
+			return "", nil, err
 		}
 		if count == 0 {
 			if err := s.pickingRepo.ValidateHeader(ctx, tx, listID); err != nil {
-				return "", err
+				return "", nil, err
 			}
 		}
 	}
 
 	if err := tx.Commit(); err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	return fmt.Sprintf("Sukses! %d item berhasil diproses dan stok dipotong.", processedCount), nil
+	return fmt.Sprintf("Berhasil memproses %d item dari %d pesanan.", processedCount, len(affectedListIDs)), nil, nil
 }

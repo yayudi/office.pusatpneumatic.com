@@ -10,20 +10,21 @@ type StatisticFilterRequest struct {
 	StartDate         string      `json:"startDate" form:"startDate"`
 	EndDate           string      `json:"endDate" form:"endDate"`
 	SearchQuery       string      `json:"searchQuery" form:"searchQuery"`
-	Status            interface{} `json:"status" form:"status"`                       // Can be string "all" or TriStateFilter (JSON string from query)
-	Movement          string      `json:"movement" form:"movement"`
-	Building          interface{} `json:"building" form:"building"`                   // Can be string, slice of strings, or TriStateFilter (JSON string)
-	TimeResolution    string      `json:"timeResolution" form:"timeResolution"`
-	CategoryId        interface{} `json:"categoryId" form:"categoryId"`               // string or JSON string
-	Purpose           interface{} `json:"purpose" form:"purpose"`                     // string or JSON string
-	IsPackage         *int        `json:"isPackage" form:"isPackage"`
-	StockStatus       interface{} `json:"stockStatus" form:"stockStatus"`
-	Source            interface{} `json:"source" form:"source"`                       // TriState
-	ShopName          interface{} `json:"shopName" form:"shopName"`                   // TriState
-	PrevStartDate     string      `json:"prevStartDate" form:"prevStartDate"`
-	PrevEndDate       string      `json:"prevEndDate" form:"prevEndDate"`
-	PackageCategoryId interface{} `json:"packageCategoryId" form:"packageCategoryId"` // JSON string
-	Floor             interface{} `json:"floor" form:"floor"`                         // JSON string
+	Status            string `json:"status" form:"status"`                       // Can be string "all" or TriStateFilter (JSON string from query)
+	Movement          string `json:"movement" form:"movement"`
+	Building          string `json:"building" form:"building"`                   // Can be string, slice of strings, or TriStateFilter (JSON string)
+	TimeResolution    string `json:"timeResolution" form:"timeResolution"`
+	CategoryId        string `json:"categoryId" form:"categoryId"`               // string or JSON string
+	Purpose           string `json:"purpose" form:"purpose"`                     // string or JSON string
+	IsPackage         *int   `json:"isPackage" form:"isPackage"`
+	StockStatus       string `json:"stockStatus" form:"stockStatus"`
+	Source            string `json:"source" form:"source"`                       // TriState
+	ShopName          string `json:"shopName" form:"shopName"`                   // TriState
+	PrevStartDate     string `json:"prevStartDate" form:"prevStartDate"`
+	PrevEndDate       string `json:"prevEndDate" form:"prevEndDate"`
+	PackageCategoryId string `json:"packageCategoryId" form:"packageCategoryId"` // JSON string
+	Floor             string `json:"floor" form:"floor"`                         // JSON string
+	ExportName        string `json:"exportName" form:"exportName"`
 }
 
 // Export Request
@@ -35,11 +36,13 @@ type ExportStatisticRequest struct {
 	Movement    string      `json:"movement"`
 	Building    interface{} `json:"building"`
 	CategoryId  interface{} `json:"categoryId"`
+	ExportName  string      `json:"exportName"`
 }
 
 type ExportTimelineRequest struct {
 	SearchQuery string      `json:"searchQuery"`
 	Status      interface{} `json:"status"`
+	ExportName  string      `json:"exportName"`
 	Movement    string      `json:"movement"`
 	Building    interface{} `json:"building"`
 }

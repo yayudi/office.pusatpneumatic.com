@@ -3,9 +3,13 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 
+	"github.com/dps-wmhris/backend/internal/config"
 	"github.com/dps-wmhris/backend/internal/dto"
 	"github.com/dps-wmhris/backend/internal/service"
 	"github.com/gin-gonic/gin"
@@ -36,7 +40,7 @@ func (h *PickingHandler) UploadAndValidate(c *gin.Context) {
 		return
 	}
 
-	userID := 1 // Dummy user ID
+	userID := getUserID(c)
 	source := c.PostForm("source")
 	if source == "" {
 		source = "Tokopedia"
@@ -67,7 +71,8 @@ func (h *PickingHandler) UploadAndValidate(c *gin.Context) {
 	defaultNote := modeText + " " + source + " Sales"
 	userNotes := c.PostForm("notes")
 
-	uploadDir := "./storage/uploads/"
+	uploadDir := filepath.Join(config.AppConfig.StoragePath, "uploads", "picking") + string(filepath.Separator)
+	os.MkdirAll(uploadDir, os.ModePerm)
 	var createdJobs []int
 
 	for i, file := range files {
@@ -166,10 +171,19 @@ func (h *PickingHandler) CompleteItems(c *gin.Context) {
 		return
 	}
 
-	userID := 1 // Dummy user ID for now
+	userID := getUserID(c)
 
-	msg, err := h.pickingService.CompletePickingItems(c.Request.Context(), req, userID)
+	msg, validationErrs, err := h.pickingService.CompletePickingItems(c.Request.Context(), req, userID)
 	if err != nil {
+		if len(validationErrs) > 0 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success":    false,
+				"message":    "Sebagian pesanan gagal diproses karena masalah ketersediaan stok atau status.",
+				"error_code": "PROCESS_ERROR",
+				"errors":     validationErrs,
+			})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error(), "error_code": "PROCESS_ERROR"})
 		return
 	}
@@ -181,7 +195,7 @@ func (h *PickingHandler) VoidPickingList(c *gin.Context) {
 	var id int
 	fmt.Sscanf(idStr, "%d", &id)
 
-	userID := 1 // Dummy user ID
+	userID := getUserID(c)
 
 	err := h.pickingService.VoidPickingList(c.Request.Context(), id, userID)
 	if err != nil {
@@ -207,12 +221,14 @@ func (h *PickingHandler) RetryBackorders(c *gin.Context) {
 func (h *PickingHandler) RetryBackordersBatch(c *gin.Context) {
 	var req dto.RetryBackordersBatchRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("[RetryBackordersBatch] validation error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Format data tidak valid.", "error_code": "VALIDATION_ERROR"})
 		return
 	}
 
 	msg, err := h.pickingService.RetryBackordersBatch(c.Request.Context(), req)
 	if err != nil {
+		log.Printf("[RetryBackordersBatch] process error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error(), "error_code": "PROCESS_ERROR"})
 		return
 	}

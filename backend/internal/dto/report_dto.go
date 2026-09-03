@@ -18,3 +18,28 @@ type UserExportJobResponse struct {
 	Type         string    `json:"type"`
 	DownloadURL  *string   `json:"download_url"`
 }
+
+type FilterObj struct {
+	Include []string `json:"include"`
+	Exclude []string `json:"exclude"`
+}
+
+type StockReportFilter struct {
+	StockStatus string      `json:"stockStatus"`
+	Building    interface{} `json:"building"`
+	Purpose     interface{} `json:"purpose"`
+	SearchQuery string      `json:"searchQuery"`
+	IsPackage   interface{} `json:"isPackage"`
+	Format      string      `json:"format"`
+	ExportType  string      `json:"exportType"`
+	ExportName  string      `json:"exportName"`
+}
+
+type StockReportRow struct {
+	Sku         string  `db:"Sku"`
+	NamaProduk  string  `db:"NamaProduk"`
+	Lokasi      *string `db:"Lokasi"` // Can be null in LEFT JOIN
+	Kuantitas   int     `db:"Kuantitas"`
+	HargaSatuan float64 `db:"HargaSatuan"`
+	TotalNilai  float64 `db:"TotalNilai"`
+}

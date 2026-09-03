@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/dps-wmhris/backend/internal/config"
 	"github.com/dps-wmhris/backend/internal/dto"
 	"github.com/dps-wmhris/backend/internal/service"
 	"github.com/gin-gonic/gin"
@@ -85,7 +87,9 @@ func (h *PackageHandler) ImportPackagesBatch(c *gin.Context) {
 	}
 
 	filename := fmt.Sprintf("import_%d%s", time.Now().UnixNano(), ext)
-	savePath := filepath.Join("uploads", "imports", filename)
+	uploadDir := filepath.Join(config.AppConfig.StoragePath, "uploads", "package")
+	os.MkdirAll(uploadDir, os.ModePerm)
+	savePath := filepath.Join(uploadDir, filename)
 
 	if err := c.SaveUploadedFile(file, savePath); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Gagal menyimpan file"})

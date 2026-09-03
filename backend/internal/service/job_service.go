@@ -14,10 +14,13 @@ type JobService interface {
 	GetImportJobs(ctx context.Context, limit int, offset int) ([]model.ImportJob, error)
 	CancelImportJob(ctx context.Context, id int) error
 	UpdateImportJobStatus(ctx context.Context, id int, status string) error
+	UpdateImportJobStatusWithSummary(ctx context.Context, id int, status string, logSummary string) error
+	UpdateImportJobProgress(ctx context.Context, id int, processed int, total int) error
 
 	CreateExportJob(ctx context.Context, req dto.CreateExportJobRequest) (int, error)
 	GetExportJobs(ctx context.Context, limit int, offset int) ([]model.ExportJob, error)
 	CancelExportJob(ctx context.Context, id int) error
+	UpdateExportJobStatus(ctx context.Context, id int, status string, fileURL *string, errorLog *string) error
 }
 
 type jobServiceImpl struct {
@@ -59,6 +62,14 @@ func (s *jobServiceImpl) UpdateImportJobStatus(ctx context.Context, id int, stat
 	return s.jobRepo.UpdateImportJobStatus(ctx, id, status, nil, nil)
 }
 
+func (s *jobServiceImpl) UpdateImportJobStatusWithSummary(ctx context.Context, id int, status string, logSummary string) error {
+	return s.jobRepo.UpdateImportJobStatus(ctx, id, status, &logSummary, nil)
+}
+
+func (s *jobServiceImpl) UpdateImportJobProgress(ctx context.Context, id int, processed int, total int) error {
+	return s.jobRepo.UpdateImportJobProgress(ctx, id, processed, total)
+}
+
 func (s *jobServiceImpl) CreateExportJob(ctx context.Context, req dto.CreateExportJobRequest) (int, error) {
 	job := &model.ExportJob{
 		UserID:  req.UserID,
@@ -81,4 +92,8 @@ func (s *jobServiceImpl) CancelExportJob(ctx context.Context, id int) error {
 		return errors.New("only PENDING jobs can be cancelled")
 	}
 	return s.jobRepo.UpdateExportJobStatus(ctx, id, "FAILED", nil, nil) // or CANCELLED if schema enum allowed it, but export_jobs only has PENDING, PROCESSING, COMPLETED, FAILED. We'll use FAILED for cancellation.
+}
+
+func (s *jobServiceImpl) UpdateExportJobStatus(ctx context.Context, id int, status string, fileURL *string, errorLog *string) error {
+	return s.jobRepo.UpdateExportJobStatus(ctx, id, status, fileURL, errorLog)
 }

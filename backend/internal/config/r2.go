@@ -15,18 +15,18 @@ var R2Client *s3.Client
 var R2PresignClient *s3.PresignClient
 
 func InitR2() error {
-	accountID := os.Getenv("R2_ACCOUNT_ID")
+	endpoint := os.Getenv("R2_ENDPOINT")
 	accessKey := os.Getenv("R2_ACCESS_KEY_ID")
 	secretKey := os.Getenv("R2_SECRET_ACCESS_KEY")
 
-	if accountID == "" || accessKey == "" || secretKey == "" {
-		fmt.Println("Warning: R2 credentials missing in .env. R2 Uploads will fail.")
+	if endpoint == "" || accessKey == "" || secretKey == "" {
+		fmt.Println("Warning: R2 credentials (ENDPOINT, ACCESS_KEY, SECRET_KEY) missing in .env. R2 Uploads will fail.")
 		return nil
 	}
 
 	r2Resolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
 		return aws.Endpoint{
-			URL: fmt.Sprintf("https://%s.r2.cloudflarestorage.com", accountID),
+			URL: endpoint,
 		}, nil
 	})
 

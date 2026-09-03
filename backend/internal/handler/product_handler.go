@@ -3,7 +3,11 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
+
+	"github.com/dps-wmhris/backend/internal/config"
 	"strings"
 
 	"github.com/dps-wmhris/backend/internal/dto"
@@ -221,7 +225,7 @@ func (h *ProductHandler) ImportBatchProductUpdate(c *gin.Context) {
 		return
 	}
 
-	userID := 1 // Dummy ID for now
+	userID := getUserID(c)
 	dryRun := c.PostForm("dryRun")
 	jobType := "BATCH_EDIT_PRODUCT"
 	if dryRun == "true" {
@@ -230,7 +234,8 @@ func (h *ProductHandler) ImportBatchProductUpdate(c *gin.Context) {
 
 	notes := "Mass Price Update via Web Upload"
 
-	uploadDir := "./storage/uploads/"
+	uploadDir := filepath.Join(config.AppConfig.StoragePath, "uploads", "product") + string(filepath.Separator)
+	os.MkdirAll(uploadDir, os.ModePerm)
 	filepath := uploadDir + file.Filename
 
 	if err := c.SaveUploadedFile(file, filepath); err != nil {

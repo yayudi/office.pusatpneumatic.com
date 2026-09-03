@@ -1,15 +1,5 @@
 package dto
 
-type ChangelogResponse struct {
-	ID          int    `json:"id" db:"id"`
-	Version     string `json:"version" db:"version"`
-	Title       string `json:"title" db:"title"`
-	Description string `json:"description" db:"description"`
-	Type        string `json:"type" db:"type"`
-	ReleaseDate string `json:"release_date" db:"release_date"`
-	CreatedAt   string `json:"created_at" db:"created_at"`
-}
-
 type CreateSalesChannelRequest struct {
 	Platform    string `json:"platform" binding:"required"`
 	Name        string `json:"name" binding:"required"`

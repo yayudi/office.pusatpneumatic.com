@@ -24,7 +24,10 @@ type PickingRepository interface {
 
 	VoidHeader(ctx context.Context, tx *sqlx.Tx, listID int) (int64, error)
 	VoidItemsByListID(ctx context.Context, tx *sqlx.Tx, listID int) error
-	
+
+	CreatePickingListTx(ctx context.Context, tx *sqlx.Tx, header *model.PickingList) (int, error)
+	CreatePickingListItemTx(ctx context.Context, tx *sqlx.Tx, item *model.PickingListItem) error
+
 	GetItemsToRestock(ctx context.Context, tx *sqlx.Tx, listID int) ([]model.PickingListItem, error)
 	GetUnfulfillableItems(ctx context.Context, tx *sqlx.Tx, listID int) ([]model.PickingListItem, error)
 	GetPendingAndBackorderItems(ctx context.Context, tx *sqlx.Tx, listIDs []int) ([]model.PickingListItem, error)
@@ -150,19 +153,19 @@ func (r *pickingRepository) CountPendingItems(ctx context.Context, tx *sqlx.Tx, 
 }
 
 func (r *pickingRepository) UpdateSuggestedLocation(ctx context.Context, tx *sqlx.Tx, itemID int, locationID *int) error {
-	query := `UPDATE picking_list_items SET suggested_location_id = ?, updated_at = NOW() WHERE id = ?`
+	query := `UPDATE picking_list_items SET suggested_location_id = ? WHERE id = ?`
 	_, err := tx.ExecContext(ctx, query, locationID, itemID)
 	return err
 }
 
 func (r *pickingRepository) UpdateItemStatus(ctx context.Context, tx *sqlx.Tx, itemID int, status string) error {
-	query := `UPDATE picking_list_items SET status = ?, updated_at = NOW() WHERE id = ?`
+	query := `UPDATE picking_list_items SET status = ? WHERE id = ?`
 	_, err := tx.ExecContext(ctx, query, status, itemID)
 	return err
 }
 
 func (r *pickingRepository) ValidateItem(ctx context.Context, tx *sqlx.Tx, itemID int, locationID int) error {
-	query := `UPDATE picking_list_items SET status = 'VALIDATED', picked_from_location_id = ?, updated_at = NOW() WHERE id = ?`
+	query := `UPDATE picking_list_items SET status = 'VALIDATED', picked_from_location_id = ? WHERE id = ?`
 	_, err := tx.ExecContext(ctx, query, locationID, itemID)
 	return err
 }
@@ -183,7 +186,7 @@ func (r *pickingRepository) VoidHeader(ctx context.Context, tx *sqlx.Tx, listID 
 }
 
 func (r *pickingRepository) VoidItemsByListID(ctx context.Context, tx *sqlx.Tx, listID int) error {
-	query := `UPDATE picking_list_items SET status = 'VOID', updated_at = NOW() WHERE picking_list_id = ?`
+	query := `UPDATE picking_list_items SET status = 'VOID' WHERE picking_list_id = ?`
 	_, err := tx.ExecContext(ctx, query, listID)
 	return err
 }
@@ -228,4 +231,26 @@ func (r *pickingRepository) GetPendingAndBackorderItems(ctx context.Context, tx 
 	var items []model.PickingListItem
 	err = tx.SelectContext(ctx, &items, query, args...)
 	return items, err
+}
+
+func (r *pickingRepository) CreatePickingListTx(ctx context.Context, tx *sqlx.Tx, header *model.PickingList) (int, error) {
+	query := `
+		INSERT INTO picking_lists (user_id, original_invoice_id, source, status, is_active, customer_name, order_date, marketplace_status, location_purpose, shop_name)
+		VALUES (:user_id, :original_invoice_id, :source, :status, :is_active, :customer_name, :order_date, :marketplace_status, :location_purpose, :shop_name)
+	`
+	res, err := tx.NamedExecContext(ctx, query, header)
+	if err != nil {
+		return 0, err
+	}
+	id, err := res.LastInsertId()
+	return int(id), err
+}
+
+func (r *pickingRepository) CreatePickingListItemTx(ctx context.Context, tx *sqlx.Tx, item *model.PickingListItem) error {
+	query := `
+		INSERT INTO picking_list_items (picking_list_id, product_id, quantity, status)
+		VALUES (:picking_list_id, :product_id, :quantity, :status)
+	`
+	_, err := tx.NamedExecContext(ctx, query, item)
+	return err
 }

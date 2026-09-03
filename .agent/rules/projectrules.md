@@ -25,6 +25,7 @@ Adhere strictly to the **Controller-Service-Repository** pattern.
     * Handle `SELECT`, `INSERT`, `UPDATE`, `DELETE`.
     * Accept `context.Context` and database connection/transaction (`*sql.DB` or `*sql.Tx`) as parameters.
     * Use **snake_case** for raw SQL column names.
+    * **SQLx STRICT MAPPING:** Be careful when using `SELECT *`. `sqlx` will panic/error (`missing destination name...`) if the query returns a column that doesn't exist in the destination Go `struct`. Either explicitly `SELECT` only the columns you need, or ensure the Go `struct` is perfectly 1:1 mapped to the DB schema (including `db:"..."` tags for every nullable/new column).
     * Add Godoc comments for every function.
     * **SECURITY:** ALWAYS use parameterized queries (`?`). NEVER use string concatenation for values inside SQL strings.
 * **DO NOT:**
@@ -159,19 +160,7 @@ The project uses the standard Go `testing` package.
 
 ---
 
-## 9. CHANGELOG & TIMELINE DISCIPLINE (CRITICAL)
-**Context:** The application maintains a dynamic "Fitur Baru" timeline in the UI. To keep it up to date, all new features or significant modifications MUST be logged into the database.
-
-* **Rule:** Every time you (the Agent) complete a new feature, a bug fix, or a UI enhancement, you **MUST** provide an SQL `INSERT INTO system_changelogs` script.
-* **Procedure:**
-    1.  At the end of a successful implementation session, formulate an `INSERT` statement for the `system_changelogs` table.
-    2.  Provide this SQL snippet to the user in a Markdown code block, reminding them to execute it in their database client.
-    3.  Format: `INSERT INTO system_changelogs (version, title, description, type, release_date) VALUES ('vX.Y.Z', 'Feature Name', 'Short desc', 'FEATURE', CURDATE());`
-    4.  Never skip this step if a tangible change has been made to the system.
-
----
-
-## 10. GIT & SECURITY DISCIPLINE (CRITICAL)
+## 9. GIT & SECURITY DISCIPLINE (CRITICAL)
 **Context:** To prevent sensitive data leaks and keep the repository clean.
 
 * **Rule:** You MUST NOT track or commit sensitive files, credentials, or large local backups.
@@ -183,7 +172,7 @@ The project uses the standard Go `testing` package.
 
 ---
 
-## 11. BACKEND-NODE AS THE SOURCE OF TRUTH (CRITICAL)
+## 10. BACKEND-NODE AS THE SOURCE OF TRUTH (CRITICAL)
 **Context:** We are refactoring from an existing Node.js architecture (`backend-node`) to Golang (`backend`).
 * **Rule:** You MUST NOT invent new endpoints, schemas, or behaviors that did not exist in the Node.js implementation. The `backend-node` folder is the ABSOLUTE SOURCE OF TRUTH.
 * **Procedure:**

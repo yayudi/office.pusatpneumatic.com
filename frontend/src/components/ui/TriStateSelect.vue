@@ -141,7 +141,33 @@ const includeCount = computed(() => safeModelValue.value.include.length)
 const excludeCount = computed(() => safeModelValue.value.exclude.length)
 const isPlaceholderState = computed(() => includeCount.value === 0 && excludeCount.value === 0)
 
-// Removed displayValue, handling directly in template
+const displayValue = computed(() => {
+  if (isPlaceholderState.value) return props.placeholder
+
+  const getLabel = val => {
+    const opt = props.options.find(o => getOptionValue(o) === val)
+    return opt ? getOptionLabel(opt) : val
+  }
+
+  const parts = []
+  if (includeCount.value > 0) {
+    if (includeCount.value <= 2) {
+      parts.push(safeModelValue.value.include.map(getLabel).join(', '))
+    } else {
+      parts.push(`${includeCount.value} Dipilih`)
+    }
+  }
+
+  if (excludeCount.value > 0) {
+    if (excludeCount.value <= 2) {
+      parts.push('Kec. ' + safeModelValue.value.exclude.map(getLabel).join(', '))
+    } else {
+      parts.push(`${excludeCount.value} Dikecualikan`)
+    }
+  }
+
+  return parts.join(' | ')
+})
 
 function toggle() {
   if (props.disabled) return
@@ -281,13 +307,14 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
         <span v-if="isPlaceholderState" class="text-text/40 font-normal truncate">
           {{ placeholder }}
         </span>
-        <div v-else class="flex items-center gap-3 text-text font-bold truncate">
-          <span v-if="includeCount > 0" class="flex items-center gap-1.5 text-primary">
-            <font-awesome-icon icon="fa-solid fa-check" class="text-xs" /> {{ includeCount }}
-          </span>
-          <span v-if="excludeCount > 0" class="flex items-center gap-1.5 text-danger">
-            <font-awesome-icon icon="fa-solid fa-ban" class="text-xs" /> {{ excludeCount }}
-          </span>
+        <div v-else class="flex items-center gap-1.5 text-primary font-bold truncate">
+          <font-awesome-icon v-if="includeCount > 0" icon="fa-solid fa-check" class="text-xs shrink-0" />
+          <font-awesome-icon
+            v-if="excludeCount > 0 && includeCount === 0"
+            icon="fa-solid fa-ban"
+            class="text-xs text-danger shrink-0"
+          />
+          <span class="truncate">{{ displayValue }}</span>
         </div>
       </div>
 

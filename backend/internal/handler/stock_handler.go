@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
+
+	"github.com/dps-wmhris/backend/internal/config"
 
 	"github.com/dps-wmhris/backend/internal/dto"
 	"github.com/dps-wmhris/backend/internal/service"
@@ -67,14 +71,15 @@ func (h *StockHandler) ImportBatchInbound(c *gin.Context) {
 		return
 	}
 
-	userID := 1 // Dummy ID for now
+	userID := getUserID(c)
 	notes := c.PostForm("notes")
 	finalNotes := "Batch Stock Inbound"
 	if notes != "" {
 		finalNotes += " | " + notes
 	}
 
-	uploadDir := "./storage/uploads/"
+	uploadDir := filepath.Join(config.AppConfig.StoragePath, "uploads", "stock") + string(filepath.Separator)
+	os.MkdirAll(uploadDir, os.ModePerm)
 	filepath := uploadDir + file.Filename
 
 	if err := c.SaveUploadedFile(file, filepath); err != nil {
@@ -246,7 +251,7 @@ func (h *StockHandler) GetBatchLogs(c *gin.Context) {
 		return
 	}
 
-	logs, err := h.stockService.GetBatchLogs(c.Request.Context(), filter)
+	logs, total, err := h.stockService.GetBatchLogs(c.Request.Context(), filter)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Gagal mengambil log stok", "error": err.Error()})
 		return
@@ -258,6 +263,7 @@ func (h *StockHandler) GetBatchLogs(c *gin.Context) {
 		"pagination": gin.H{
 			"page": filter.Page,
 			"limit": filter.Limit,
+			"total": total,
 		},
 	})
 }
@@ -355,6 +361,7 @@ func (h *StockHandler) RequestBatchLogExport(c *gin.Context) {
 		"destinationLocation": req.DestinationLocation,
 		"notes":               req.Notes,
 		"format":              req.Format,
+		"exportName":          req.ExportName,
 	}
 	
 	filterJSON, _ := json.Marshal(filterMap)
@@ -428,7 +435,8 @@ func (h *StockHandler) RequestAdjustmentUpload(c *gin.Context) {
 		notes = userNotes
 	}
 
-	uploadDir := "./storage/uploads/adjustments/"
+	uploadDir := filepath.Join(config.AppConfig.StoragePath, "uploads", "stock") + string(filepath.Separator)
+	os.MkdirAll(uploadDir, os.ModePerm)
 	filepath := uploadDir + file.Filename
 	if err := c.SaveUploadedFile(file, filepath); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Gagal menyimpan file"})

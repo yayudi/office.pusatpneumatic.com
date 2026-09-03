@@ -25,6 +25,14 @@ type AdjustStockRequest struct {
 	Notes      string `json:"notes"`
 }
 
+type StockOpnameItem struct {
+	SKU          string `json:"sku"`
+	ProductID    int    `json:"product_id"`
+	Quantity     int    `json:"quantity"` // Stok aktual
+	ToLocationID int    `json:"to_location_id"`
+	Notes        string `json:"notes"`
+}
+
 type BatchLogResponse struct {
 	ID                  int    `json:"id" db:"id"`
 	SKU                 string `json:"sku" db:"sku"`
@@ -39,16 +47,17 @@ type BatchLogResponse struct {
 }
 
 type BatchLogFilter struct {
-	StartDate           string `form:"startDate"`
-	EndDate             string `form:"endDate"`
-	ProductName         string `form:"productName"`
-	MovementType        string `form:"movementType"`
-	SourceLocation      string `form:"sourceLocation"`
-	DestinationLocation string `form:"destinationLocation"`
-	UserID              string `form:"userId"`
-	Notes               string `form:"notes"`
-	Page                int    `form:"page,default=1"`
-	Limit               int    `form:"limit,default=50"`
+	StartDate           string `form:"startDate" json:"startDate"`
+	EndDate             string `form:"endDate" json:"endDate"`
+	ProductName         string `form:"productName" json:"productName"`
+	MovementType        string `form:"movementType" json:"movementType"`
+	SourceLocation      string `form:"sourceLocation" json:"sourceLocation"`
+	DestinationLocation string `form:"destinationLocation" json:"destinationLocation"`
+	UserID              string `form:"userId" json:"userId"`
+	Notes               string `form:"notes" json:"notes"`
+	Page                int    `form:"page,default=1" json:"page"`
+	Limit               int    `form:"limit,default=50" json:"limit"`
+	ExportName          string `form:"exportName" json:"exportName"`
 }
 
 type StockHistoryResponse struct {
@@ -119,4 +128,5 @@ type BatchLogExportRequest struct {
 	UserID              int    `json:"userId"`
 	Notes               string `json:"notes"`
 	Format              string `json:"format"`
+	ExportName          string `json:"exportName"`
 }

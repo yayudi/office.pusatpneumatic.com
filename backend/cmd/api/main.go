@@ -14,14 +14,15 @@ import (
 )
 
 func main() {
-	// 1. Load Configurations
+	// Load Configurations
 	config.LoadConfig()
+	config.InitFirebase()
 
-	// 2. Setup Database Connection
+	// Setup Database Connection
 	db := database.ConnectDB()
 	defer db.Close()
 
-	// 3. Initialize Gin Router
+	// Initialize Gin Router
 	if config.AppConfig.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -43,11 +44,6 @@ func main() {
 	adminUserService := service.NewAdminUserService(db, adminUserRepo, roleRepo, systemLogRepo)
 	adminUserHandler := handler.NewAdminUserHandler(adminUserService)
 
-	// Fase 19 Master Data
-	changelogRepo := repository.NewChangelogRepository(db)
-	changelogService := service.NewChangelogService(changelogRepo)
-	changelogHandler := handler.NewChangelogHandler(changelogService)
-
 	salesChannelRepo := repository.NewSalesChannelRepository(db)
 	salesChannelService := service.NewSalesChannelService(db, salesChannelRepo, systemLogRepo)
 	salesChannelHandler := handler.NewSalesChannelHandler(salesChannelService)
@@ -60,16 +56,16 @@ func main() {
 	stickerTemplateService := service.NewStickerTemplateService(db, stickerTemplateRepo, systemLogRepo)
 	stickerTemplateHandler := handler.NewStickerTemplateHandler(stickerTemplateService)
 
-	// Fase 20 Notifications
+	firebaseService := service.NewFirebaseSignalService()
+
 	notificationRepo := repository.NewNotificationRepository(db)
-	notificationService := service.NewNotificationService(db, notificationRepo)
+	notificationService := service.NewNotificationService(db, notificationRepo, firebaseService)
 	notificationHandler := handler.NewNotificationHandler(notificationService)
 
 	jobRepo := repository.NewJobRepository(db)
 	jobService := service.NewJobService(jobRepo)
 	jobHandler := handler.NewJobHandler(jobService)
 
-	// Fase 21 Media & Assets
 	storageService := service.NewStorageService()
 	uploadHandler := handler.NewUploadHandler(storageService)
 	mediaRepo := repository.NewMediaRepository(db)
@@ -125,15 +121,16 @@ func main() {
 	shiftService := service.NewShiftService(db, shiftRepo)
 	shiftHandler := handler.NewShiftHandler(shiftService)
 
-	pickingService := service.NewPickingService(db, pickingRepo, locationRepo, stockRepo)
+	pickingService := service.NewPickingService(db, pickingRepo, locationRepo, stockRepo, jobService, productRepo)
 	pickingHandler := handler.NewPickingHandler(jobService, pickingService)
 
 	scheduleRepo := repository.NewScheduleRepository(db)
 	scheduleService := service.NewScheduleService(scheduleRepo, shiftRepo, userRepo)
 	scheduleHandler := handler.NewScheduleHandler(scheduleService, jobService)
 
+	settingRepo := repository.NewSettingRepository(db)
 	attendanceRepo := repository.NewAttendanceRepository(db)
-	attendanceService := service.NewAttendanceService(attendanceRepo, userRepo, shiftRepo, scheduleRepo)
+	attendanceService := service.NewAttendanceService(attendanceRepo, userRepo, shiftRepo, scheduleRepo, settingRepo)
 	attendanceHandler := handler.NewAttendanceHandler(attendanceService, jobService)
 
 	// Setup Router
@@ -172,7 +169,7 @@ func main() {
 
 		// Protected routes
 		protected := api.Group("/")
-		protected.Use(middleware.AuthMiddleware()) // Temporarily dummy
+		protected.Use(middleware.AuthMiddleware())
 		{
 			// User
 			user := protected.Group("/user")
@@ -240,6 +237,15 @@ func main() {
 				returns.GET("/history", returnHandler.GetReturnHistory)
 				returns.POST("/approve", returnHandler.ApproveReturn)
 				returns.POST("/manual-entry", returnHandler.CreateManualReturn)
+			}
+			
+			// Alias for Returns (to match Node.js apiRouter.use("/return", ...))
+			returnAlias := protected.Group("/return")
+			{
+				returnAlias.GET("/pending", returnHandler.GetPendingReturns)
+				returnAlias.GET("/history", returnHandler.GetReturnHistory)
+				returnAlias.POST("/approve", returnHandler.ApproveReturn)
+				returnAlias.POST("/manual-entry", returnHandler.CreateManualReturn)
 			}
 
 			// Investigation
@@ -331,8 +337,6 @@ func main() {
 			// System Logs
 			protected.GET("/logs", systemLogHandler.GetLogs)
 
-			// Fase 19 Master Data
-			protected.GET("/changelogs", changelogHandler.GetChangelogs)
 
 			salesChannels := protected.Group("/sales-channels")
 			{
@@ -361,7 +365,6 @@ func main() {
 				stickerTemplates.DELETE("/:id", stickerTemplateHandler.DeleteStickerTemplate)
 			}
 
-			// Fase 20 Notifications
 			notifications := protected.Group("/notifications")
 			{
 				notifications.GET("/recent", notificationHandler.GetRecentPending)
@@ -372,7 +375,6 @@ func main() {
 				notifications.GET("", notificationHandler.GetAll)
 			}
 
-			// Fase 21 Media & Assets
 			upload := protected.Group("/upload")
 			{
 				upload.POST("/presigned-url", uploadHandler.GetPresignedUrl)
@@ -421,7 +423,6 @@ func main() {
 			protected.GET("/jobs/export", jobHandler.GetExportJobs)
 			protected.DELETE("/jobs/export/:id", jobHandler.CancelExportJob)
 
-			// Fase 22: Advanced Statistics & Analytics
 			statistics := protected.Group("/statistics")
 			{
 				statistics.GET("/stock-movements", statisticHandler.GetStockMovements)

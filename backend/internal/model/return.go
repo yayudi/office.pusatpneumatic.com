@@ -22,7 +22,7 @@ type MarketplaceReturnItem struct {
 	ProductName   string    `db:"product_name" json:"product_name"`
 	SKU           string    `db:"sku" json:"sku"` // from pli.original_sku
 	Quantity      int       `db:"quantity" json:"quantity"`
-	Condition     string    `db:"condition" json:"condition"`
+	Condition     *string   `db:"condition" json:"condition"`
 	Notes         *string   `db:"notes" json:"notes"`
 	LocationCode  *string   `db:"location_code" json:"location_code"`
 	Date          time.Time `db:"date" json:"date"`

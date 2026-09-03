@@ -1,6 +1,7 @@
 <!-- frontend\src\views\stats\StatsView.vue -->
 <script setup>
 import { ref, onMounted, computed, watch, defineAsyncComponent } from 'vue'
+import { generateDynamicExportName, formatFileName } from '@/utils/formatters.js'
 import { fetchKpiSummary, requestExportStock, getUserExportJobs } from '@/api/helpers/stats.js'
 import { useMasterDataStore } from '@/stores/masterData'
 import { useAuthStore } from '@/stores/auth.js'
@@ -11,6 +12,7 @@ import SegmentedControl from '@/components/ui/SegmentedControl.vue'
 import BaseFilterPanel from '@/components/ui/BaseFilterPanel.vue'
 import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 import { useDownloadStore } from '@/stores/downloadStore.js'
+import { useFirebaseSync } from '@/composables/useFirebaseSync.js'
 
 // Lazy load heavy chart components based on active tab
 const StockMovementStats = defineAsyncComponent(() => import('@/components/stats/StockMovementStats.vue'))
@@ -20,7 +22,7 @@ const InventoryValueStats = defineAsyncComponent(() => import('@/components/stat
 const TimePerformanceStats = defineAsyncComponent(() => import('@/components/stats/TimePerformanceStats.vue'))
 const ShopPerformanceStats = defineAsyncComponent(() => import('@/components/stats/ShopPerformanceStats.vue'))
 const PackageAnalysisTable = defineAsyncComponent(() => import('@/components/stats/PackageAnalysisTable.vue'))
-const LocationAnalytics = defineAsyncComponent(() => import('@/views/stats/LocationAnalytics.vue'))
+const StockDistributionAnalytics = defineAsyncComponent(() => import('@/views/stats/StockDistributionAnalytics.vue'))
 const LocationCapacityStats = defineAsyncComponent(() => import('@/views/stats/LocationCapacityStats.vue'))
 
 const auth = useAuthStore()
@@ -89,16 +91,16 @@ const reportsMenu = computed(() => {
       icon: 'fa-solid fa-file-excel'
     },
     {
-      key: 'location-analytics',
-      label: 'Analisis Duplikasi Barang',
+      key: 'stock-distribution',
+      label: 'Sebaran Stok & Penempatan',
       group: 'Audit & Lainnya',
-      icon: 'fa-solid fa-copy'
+      icon: 'fa-solid fa-map-location-dot'
     },
     {
       key: 'location-capacity',
       label: 'Statistik Kapasitas Lokasi',
       group: 'Audit & Lainnya',
-      icon: 'fa-solid fa-map-location-dot'
+      icon: 'fa-solid fa-weight-hanging'
     }
   ]
 
@@ -178,6 +180,17 @@ onMounted(() => {
   loadHistory()
 })
 
+useFirebaseSync(
+  ['BACKGROUND_JOBS'],
+  ['EXPORT_COMPLETED', 'EXPORT_FAILED', 'EXPORT_STARTED'],
+  () => {
+    // Refresh history jika user sedang membuka tab export-stock
+    if (activeReport.value === 'export-stock') {
+      loadHistory()
+    }
+  }
+)
+
 const purposeOptions = computed(() => {
   return (reportFilters.value?.purposes || []).map(p => ({ value: p, label: p }))
 })
@@ -222,6 +235,14 @@ watch(
 )
 
 async function handleRequestExport() {
+  const parts = [
+    selectedFilters.value.searchQuery ? selectedFilters.value.searchQuery.substring(0, 15) : null,
+    selectedFilters.value.purpose?.include?.join('_'),
+    selectedFilters.value.building?.include?.join('_'),
+    selectedFilters.value.stockStatus !== 'all' ? selectedFilters.value.stockStatus : null
+  ]
+  const exportName = generateDynamicExportName('stock_report', parts)
+
   const filters = {
     searchQuery: selectedFilters.value.searchQuery || null,
     building: selectedFilters.value.building,
@@ -229,7 +250,8 @@ async function handleRequestExport() {
     isPackage: selectedFilters.value.isPackage === 'all' ? '' : selectedFilters.value.isPackage,
     stockStatus: selectedFilters.value.stockStatus || 'all',
     format: selectedFilters.value.format || 'xlsx',
-    exportType: 'STOCK_REPORT'
+    exportType: 'STOCK_REPORT',
+    exportName: exportName
   }
 
   isRequesting.value = true
@@ -269,11 +291,11 @@ function formatJobType(type) {
         isDesktopSidebarCollapsed ? 'md:w-20' : 'md:w-64'
       ]"
     >
-      <div 
+      <div
         class="p-6 border-b border-secondary/20 flex items-center bg-secondary/5 h-[72px]"
         :class="isDesktopSidebarCollapsed ? 'justify-center' : 'justify-between'"
       >
-        <h2 
+        <h2
           class="text-xl font-bold text-text flex items-center gap-3 transition-opacity duration-200"
           :class="isDesktopSidebarCollapsed ? 'hidden' : 'block'"
         >
@@ -292,7 +314,10 @@ function formatJobType(type) {
           :class="isDesktopSidebarCollapsed ? 'mx-auto' : ''"
           title="Toggle Sidebar"
         >
-          <font-awesome-icon :icon="isDesktopSidebarCollapsed ? 'fa-solid fa-angles-right' : 'fa-solid fa-angles-left'" size="lg" />
+          <font-awesome-icon
+            :icon="isDesktopSidebarCollapsed ? 'fa-solid fa-angles-right' : 'fa-solid fa-angles-left'"
+            size="lg"
+          />
         </button>
       </div>
 
@@ -303,7 +328,7 @@ function formatJobType(type) {
           class="py-4 border-t border-secondary transition-all duration-300"
           :class="isDesktopSidebarCollapsed ? 'px-2 flex flex-col items-center' : 'px-4 pr-6'"
         >
-          <span 
+          <span
             class="font-bold text-text/40 uppercase tracking-wider block mb-2 transition-all duration-300"
             :class="isDesktopSidebarCollapsed ? 'text-[10px] text-center w-full truncate' : 'text-xs'"
             :title="isDesktopSidebarCollapsed ? groupName : ''"
@@ -326,7 +351,7 @@ function formatJobType(type) {
               :title="item.label"
             >
               <font-awesome-icon :icon="item.icon" class="w-5 shrink-0" />
-              <span 
+              <span
                 class="transition-opacity duration-200 whitespace-nowrap"
                 :class="isDesktopSidebarCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100'"
               >
@@ -384,7 +409,7 @@ function formatJobType(type) {
                 <TimePerformanceStats v-else-if="activeReport === 'time-performance'" class="animate-fade-in" />
                 <ShopPerformanceStats v-else-if="activeReport === 'channel-performance'" class="animate-fade-in" />
                 <PackageAnalysisTable v-else-if="activeReport === 'package-analysis'" class="animate-fade-in" />
-                <LocationAnalytics v-else-if="activeReport === 'location-analytics'" class="animate-fade-in" />
+                <StockDistributionAnalytics v-else-if="activeReport === 'stock-distribution'" class="animate-fade-in" />
                 <LocationCapacityStats v-else-if="activeReport === 'location-capacity'" class="animate-fade-in" />
               </KeepAlive>
 
@@ -541,7 +566,7 @@ function formatJobType(type) {
                               class="px-2 py-1 text-text text-xs sticky left-0 bg-background group-hover:bg-secondary/5 transition-colors shadow-[4px_0_8px_-4px_rgba(0,0,0,0.05)]"
                             >
                               <div class="flex flex-col">
-                                <span class="font-bold text-sm">{{ job.file_path }}</span>
+                                <span class="font-bold text-sm">{{ formatFileName(job.file_path, job.type) }}</span>
                               </div>
                             </td>
                             <td
@@ -632,7 +657,7 @@ function formatJobType(type) {
                     'export-stock',
                     'channel-performance',
                     'package-analysis',
-                    'location-analytics',
+                    'stock-distribution',
                     'location-capacity'
                   ].includes(activeReport)
                 "

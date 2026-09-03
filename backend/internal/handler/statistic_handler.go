@@ -16,6 +16,22 @@ func NewStatisticHandler(statisticService service.StatisticService) *StatisticHa
 	return &StatisticHandler{statisticService: statisticService}
 }
 
+// helper untuk mengekstrak user_id dari gin context (JWT map claims parses numbers as float64)
+func getStatUserID(c *gin.Context) int {
+	val, exists := c.Get("user_id")
+	if !exists {
+		return 0
+	}
+	switch v := val.(type) {
+	case float64:
+		return int(v)
+	case int:
+		return v
+	default:
+		return 0
+	}
+}
+
 func (h *StatisticHandler) GetStockMovements(c *gin.Context) {
 	var filters dto.StatisticFilterRequest
 	if err := c.ShouldBindQuery(&filters); err != nil {
@@ -33,7 +49,7 @@ func (h *StatisticHandler) GetStockMovements(c *gin.Context) {
 }
 
 func (h *StatisticHandler) RequestStockMovementsExport(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	_, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Unauthorized"})
 		return
@@ -45,7 +61,7 @@ func (h *StatisticHandler) RequestStockMovementsExport(c *gin.Context) {
 		return
 	}
 
-	jobID, err := h.statisticService.RequestStockMovementsExport(c.Request.Context(), int(userID.(float64)), req)
+	jobID, err := h.statisticService.RequestStockMovementsExport(c.Request.Context(), getStatUserID(c), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
 		return
@@ -75,7 +91,7 @@ func (h *StatisticHandler) GetStockTimeline(c *gin.Context) {
 }
 
 func (h *StatisticHandler) RequestStockTimelineExport(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	_, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Unauthorized"})
 		return
@@ -87,7 +103,7 @@ func (h *StatisticHandler) RequestStockTimelineExport(c *gin.Context) {
 		return
 	}
 
-	jobID, err := h.statisticService.RequestStockTimelineExport(c.Request.Context(), int(userID.(float64)), req)
+	jobID, err := h.statisticService.RequestStockTimelineExport(c.Request.Context(), getStatUserID(c), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
 		return

@@ -113,21 +113,19 @@ func (s *statisticServiceImpl) GetStockMovementStatistics(ctx context.Context, f
 	}
 
 	// Filter logic post-process (mimic Node behavior if complex status filtering was requested)
-	if filters.Status != nil && filters.Status != "" && filters.Status != "all" {
+	if filters.Status != "" && filters.Status != "all" {
 		var inc, exc []string
-		switch v := filters.Status.(type) {
-		case string:
-			var parsed map[string]interface{}
-			if err := json.Unmarshal([]byte(v), &parsed); err == nil {
-				if parsedInc, ok := parsed["include"]; ok {
-					inc = toSliceOfStrings(parsedInc)
-				}
-				if parsedExc, ok := parsed["exclude"]; ok {
-					exc = toSliceOfStrings(parsedExc)
-				}
-			} else {
-				inc = append(inc, strings.ToUpper(v))
+		v := filters.Status
+		var parsed map[string]interface{}
+		if err := json.Unmarshal([]byte(v), &parsed); err == nil {
+			if parsedInc, ok := parsed["include"]; ok {
+				inc = toSliceOfStrings(parsedInc)
 			}
+			if parsedExc, ok := parsed["exclude"]; ok {
+				exc = toSliceOfStrings(parsedExc)
+			}
+		} else {
+			inc = append(inc, strings.ToUpper(v))
 		}
 
 		if len(inc) > 0 || len(exc) > 0 {
@@ -198,6 +196,7 @@ func (s *statisticServiceImpl) RequestStockMovementsExport(ctx context.Context, 
 		"buildings":   req.Building,
 		"categoryId":  req.CategoryId,
 		"exportType":  "STATISTICS_STOCK_MOVEMENT",
+		"exportName":  req.ExportName,
 	})
 	fString := string(filtersJSON)
 
@@ -250,6 +249,7 @@ func (s *statisticServiceImpl) RequestStockTimelineExport(ctx context.Context, u
 		"movement":    movement,
 		"buildings":   req.Building,
 		"exportType":  "STATISTICS_STOCK_TIMELINE",
+		"exportName":  req.ExportName,
 	})
 	fString := string(filtersJSON)
 
@@ -402,13 +402,12 @@ func (s *statisticServiceImpl) GetPackageComponentAnalysis(ctx context.Context, 
 	}
 
 	var pInclude, pExclude []int
-	if filters.PackageCategoryId != nil {
-		if vStr, ok := filters.PackageCategoryId.(string); ok && vStr != "" {
-			var parsed map[string][]int
-			if err := json.Unmarshal([]byte(vStr), &parsed); err == nil {
-				pInclude = parsed["include"]
-				pExclude = parsed["exclude"]
-			}
+	if filters.PackageCategoryId != "" {
+		vStr := filters.PackageCategoryId
+		var parsed map[string][]int
+		if err := json.Unmarshal([]byte(vStr), &parsed); err == nil {
+			pInclude = parsed["include"]
+			pExclude = parsed["exclude"]
 		}
 	}
 
@@ -466,13 +465,12 @@ func (s *statisticServiceImpl) GetPackageComponentAnalysis(ctx context.Context, 
 	}
 
 	var sInclude, sExclude []string
-	if filters.StockStatus != nil {
-		if vStr, ok := filters.StockStatus.(string); ok && vStr != "" {
-			var parsed map[string][]string
-			if err := json.Unmarshal([]byte(vStr), &parsed); err == nil {
-				sInclude = parsed["include"]
-				sExclude = parsed["exclude"]
-			}
+	if filters.StockStatus != "" {
+		vStr := filters.StockStatus
+		var parsed map[string][]string
+		if err := json.Unmarshal([]byte(vStr), &parsed); err == nil {
+			sInclude = parsed["include"]
+			sExclude = parsed["exclude"]
 		}
 	}
 

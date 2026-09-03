@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/dps-wmhris/backend/internal/dto"
 	"github.com/dps-wmhris/backend/internal/model"
@@ -72,6 +73,9 @@ func (r *locationRepositoryImpl) GetStockAtLocation(ctx context.Context, tx *sql
 		err = r.db.GetContext(ctx, &qty, query, productID, locationID)
 	}
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, nil
+		}
 		return 0, err
 	}
 	return qty, nil
@@ -95,6 +99,9 @@ func (r *locationRepositoryImpl) FindBestStock(ctx context.Context, tx *sqlx.Tx,
 		err = r.db.GetContext(ctx, &locationID, query, productID, purpose, qtyNeeded)
 	}
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &locationID, nil

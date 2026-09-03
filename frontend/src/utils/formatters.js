@@ -74,3 +74,44 @@ export const formatTags = (tagsStr) => {
   }
   return []
 }
+
+/**
+ * Generate a dynamic export name based on filters
+ * @param {string} prefix - Prefix for the file name (e.g., 'stock_report', 'batch_log')
+ * @param {Array<string|null|undefined>} parts - Array of string parts to append (falsy values are ignored)
+ * @returns {string} - The generated export name
+ */
+export const generateDynamicExportName = (prefix, parts = []) => {
+  const validParts = parts
+    .filter(Boolean)
+    .map((p) => String(p).replace(/[^a-zA-Z0-9_-]/g, '_'))
+    
+  return [prefix, ...validParts].join('_').substring(0, 100)
+}
+
+/**
+ * Format string file path ke nama file yang lebih rapi
+ * @param {string} filePath - Path / URL asli
+ * @param {string} type - Tipe job (e.g. 'STOCK_REPORT', 'BATCH_LOG')
+ * @returns {string} - Nama file yang sudah di-format
+ */
+export const formatFileName = (filePath, type) => {
+  if (!filePath) return 'Memproses file...'
+  
+  const parts = filePath.split('/')
+  const filename = parts[parts.length - 1]
+  
+  // Deteksi nama file random UUID dari backend lama (misal: 1788406595673-e33fefc5-....xlsx)
+  if (/^\d{13}-[a-f0-9-]+\.[a-z0-9]+$/i.test(filename)) {
+    if (!type) return 'Laporan Dokumen'
+    const prettyType = type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+    return `Laporan ${prettyType}`
+  }
+  
+  // Deteksi format baru: timestamp-namakustom.xlsx (strip timestamp-nya)
+  if (/^\d{13}-/.test(filename)) {
+    return filename.substring(14)
+  }
+  
+  return filename
+}

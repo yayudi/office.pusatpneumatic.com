@@ -121,7 +121,7 @@ func (r *returnRepositoryImpl) GetMarketplaceReturnHistory(ctx context.Context, 
 			p.name as product_name,
 			pli.original_sku as sku,
 			pli.quantity,
-			pli.return_condition as condition,
+			pli.return_condition as ` + "`condition`" + `,
 			pli.return_notes as notes,
 			l.code as location_code,
 			pl.updated_at as date,
@@ -176,7 +176,7 @@ func (r *returnRepositoryImpl) GetManualReturnHistory(ctx context.Context, param
 			p.name as product_name,
 			p.sku,
 			mr.quantity,
-			mr.condition,
+			mr.` + "`condition`" + ` as ` + "`condition`" + `,
 			mr.notes,
 			mr.created_at as date,
 			'MANUAL' as source
@@ -262,7 +262,7 @@ func (r *returnRepositoryImpl) CreateSplitReturnItem(ctx context.Context, db sql
 func (r *returnRepositoryImpl) CreateManualReturn(ctx context.Context, db sqlx.ExtContext, manualReturn *model.ManualReturn) error {
 	query := `
 		INSERT INTO manual_returns
-			(user_id, product_id, quantity, condition, reference, notes, status, created_at)
+			(user_id, product_id, quantity, ` + "`condition`" + `, reference, notes, status, created_at)
 		VALUES (?, ?, ?, ?, ?, ?, 'APPROVED', NOW())
 	`
 	// Fallbacks for nullables

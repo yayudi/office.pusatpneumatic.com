@@ -162,69 +162,65 @@ func (r *statisticRepositoryImpl) GetStockMovementStats(ctx context.Context, fil
 	movParams := []interface{}{filters.StartDate, filters.EndDate}
 
 	// Custom movement filter for buildings (both IN and OUT conditions)
-	if filters.Building != nil {
-		switch v := filters.Building.(type) {
-		case string:
-			if v != "" && v != "all" {
-				// Parse as TriState
-				var parsed map[string]interface{}
-				if err := json.Unmarshal([]byte(v), &parsed); err == nil {
-					incSlice := toSliceOfStrings(parsed["include"])
-					if len(incSlice) > 0 {
-						qMarks := strings.Repeat("?,", len(incSlice))
-						qMarks = qMarks[:len(qMarks)-1]
-						movFilter += fmt.Sprintf(`
-							AND (
-								(sm.movement_type = 'INBOUND' AND tl.building IN (%s))
-								OR
-								(sm.movement_type IN ('SALE', 'OUT') AND fl.building IN (%s))
-							)
-						`, qMarks, qMarks)
-						for _, s := range incSlice {
-							movParams = append(movParams, s)
-						}
-						for _, s := range incSlice {
-							movParams = append(movParams, s)
-						}
-					}
-					excSlice := toSliceOfStrings(parsed["exclude"])
-					if len(excSlice) > 0 {
-						qMarks := strings.Repeat("?,", len(excSlice))
-						qMarks = qMarks[:len(qMarks)-1]
-						movFilter += fmt.Sprintf(`
-							AND (
-								(sm.movement_type = 'INBOUND' AND (tl.building IS NULL OR tl.building NOT IN (%s)))
-								OR
-								(sm.movement_type IN ('SALE', 'OUT') AND (fl.building IS NULL OR fl.building NOT IN (%s)))
-							)
-						`, qMarks, qMarks)
-						for _, s := range excSlice {
-							movParams = append(movParams, s)
-						}
-						for _, s := range excSlice {
-							movParams = append(movParams, s)
-						}
-					}
-				} else {
-					// Comma-separated or simple string
-					incSlice := toSliceOfStrings(v)
-					if len(incSlice) > 0 {
-						qMarks := strings.Repeat("?,", len(incSlice))
-						qMarks = qMarks[:len(qMarks)-1]
-						movFilter += fmt.Sprintf(`
-							AND (
-								(sm.movement_type = 'INBOUND' AND tl.building IN (%s))
-								OR
-								(sm.movement_type IN ('SALE', 'OUT') AND fl.building IN (%s))
-							)
-						`, qMarks, qMarks)
-						for _, s := range incSlice {
-							movParams = append(movParams, s)
-						}
-						for _, s := range incSlice {
-							movParams = append(movParams, s)
-						}
-					}
+	if filters.Building != "" && filters.Building != "all" {
+		v := filters.Building
+		// Parse as TriState
+		var parsed map[string]interface{}
+		if err := json.Unmarshal([]byte(v), &parsed); err == nil {
+			incSlice := toSliceOfStrings(parsed["include"])
+			if len(incSlice) > 0 {
+				qMarks := strings.Repeat("?,", len(incSlice))
+				qMarks = qMarks[:len(qMarks)-1]
+				movFilter += fmt.Sprintf(`
+					AND (
+						(sm.movement_type = 'INBOUND' AND tl.building IN (%s))
+						OR
+						(sm.movement_type IN ('SALE', 'OUT') AND fl.building IN (%s))
+					)
+				`, qMarks, qMarks)
+				for _, s := range incSlice {
+					movParams = append(movParams, s)
+				}
+				for _, s := range incSlice {
+					movParams = append(movParams, s)
+				}
+			}
+			excSlice := toSliceOfStrings(parsed["exclude"])
+			if len(excSlice) > 0 {
+				qMarks := strings.Repeat("?,", len(excSlice))
+				qMarks = qMarks[:len(qMarks)-1]
+				movFilter += fmt.Sprintf(`
+					AND (
+						(sm.movement_type = 'INBOUND' AND (tl.building IS NULL OR tl.building NOT IN (%s)))
+						OR
+						(sm.movement_type IN ('SALE', 'OUT') AND (fl.building IS NULL OR fl.building NOT IN (%s)))
+					)
+				`, qMarks, qMarks)
+				for _, s := range excSlice {
+					movParams = append(movParams, s)
+				}
+				for _, s := range excSlice {
+					movParams = append(movParams, s)
+				}
+			}
+		} else {
+			// Comma-separated or simple string
+			incSlice := toSliceOfStrings(v)
+			if len(incSlice) > 0 {
+				qMarks := strings.Repeat("?,", len(incSlice))
+				qMarks = qMarks[:len(qMarks)-1]
+				movFilter += fmt.Sprintf(`
+					AND (
+						(sm.movement_type = 'INBOUND' AND tl.building IN (%s))
+						OR
+						(sm.movement_type IN ('SALE', 'OUT') AND fl.building IN (%s))
+					)
+				`, qMarks, qMarks)
+				for _, s := range incSlice {
+					movParams = append(movParams, s)
+				}
+				for _, s := range incSlice {
+					movParams = append(movParams, s)
 				}
 			}
 		}
@@ -282,67 +278,63 @@ func (r *statisticRepositoryImpl) GetMovementTimelineStats(ctx context.Context, 
 	queryParams := []interface{}{filters.StartDate, filters.EndDate}
 
 	buildingFilter := ""
-	if filters.Building != nil {
-		switch v := filters.Building.(type) {
-		case string:
-			if v != "" && v != "all" {
-				var parsed map[string]interface{}
-				if err := json.Unmarshal([]byte(v), &parsed); err == nil {
-					incSlice := toSliceOfStrings(parsed["include"])
-					if len(incSlice) > 0 {
-						qMarks := strings.Repeat("?,", len(incSlice))
-						qMarks = qMarks[:len(qMarks)-1]
-						buildingFilter += fmt.Sprintf(`
-							AND (
-								(sm.movement_type = 'INBOUND' AND tl.building IN (%s))
-								OR
-								(sm.movement_type IN ('SALE', 'OUT') AND fl.building IN (%s))
-							)
-						`, qMarks, qMarks)
-						for _, s := range incSlice {
-							queryParams = append(queryParams, s)
-						}
-						for _, s := range incSlice {
-							queryParams = append(queryParams, s)
-						}
-					}
-					excSlice := toSliceOfStrings(parsed["exclude"])
-					if len(excSlice) > 0 {
-						qMarks := strings.Repeat("?,", len(excSlice))
-						qMarks = qMarks[:len(qMarks)-1]
-						buildingFilter += fmt.Sprintf(`
-							AND (
-								(sm.movement_type = 'INBOUND' AND (tl.building IS NULL OR tl.building NOT IN (%s)))
-								OR
-								(sm.movement_type IN ('SALE', 'OUT') AND (fl.building IS NULL OR fl.building NOT IN (%s)))
-							)
-						`, qMarks, qMarks)
-						for _, s := range excSlice {
-							queryParams = append(queryParams, s)
-						}
-						for _, s := range excSlice {
-							queryParams = append(queryParams, s)
-						}
-					}
-				} else {
-					incSlice := toSliceOfStrings(v)
-					if len(incSlice) > 0 {
-						qMarks := strings.Repeat("?,", len(incSlice))
-						qMarks = qMarks[:len(qMarks)-1]
-						buildingFilter += fmt.Sprintf(`
-							AND (
-								(sm.movement_type = 'INBOUND' AND tl.building IN (%s))
-								OR
-								(sm.movement_type IN ('SALE', 'OUT') AND fl.building IN (%s))
-							)
-						`, qMarks, qMarks)
-						for _, s := range incSlice {
-							queryParams = append(queryParams, s)
-						}
-						for _, s := range incSlice {
-							queryParams = append(queryParams, s)
-						}
-					}
+	if filters.Building != "" && filters.Building != "all" {
+		v := filters.Building
+		var parsed map[string]interface{}
+		if err := json.Unmarshal([]byte(v), &parsed); err == nil {
+			incSlice := toSliceOfStrings(parsed["include"])
+			if len(incSlice) > 0 {
+				qMarks := strings.Repeat("?,", len(incSlice))
+				qMarks = qMarks[:len(qMarks)-1]
+				buildingFilter += fmt.Sprintf(`
+					AND (
+						(sm.movement_type = 'INBOUND' AND tl.building IN (%s))
+						OR
+						(sm.movement_type IN ('SALE', 'OUT') AND fl.building IN (%s))
+					)
+				`, qMarks, qMarks)
+				for _, s := range incSlice {
+					queryParams = append(queryParams, s)
+				}
+				for _, s := range incSlice {
+					queryParams = append(queryParams, s)
+				}
+			}
+			excSlice := toSliceOfStrings(parsed["exclude"])
+			if len(excSlice) > 0 {
+				qMarks := strings.Repeat("?,", len(excSlice))
+				qMarks = qMarks[:len(qMarks)-1]
+				buildingFilter += fmt.Sprintf(`
+					AND (
+						(sm.movement_type = 'INBOUND' AND (tl.building IS NULL OR tl.building NOT IN (%s)))
+						OR
+						(sm.movement_type IN ('SALE', 'OUT') AND (fl.building IS NULL OR fl.building NOT IN (%s)))
+					)
+				`, qMarks, qMarks)
+				for _, s := range excSlice {
+					queryParams = append(queryParams, s)
+				}
+				for _, s := range excSlice {
+					queryParams = append(queryParams, s)
+				}
+			}
+		} else {
+			incSlice := toSliceOfStrings(v)
+			if len(incSlice) > 0 {
+				qMarks := strings.Repeat("?,", len(incSlice))
+				qMarks = qMarks[:len(qMarks)-1]
+				buildingFilter += fmt.Sprintf(`
+					AND (
+						(sm.movement_type = 'INBOUND' AND tl.building IN (%s))
+						OR
+						(sm.movement_type IN ('SALE', 'OUT') AND fl.building IN (%s))
+					)
+				`, qMarks, qMarks)
+				for _, s := range incSlice {
+					queryParams = append(queryParams, s)
+				}
+				for _, s := range incSlice {
+					queryParams = append(queryParams, s)
 				}
 			}
 		}
@@ -351,7 +343,7 @@ func (r *statisticRepositoryImpl) GetMovementTimelineStats(ctx context.Context, 
 	searchJoin := ""
 	searchFilter := ""
 
-	if filters.SearchQuery != "" || (filters.CategoryId != nil && filters.CategoryId != "all" && filters.CategoryId != "") {
+	if filters.SearchQuery != "" || (filters.CategoryId != "" && filters.CategoryId != "all") {
 		searchJoin = "JOIN products p ON sm.product_id = p.id"
 		if filters.SearchQuery != "" {
 			searchFilter += " AND (p.sku LIKE ? OR p.name LIKE ?)"
@@ -397,8 +389,9 @@ func (r *statisticRepositoryImpl) GetInventoryValueStats(ctx context.Context, fi
 	whereClauses := []string{"p.is_active = 1"}
 	var queryParams []interface{}
 
-	if filters.StockStatus != nil {
-		if vStr, ok := filters.StockStatus.(string); ok && vStr != "" && vStr != "all" {
+	if filters.StockStatus != "" {
+		if filters.StockStatus != "all" {
+			vStr := filters.StockStatus
 			var parsed map[string]interface{}
 			if err := json.Unmarshal([]byte(vStr), &parsed); err == nil {
 				incSlice := toSliceOfStrings(parsed["include"])
@@ -778,9 +771,9 @@ func (r *statisticRepositoryImpl) GetLocationLoads(ctx context.Context, filters 
 			l.floor,
 			l.purpose,
 			COUNT(DISTINCT sl.product_id) as total_products,
-			SUM(sl.quantity) as total_quantity,
-			SUM(sl.quantity * COALESCE(p.weight, 0)) as total_weight,
-			SUM(sl.quantity * (COALESCE(p.length, 0) * COALESCE(p.width, 0) * COALESCE(p.height, 0))) / 1000000 as total_cbm
+			COALESCE(SUM(sl.quantity), 0) as total_quantity,
+			COALESCE(SUM(sl.quantity * COALESCE(p.weight, 0)), 0) as total_weight,
+			COALESCE(SUM(sl.quantity * (COALESCE(p.length, 0) * COALESCE(p.width, 0) * COALESCE(p.height, 0))) / 1000000, 0) as total_cbm
 		FROM locations l
 		LEFT JOIN stock_locations sl ON l.id = sl.location_id
 		LEFT JOIN products p ON sl.product_id = p.id

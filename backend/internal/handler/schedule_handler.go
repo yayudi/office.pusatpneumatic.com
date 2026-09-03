@@ -2,7 +2,10 @@ package handler
 
 import (
 	"net/http"
+	"os"
+	"path/filepath"
 
+	"github.com/dps-wmhris/backend/internal/config"
 	"github.com/dps-wmhris/backend/internal/dto"
 	"github.com/dps-wmhris/backend/internal/service"
 	"github.com/gin-gonic/gin"
@@ -100,12 +103,11 @@ func (h *ScheduleHandler) UploadImportSchedule(c *gin.Context) {
 		return
 	}
 
-	// For simplicity, pretend userID is 1 for now since auth isn't fully ported
-	// Replace with actual context user ID later
-	userID := 1
+	userID := getUserID(c)
 
 	// Create temp directory for uploads if not exists
-	uploadDir := "./storage/uploads/"
+	uploadDir := filepath.Join(config.AppConfig.StoragePath, "uploads", "schedule") + string(filepath.Separator)
+	os.MkdirAll(uploadDir, os.ModePerm)
 	filepath := uploadDir + file.Filename
 	
 	if err := c.SaveUploadedFile(file, filepath); err != nil {

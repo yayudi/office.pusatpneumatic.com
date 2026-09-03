@@ -39,8 +39,8 @@ const routes = [
   },
   {
     path: '/stats/locations',
-    name: 'LocationAnalytics',
-    component: () => import('../views/stats/LocationAnalytics.vue'),
+    name: 'StockDistributionAnalytics',
+    component: () => import('../views/stats/StockDistributionAnalytics.vue'),
     meta: { requiresAuth: true, requiresPermission: 'statistic.stock.view' }
   },
 

@@ -4,6 +4,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useDownloadStore } from '@/stores/downloadStore.js'
 import { useUploadStore } from '@/stores/uploadStore.js'
 import { useFirebaseSync } from '@/composables/useFirebaseSync.js'
+import { formatFileName } from '@/utils/formatters.js'
 import dayjs from 'dayjs'
 
 const downloadStore = useDownloadStore()
@@ -209,8 +210,8 @@ const getErrorUrl = job => {
                 <span class="text-[10px] text-text/40 font-medium">{{ formatDate(job.created_at) }}</span>
               </div>
 
-              <div class="text-xs font-bold text-text truncate mb-2">
-                {{ job.file_path || 'Memproses file...' }}
+              <div class="text-xs font-bold text-text truncate mb-2" :title="job.file_path">
+                {{ formatFileName(job.file_path, job.type) }}
               </div>
 
               <div class="flex justify-between items-center">
@@ -261,17 +262,17 @@ const getErrorUrl = job => {
                     {{ formatStatus(job.status) }}
                   </span>
                   <span
-                    v-if="job.jobType.endsWith('_DRY_RUN')"
+                    v-if="(job.job_type || '').endsWith('_DRY_RUN')"
                     class="text-[9px] bg-secondary/20 text-text/60 px-1.5 rounded"
                   >
                     DRY RUN
                   </span>
                 </div>
-                <span class="text-[10px] text-text/40 font-medium">{{ formatDate(job.createdAt) }}</span>
+                <span class="text-[10px] text-text/40 font-medium">{{ formatDate(job.created_at) }}</span>
               </div>
 
               <div class="text-xs font-bold text-text truncate mb-1">
-                {{ job.originalFilename || 'Memproses file...' }}
+                {{ job.original_filename || 'Memproses file...' }}
               </div>
 
               <div v-if="job.notes" class="text-[10px] text-text/60 italic mb-2 border-l-2 border-primary/30 pl-1.5 truncate" :title="job.notes">
@@ -293,8 +294,8 @@ const getErrorUrl = job => {
               </div>
 
               <div class="flex justify-between items-center mt-2">
-                <span class="text-[10px] text-text/50 truncate max-w-[150px]" :title="job.summary">
-                  {{ job.summary || 'Memproses...' }}
+                <span class="text-[10px] text-text/50 truncate max-w-[150px]" :title="job.log_summary">
+                  {{ job.log_summary || 'Memproses...' }}
                 </span>
 
                 <a

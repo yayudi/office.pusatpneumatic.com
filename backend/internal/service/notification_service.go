@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"log"
 
 	"github.com/dps-wmhris/backend/internal/database"
@@ -26,11 +28,16 @@ type NotificationService interface {
 type notificationServiceImpl struct {
 	db               *sqlx.DB
 	notificationRepo repository.NotificationRepository
+	firebaseService  FirebaseSignalService
 }
 
 // NewNotificationService creates a new NotificationService.
-func NewNotificationService(db *sqlx.DB, notificationRepo repository.NotificationRepository) NotificationService {
-	return &notificationServiceImpl{db: db, notificationRepo: notificationRepo}
+func NewNotificationService(db *sqlx.DB, notificationRepo repository.NotificationRepository, firebaseService FirebaseSignalService) NotificationService {
+	return &notificationServiceImpl{
+		db:               db,
+		notificationRepo: notificationRepo,
+		firebaseService:  firebaseService,
+	}
 }
 
 // FetchRecentPending returns recent pending notifications for a user.
@@ -48,21 +55,37 @@ func (s *notificationServiceImpl) FetchAll(ctx context.Context, userID int, filt
 
 // MarkNotificationAsDone marks a single notification as done within a transaction.
 func (s *notificationServiceImpl) MarkNotificationAsDone(ctx context.Context, notificationID int, userID int) error {
-	return database.WithTransaction(s.db, ctx, func(tx *sqlx.Tx) error {
-		_, err := s.notificationRepo.MarkAsDone(ctx, tx, notificationID, userID)
-		return err
+	var affected int
+	err := database.WithTransaction(s.db, ctx, func(tx *sqlx.Tx) error {
+		var txErr error
+		affected, txErr = s.notificationRepo.MarkAsDone(ctx, tx, notificationID, userID)
+		return txErr
 	})
+	
+	if err == nil && affected > 0 {
+		_ = s.firebaseService.EmitUserSignal(context.Background(), fmt.Sprintf("%d", userID), "")
+	}
+	
+	return err
 }
 
 // MarkAllNotificationsAsDone marks all pending notifications as done within a transaction.
 func (s *notificationServiceImpl) MarkAllNotificationsAsDone(ctx context.Context, userID int) error {
-	return database.WithTransaction(s.db, ctx, func(tx *sqlx.Tx) error {
-		_, err := s.notificationRepo.MarkAllAsDone(ctx, tx, userID)
-		return err
+	var affected int
+	err := database.WithTransaction(s.db, ctx, func(tx *sqlx.Tx) error {
+		var txErr error
+		affected, txErr = s.notificationRepo.MarkAllAsDone(ctx, tx, userID)
+		return txErr
 	})
+
+	if err == nil && affected > 0 {
+		_ = s.firebaseService.EmitUserSignal(context.Background(), fmt.Sprintf("%d", userID), "")
+	}
+	
+	return err
 }
 
-// ClaimNotification claims a shared-task notification for the user.
+// ClaimNotification handles claiming a shared task notification.
 func (s *notificationServiceImpl) ClaimNotification(ctx context.Context, notificationID int, userID int) (bool, error) {
 	var affected int
 	err := database.WithTransaction(s.db, ctx, func(tx *sqlx.Tx) error {
@@ -70,10 +93,12 @@ func (s *notificationServiceImpl) ClaimNotification(ctx context.Context, notific
 		affected, txErr = s.notificationRepo.ClaimTask(ctx, tx, notificationID, userID)
 		return txErr
 	})
-	if err != nil {
-		return false, err
+	
+	if err == nil && affected > 0 {
+		_ = s.firebaseService.EmitUserSignal(context.Background(), fmt.Sprintf("%d", userID), "")
 	}
-	return affected > 0, nil
+	
+	return affected > 0, err
 }
 
 // FetchPreferences returns notification preferences for a user, filling defaults.
@@ -115,7 +140,6 @@ func (s *notificationServiceImpl) UpdatePreferences(ctx context.Context, userID 
 }
 
 // NotifyUsers creates a personal notification for each user in the list.
-// Firebase signal is skipped in the Go migration (fire-and-forget was used in Node.js).
 func (s *notificationServiceImpl) NotifyUsers(ctx context.Context, userIDs []int, notifType, title, message string, actionPayload interface{}, isDone bool) error {
 	if len(userIDs) == 0 {
 		return nil
@@ -136,17 +160,20 @@ func (s *notificationServiceImpl) NotifyUsers(ctx context.Context, userIDs []int
 		}
 
 		if isEnabled {
-			uidCopy := uid
+			userID := uid
+			payloadBytes, _ := json.Marshal(actionPayload)
 			_, err := s.notificationRepo.CreateNotification(ctx, s.db, dto.CreateNotificationPayload{
-				UserID:        &uidCopy,
+				UserID:        &userID,
 				Type:          notifType,
 				Title:         title,
 				Message:       message,
-				ActionPayload: actionPayload,
+				ActionPayload: payloadBytes,
 				IsDone:        isDone,
 			})
 			if err != nil {
 				log.Printf("[NOTIFICATION] Error creating notification for user %d: %v", uid, err)
+			} else {
+				_ = s.firebaseService.EmitUserSignal(context.Background(), fmt.Sprintf("%d", uid), "")
 			}
 		}
 	}
@@ -155,18 +182,22 @@ func (s *notificationServiceImpl) NotifyUsers(ctx context.Context, userIDs []int
 
 // NotifyUsersByPermission creates a single shared-task notification visible to all users with the given permission.
 func (s *notificationServiceImpl) NotifyUsersByPermission(ctx context.Context, permissionName, notifType, title, message string, actionPayload interface{}, excludeUserID *int, isDone bool) error {
+	payloadBytes, _ := json.Marshal(actionPayload)
+
 	_, err := s.notificationRepo.CreateNotification(ctx, s.db, dto.CreateNotificationPayload{
 		UserID:           nil,
 		Type:             notifType,
 		Title:            title,
 		Message:          message,
-		ActionPayload:    actionPayload,
+		ActionPayload:    payloadBytes,
 		IsDone:           isDone,
 		TargetPermission: &permissionName,
 		ExcludeUserID:    excludeUserID,
 	})
-	if err != nil {
-		log.Printf("[NOTIFICATION] Error creating shared task: %v", err)
+	
+	if err == nil {
+		_ = s.firebaseService.EmitSharedTaskSignal(context.Background(), permissionName, "")
 	}
+	
 	return err
 }

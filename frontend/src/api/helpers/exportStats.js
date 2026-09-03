@@ -15,6 +15,7 @@ export const requestStatisticExport = async (filters) => {
     movement: filters.movement || 'all',
     building: filters.building || [],
     categoryId: filters.categoryId || 'all',
+    exportName: filters.exportName || '',
   });
   return response.data;
 };
@@ -27,6 +28,7 @@ export const requestStockTimelineExport = async (filters) => {
     status: filters.status || 'all',
     movement: filters.movement || 'all',
     building: filters.building || [],
+    exportName: filters.exportName || '',
   });
   return response.data;
 };

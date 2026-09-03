@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -16,6 +18,10 @@ import (
 
 func main() {
 	config.LoadConfig()
+	config.InitFirebase()
+	if err := config.InitR2(); err != nil {
+		log.Printf("Failed to initialize R2: %v", err)
+	}
 
 	db := database.ConnectDB()
 	defer db.Close()
@@ -26,14 +32,23 @@ func main() {
 	statisticRepo := repository.NewStatisticRepository(db)
 	statisticService := service.NewStatisticService(statisticRepo, jobRepo)
 	storageService := service.NewStorageService()
-	exportService := service.NewExportService(jobRepo, statisticService, storageService)
+	stockRepo := repository.NewStockRepository(db)
+	reportRepo := repository.NewReportRepository(db)
+	exportService := service.NewExportService(jobRepo, statisticService, storageService, stockRepo, reportRepo)
 
-	// In the future, we will inject other services like attendanceService to process the jobs
 	attendanceRepo := repository.NewAttendanceRepository(db)
 	userRepo := repository.NewUserRepository(db)
 	shiftRepo := repository.NewShiftRepository(db)
 	scheduleRepo := repository.NewScheduleRepository(db)
-	attendanceService := service.NewAttendanceService(attendanceRepo, userRepo, shiftRepo, scheduleRepo)
+	settingRepo := repository.NewSettingRepository(db)
+	attendanceService := service.NewAttendanceService(attendanceRepo, userRepo, shiftRepo, scheduleRepo, settingRepo)
+
+	pickingRepo := repository.NewPickingRepository(db)
+	locationRepo := repository.NewLocationRepository(db)
+	productRepo := repository.NewProductRepository(db)
+	pickingService := service.NewPickingService(db, pickingRepo, locationRepo, stockRepo, jobService, productRepo)
+	stockService := service.NewStockService(db, stockRepo, productRepo, locationRepo, userRepo, pickingRepo)
+	firebaseService := service.NewFirebaseSignalService()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -60,13 +75,13 @@ func main() {
 			log.Println("Worker stopped.")
 			return
 		case <-ticker.C:
-			processPendingImportJobs(ctx, jobService, attendanceService)
-			processPendingExportJobs(ctx, jobService, exportService)
+			processPendingImportJobs(ctx, jobService, attendanceService, pickingService, stockService, firebaseService)
+			processPendingExportJobs(ctx, jobService, exportService, firebaseService)
 		}
 	}
 }
 
-func processPendingImportJobs(ctx context.Context, jobService service.JobService, attendanceService service.AttendanceService) {
+func processPendingImportJobs(ctx context.Context, jobService service.JobService, attendanceService service.AttendanceService, pickingService service.PickingService, stockService service.StockService, firebaseService service.FirebaseSignalService) {
 	// Simple polling mechanism
 	// In production, you'd want proper locking or `SELECT ... FOR UPDATE SKIP LOCKED`
 	// Since there's only one worker instance intended, a simple fetch is fine for now
@@ -89,13 +104,14 @@ func processPendingImportJobs(ctx context.Context, jobService service.JobService
 
 			// Execute Job
 			var processErr error
+			var logSummary string
 			switch job.JobType {
 			case "IMPORT_ATTENDANCE":
 				log.Printf("Processing %s: %s", job.JobType, job.FilePath)
-				processErr = attendanceService.ProcessImport(ctx, job.ID, job.FilePath, false)
+				logSummary, processErr = attendanceService.ProcessImport(ctx, job.ID, job.FilePath, false)
 			case "IMPORT_ATTENDANCE_DRY_RUN":
 				log.Printf("Processing %s: %s", job.JobType, job.FilePath)
-				processErr = attendanceService.ProcessImport(ctx, job.ID, job.FilePath, true)
+				logSummary, processErr = attendanceService.ProcessImport(ctx, job.ID, job.FilePath, true)
 			case "IMPORT_SCHEDULES":
 				// TODO: call scheduleService.ProcessImport(...)
 				log.Printf("Processing %s: %s", job.JobType, job.FilePath)
@@ -106,31 +122,95 @@ func processPendingImportJobs(ctx context.Context, jobService service.JobService
 			case "BATCH_EDIT_PRODUCT_DRY_RUN":
 				log.Printf("Processing %s: %s", job.JobType, job.FilePath)
 				time.Sleep(2 * time.Second)
+			case "ADJUST_STOCK":
+				log.Printf("Processing %s: %s", job.JobType, job.FilePath)
+				processErr = stockService.ProcessStockImport(ctx, job.ID, job.FilePath, job.UserID, false)
+			case "ADJUST_STOCK_DRY_RUN":
+				log.Printf("Processing %s: %s", job.JobType, job.FilePath)
+				processErr = stockService.ProcessStockImport(ctx, job.ID, job.FilePath, job.UserID, true)
 			case "IMPORT_STOCK_INBOUND":
 				log.Printf("Processing %s: %s", job.JobType, job.FilePath)
 				time.Sleep(2 * time.Second) // TODO: Call stockService.ProcessImportBatchInbound(...)
 			case "IMPORT_SALES_TOKOPEDIA", "IMPORT_SALES_SHOPEE", "IMPORT_SALES_TIKTOK", "IMPORT_SALES_MANUAL":
 				log.Printf("Processing %s: %s", job.JobType, job.FilePath)
-				time.Sleep(2 * time.Second) // TODO: Call pickingService.ProcessSalesImport(...)
+				sourceMap := map[string]string{
+					"IMPORT_SALES_TOKOPEDIA": "Tokopedia",
+					"IMPORT_SALES_SHOPEE":    "Shopee",
+					"IMPORT_SALES_TIKTOK":    "TikTok",
+					"IMPORT_SALES_MANUAL":    "Offline",
+				}
+				source := sourceMap[job.JobType]
+				
+				shopName := ""
+				locationPurpose := "DISPLAY"
+				if job.Options != nil {
+					var opts map[string]interface{}
+					if err := json.Unmarshal([]byte(*job.Options), &opts); err == nil {
+						if val, ok := opts["shopName"].(string); ok {
+							shopName = val
+						}
+						if val, ok := opts["purpose"].(string); ok {
+							locationPurpose = val
+						}
+					}
+				}
+
+				processErr = pickingService.ProcessSalesImport(ctx, job.ID, job.FilePath, source, job.UserID, false, locationPurpose, shopName)
 			case "IMPORT_SALES_TOKOPEDIA_DRY_RUN", "IMPORT_SALES_SHOPEE_DRY_RUN", "IMPORT_SALES_TIKTOK_DRY_RUN", "IMPORT_SALES_MANUAL_DRY_RUN":
 				log.Printf("Processing %s (Dry Run): %s", job.JobType, job.FilePath)
-				time.Sleep(2 * time.Second)
+				sourceMap := map[string]string{
+					"IMPORT_SALES_TOKOPEDIA_DRY_RUN": "Tokopedia",
+					"IMPORT_SALES_SHOPEE_DRY_RUN":    "Shopee",
+					"IMPORT_SALES_TIKTOK_DRY_RUN":    "TikTok",
+					"IMPORT_SALES_MANUAL_DRY_RUN":    "Offline",
+				}
+				source := sourceMap[job.JobType]
+
+				shopName := ""
+				locationPurpose := "DISPLAY"
+				if job.Options != nil {
+					var opts map[string]interface{}
+					if err := json.Unmarshal([]byte(*job.Options), &opts); err == nil {
+						if val, ok := opts["shopName"].(string); ok {
+							shopName = val
+						}
+						if val, ok := opts["purpose"].(string); ok {
+							locationPurpose = val
+						}
+					}
+				}
+
+				processErr = pickingService.ProcessSalesImport(ctx, job.ID, job.FilePath, source, job.UserID, true, locationPurpose, shopName)
 			default:
 				log.Printf("Unknown job type: %s", job.JobType)
+				processErr = fmt.Errorf("unknown job type: %s", job.JobType)
 			}
 
+			// Update job status
 			if processErr != nil {
 				log.Printf("Job %d failed: %v", job.ID, processErr)
 				jobService.UpdateImportJobStatus(ctx, job.ID, "FAILED")
+				_ = firebaseService.EmitSharedTaskSignal(ctx, "BACKGROUND_JOBS", "IMPORT_FAILED")
+			} else if logSummary != "" {
+				log.Printf("Job %d completed with summary: %s", job.ID, logSummary)
+				jobService.UpdateImportJobStatusWithSummary(ctx, job.ID, "COMPLETED", logSummary)
+				_ = firebaseService.EmitSharedTaskSignal(ctx, "BACKGROUND_JOBS", "IMPORT_COMPLETED")
+				if job.JobType == "IMPORT_ATTENDANCE" {
+					_ = firebaseService.EmitSharedTaskSignal(ctx, "HRIS_ATTENDANCE", "REFRESH_ATTENDANCE")
+				}
 			} else {
-				log.Printf("Job %d completed successfully", job.ID)
+				log.Printf("Job %d completed", job.ID)
 				jobService.UpdateImportJobStatus(ctx, job.ID, "COMPLETED")
+				_ = firebaseService.EmitSharedTaskSignal(ctx, "BACKGROUND_JOBS", "IMPORT_COMPLETED")
+				if job.JobType == "IMPORT_ATTENDANCE" {
+					_ = firebaseService.EmitSharedTaskSignal(ctx, "HRIS_ATTENDANCE", "REFRESH_ATTENDANCE")
+				}
 			}
 		}
 	}
 }
 
-func processPendingExportJobs(ctx context.Context, jobService service.JobService, exportService service.ExportService) {
+func processPendingExportJobs(ctx context.Context, jobService service.JobService, exportService service.ExportService, firebaseService service.FirebaseSignalService) {
 	jobs, err := jobService.GetExportJobs(ctx, 10, 0)
 	if err != nil {
 		log.Printf("Error fetching export jobs: %v", err)
@@ -154,14 +234,26 @@ func processPendingExportJobs(ctx context.Context, jobService service.JobService
 			case "STATISTICS_STOCK_TIMELINE":
 				log.Printf("Processing %s", job.JobType)
 				processErr = exportService.ProcessExportStockTimeline(ctx, job.ID, filtersJSON)
+			case "STOCK_REPORT":
+				log.Printf("Processing %s", job.JobType)
+				processErr = exportService.ProcessExportStockReport(ctx, job.ID, filtersJSON)
+			case "BATCH_LOG_EXPORT":
+				log.Printf("Processing %s", job.JobType)
+				processErr = exportService.ProcessExportBatchLog(ctx, job.ID, filtersJSON)
 			default:
 				log.Printf("Unknown export job type: %s", job.JobType)
+				processErr = fmt.Errorf("unknown export job type: %s", job.JobType)
 			}
 			
 			if processErr != nil {
 				log.Printf("Export Job %d failed: %v", job.ID, processErr)
+				errMsg := processErr.Error()
+				jobService.UpdateExportJobStatus(ctx, job.ID, "FAILED", nil, &errMsg)
+				_ = firebaseService.EmitSharedTaskSignal(ctx, "BACKGROUND_JOBS", "EXPORT_FAILED")
 			} else {
 				log.Printf("Export Job %d completed successfully", job.ID)
+				// Job status is updated by the service (ProcessExportStockReport etc)
+				_ = firebaseService.EmitSharedTaskSignal(ctx, "BACKGROUND_JOBS", "EXPORT_COMPLETED")
 			}
 		}
 	}

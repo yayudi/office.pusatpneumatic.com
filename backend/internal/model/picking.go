@@ -5,6 +5,7 @@ import "time"
 // PickingList represents the picking_lists table
 type PickingList struct {
 	ID                int        `db:"id"`
+	UserID            int        `db:"user_id"`
 	OriginalInvoiceID *string    `db:"original_invoice_id"`
 	Source            *string    `db:"source"` // Tokopedia, Shopee, dll
 	Status            string     `db:"status"` // PENDING, VALIDATED, DONE, OBSOLETE, VOID, CANCELLED
@@ -30,6 +31,9 @@ type PickingListItem struct {
 	CreatedAt             time.Time  `db:"created_at"`
 	UpdatedAt             time.Time  `db:"updated_at"`
 	OriginalSKU           *string    `db:"original_sku"`
+	Price                 *float64   `db:"price"`
 	ReturnCondition       *string    `db:"return_condition"`
 	ReturnNotes           *string    `db:"return_notes"`
+	ConfirmedLocationID   *int       `db:"confirmed_location_id"`
+	LastRecoveryAttempt   *string    `db:"last_recovery_attempt"`
 }

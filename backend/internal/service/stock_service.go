@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
+	"strconv"
 	"strings"
 
 	"github.com/dps-wmhris/backend/internal/database"
@@ -20,11 +22,12 @@ type StockService interface {
 	GetAllStocks(ctx context.Context) ([]map[string]interface{}, error)
 	ProcessBatchMovements(ctx context.Context, req dto.BatchProcessRequest, userID int, userRoleID int) error
 	GetMovementTypes(ctx context.Context) ([]string, error)
-	GetBatchLogs(ctx context.Context, filter dto.BatchLogFilter) ([]dto.BatchLogResponse, error)
+	GetBatchLogs(ctx context.Context, filter dto.BatchLogFilter) ([]dto.BatchLogResponse, int, error)
 	GetStockHistory(ctx context.Context, filter dto.StockHistoryFilter) (*dto.StockHistoryData, error)
 	GenerateInboundTemplate(ctx context.Context) (*excelize.File, error)
 	GenerateAdjustmentTemplate(ctx context.Context) (*excelize.File, error)
 	ValidateReturn(ctx context.Context, req dto.ValidateReturnRequest, userID int) error
+	ProcessStockImport(ctx context.Context, jobID int, filePath string, userID int, isDryRun bool) error
 }
 
 type stockServiceImpl struct {
@@ -469,8 +472,7 @@ func (s *stockServiceImpl) GetMovementTypes(ctx context.Context) ([]string, erro
 	return s.stockRepo.GetMovementTypes(ctx)
 }
 
-func (s *stockServiceImpl) GetBatchLogs(ctx context.Context, filter dto.BatchLogFilter) ([]dto.BatchLogResponse, error) {
-	// You can add validation for StartDate and EndDate here if needed
+func (s *stockServiceImpl) GetBatchLogs(ctx context.Context, filter dto.BatchLogFilter) ([]dto.BatchLogResponse, int, error) {
 	return s.stockRepo.GetBatchLogs(ctx, filter)
 }
 
@@ -606,4 +608,180 @@ func (s *stockServiceImpl) ValidateReturn(ctx context.Context, req dto.ValidateR
 
 		return s.pickingRepo.UpdateItemStatus(ctx, tx, item.ID, "COMPLETED_RETURN")
 	})
+}
+
+func (s *stockServiceImpl) ProcessStockImport(ctx context.Context, jobID int, filePath string, userID int, isDryRun bool) error {
+	log.Printf("[ProcessStockImport] Memulai Job %d. File: %s, DryRun: %v", jobID, filePath, isDryRun)
+	f, err := excelize.OpenFile(filePath)
+	if err != nil {
+		return fmt.Errorf("gagal membuka file excel: %w", err)
+	}
+	defer f.Close()
+
+	sheetName := f.GetSheetName(0)
+	if sheetName == "" {
+		return errors.New("file excel tidak memiliki sheet atau tidak valid")
+	}
+
+	rows, err := f.GetRows(sheetName)
+	if err != nil {
+		return fmt.Errorf("gagal membaca baris: %w", err)
+	}
+
+	if len(rows) < 2 {
+		return errors.New("file excel kosong atau tidak ada data (hanya header)")
+	}
+
+	locMap := make(map[string]int)
+	locations, err := s.locationRepo.FindAll(ctx)
+	if err != nil {
+		return err
+	}
+	for _, l := range locations {
+		locMap[strings.ToUpper(l.Code)] = l.ID
+	}
+
+	var movements []dto.StockOpnameItem
+	var uniqueSKUs []string
+	skuSet := make(map[string]bool)
+
+	var validationErrors []string
+
+	for i, row := range rows {
+		if i == 0 {
+			continue // skip header
+		}
+		
+		var sku, locCode, actualStr, notes string
+		if len(row) > 0 { sku = strings.TrimSpace(row[0]) }
+		if len(row) > 1 { locCode = strings.TrimSpace(row[1]) }
+		if len(row) > 2 { actualStr = strings.TrimSpace(row[2]) }
+		if len(row) > 3 { notes = strings.TrimSpace(row[3]) }
+
+		if sku == "" && locCode == "" && actualStr == "" {
+			continue
+		}
+
+		if sku == "" {
+			validationErrors = append(validationErrors, fmt.Sprintf("Baris %d: SKU kosong", i+1))
+			continue
+		}
+		
+		locID, ok := locMap[strings.ToUpper(locCode)]
+		if !ok {
+			validationErrors = append(validationErrors, fmt.Sprintf("Baris %d: Lokasi '%s' tidak valid", i+1, locCode))
+			continue
+		}
+
+		actual, err := strconv.Atoi(actualStr)
+		if err != nil || actual < 0 {
+			validationErrors = append(validationErrors, fmt.Sprintf("Baris %d: Stok Aktual '%s' tidak valid (harus angka >= 0)", i+1, actualStr))
+			continue
+		}
+
+		if !skuSet[sku] {
+			skuSet[sku] = true
+			uniqueSKUs = append(uniqueSKUs, sku)
+		}
+
+		movements = append(movements, dto.StockOpnameItem{
+			SKU: sku,
+			Quantity: actual,
+			ToLocationID: locID,
+			Notes: notes,
+		})
+	}
+
+	if len(validationErrors) > 0 {
+		return fmt.Errorf("terdapat %d error validasi:\n%s", len(validationErrors), strings.Join(validationErrors, "\n"))
+	}
+
+	if len(movements) == 0 {
+		return errors.New("tidak ada data stok untuk diproses")
+	}
+
+	productMap, err := s.productRepo.GetProductMapWithComponents(ctx, uniqueSKUs)
+	if err != nil {
+		return err
+	}
+
+	for i, m := range movements {
+		product, ok := productMap[strings.ToUpper(m.SKU)]
+		if !ok {
+			return fmt.Errorf("SKU '%s' tidak ditemukan di database", m.SKU)
+		}
+		movements[i].ProductID = product.ID
+	}
+
+	if isDryRun {
+		log.Printf("[ProcessStockImport] Dry run selesai. %d baris valid.", len(movements))
+		return nil
+	}
+
+	err = database.WithTransaction(s.db, ctx, func(tx *sqlx.Tx) error {
+		count, err := s.ProcessBatchOpname(ctx, tx, movements, userID)
+		if err != nil {
+			return err
+		}
+		log.Printf("[ProcessStockImport] Selesai. Memproses %d pergerakan.", count)
+		return nil
+	})
+
+	return err
+}
+
+func (s *stockServiceImpl) ProcessBatchOpname(ctx context.Context, tx *sqlx.Tx, movements []dto.StockOpnameItem, userID int) (int, error) {
+	processedCount := 0
+	for _, m := range movements {
+		stockTo, err := s.stockRepo.GetStockByLocation(ctx, tx, m.ProductID, m.ToLocationID)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return 0, err
+		}
+
+		currentQty := 0
+		if stockTo != nil {
+			currentQty = stockTo.Quantity
+		}
+
+		if currentQty == m.Quantity {
+			continue
+		}
+
+		diff := m.Quantity - currentQty
+		
+		if stockTo == nil {
+			stockTo = &model.StockLocation{
+				ProductID: m.ProductID,
+				LocationID: m.ToLocationID,
+				Quantity: m.Quantity,
+			}
+		} else {
+			stockTo.Quantity = m.Quantity
+		}
+		
+		if err := s.stockRepo.UpsertStockLocation(ctx, tx, stockTo); err != nil {
+			return 0, err
+		}
+
+		historyNote := m.Notes
+		if historyNote == "" {
+			historyNote = "Stock Opname (Excel)"
+		}
+
+		history := &model.StockMovement{
+			ProductID: m.ProductID,
+			ToLocationID: &m.ToLocationID,
+			Quantity: diff,
+			MovementType: "ADJUSTMENT",
+			Notes: historyNote,
+			UserID: userID,
+		}
+
+		if err := s.stockRepo.RecordMovement(ctx, tx, history); err != nil {
+			return 0, err
+		}
+		processedCount++
+	}
+
+	return processedCount, nil
 }

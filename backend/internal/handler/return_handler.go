@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -65,12 +66,14 @@ func (h *ReturnHandler) GetReturnHistory(c *gin.Context) {
 
 	marketplaceRows, marketplaceTotal, err := h.returnService.GetMarketplaceReturnHistory(c.Request.Context(), params)
 	if err != nil {
+		log.Printf("[ReturnHistory] MarketplaceReturnHistory error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
 		return
 	}
 
 	manualRows, manualTotal, err := h.returnService.GetManualReturnHistory(c.Request.Context(), params)
 	if err != nil {
+		log.Printf("[ReturnHistory] ManualReturnHistory error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
 		return
 	}
@@ -127,6 +130,7 @@ func (h *ReturnHandler) CreateManualReturn(c *gin.Context) {
 
 	err := h.returnService.CreateManualReturn(c.Request.Context(), userID, req)
 	if err != nil {
+		log.Printf("[CreateManualReturn] error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
 		return
 	}

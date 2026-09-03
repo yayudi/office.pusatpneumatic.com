@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/dps-wmhris/backend/internal/database"
 	"github.com/dps-wmhris/backend/internal/dto"
@@ -61,8 +63,12 @@ func (s *stockRequestServiceImpl) CreateStockRequest(ctx context.Context, userID
 		return nil, errors.New("Minimal harus ada satu produk yang diminta.")
 	}
 
+	dateStr := time.Now().Format("060102")
+	randStr := fmt.Sprintf("%04d", 1000+rand.Intn(9000))
+	requestNumber := fmt.Sprintf("SR-%s-%s", dateStr, randStr)
+
 	request := &model.StockRequest{
-		RequestNumber:  req.RequestNumber,
+		RequestNumber:  requestNumber,
 		Type:           req.Type,
 		RequesterID:    userID,
 		FromLocationID: req.FromLocationID,

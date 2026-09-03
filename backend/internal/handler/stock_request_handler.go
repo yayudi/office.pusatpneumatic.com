@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -21,10 +22,12 @@ func NewStockRequestHandler(stockRequestService service.StockRequestService) *St
 func (h *StockRequestHandler) Create(c *gin.Context) {
 	var req dto.CreateStockRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("CreateStockRequest binding error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success":    false,
 			"message":    "Format input tidak valid",
 			"error_code": "VALIDATION_ERROR",
+			"error_detail": err.Error(),
 		})
 		return
 	}

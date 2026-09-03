@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"log"
 
 	"github.com/dps-wmhris/backend/internal/dto"
 	"github.com/dps-wmhris/backend/internal/model"
@@ -17,7 +16,7 @@ type StockRepository interface {
 	RecordMovement(ctx context.Context, db sqlx.ExtContext, movement *model.StockMovement) error
 	GetAllStocks(ctx context.Context) ([]map[string]interface{}, error)
 	GetMovementTypes(ctx context.Context) ([]string, error)
-	GetBatchLogs(ctx context.Context, filter dto.BatchLogFilter) ([]dto.BatchLogResponse, error)
+	GetBatchLogs(ctx context.Context, filter dto.BatchLogFilter) ([]dto.BatchLogResponse, int, error)
 	GetStockHistory(ctx context.Context, filter dto.StockHistoryFilter) (*dto.StockHistoryData, error)
 }
 
@@ -128,18 +127,8 @@ func (r *stockRepositoryImpl) GetMovementTypes(ctx context.Context) ([]string, e
 	return types, err
 }
 
-func (r *stockRepositoryImpl) GetBatchLogs(ctx context.Context, filter dto.BatchLogFilter) ([]dto.BatchLogResponse, error) {
-	query := `
-		SELECT sm.id,
-			p.sku,
-			p.name as product_name,
-			sm.quantity,
-			sm.movement_type,
-			COALESCE(sm.notes, '') as notes,
-			sm.created_at,
-			u.username as user,
-			COALESCE(from_loc.code, '') as from_location,
-			COALESCE(to_loc.code, '') as to_location
+func (r *stockRepositoryImpl) GetBatchLogs(ctx context.Context, filter dto.BatchLogFilter) ([]dto.BatchLogResponse, int, error) {
+	baseQuery := `
 		FROM stock_movements sm
 		JOIN products p ON sm.product_id = p.id
 		JOIN users u ON sm.user_id = u.id
@@ -151,7 +140,7 @@ func (r *stockRepositoryImpl) GetBatchLogs(ctx context.Context, filter dto.Batch
 	args := []interface{}{filter.StartDate, endDateStr}
 	
 	if filter.ProductName != "" {
-		query += " AND p.name LIKE ?"
+		baseQuery += " AND p.name LIKE ?"
 		args = append(args, "%"+filter.ProductName+"%")
 	}
 	
@@ -166,11 +155,11 @@ func (r *stockRepositoryImpl) GetBatchLogs(ctx context.Context, filter dto.Batch
 		}
 		if err := json.Unmarshal([]byte(val), &ts); err == nil {
 			if len(ts.Include) > 0 {
-				query += " AND " + column + " IN (?)"
+				baseQuery += " AND " + column + " IN (?)"
 				args = append(args, ts.Include)
 			}
 			if len(ts.Exclude) > 0 {
-				query += " AND " + column + " NOT IN (?)"
+				baseQuery += " AND " + column + " NOT IN (?)"
 				args = append(args, ts.Exclude)
 			}
 		}
@@ -181,37 +170,51 @@ func (r *stockRepositoryImpl) GetBatchLogs(ctx context.Context, filter dto.Batch
 	applyTriState("to_loc.code", filter.DestinationLocation)
 	
 	if filter.UserID != "" {
-		query += " AND sm.user_id = ?"
+		baseQuery += " AND sm.user_id = ?"
 		args = append(args, filter.UserID)
 	}
 	if filter.Notes != "" {
-		query += " AND sm.notes LIKE ?"
+		baseQuery += " AND sm.notes LIKE ?"
 		args = append(args, "%"+filter.Notes+"%")
 	}
+
+	countQuery := "SELECT COUNT(sm.id) " + baseQuery
+	countQuery, countArgs, err := sqlx.In(countQuery, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	countQuery = r.db.Rebind(countQuery)
+	var total int
+	if err := r.db.GetContext(ctx, &total, countQuery, countArgs...); err != nil {
+		return nil, 0, err
+	}
 	
-	query += " ORDER BY sm.created_at DESC LIMIT ? OFFSET ?"
+	selectQuery := `
+		SELECT sm.id,
+			p.sku,
+			p.name as product_name,
+			sm.quantity,
+			sm.movement_type,
+			COALESCE(sm.notes, '') as notes,
+			sm.created_at,
+			u.username as user,
+			COALESCE(from_loc.code, '') as from_location,
+			COALESCE(to_loc.code, '') as to_location
+	` + baseQuery + " ORDER BY sm.created_at DESC LIMIT ? OFFSET ?"
+
 	offset := (filter.Page - 1) * filter.Limit
 	args = append(args, filter.Limit, offset)
 	
-	query, args, err := sqlx.In(query, args...)
+	selectQuery, args, err = sqlx.In(selectQuery, args...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	query = r.db.Rebind(query)
-	
-	log.Printf("[GetBatchLogs] Executing Query: %s\n", query)
-	log.Printf("[GetBatchLogs] Args: %+v\n", args)
+	selectQuery = r.db.Rebind(selectQuery)
 	
 	var logs []dto.BatchLogResponse
-	err = r.db.SelectContext(ctx, &logs, query, args...)
+	err = r.db.SelectContext(ctx, &logs, selectQuery, args...)
 	
-	if err == nil {
-		log.Printf("[GetBatchLogs] Fetched %d rows\n", len(logs))
-	} else {
-		log.Printf("[GetBatchLogs] Error fetching logs: %v\n", err)
-	}
-	
-	return logs, err
+	return logs, total, err
 }
 
 func (r *stockRepositoryImpl) GetStockHistory(ctx context.Context, filter dto.StockHistoryFilter) (*dto.StockHistoryData, error) {

@@ -141,12 +141,12 @@ async function submitRequest() {
   try {
     const payload = {
       type: type.value,
-      fromLocationId: type.value === 'TRANSFER' ? fromLocationId.value : null,
-      toLocationId: toLocationId.value,
+      fromLocationId: type.value === 'TRANSFER' && fromLocationId.value ? Number(fromLocationId.value) : null,
+      toLocationId: toLocationId.value ? Number(toLocationId.value) : null,
       notes: notes.value,
       items: batchList.value.map(i => ({
-        productId: i.productId,
-        quantity: i.quantity
+        productId: Number(i.productId),
+        quantity: Number(i.quantity)
       }))
     }
 
@@ -187,12 +187,13 @@ async function closeModal() {
         popup: 'bg-background text-text rounded-xl shadow-2xl border border-secondary/50',
         title: 'text-text font-bold',
         htmlContainer: 'text-text opacity-90',
-        confirmButton: 'bg-primary hover:opacity-90 text-white font-semibold py-2.5 px-5 rounded-lg mx-2 transition-all',
+        confirmButton:
+          'bg-primary hover:opacity-90 text-white font-semibold py-2.5 px-5 rounded-lg mx-2 transition-all',
         denyButton: 'bg-danger hover:opacity-90 text-white font-semibold py-2.5 px-5 rounded-lg mx-2 transition-all',
         cancelButton: 'bg-secondary hover:opacity-90 text-text font-semibold py-2.5 px-5 rounded-lg mx-2 transition-all'
       }
     })
-    
+
     if (result.isConfirmed) {
       emit('close')
     } else if (result.isDenied) {
@@ -207,7 +208,7 @@ async function closeModal() {
 
 <template>
   <Teleport to="body">
-    <div v-if="isOpen" class="fixed inset-0 flex items-center justify-center p-4 bg-accent/80 backdrop-blur-sm">
+    <div v-if="isOpen" class="fixed inset-0 flex items-center justify-center p-4 bg-text/50 backdrop-blur-sm">
       <div
         class="bg-background border border-secondary/20 rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in"
       >
@@ -290,7 +291,13 @@ async function closeModal() {
               @add-product="handleAddProduct"
             />
 
-            <BatchItemList class="mt-3" :items="batchList" :active-tab="type" @remove-item="removeFromBatch" @duplicate-item="duplicateFromBatch" />
+            <BatchItemList
+              class="mt-3"
+              :items="batchList"
+              :active-tab="type"
+              @remove-item="removeFromBatch"
+              @duplicate-item="duplicateFromBatch"
+            />
           </div>
         </div>
 
