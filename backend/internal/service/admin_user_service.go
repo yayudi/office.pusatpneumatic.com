@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strconv"
+	"strings"
 
 	"github.com/dps-wmhris/backend/internal/database"
 	"github.com/dps-wmhris/backend/internal/dto"
@@ -58,7 +59,10 @@ func (s *adminUserServiceImpl) CreateUser(ctx context.Context, req dto.AdminCrea
 		ctx, req.Username, string(hash), req.RoleID, req.Nickname, req.ShiftID, req.ExcludeFromAttendance,
 	)
 	if err != nil {
-		return nil, err // TODO: map ER_DUP_ENTRY to "Username sudah digunakan."
+		if strings.Contains(err.Error(), "1062") || strings.Contains(err.Error(), "Duplicate entry") {
+			return nil, errors.New("Username sudah digunakan.")
+		}
+		return nil, err
 	}
 
 	newUser := dto.AdminUserResponse{
@@ -151,7 +155,10 @@ func (s *adminUserServiceImpl) UpdateUser(ctx context.Context, targetID int, req
 	if len(updateFields) > 0 {
 		_, err := s.adminUserRepo.UpdateUserByID(ctx, targetID, updateFields, updateValues)
 		if err != nil {
-			return err // TODO: ER_DUP_ENTRY to "Username sudah digunakan."
+			if strings.Contains(err.Error(), "1062") || strings.Contains(err.Error(), "Duplicate entry") {
+				return errors.New("Username sudah digunakan.")
+			}
+			return err
 		}
 	}
 

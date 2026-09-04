@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strconv"
+	"strings"
 
 	"github.com/dps-wmhris/backend/internal/database"
 	"github.com/dps-wmhris/backend/internal/dto"
@@ -65,7 +66,10 @@ func (s *roleServiceImpl) UpdateRolePermissions(ctx context.Context, roleID int,
 	})
 
 	if err != nil {
-		return err // TODO: map ER_NO_REFERENCED_ROW_2 to 400 later in handler if needed
+		if strings.Contains(err.Error(), "1452") || strings.Contains(err.Error(), "foreign key constraint fails") {
+			return errors.New("Role atau Permission ID tidak valid.")
+		}
+		return err
 	}
 
 	// Logging
@@ -96,7 +100,10 @@ func (s *roleServiceImpl) UpdateRolePermissions(ctx context.Context, roleID int,
 func (s *roleServiceImpl) CreateRole(ctx context.Context, req dto.CreateRoleRequest, userID int, ip, userAgent string) (int, error) {
 	roleID, err := s.roleRepo.CreateRole(ctx, req.Name, req.Description)
 	if err != nil {
-		return 0, err // TODO: ER_DUP_ENTRY to "Nama peran sudah ada."
+		if strings.Contains(err.Error(), "1062") || strings.Contains(err.Error(), "Duplicate entry") {
+			return 0, errors.New("Nama peran sudah digunakan.")
+		}
+		return 0, err
 	}
 
 	changes := map[string]interface{}{
@@ -126,7 +133,10 @@ func (s *roleServiceImpl) CreateRole(ctx context.Context, req dto.CreateRoleRequ
 func (s *roleServiceImpl) UpdateRole(ctx context.Context, roleID int, req dto.CreateRoleRequest, userID int, ip, userAgent string) error {
 	isUpdated, err := s.roleRepo.UpdateRole(ctx, roleID, req.Name, req.Description)
 	if err != nil {
-		return err // TODO: ER_DUP_ENTRY to "Nama peran sudah digunakan."
+		if strings.Contains(err.Error(), "1062") || strings.Contains(err.Error(), "Duplicate entry") {
+			return errors.New("Nama peran sudah digunakan.")
+		}
+		return err
 	}
 	if !isUpdated {
 		return errors.New("peran tidak ditemukan")

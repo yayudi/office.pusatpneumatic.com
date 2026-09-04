@@ -2,10 +2,13 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/dps-wmhris/backend/internal/database"
 	"github.com/dps-wmhris/backend/internal/dto"
 	"github.com/dps-wmhris/backend/internal/model"
+	"github.com/dps-wmhris/backend/internal/parser"
 	"github.com/dps-wmhris/backend/internal/repository"
 	"github.com/jmoiron/sqlx"
 )
@@ -25,19 +28,22 @@ type ProductService interface {
 	DeleteProductImage(ctx context.Context, imageID int, userID int) error
 	SetPrimaryImage(ctx context.Context, productID int, imageID int, userID int) error
 	GetHistoricalStockTimeline(ctx context.Context, productID int, page int, limit int, buildings []string) (map[string]interface{}, error)
+	ProcessBatchUpdate(ctx context.Context, jobID int, filePath string, userID int, isDryRun bool) (string, error)
 }
 
 type productServiceImpl struct {
-	db          *sqlx.DB
-	productRepo repository.ProductRepository
-	auditRepo   repository.ProductAuditRepository
+	db           *sqlx.DB
+	productRepo  repository.ProductRepository
+	auditRepo    repository.ProductAuditRepository
+	categoryRepo repository.CategoryRepository
 }
 
-func NewProductService(db *sqlx.DB, productRepo repository.ProductRepository, auditRepo repository.ProductAuditRepository) ProductService {
+func NewProductService(db *sqlx.DB, productRepo repository.ProductRepository, auditRepo repository.ProductAuditRepository, categoryRepo repository.CategoryRepository) ProductService {
 	return &productServiceImpl{
-		db:          db,
-		productRepo: productRepo,
-		auditRepo:   auditRepo,
+		db:           db,
+		productRepo:  productRepo,
+		auditRepo:    auditRepo,
+		categoryRepo: categoryRepo,
 	}
 }
 
@@ -288,3 +294,123 @@ func containsString(slice []string, val *string) bool {
 	}
 	return false
 }
+
+func (s *productServiceImpl) ProcessBatchUpdate(ctx context.Context, jobID int, filePath string, userID int, isDryRun bool) (string, error) {
+	parseRes, parsedRows := parser.ParseMassProductFile(filePath)
+	if !parseRes.Success {
+		var errMsgs []string
+		for _, e := range parseRes.Errors {
+			errMsgs = append(errMsgs, fmt.Sprintf("Baris %d: %s", e.Row, e.Message))
+		}
+		return "", fmt.Errorf("Ditemukan %d error validasi: %s", len(errMsgs), strings.Join(errMsgs, " | "))
+	}
+
+	if len(parsedRows) == 0 {
+		return "", fmt.Errorf("Tidak ada data valid di dalam file")
+	}
+
+	categories, err := s.categoryRepo.FindAllActive(ctx)
+	if err != nil {
+		return "", fmt.Errorf("Gagal memuat kategori: %v", err)
+	}
+	categoryMap := make(map[string]int)
+	for _, c := range categories {
+		categoryMap[strings.ToLower(strings.TrimSpace(c.Name))] = c.ID
+	}
+
+	skus := make([]string, 0, len(parsedRows))
+	for _, r := range parsedRows {
+		if r.SKU != "" {
+			skus = append(skus, r.SKU)
+		}
+	}
+
+	dbProducts, err := s.productRepo.GetBySKUs(ctx, skus)
+	if err != nil {
+		return "", fmt.Errorf("Gagal memuat data produk: %v", err)
+	}
+	productMap := make(map[string]*model.Product)
+	for i := range dbProducts {
+		productMap[strings.ToLower(dbProducts[i].SKU)] = &dbProducts[i]
+	}
+
+	successCount := 0
+	var finalErrors []string
+
+	for i, row := range parsedRows {
+		dbProduct, exists := productMap[strings.ToLower(row.SKU)]
+		if !exists {
+			finalErrors = append(finalErrors, fmt.Sprintf("Baris %d: SKU '%s' tidak ditemukan. Batch edit hanya untuk update.", i+2, row.SKU))
+			continue
+		}
+
+		if dbProduct.IsPackage {
+			finalErrors = append(finalErrors, fmt.Sprintf("Baris %d: SKU '%s' adalah Paket. Batch edit hanya untuk Produk.", i+2, row.SKU))
+			continue
+		}
+
+		req := dto.UpdateProductRequest{
+			SKU:        dbProduct.SKU,
+			Name:       dbProduct.Name,
+			CategoryID: dbProduct.CategoryID,
+			Price:      dbProduct.Price,
+			Weight:     dbProduct.Weight,
+			Length:     dbProduct.Length,
+			Width:      dbProduct.Width,
+			Height:     dbProduct.Height,
+			IsPackage:  dbProduct.IsPackage,
+			IsActive:   dbProduct.IsActive,
+		}
+
+		if row.Name != "" {
+			req.Name = row.Name
+		}
+		if row.Category != "" {
+			catID, ok := categoryMap[strings.ToLower(strings.TrimSpace(row.Category))]
+			if !ok {
+				finalErrors = append(finalErrors, fmt.Sprintf("Baris %d: Kategori '%s' tidak ditemukan.", i+2, row.Category))
+				continue
+			}
+			req.CategoryID = &catID
+		}
+		if row.Price != nil {
+			req.Price = *row.Price
+		}
+		if row.Weight != nil {
+			req.Weight = *row.Weight
+		}
+		if row.Length != nil {
+			req.Length = *row.Length
+		}
+		if row.Width != nil {
+			req.Width = *row.Width
+		}
+		if row.Height != nil {
+			req.Height = *row.Height
+		}
+		if row.IsActive != nil {
+			req.IsActive = *row.IsActive
+		}
+
+		if !isDryRun {
+			err := s.UpdateProduct(ctx, userID, dbProduct.ID, req)
+			if err != nil {
+				finalErrors = append(finalErrors, fmt.Sprintf("Baris %d: Gagal update SKU '%s': %v", i+2, row.SKU, err))
+				continue
+			}
+		}
+		successCount++
+	}
+
+	modeStr := ""
+	if isDryRun {
+		modeStr = "[SIMULASI] "
+	}
+
+	if len(finalErrors) > 0 {
+		return fmt.Sprintf("%sBerhasil: %d. Gagal: %d", modeStr, successCount, len(finalErrors)), fmt.Errorf("Ditemukan %d error: %s", len(finalErrors), strings.Join(finalErrors, " | "))
+	}
+
+	return fmt.Sprintf("%sSelesai. Berhasil mengupdate %d produk.", modeStr, successCount), nil
+}
+

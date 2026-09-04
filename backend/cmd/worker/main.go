@@ -49,6 +49,14 @@ func main() {
 	pickingService := service.NewPickingService(db, pickingRepo, locationRepo, stockRepo, jobService, productRepo)
 	stockService := service.NewStockService(db, stockRepo, productRepo, locationRepo, userRepo, pickingRepo)
 	firebaseService := service.NewFirebaseSignalService()
+	scheduleService := service.NewScheduleService(scheduleRepo, shiftRepo, userRepo)
+
+	categoryRepo := repository.NewCategoryRepository(db)
+	productAuditRepo := repository.NewProductAuditRepository()
+	productService := service.NewProductService(db, productRepo, productAuditRepo, categoryRepo)
+
+	mediaRepo := repository.NewMediaRepository(db)
+	mediaService := service.NewMediaService(db, mediaRepo, productRepo, storageService)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -75,13 +83,13 @@ func main() {
 			log.Println("Worker stopped.")
 			return
 		case <-ticker.C:
-			processPendingImportJobs(ctx, jobService, attendanceService, pickingService, stockService, firebaseService)
+			processPendingImportJobs(ctx, jobService, attendanceService, pickingService, stockService, scheduleService, productService, firebaseService, mediaService)
 			processPendingExportJobs(ctx, jobService, exportService, firebaseService)
 		}
 	}
 }
 
-func processPendingImportJobs(ctx context.Context, jobService service.JobService, attendanceService service.AttendanceService, pickingService service.PickingService, stockService service.StockService, firebaseService service.FirebaseSignalService) {
+func processPendingImportJobs(ctx context.Context, jobService service.JobService, attendanceService service.AttendanceService, pickingService service.PickingService, stockService service.StockService, scheduleService service.ScheduleService, productService service.ProductService, firebaseService service.FirebaseSignalService, mediaService service.MediaService) {
 	// Simple polling mechanism
 	// In production, you'd want proper locking or `SELECT ... FOR UPDATE SKIP LOCKED`
 	// Since there's only one worker instance intended, a simple fetch is fine for now
@@ -113,15 +121,33 @@ func processPendingImportJobs(ctx context.Context, jobService service.JobService
 				log.Printf("Processing %s: %s", job.JobType, job.FilePath)
 				logSummary, processErr = attendanceService.ProcessImport(ctx, job.ID, job.FilePath, true)
 			case "IMPORT_SCHEDULES":
-				// TODO: call scheduleService.ProcessImport(...)
 				log.Printf("Processing %s: %s", job.JobType, job.FilePath)
-				time.Sleep(2 * time.Second)
+				msg, err := scheduleService.ProcessImport(ctx, job.ID, job.FilePath, job.UserID)
+				processErr = err
+				if processErr == nil {
+					logSummary = msg
+				}
 			case "BATCH_EDIT_PRODUCT":
 				log.Printf("Processing %s: %s", job.JobType, job.FilePath)
-				time.Sleep(2 * time.Second) // TODO: Call productService.ProcessBatchUpdate(...)
+				msg, err := productService.ProcessBatchUpdate(ctx, job.ID, job.FilePath, job.UserID, false)
+				processErr = err
+				if processErr == nil {
+					logSummary = msg
+				}
 			case "BATCH_EDIT_PRODUCT_DRY_RUN":
 				log.Printf("Processing %s: %s", job.JobType, job.FilePath)
-				time.Sleep(2 * time.Second)
+				msg, err := productService.ProcessBatchUpdate(ctx, job.ID, job.FilePath, job.UserID, true)
+				processErr = err
+				if processErr == nil {
+					logSummary = msg
+				}
+			case "IMPORT_MEDIA_BULK_LINK":
+				log.Printf("Processing %s: %s", job.JobType, job.FilePath)
+				msg, err := mediaService.ProcessMediaLinkImport(ctx, job.FilePath, job.UserID)
+				processErr = err
+				if processErr == nil {
+					logSummary = msg
+				}
 			case "ADJUST_STOCK":
 				log.Printf("Processing %s: %s", job.JobType, job.FilePath)
 				processErr = stockService.ProcessStockImport(ctx, job.ID, job.FilePath, job.UserID, false)
@@ -130,7 +156,10 @@ func processPendingImportJobs(ctx context.Context, jobService service.JobService
 				processErr = stockService.ProcessStockImport(ctx, job.ID, job.FilePath, job.UserID, true)
 			case "IMPORT_STOCK_INBOUND":
 				log.Printf("Processing %s: %s", job.JobType, job.FilePath)
-				time.Sleep(2 * time.Second) // TODO: Call stockService.ProcessImportBatchInbound(...)
+				logSummary, processErr = stockService.ProcessImportBatchInbound(ctx, job.ID, job.FilePath, job.UserID, false)
+			case "IMPORT_STOCK_INBOUND_DRY_RUN":
+				log.Printf("Processing %s: %s", job.JobType, job.FilePath)
+				logSummary, processErr = stockService.ProcessImportBatchInbound(ctx, job.ID, job.FilePath, job.UserID, true)
 			case "IMPORT_SALES_TOKOPEDIA", "IMPORT_SALES_SHOPEE", "IMPORT_SALES_TIKTOK", "IMPORT_SALES_MANUAL":
 				log.Printf("Processing %s: %s", job.JobType, job.FilePath)
 				sourceMap := map[string]string{

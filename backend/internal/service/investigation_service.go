@@ -232,9 +232,9 @@ func (s *investigationServiceImpl) RevertTransaction(ctx context.Context, transa
 			MovementType   string  `db:"movement_type"`
 			Notes          *string `db:"notes"`
 		}
-		err := tx.GetContext(ctx, &originalTrx, "SELECT * FROM stock_movements WHERE id = ?", transactionID)
+		err := tx.GetContext(ctx, &originalTrx, "SELECT id, product_id, quantity, from_location_id, to_location_id, movement_type, notes FROM stock_movements WHERE id = ?", transactionID)
 		if err != nil {
-			return errors.New("transaksi tidak ditemukan")
+			return fmt.Errorf("transaksi tidak ditemukan (atau error db): %w", err)
 		}
 
 		var count int

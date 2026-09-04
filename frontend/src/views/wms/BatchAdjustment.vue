@@ -59,8 +59,8 @@ async function loadImportHistory(silent = false) {
   if (!silent) isImportHistoryLoading.value = true
   try {
     const response = await getImportJobs()
-    if (response.success) {
-      importJobHistory.value = response.data
+    if (response.success && response.data) {
+      importJobHistory.value = response.data.filter(job => job.job_type === 'ADJUST_STOCK' || job.jobType === 'ADJUST_STOCK')
     }
   } catch {
     toast('Gagal memuat riwayat impor', 'error')

@@ -28,6 +28,7 @@ type StockService interface {
 	GenerateAdjustmentTemplate(ctx context.Context) (*excelize.File, error)
 	ValidateReturn(ctx context.Context, req dto.ValidateReturnRequest, userID int) error
 	ProcessStockImport(ctx context.Context, jobID int, filePath string, userID int, isDryRun bool) error
+	ProcessImportBatchInbound(ctx context.Context, jobID int, filePath string, userID int, isDryRun bool) (string, error)
 }
 
 type stockServiceImpl struct {
@@ -784,4 +785,135 @@ func (s *stockServiceImpl) ProcessBatchOpname(ctx context.Context, tx *sqlx.Tx, 
 	}
 
 	return processedCount, nil
+}
+
+func (s *stockServiceImpl) ProcessImportBatchInbound(ctx context.Context, jobID int, filePath string, userID int, isDryRun bool) (string, error) {
+	log.Printf("[ProcessImportBatchInbound] Memulai Job %d. File: %s, DryRun: %v", jobID, filePath, isDryRun)
+	f, err := excelize.OpenFile(filePath)
+	if err != nil {
+		return "", fmt.Errorf("gagal membuka file excel: %w", err)
+	}
+	defer f.Close()
+
+	sheetName := f.GetSheetName(0)
+	if sheetName == "" {
+		return "", errors.New("file excel tidak memiliki sheet atau tidak valid")
+	}
+
+	rows, err := f.GetRows(sheetName)
+	if err != nil {
+		return "", fmt.Errorf("gagal membaca baris: %w", err)
+	}
+
+	if len(rows) < 2 {
+		return "", errors.New("file excel kosong atau tidak ada data (hanya header)")
+	}
+
+	locMap := make(map[string]int)
+	locations, err := s.locationRepo.FindAll(ctx)
+	if err != nil {
+		return "", err
+	}
+	for _, l := range locations {
+		locMap[strings.ToUpper(l.Code)] = l.ID
+	}
+
+	var batchReq dto.BatchProcessRequest
+	batchReq.Type = "INBOUND"
+	defaultNotes := "Batch Inbound"
+	batchReq.Notes = &defaultNotes
+	
+	skuSet := make(map[string]bool)
+	var uniqueSKUs []string
+
+	for i, row := range rows {
+		if i == 0 {
+			continue // skip header
+		}
+
+		sku := ""
+		if len(row) > 0 {
+			sku = strings.TrimSpace(row[0])
+		}
+		locCode := ""
+		if len(row) > 1 {
+			locCode = strings.TrimSpace(row[1])
+		}
+		qtyRaw := ""
+		if len(row) > 2 {
+			qtyRaw = strings.TrimSpace(row[2])
+		}
+		notes := ""
+		if len(row) > 3 {
+			notes = strings.TrimSpace(row[3])
+		}
+
+		if sku == "" && locCode == "" && qtyRaw == "" {
+			continue
+		}
+
+		if sku == "" {
+			return "", fmt.Errorf("Baris %d: SKU wajib diisi", i+1)
+		}
+
+		if !skuSet[sku] {
+			skuSet[sku] = true
+			uniqueSKUs = append(uniqueSKUs, sku)
+		}
+
+		locID, ok := locMap[strings.ToUpper(locCode)]
+		if !ok {
+			return "", fmt.Errorf("Baris %d: Lokasi '%s' tidak ditemukan", i+1, locCode)
+		}
+
+		qty, err := strconv.Atoi(qtyRaw)
+		if err != nil || qty <= 0 {
+			return "", fmt.Errorf("Baris %d: Quantity harus angka positif", i+1)
+		}
+
+		movNotes := notes
+		if movNotes == "" {
+			movNotes = "Batch Inbound"
+		}
+
+		batchReq.Movements = append(batchReq.Movements, dto.BatchMovementRequest{
+			SKU:          sku,
+			Quantity:     qty,
+			ToLocationID: &locID,
+			Notes:        &movNotes,
+		})
+	}
+
+	if len(batchReq.Movements) == 0 {
+		return "", errors.New("Tidak ada data valid untuk diproses")
+	}
+
+	dbProducts, err := s.productRepo.GetBySKUs(ctx, uniqueSKUs)
+	if err != nil {
+		return "", fmt.Errorf("gagal memvalidasi SKU: %v", err)
+	}
+
+	productMap := make(map[string]bool)
+	for _, p := range dbProducts {
+		productMap[strings.ToUpper(p.SKU)] = true
+	}
+
+	for _, m := range batchReq.Movements {
+		if !productMap[strings.ToUpper(m.SKU)] {
+			return "", fmt.Errorf("SKU '%s' tidak ditemukan di database", m.SKU)
+		}
+	}
+
+	if isDryRun {
+		return "Dry run berhasil diverifikasi (Tidak ada data yang diubah).", nil
+	}
+
+	err = s.ProcessBatchMovements(ctx, batchReq, userID, 1)
+	if err != nil {
+		return "", fmt.Errorf("gagal memproses inbound batch: %v", err)
+	}
+
+	summary := fmt.Sprintf("Berhasil memproses %d baris inbound.", len(batchReq.Movements))
+	log.Printf("[ProcessImportBatchInbound] Selesai. %s", summary)
+	return summary, nil
 }

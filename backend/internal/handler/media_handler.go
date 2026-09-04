@@ -2,10 +2,15 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/dps-wmhris/backend/internal/config"
 	"github.com/dps-wmhris/backend/internal/database"
 	"github.com/dps-wmhris/backend/internal/dto"
 	"github.com/dps-wmhris/backend/internal/repository"
@@ -342,5 +347,49 @@ func (h *MediaHandler) DownloadBulkLinkTemplate(c *gin.Context) {
 }
 
 func (h *MediaHandler) BulkLinkExcel(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"success": false, "message": "Fitur unggah Excel akan dipindah di Worker Golang pada fase selanjutnya."})
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "Tidak ada file yang diunggah.", "error_code": "VALIDATION_ERROR"})
+		return
+	}
+
+	userID := getUserID(c)
+	if userID == 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "Tidak ada sesi pengguna"})
+		return
+	}
+
+	uploadDir := filepath.Join(config.AppConfig.StoragePath, "uploads", "media_links") + string(filepath.Separator)
+	os.MkdirAll(uploadDir, os.ModePerm)
+	
+	// Create a unique filename
+	filename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), file.Filename)
+	filePath := filepath.Join(uploadDir, filename)
+
+	if err := c.SaveUploadedFile(file, filePath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "Gagal menyimpan file", "error_code": "INTERNAL_ERROR"})
+		return
+	}
+
+	notes := "Bulk Link Media"
+
+	req := dto.CreateImportJobRequest{
+		UserID:           userID,
+		JobType:          "IMPORT_MEDIA_BULK_LINK",
+		OriginalFilename: file.Filename,
+		FilePath:         filePath,
+		Notes:            &notes,
+	}
+
+	jobID, err := h.jobService.CreateImportJob(c.Request.Context(), req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error(), "error_code": "INTERNAL_ERROR"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "File Bulk Link masuk antrian.",
+		"jobId":   jobID,
+	})
 }

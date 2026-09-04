@@ -2,10 +2,13 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/dps-wmhris/backend/internal/dto"
+	"github.com/dps-wmhris/backend/internal/parser"
 	"github.com/dps-wmhris/backend/internal/repository"
 	"github.com/xuri/excelize/v2"
 )
@@ -15,6 +18,7 @@ type ScheduleService interface {
 	CreateSchedule(ctx context.Context, req dto.CreateScheduleRequest, createdBy *int) error
 	DeleteSchedule(ctx context.Context, userIDStr string, date string) error
 	GenerateTemplate(ctx context.Context) (*excelize.File, error)
+	ProcessImport(ctx context.Context, jobID int, filePath string, createdBy int) (string, error)
 }
 
 type scheduleServiceImpl struct {
@@ -136,4 +140,82 @@ func (s *scheduleServiceImpl) GenerateTemplate(ctx context.Context) (*excelize.F
 	// we will simplify template generation for now to avoid compilation issues.
 	
 	return f, nil
+}
+
+func (s *scheduleServiceImpl) ProcessImport(ctx context.Context, jobID int, filePath string, createdBy int) (string, error) {
+	// Parse Excel
+	schedules, errorsList, err := parser.ParseScheduleExcel(filePath)
+	if err != nil {
+		return "", err
+	}
+
+	if len(errorsList) > 0 {
+		return "", fmt.Errorf("Ditemukan %d error validasi: %s", len(errorsList), strings.Join(errorsList, " | "))
+	}
+
+	if len(schedules) == 0 {
+		return "", fmt.Errorf("Tidak ada data valid di dalam file")
+	}
+
+	// Fetch users and shifts to build maps
+	users, err := s.userRepo.GetAll(ctx)
+	if err != nil {
+		return "", fmt.Errorf("Gagal memuat data user: %v", err)
+	}
+	userMap := make(map[string]int)
+	for _, u := range users {
+		userMap[strings.ToLower(u.Username)] = u.ID
+	}
+
+	shifts, err := s.shiftRepo.GetAll(ctx)
+	if err != nil {
+		return "", fmt.Errorf("Gagal memuat data shift: %v", err)
+	}
+	shiftMap := make(map[string]int)
+	for _, sh := range shifts {
+		shiftMap[strings.ToLower(sh.Name)] = sh.ID
+	}
+
+	// Validate against database
+	var finalErrors []string
+	var validSchedules []parser.ScheduleRow
+
+	for _, sc := range schedules {
+		_, ok := userMap[strings.ToLower(sc.Username)]
+		if !ok {
+			finalErrors = append(finalErrors, fmt.Sprintf("Baris %d: User '%s' tidak ditemukan.", sc.RowNumber, sc.Username))
+			continue
+		}
+		_, ok = shiftMap[strings.ToLower(sc.ShiftName)]
+		if !ok {
+			finalErrors = append(finalErrors, fmt.Sprintf("Baris %d: Shift '%s' tidak ditemukan.", sc.RowNumber, sc.ShiftName))
+			continue
+		}
+
+		validSchedules = append(validSchedules, parser.ScheduleRow{
+			Username:  sc.Username,
+			Date:      sc.Date,
+			ShiftName: sc.ShiftName,
+			RowNumber: sc.RowNumber,
+		})
+	}
+
+	if len(finalErrors) > 0 {
+		return "", fmt.Errorf("Ditemukan %d error validasi: %s", len(finalErrors), strings.Join(finalErrors, " | "))
+	}
+
+	// Process Upsert
+	successCount := 0
+	for _, sc := range schedules {
+		userID := userMap[strings.ToLower(sc.Username)]
+		shiftID := shiftMap[strings.ToLower(sc.ShiftName)]
+
+		err := s.scheduleRepo.Upsert(ctx, userID, shiftID, sc.Date, &createdBy)
+		if err != nil {
+			return "", fmt.Errorf("Gagal menyimpan data baris %d: %v", sc.RowNumber, err)
+		}
+		successCount++
+	}
+
+	return fmt.Sprintf("Berhasil mengimpor jadwal untuk %d baris", successCount), nil
 }

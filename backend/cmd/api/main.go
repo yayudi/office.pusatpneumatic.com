@@ -68,17 +68,19 @@ func main() {
 
 	storageService := service.NewStorageService()
 	uploadHandler := handler.NewUploadHandler(storageService)
+	
+	productRepo := repository.NewProductRepository(db)
+	
 	mediaRepo := repository.NewMediaRepository(db)
-	mediaService := service.NewMediaService(mediaRepo)
+	mediaService := service.NewMediaService(db, mediaRepo, productRepo, storageService)
 	mediaHandler := handler.NewMediaHandler(db, mediaService, storageService, jobService)
 
 	categoryRepo := repository.NewCategoryRepository(db)
 	categoryService := service.NewCategoryService(categoryRepo)
 	categoryHandler := handler.NewCategoryHandler(categoryService)
 
-	productRepo := repository.NewProductRepository(db)
 	productAuditRepo := repository.NewProductAuditRepository()
-	productService := service.NewProductService(db, productRepo, productAuditRepo)
+	productService := service.NewProductService(db, productRepo, productAuditRepo, categoryRepo)
 	productHandler := handler.NewProductHandler(productService, jobService)
 
 	locationRepo := repository.NewLocationRepository(db)

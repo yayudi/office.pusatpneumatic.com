@@ -138,7 +138,7 @@ export function useInvestigationFilters() {
 
       const response = await api.get('/investigation/duplicates', { params })
       if (response.data.success) {
-        results.value = response.data.data
+        results.value = response.data.data || []
         if (response.data.meta) {
           totalGroups.value = response.data.meta.totalGroups
         }

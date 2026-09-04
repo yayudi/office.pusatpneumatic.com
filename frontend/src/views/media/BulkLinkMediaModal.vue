@@ -5,8 +5,8 @@
     templateUrl="/media/bulk-link-template"
     templateFilename="Template_Tautkan_Media.xlsx"
     uploadUrl="/media/bulk-link-excel"
-    jobType="LINK_MEDIA_EXCEL"
-    :instructions="['Gunakan file Excel (.xlsx, .xls)', 'Isi kolom SKU dan Image_URL sesuai template', 'Pastikan URL/Link gambar (dapat disalin dari Galeri Media) benar-benar ada']"
+    jobType="IMPORT_MEDIA_BULK_LINK"
+    :instructions="['Gunakan file Excel (.xlsx, .xls)', 'Isi kolom SKU dan Image_URL sesuai template', 'Pastikan URL/Link gambar valid (dari Galeri Media atau URL web eksternal berawalan http/https)']"
     @close="$emit('close')"
     @success="$emit('uploaded')"
   />

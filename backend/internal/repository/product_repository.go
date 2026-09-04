@@ -19,6 +19,7 @@ type ProductRepository interface {
 	Update(ctx context.Context, db sqlx.ExtContext, product *model.Product) error
 	SoftDelete(ctx context.Context, db sqlx.ExtContext, id int) error
 	Restore(ctx context.Context, db sqlx.ExtContext, id int) error
+	GetBySKUs(ctx context.Context, skus []string) ([]model.Product, error)
 
 	// New methods
 	GetProductsWithFilters(ctx context.Context, filters dto.ProductFilterRequest) ([]dto.ProductDetailResponse, int, error)
@@ -141,6 +142,20 @@ func (r *productRepositoryImpl) Restore(ctx context.Context, db sqlx.ExtContext,
 	query := "UPDATE products SET deleted_at = NULL, is_active = 1 WHERE id = ?"
 	_, err := db.ExecContext(ctx, query, id)
 	return err
+}
+
+func (r *productRepositoryImpl) GetBySKUs(ctx context.Context, skus []string) ([]model.Product, error) {
+	if len(skus) == 0 {
+		return []model.Product{}, nil
+	}
+	var products []model.Product
+	query, args, err := sqlx.In("SELECT id, sku, name, category_id, price, is_active, is_package, weight, length, width, height, created_at, updated_at FROM products WHERE sku IN (?)", skus)
+	if err != nil {
+		return nil, err
+	}
+	query = r.db.Rebind(query)
+	err = r.db.SelectContext(ctx, &products, query, args...)
+	return products, err
 }
 
 // ============================================================================
