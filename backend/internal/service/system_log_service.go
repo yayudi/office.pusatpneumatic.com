@@ -29,13 +29,13 @@ func (s *systemLogServiceImpl) GetLogs(ctx context.Context, req dto.GetSystemLog
 		req.Limit = 20
 	}
 
-	data, total, err := s.systemLogRepo.GetLogs(ctx, req)
+	result, err := s.systemLogRepo.GetLogs(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
 	return &dto.GetSystemLogsResponse{
-		Data:  data,
-		Total: total,
+		Data:  result.Data,
+		Total: result.Total,
 	}, nil
 }

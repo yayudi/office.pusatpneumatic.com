@@ -6,12 +6,13 @@ import (
 
 	"github.com/dps-wmhris/backend/internal/dto"
 	"github.com/dps-wmhris/backend/internal/model"
+	"github.com/dps-wmhris/backend/internal/utils"
 	"github.com/jmoiron/sqlx"
 )
 
 type SystemLogRepository interface {
 	Create(ctx context.Context, db sqlx.ExtContext, log *model.SystemLog) error
-	GetLogs(ctx context.Context, req dto.GetSystemLogsRequest) ([]dto.SystemLogResponse, int, error)
+	GetLogs(ctx context.Context, req dto.GetSystemLogsRequest) (utils.PaginatedResult[dto.SystemLogResponse], error)
 }
 
 type systemLogRepositoryImpl struct {
@@ -65,7 +66,7 @@ func buildTriStateWhere(column string, filterValue string, conditions *[]string,
 	}
 }
 
-func (r *systemLogRepositoryImpl) GetLogs(ctx context.Context, req dto.GetSystemLogsRequest) ([]dto.SystemLogResponse, int, error) {
+func (r *systemLogRepositoryImpl) GetLogs(ctx context.Context, req dto.GetSystemLogsRequest) (utils.PaginatedResult[dto.SystemLogResponse], error) {
 	conditions := []string{"1=1"}
 	var params []interface{}
 
@@ -95,22 +96,8 @@ func (r *systemLogRepositoryImpl) GetLogs(ctx context.Context, req dto.GetSystem
 
 	whereSql := strings.Join(conditions, " AND ")
 
-	// Count
-	countQuery := "SELECT COUNT(*) FROM system_audit_logs l WHERE " + whereSql
-	countQuery, countArgs, err := sqlx.In(countQuery, params...)
-	if err != nil {
-		return nil, 0, err
-	}
-	countQuery = r.db.Rebind(countQuery)
-	var total int
-	err = r.db.GetContext(ctx, &total, countQuery, countArgs...)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	// Data
-	offset := (req.Page - 1) * req.Limit
-	query := `
+	// Menggunakan generic utility untuk eksekusi query paginasi
+	baseQuery := `
 		SELECT l.id, l.user_id, l.action, l.target_type, l.target_id, l.changes, l.ip_address, l.user_agent, l.created_at,
 			u.username, u.nickname, r.name as role,
 			CASE l.target_type
@@ -126,23 +113,14 @@ func (r *systemLogRepositoryImpl) GetLogs(ctx context.Context, req dto.GetSystem
 		LEFT JOIN roles r ON u.role_id = r.id
 		WHERE ` + whereSql + `
 		ORDER BY l.created_at DESC
-		LIMIT ? OFFSET ?
 	`
-	params = append(params, req.Limit, offset)
-	query, args, err := sqlx.In(query, params...)
-	if err != nil {
-		return nil, 0, err
-	}
-	query = r.db.Rebind(query)
 
-	var logs []dto.SystemLogResponse
-	err = r.db.SelectContext(ctx, &logs, query, args...)
+	// Tangani IN clause jika ada
+	baseQuery, params, err := sqlx.In(baseQuery, params...)
 	if err != nil {
-		return nil, 0, err
+		return utils.PaginatedResult[dto.SystemLogResponse]{}, err
 	}
-	if logs == nil {
-		logs = []dto.SystemLogResponse{}
-	}
+	baseQuery = r.db.Rebind(baseQuery)
 
-	return logs, total, nil
+	return utils.FetchPaginated[dto.SystemLogResponse](ctx, r.db, baseQuery, req.Page, req.Limit, params...)
 }
