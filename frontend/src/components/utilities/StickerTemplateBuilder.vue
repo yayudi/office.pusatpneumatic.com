@@ -253,7 +253,8 @@ const saveTemplate = async () => {
 
     const result = response.data
     if (result.success) {
-      emit('saved', { id: result.data.id, name: templateName.value })
+      const savedId = props.initialTemplate?.id || result.data?.id
+      emit('saved', { id: savedId, name: templateName.value })
       emit('close')
     } else {
       await swalAlert('Gagal menyimpan: ' + result.message)

@@ -99,7 +99,12 @@ export const formatFileName = (filePath, type) => {
   if (!filePath) return 'Memproses file...'
   
   const parts = filePath.split('/')
-  const filename = parts[parts.length - 1]
+  let filename = parts[parts.length - 1]
+  try {
+    filename = decodeURIComponent(filename)
+  } catch {
+    // Ignore if not a valid URI component
+  }
   
   // Deteksi nama file random UUID dari backend lama (misal: 1788406595673-e33fefc5-....xlsx)
   if (/^\d{13}-[a-f0-9-]+\.[a-z0-9]+$/i.test(filename)) {

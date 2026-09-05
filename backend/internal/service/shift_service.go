@@ -66,7 +66,7 @@ func (s *shiftServiceImpl) Create(ctx context.Context, req dto.CreateShiftReques
 		// Wait! Let's follow DRY and strict transaction rules. 
 		// Actually for now I'll just use the regular Create which might be outside the Tx, 
 		// or I can modify the repo later. Since this is a simple HRIS shift, partial failure is rare.
-		id, err := s.shiftRepo.Create(ctx, shift)
+		id, err := s.shiftRepo.Create(ctx, tx, shift)
 		if err != nil {
 			return err
 		}
@@ -100,7 +100,7 @@ func (s *shiftServiceImpl) Update(ctx context.Context, id int, req dto.UpdateShi
 				return err
 			}
 		}
-		return s.shiftRepo.Update(ctx, existing)
+		return s.shiftRepo.Update(ctx, tx, existing)
 	})
 }
 
@@ -109,7 +109,7 @@ func (s *shiftServiceImpl) Delete(ctx context.Context, id int) error {
 	if err != nil {
 		return err
 	}
-	return s.shiftRepo.Delete(ctx, id)
+	return s.shiftRepo.Delete(ctx, nil, id)
 }
 
 func (s *shiftServiceImpl) validateWorkDays(workDays string) error {

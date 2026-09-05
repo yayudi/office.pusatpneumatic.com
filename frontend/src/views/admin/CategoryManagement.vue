@@ -114,10 +114,10 @@ const { handleCellBlur } = useInstantInlineEdit(
     const { data } = await axios.put(`/categories/${id}`, payload)
     if (!data.success) throw new Error(data.message)
   },
-  (item) => item // send full category object
+  item => item // send full category object
 )
 
-const validateCategoryName = (val) => {
+const validateCategoryName = val => {
   if (!val) {
     toast('Nama kategori tidak boleh kosong', 'error')
     return false
@@ -164,7 +164,7 @@ watch(Alt_S, pressed => {
 
   <div>
     <div
-      class="bg-background shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(95vh-100px)] table-container"
+      class="bg-background shadow-md rounded-xl border border-secondary/20 overflow-x-auto overflow-y-auto relative custom-scrollbar h-[calc(75vh-100px)] table-container"
     >
       <table class="w-full text-sm text-left text-text border-collapse" :class="isMobile ? 'block' : 'min-w-[400px]'">
         <thead
@@ -223,7 +223,8 @@ watch(Alt_S, pressed => {
                 contenteditable="true"
                 @blur="handleCellBlur($event, cat, 'name', validateCategoryName)"
                 @keydown.enter.prevent="$event.target.blur()"
-              >{{ cat.name }}</span>
+                >{{ cat.name }}</span
+              >
             </td>
           </tr>
         </TransitionGroup>

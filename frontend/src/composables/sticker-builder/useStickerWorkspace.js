@@ -34,12 +34,12 @@ export function useStickerWorkspace({
     const wrapperH = canvasWrapper.value.clientHeight
 
     const padding = 40
-    const availableW = wrapperW - (padding * 2)
-    const availableH = wrapperH - (padding * 2)
+    const availableW = wrapperW - padding * 2
+    const availableH = wrapperH - padding * 2
 
     const scaleX = availableW / w
     const scaleY = availableH / h
-    
+
     let newZoom = Math.min(scaleX, scaleY)
     if (newZoom > 2) newZoom = 2
     if (newZoom < 0.1) newZoom = 0.1
@@ -51,13 +51,16 @@ export function useStickerWorkspace({
 
     const offsetX = (wrapperW - scaledW) / 2
     const offsetY = (wrapperH - scaledH) / 2
-    
-    console.log('[StickerCanvas] centerCanvas dipanggil:', {
-      paperSize: `${w}x${h}`,
-      wrapperSize: `${wrapperW}x${wrapperH}`,
-      scaleX, scaleY, newZoom,
-      offsetX, offsetY
-    })
+
+    // console.log('[StickerCanvas] centerCanvas dipanggil:', {
+    //   paperSize: `${w}x${h}`,
+    //   wrapperSize: `${wrapperW}x${wrapperH}`,
+    //   scaleX,
+    //   scaleY,
+    //   newZoom,
+    //   offsetX,
+    //   offsetY
+    // })
 
     fabricCanvas.setViewportTransform([newZoom, 0, 0, newZoom, offsetX, offsetY])
     fabricCanvas.requestRenderAll()
@@ -177,7 +180,7 @@ export function useStickerWorkspace({
     }
 
     setupCustomControls(getFabricCanvas, syncLayers)
-    
+
     const attachDeleteControl = obj => {
       if (obj && obj.controls && obj.id !== 'paper-bg') {
         obj.controls.deleteControl = fabric.Object.prototype.controls.deleteControl
@@ -185,12 +188,28 @@ export function useStickerWorkspace({
     }
     fabricCanvas.getObjects().forEach(attachDeleteControl)
 
-    fabricCanvas.on('selection:created', () => { handleSelection(); syncLayers() })
-    fabricCanvas.on('selection:updated', () => { handleSelection(); syncLayers() })
-    fabricCanvas.on('selection:cleared', () => { handleSelection(); syncLayers() })
-    fabricCanvas.on('object:added', e => { attachDeleteControl(e.target); syncLayers() })
-    fabricCanvas.on('object:removed', () => { syncLayers() })
-    fabricCanvas.on('object:modified', () => { syncLayers() })
+    fabricCanvas.on('selection:created', () => {
+      handleSelection()
+      syncLayers()
+    })
+    fabricCanvas.on('selection:updated', () => {
+      handleSelection()
+      syncLayers()
+    })
+    fabricCanvas.on('selection:cleared', () => {
+      handleSelection()
+      syncLayers()
+    })
+    fabricCanvas.on('object:added', e => {
+      attachDeleteControl(e.target)
+      syncLayers()
+    })
+    fabricCanvas.on('object:removed', () => {
+      syncLayers()
+    })
+    fabricCanvas.on('object:modified', () => {
+      syncLayers()
+    })
 
     fabricCanvas.on('mouse:wheel', function (opt) {
       const delta = opt.e.deltaY
@@ -248,7 +267,6 @@ export function useStickerWorkspace({
           const currentWidth = fabricCanvas.width || 0
           const currentHeight = fabricCanvas.height || 0
           if (Math.abs(currentWidth - width) > 1 || Math.abs(currentHeight - height) > 1) {
-            console.log(`[StickerCanvas] ResizeObserver mendeteksi perubahan: ${currentWidth}x${currentHeight} -> ${width}x${height}. isCanvasCentered = ${isCanvasCentered}`)
             fabricCanvas.setDimensions({ width, height })
             if (!isCanvasCentered) {
               centerCanvas()
@@ -281,7 +299,11 @@ export function useStickerWorkspace({
           templateName.value = props.initialTemplate.name
           let parsedConfig = props.initialTemplate.config_json
           if (typeof parsedConfig === 'string') {
-            try { parsedConfig = JSON.parse(parsedConfig) } catch { /* ignore */ }
+            try {
+              parsedConfig = JSON.parse(parsedConfig)
+            } catch {
+              /* ignore */
+            }
           }
           if (parsedConfig && parsedConfig.paper_size_id && paperSizes.value.length) {
             const found = paperSizes.value.find(p => p.id === parsedConfig.paper_size_id)
@@ -311,7 +333,9 @@ export function useStickerWorkspace({
           paperWidth.value = 80
           paperHeight.value = 40
         }
-        setTimeout(() => { initCanvas() }, 100)
+        setTimeout(() => {
+          initCanvas()
+        }, 100)
       }
     }
   )

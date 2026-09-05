@@ -10,7 +10,7 @@ export function useProductContextMenu({ props, emit, features = [] }) {
     options: []
   })
 
-  const isArchived = (row) => row.is_active === 0 || row.deleted_at !== null
+  const isArchived = (row) => !row.is_active || row.is_active === 0 || row.is_active === false
 
   const openContextMenu = (event, row, colId, isEditable = true) => {
     event.preventDefault()

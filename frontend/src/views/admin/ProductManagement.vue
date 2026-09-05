@@ -20,6 +20,7 @@ import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 import ProductTable from '@/components/products/ProductTable.vue'
 import ProductImageModal from '@/components/products/ProductImageModal.vue'
 import StickerGeneratorModal from '@/components/utilities/StickerGeneratorModal.vue'
+import HistoryModal from '@/components/wms/shared/HistoryModal.vue'
 
 const { toast } = useToast()
 const masterStore = useMasterDataStore()
@@ -53,16 +54,12 @@ const showBatchEditModal = ref(false)
 const showProductForm = ref(false)
 const productFormMode = ref('create')
 const selectedProduct = ref({})
-
-// Image Modal State
+const initialFormTab = ref('info')
 const showImageModal = ref(false)
-const selectedImageProduct = ref({})
-
-// Print Modal State
+const selectedImageProduct = ref(null)
+const showHistoryModal = ref(false)
 const showStickerModal = ref(false)
 const printBatchList = ref([])
-
-// Bulk Action State
 const selectedIds = ref(new Set())
 const isProcessingBulk = ref(false)
 
@@ -206,7 +203,7 @@ const handleDelete = async product => {
 const handleRestore = async product => {
   if (!(await swalConfirm(`Pulihkan produk "${product.name}"?`))) return
   try {
-    await axios.put(`/products/${product.id}`, { is_active: true })
+    await axios.put(`/products/${product.id}`, { sku: product.sku, is_active: true })
     toast('Produk dipulihkan.', 'success')
     if (selectedIds.value.has(product.id)) selectedIds.value.delete(product.id)
     fetchProducts()
@@ -219,16 +216,23 @@ const handleRestore = async product => {
 const openAddModal = async () => {
   productFormMode.value = 'create'
   selectedProduct.value = {}
+  initialFormTab.value = 'info'
   showProductForm.value = true
 }
 const openEditModal = p => {
   productFormMode.value = 'edit'
   selectedProduct.value = p
+  initialFormTab.value = 'info'
   showProductForm.value = true
+}
+const openHistoryModal = p => {
+  selectedProduct.value = p
+  showHistoryModal.value = true
 }
 const openDuplicateModal = p => {
   productFormMode.value = 'duplicate'
   selectedProduct.value = p
+  initialFormTab.value = 'info'
   showProductForm.value = true
 }
 
@@ -251,7 +255,10 @@ const performBulkAction = async actionType => {
   try {
     ids.forEach(id => {
       if (actionType === 'archive') promises.push(axios.delete(`/products/${id}`))
-      else promises.push(axios.put(`/products/${id}`, { is_active: true }))
+      else {
+        const product = products.value.find(p => p.id === id)
+        if (product) promises.push(axios.put(`/products/${id}`, { sku: product.sku, is_active: true }))
+      }
     })
     await Promise.all(promises)
     toast(`Berhasil memproses ${ids.length} produk.`, 'success')
@@ -274,6 +281,11 @@ const handleBulkPrintLabel = () => {
     price: p.price,
     quantity: 1
   }))
+  showStickerModal.value = true
+}
+
+const handleSingleSticker = (product) => {
+  printBatchList.value = [{ sku: product.sku, name: product.name, price: product.price, quantity: 1 }]
   showStickerModal.value = true
 }
 
@@ -568,7 +580,8 @@ watch(Slash, pressed => {
       @toggleSelectAll="toggleSelectAll"
       @edit="openEditModal"
       @duplicate="openDuplicateModal"
-      @view-history="openEditModal"
+      @view-history="openHistoryModal"
+      @open-sticker="handleSingleSticker"
       @restore="handleRestore"
       @delete="handleDelete"
       @view-image="openImageModal"
@@ -628,6 +641,7 @@ watch(Slash, pressed => {
       :show="showProductForm"
       :mode="productFormMode"
       :product-data="selectedProduct"
+      :initial-tab="initialFormTab"
       @close="showProductForm = false"
       @refresh="handleProductSaved"
     />
@@ -638,6 +652,8 @@ watch(Slash, pressed => {
       @close="showImageModal = false"
       @refresh="handleImageSaved"
     />
+
+    <HistoryModal :show="showHistoryModal" :product="selectedProduct" @close="showHistoryModal = false" />
 
     <!-- Batch Edit Modal -->
     <BatchEditModal

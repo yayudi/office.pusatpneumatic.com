@@ -15,7 +15,7 @@ const fetchHistory = async () => {
   try {
     const { data } = await axios.get(`/products/${props.productId}/history`)
     if (data.success) {
-      history.value = data.data
+      history.value = data.data || []
     }
   } catch (e) {
     console.error('Gagal load history', e)

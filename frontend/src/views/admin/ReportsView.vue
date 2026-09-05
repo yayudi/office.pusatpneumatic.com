@@ -8,6 +8,7 @@ import BaseSkeleton from '@/components/ui/BaseSkeleton.vue'
 import WmsActionHeader from '@/components/wms/shared/WmsActionHeader.vue'
 import dayjs from 'dayjs'
 import { useMobile } from '@/composables/useMobile.js'
+import { formatFileName } from '@/utils/formatters.js'
 
 const { isMobile } = useMobile()
 const { toast } = useToast()
@@ -45,31 +46,23 @@ const formatDate = dateStr => {
 }
 
 // Helpers untuk Label Tipe Job
-const getJobTypeLabel = type => {
-  switch (type) {
-    case 'STOCK_REPORT':
-      return 'Laporan Stok'
-    case 'PRODUCT_MASTER':
-      return 'Batch Produk'
-    case 'EXPORT_PACKAGES':
-      return 'Batch Paket'
-    default:
-      return type // Fallback
-  }
+const JOB_TYPE_MAP = {
+  STOCK_REPORT: { label: 'Laporan Stok', cls: 'bg-primary/5 text-primary border-primary/20' },
+  PRODUCT_MASTER: { label: 'Batch Produk', cls: 'bg-accent/5 text-accent border-accent/20' },
+  EXPORT_PACKAGES: { label: 'Batch Paket', cls: 'bg-warning/5 text-warning border-warning/20' },
+  STATISTICS_STOCK_MOVEMENT: { label: 'Pergerakan Stok', cls: 'bg-success/5 text-success border-success/20' },
+  IMPORT_STOCK_INBOUND: { label: 'Impor Inbound', cls: 'bg-primary/5 text-primary border-primary/20' },
+  IMPORT_STOCK_ADJUSTMENT: { label: 'Impor Adjustment', cls: 'bg-warning/5 text-warning border-warning/20' },
+  IMPORT_MEDIA_BULK_LINK: { label: 'Link Media', cls: 'bg-accent/5 text-accent border-accent/20' },
+  EXPORT_PRODUCT: { label: 'Ekspor Produk', cls: 'bg-primary/5 text-primary border-primary/20' },
 }
+const DEFAULT_JOB = { label: '', cls: 'bg-secondary/5 text-text/60 border-secondary/20' }
 
-const getJobTypeClass = type => {
-  switch (type) {
-    case 'STOCK_REPORT':
-      return 'bg-primary/5 text-primary border-primary/20'
-    case 'PRODUCT_MASTER':
-      return 'bg-accent/5 text-accent border-accent/20'
-    case 'EXPORT_PACKAGES':
-      return 'bg-warning/5 text-warning border-warning/20'
-    default:
-      return 'bg-secondary/5 text-text/60 border-secondary/20'
-  }
-}
+const getJobTypeLabel = type => (JOB_TYPE_MAP[type]?.label || type.replace(/_/g, ' '))
+const getJobTypeClass = type => (JOB_TYPE_MAP[type]?.cls || DEFAULT_JOB.cls)
+
+const STATUS_LABEL = { COMPLETED: 'Selesai', FAILED: 'Gagal', PROCESSING: 'Proses...', PENDING: 'Antrian' }
+const getStatusLabel = status => STATUS_LABEL[status] || status
 
 onMounted(() => {
   // Hanya fetch jika store masih kosong (misal langsung buka halaman ini pertama kali tanpa refresh GlobalManager)
@@ -178,7 +171,7 @@ onMounted(() => {
             <td :class="isMobile ? 'flex justify-between items-center py-2 border-b border-secondary/10' : 'p-4'">
               <span v-if="isMobile" class="text-text/60 text-xs uppercase font-semibold">File</span>
               <div class="flex flex-col" :class="isMobile ? 'items-end' : ''">
-                <div class="font-bold text-sm">{{ job.file_path || 'Menunggu Proses...' }}</div>
+                <div class="font-bold text-sm truncate max-w-xs" :title="job.file_path">{{ formatFileName(job.file_path, job.type) || 'Menunggu Proses...' }}</div>
                 <div v-if="job.error_message" class="text-xs text-danger mt-1">Error: {{ job.error_message }}</div>
               </div>
             </td>
@@ -199,7 +192,7 @@ onMounted(() => {
                   v-if="job.status === 'PROCESSING'"
                   class="w-1.5 h-1.5 rounded-full bg-current animate-ping"
                 ></span>
-                {{ job.status }}
+                {{ getStatusLabel(job.status) }}
               </span>
             </td>
             <td

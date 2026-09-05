@@ -55,22 +55,32 @@ const fetchTemplates = async () => {
   }
 }
 
+const parsedTemplateConfig = computed(() => {
+  if (!selectedTemplate.value || !selectedTemplate.value.config_json) return null
+  let config = selectedTemplate.value.config_json
+  // Backend may double-stringify: parse until we get an Object
+  while (typeof config === 'string') {
+    try {
+      config = JSON.parse(config)
+    } catch {
+      return null
+    }
+  }
+  return typeof config === 'object' ? config : null
+})
+
 const templateVariables = computed(() => {
   if (!selectedTemplate.value || !selectedTemplate.value.config_json) {
     return ['data_1', 'data_2'] // Default backward compatibility variables
   }
 
   try {
-    const config =
-      typeof selectedTemplate.value.config_json === 'string'
-        ? JSON.parse(selectedTemplate.value.config_json)
-        : selectedTemplate.value.config_json
+    const config = parsedTemplateConfig.value
+    if (!config) return ['data_1', 'data_2']
 
     const vars = new Set()
-    console.log('[DEBUG] Parsing template config_json:', config)
     if (config.objects) {
       config.objects.forEach(obj => {
-        console.log('[DEBUG] Parsing object in modal:', obj.type, obj)
         const textToSearch = obj.text || obj.barcodeValue || ''
         const matches = textToSearch.match(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g)
         if (matches) {
@@ -109,7 +119,7 @@ const handleCopyTemplate = () => {
   showBuilder.value = true
 }
 
-const onTemplateSaved = async (savedData) => {
+const onTemplateSaved = async savedData => {
   await fetchTemplates()
   // Auto-select the newly saved template if it exists in the fetched list
   if (savedData && savedData.id) {
@@ -121,7 +131,6 @@ const onTemplateSaved = async (savedData) => {
 }
 
 const deleteTemplate = async id => {
-  console.log('Menghapus template id:', id, 'selectedTemplate:', selectedTemplate.value)
   if (!id) {
     await swalAlert('ID template tidak ditemukan pada object. Harap refresh.')
     return
@@ -145,7 +154,11 @@ const applyTemplatePaperSize = () => {
   if (selectedTemplate.value && selectedTemplate.value.config_json && paperSizes.value.length > 0) {
     let parsedConfig = selectedTemplate.value.config_json
     if (typeof parsedConfig === 'string') {
-      try { parsedConfig = JSON.parse(parsedConfig) } catch(err) { console.warn(err) }
+      try {
+        parsedConfig = JSON.parse(parsedConfig)
+      } catch (err) {
+        console.warn(err)
+      }
     }
     if (parsedConfig && parsedConfig.paper_size_id) {
       const found = paperSizes.value.find(p => p.id === parsedConfig.paper_size_id)
@@ -174,7 +187,7 @@ const fetchPaperSizes = async () => {
 
 watch(selectedTemplate, applyTemplatePaperSize)
 
-watch(selectedPaperSize, (newSize) => {
+watch(selectedPaperSize, newSize => {
   if (newSize) {
     if (newSize.labelWidth >= newSize.labelHeight) {
       paperOrientation.value = 'landscape'
@@ -225,21 +238,14 @@ const handleProductSelected = (product, sticker, varName) => {
 }
 
 const handleScannerMatchInGenerator = (product, sticker, varName) => {
-  console.log('[Scanner Match] Triggered for:', product?.sku, varName)
   try {
     handleProductSelected(product, sticker, varName)
-    console.log('[Scanner Match] Data populated')
-
-    // Auto-add a new empty sticker row
-    const oldLength = stickers.value.length
     addSticker()
-    console.log(`[Scanner Match] addSticker called. Old length: ${oldLength}, New length: ${stickers.value.length}`)
 
     // Re-focus the newly added row after Vue updates DOM
     setTimeout(() => {
       const newIndex = stickers.value.length - 1
       if (searchSelectors.value[newIndex]) {
-        console.log('[Scanner Match] Refocusing new row index:', newIndex)
         searchSelectors.value[newIndex].focusInput()
       } else {
         console.warn('[Scanner Match] Could not find searchSelector for index:', newIndex)
@@ -573,11 +579,13 @@ const printStickerHeight = computed(() => {
               >
                 <template v-if="stickers.length > 0">
                   <DynamicStickerRenderer
-                    v-if="selectedTemplate && selectedTemplate.config_json"
+                    v-if="parsedTemplateConfig"
                     ref="previewRenderer"
-                    :config="selectedTemplate.config_json"
+                    :config="parsedTemplateConfig"
                     :variables="stickers[0].data"
-                    :paper-size="selectedPaperSize ? `${selectedPaperSize.labelWidth}x${selectedPaperSize.labelHeight}` : '80x40'"
+                    :paper-size="
+                      selectedPaperSize ? `${selectedPaperSize.labelWidth}x${selectedPaperSize.labelHeight}` : '80x40'
+                    "
                   />
                   <DpvStickerTemplate
                     v-else
@@ -605,7 +613,11 @@ const printStickerHeight = computed(() => {
               >
                 <option v-for="size in paperSizes" :key="size.id" :value="size">{{ size.name }}</option>
               </select>
-              <button @click="showPaperSizeManager = true" class="px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary hover:text-white transition-colors" title="Kelola Ukuran Kertas">
+              <button
+                @click="showPaperSizeManager = true"
+                class="px-2 py-1 bg-primary/10 text-primary rounded hover:bg-primary hover:text-white transition-colors"
+                title="Kelola Ukuran Kertas"
+              >
                 <font-awesome-icon icon="fa-solid fa-cog" />
               </button>
             </div>
@@ -659,31 +671,31 @@ const printStickerHeight = computed(() => {
     <div
       v-if="show"
       class="print-container"
-      :class="[((selectedPaperSize?.numberAcross > 1) || (selectedPaperSize?.numberDown > 1)) ? 'print-mode-grid' : 'print-mode-thermal', `print-orientation-${paperOrientation}`]"
+      :class="[
+        selectedPaperSize?.numberAcross > 1 || selectedPaperSize?.numberDown > 1
+          ? 'print-mode-grid'
+          : 'print-mode-thermal',
+        `print-orientation-${paperOrientation}`
+      ]"
     >
       <!-- Inject dynamic @page CSS -->
       <component :is="'style'">
-        @media print { 
-          @page { 
-            size: {{ selectedPaperSize ? `${selectedPaperSize.pageWidth}mm ${selectedPaperSize.pageHeight}mm` : (dynamicStickerWidth + 'mm ' + dynamicStickerHeight + 'mm') }}
-            {{ paperOrientation }}; 
-            margin: 0; 
-          } 
-          
-          .print-mode-grid {
-            display: grid !important;
-            grid-template-columns: repeat({{ selectedPaperSize?.numberAcross || 1 }}, {{ selectedPaperSize?.labelWidth || dynamicStickerWidth }}mm);
-            grid-template-rows: repeat({{ selectedPaperSize?.numberDown || 1 }}, {{ selectedPaperSize?.labelHeight || dynamicStickerHeight }}mm);
-            column-gap: {{ Math.max(0, (selectedPaperSize?.horizontalPitch || 0) - (selectedPaperSize?.labelWidth || 0)) }}mm;
-            row-gap: {{ Math.max(0, (selectedPaperSize?.verticalPitch || 0) - (selectedPaperSize?.labelHeight || 0)) }}mm;
-            padding-top: {{ selectedPaperSize?.topMargin || 0 }}mm;
-            padding-left: {{ selectedPaperSize?.sideMargin || 0 }}mm;
-            background: white;
-            width: 100% !important;
-            height: 100vh !important;
-            box-sizing: border-box;
-          }
-        }
+        @media print { @page { size:
+        {{
+          selectedPaperSize
+            ? `${selectedPaperSize.pageWidth}mm ${selectedPaperSize.pageHeight}mm`
+            : dynamicStickerWidth + 'mm ' + dynamicStickerHeight + 'mm'
+        }}
+        {{ paperOrientation }}; margin: 0; } .print-mode-grid { display: grid !important; grid-template-columns:
+        repeat({{ selectedPaperSize?.numberAcross || 1 }},
+        {{ selectedPaperSize?.labelWidth || dynamicStickerWidth }}mm); grid-template-rows: repeat({{
+          selectedPaperSize?.numberDown || 1
+        }}, {{ selectedPaperSize?.labelHeight || dynamicStickerHeight }}mm); column-gap:
+        {{ Math.max(0, (selectedPaperSize?.horizontalPitch || 0) - (selectedPaperSize?.labelWidth || 0)) }}mm; row-gap:
+        {{ Math.max(0, (selectedPaperSize?.verticalPitch || 0) - (selectedPaperSize?.labelHeight || 0)) }}mm;
+        padding-top: {{ selectedPaperSize?.topMargin || 0 }}mm; padding-left:
+        {{ selectedPaperSize?.sideMargin || 0 }}mm; background: white; width: 100% !important; height: 100vh !important;
+        box-sizing: border-box; } }
       </component>
 
       <div
@@ -697,15 +709,17 @@ const printStickerHeight = computed(() => {
           :style="{ width: dynamicStickerWidth + 'mm', height: dynamicStickerHeight + 'mm' }"
         >
           <DynamicStickerRenderer
-            v-if="selectedTemplate && selectedTemplate.config_json"
+            v-if="parsedTemplateConfig"
             :ref="
               el => {
                 if (el) printRenderers[i] = el
               }
             "
-            :config="selectedTemplate.config_json"
+            :config="parsedTemplateConfig"
             :variables="ps.data"
-            :paper-size="selectedPaperSize ? `${selectedPaperSize.labelWidth}x${selectedPaperSize.labelHeight}` : '80x40'"
+            :paper-size="
+              selectedPaperSize ? `${selectedPaperSize.labelWidth}x${selectedPaperSize.labelHeight}` : '80x40'
+            "
           />
           <DpvStickerTemplate v-else :line1="ps.data?.data_1 || ''" :line2="ps.data?.data_2 || ''" />
         </div>

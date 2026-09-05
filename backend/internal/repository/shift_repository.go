@@ -11,9 +11,9 @@ import (
 type ShiftRepository interface {
 	GetAll(ctx context.Context) ([]model.Shift, error)
 	GetByID(ctx context.Context, id int) (*model.Shift, error)
-	Create(ctx context.Context, shift *model.Shift) (int, error)
-	Update(ctx context.Context, shift *model.Shift) error
-	Delete(ctx context.Context, id int) error
+	Create(ctx context.Context, ext sqlx.ExtContext, shift *model.Shift) (int, error)
+	Update(ctx context.Context, ext sqlx.ExtContext, shift *model.Shift) error
+	Delete(ctx context.Context, ext sqlx.ExtContext, id int) error
 	ClearDefault(ctx context.Context, ext sqlx.ExtContext) error
 	GetUserShift(ctx context.Context, username string) (*model.Shift, error)
 }
@@ -47,11 +47,14 @@ func (r *shiftRepositoryImpl) GetByID(ctx context.Context, id int) (*model.Shift
 	return &shift, nil
 }
 
-func (r *shiftRepositoryImpl) Create(ctx context.Context, shift *model.Shift) (int, error) {
+func (r *shiftRepositoryImpl) Create(ctx context.Context, ext sqlx.ExtContext, shift *model.Shift) (int, error) {
+	if ext == nil {
+		ext = r.db
+	}
 	query := `
 		INSERT INTO shifts (name, start_time, end_time, work_days, flexible_minutes, is_default) 
 		VALUES (?, ?, ?, ?, ?, ?)`
-	result, err := r.db.ExecContext(ctx, query,
+	result, err := ext.ExecContext(ctx, query,
 		shift.Name, shift.StartTime, shift.EndTime, shift.WorkDays, shift.FlexibleMinutes, shift.IsDefault,
 	)
 	if err != nil {
@@ -64,20 +67,26 @@ func (r *shiftRepositoryImpl) Create(ctx context.Context, shift *model.Shift) (i
 	return int(id), nil
 }
 
-func (r *shiftRepositoryImpl) Update(ctx context.Context, shift *model.Shift) error {
+func (r *shiftRepositoryImpl) Update(ctx context.Context, ext sqlx.ExtContext, shift *model.Shift) error {
+	if ext == nil {
+		ext = r.db
+	}
 	query := `
 		UPDATE shifts 
 		SET name = ?, start_time = ?, end_time = ?, work_days = ?, flexible_minutes = ?, is_default = ? 
 		WHERE id = ?`
-	_, err := r.db.ExecContext(ctx, query,
+	_, err := ext.ExecContext(ctx, query,
 		shift.Name, shift.StartTime, shift.EndTime, shift.WorkDays, shift.FlexibleMinutes, shift.IsDefault, shift.ID,
 	)
 	return err
 }
 
-func (r *shiftRepositoryImpl) Delete(ctx context.Context, id int) error {
+func (r *shiftRepositoryImpl) Delete(ctx context.Context, ext sqlx.ExtContext, id int) error {
+	if ext == nil {
+		ext = r.db
+	}
 	query := `DELETE FROM shifts WHERE id = ?`
-	_, err := r.db.ExecContext(ctx, query, id)
+	_, err := ext.ExecContext(ctx, query, id)
 	return err
 }
 

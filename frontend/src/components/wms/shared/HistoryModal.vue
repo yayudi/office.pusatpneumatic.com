@@ -60,8 +60,6 @@ const movementTypes = [
   { label: 'Retur (Return)', value: 'RETURN' }
 ]
 
-// paginationData is now handled by usePagination
-
 async function loadHistory(page) {
   if (!props.product) return
   loading.value = true
@@ -109,7 +107,6 @@ watch(
   }
 )
 </script>
-
 <template>
   <BaseModal :show="show" @close="emit('close')" :title="`Riwayat Stok: ${product?.name}`" maxWidth="max-w-4xl">
     <div

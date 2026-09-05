@@ -92,6 +92,8 @@ graphify-out
 /backend/wmhris
 /backend/api
 /backend/worker
+/backend/bin/api.exe
+/backend/bin/worker.exe
 
 # PHP & Legacy
 /backend/**/*.php
